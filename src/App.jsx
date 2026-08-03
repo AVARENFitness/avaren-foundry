@@ -7,6 +7,7 @@ import MoreScreen from './screens/MoreScreen'
 import WeeklyPlannerScreen from './screens/WeeklyPlannerScreen'
 import HistoryScreen from './screens/HistoryScreen'
 import ForgeScreen from './screens/ForgeScreen'
+import CoachScreen from './screens/CoachScreen'
 import WorkoutBuilderScreen from './screens/WorkoutBuilderScreen'
 import CompletionScreen from './screens/CompletionScreen'
 import WorkoutIntelligenceSummary from './components/WorkoutIntelligenceSummary'
@@ -825,6 +826,16 @@ function App() {
       )
     }
 
+    if (screen === 'coach') {
+      return (
+        <CoachScreen
+          state={state}
+          onClose={() => navigate('more')}
+          onAction={handleCoachAction}
+        />
+      )
+    }
+
     if (screen === 'forge') {
       return (
         <ForgeScreen
@@ -861,6 +872,7 @@ function App() {
           onOpenPlanner={() => navigate('planner')}
           onOpenHistory={() => navigate('history')}
           onOpenForge={() => navigate('forge')}
+          onOpenCoach={() => navigate('coach')}
           session={session}
         />
       )

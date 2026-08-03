@@ -5223,3 +5223,248 @@ body {
   color: var(--gold-bright);
   box-shadow: 0 0 30px rgba(184,149,78,.08);
 }
+
+
+/* ===== AVAREN BUILDER v0.8 · COACH CENTER ===== */
+
+.coach-center-screen {
+  padding-bottom: 96px;
+}
+
+.coach-center-hero {
+  padding: 20px;
+  border: 1px solid rgba(184,149,78,.17);
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at 90% -18%, rgba(184,149,78,.15), transparent 35%),
+    linear-gradient(145deg, rgba(22,22,19,.99), rgba(8,9,8,.995));
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.03),
+    0 24px 70px rgba(0,0,0,.33);
+}
+
+.coach-center-hero-icon {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  margin-bottom: 15px;
+  border: 1px solid rgba(184,149,78,.24);
+  border-radius: 18px;
+  background: rgba(184,149,78,.05);
+  color: var(--gold-bright);
+}
+
+.coach-center-hero h2 {
+  margin: 7px 0 6px;
+  font-size: clamp(31px, 9vw, 45px);
+  letter-spacing: -.055em;
+}
+
+.coach-center-hero p {
+  max-width: 520px;
+  margin: 0;
+  color: #7a746c;
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.coach-center-primary {
+  margin-top: 17px;
+  padding: 13px;
+  border: 1px solid rgba(248,243,230,.065);
+  border-radius: 14px;
+  background: rgba(255,255,255,.017);
+}
+
+.coach-center-primary span,
+.coach-center-primary strong,
+.coach-center-primary small {
+  display: block;
+}
+
+.coach-center-primary span {
+  color: #6f6a63;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+}
+
+.coach-center-primary strong {
+  margin-top: 5px;
+  font-size: 15px;
+}
+
+.coach-center-primary small {
+  margin-top: 4px;
+  color: var(--gold);
+  font-size: 8px;
+  font-weight: 800;
+}
+
+.coach-center-filters {
+  display: flex;
+  gap: 7px;
+  overflow-x: auto;
+  margin: 13px 0;
+  padding-bottom: 3px;
+  scrollbar-width: none;
+}
+
+.coach-center-filters::-webkit-scrollbar {
+  display: none;
+}
+
+.coach-center-filters button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+  padding: 8px 10px;
+  border: 1px solid rgba(248,243,230,.07);
+  border-radius: 999px;
+  background: rgba(255,255,255,.018);
+  color: #706b64;
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.coach-center-filters button span {
+  display: grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.035);
+  font-size: 7px;
+}
+
+.coach-center-filters button.active {
+  border-color: rgba(184,149,78,.27);
+  background: rgba(184,149,78,.06);
+  color: var(--gold-bright);
+}
+
+.coach-center-grid {
+  display: grid;
+  gap: 9px;
+}
+
+.coach-center-card {
+  padding: 16px;
+  border: 1px solid rgba(248,243,230,.075);
+  border-radius: 18px;
+  background:
+    linear-gradient(145deg, rgba(19,22,26,.98), rgba(8,10,12,.995));
+}
+
+.coach-center-card.recovery {
+  border-color: rgba(83,132,108,.21);
+}
+
+.coach-center-card.consistency,
+.coach-center-card.momentum {
+  border-color: rgba(178,93,46,.19);
+}
+
+.coach-center-card.programming {
+  border-color: rgba(105,92,143,.21);
+}
+
+.coach-center-card.strength,
+.coach-center-card.milestone {
+  border-color: rgba(184,149,78,.2);
+}
+
+.coach-center-card > header {
+  display: grid;
+  grid-template-columns: 42px 1fr;
+  align-items: center;
+  gap: 11px;
+}
+
+.coach-center-icon {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border: 1px solid rgba(184,149,78,.18);
+  border-radius: 14px;
+  background: rgba(184,149,78,.04);
+  color: var(--gold);
+}
+
+.coach-center-card header span,
+.coach-center-card header small {
+  display: block;
+}
+
+.coach-center-card header span {
+  color: #8d867d;
+  font-size: 9px;
+  font-weight: 900;
+}
+
+.coach-center-card header small {
+  margin-top: 3px;
+  color: #625e58;
+  font-size: 8px;
+}
+
+.coach-center-card h3 {
+  margin: 14px 0 5px;
+  font-size: 18px;
+  letter-spacing: -.035em;
+}
+
+.coach-center-card > p {
+  margin: 0;
+  color: #777169;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.coach-center-evidence {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 11px;
+}
+
+.coach-center-evidence span {
+  padding: 6px 8px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.026);
+  color: #878077;
+  font-size: 8px;
+  font-weight: 800;
+}
+
+.coach-center-card > button {
+  display: grid;
+  grid-template-columns: 18px 1fr 18px;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: 13px;
+  padding: 11px 12px;
+  border: 1px solid rgba(184,149,78,.16);
+  border-radius: 12px;
+  background: rgba(184,149,78,.04);
+  color: var(--gold-bright);
+  font-size: 9px;
+  font-weight: 900;
+  text-align: left;
+}
+
+.coach-center-card > button svg:last-child {
+  justify-self: end;
+}
+
+@media (min-width: 720px) {
+  .coach-center-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

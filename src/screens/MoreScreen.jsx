@@ -1,4 +1,5 @@
 import {
+  BrainCircuit,
   CalendarDays,
   Download,
   History,
@@ -35,6 +36,7 @@ export default function MoreScreen({
   onOpenPlanner,
   onOpenHistory,
   onOpenForge,
+  onOpenCoach,
   session,
 }) {
   return (
@@ -86,6 +88,10 @@ export default function MoreScreen({
 
         <button className="setting-row" onClick={onOpenForge}>
           <Hammer /> The Forge <span>›</span>
+        </button>
+
+        <button className="setting-row" onClick={onOpenCoach}>
+          <BrainCircuit /> AVAREN Coach <span>›</span>
         </button>
 
         <button className="setting-row" onClick={onOpenPlanner}>
