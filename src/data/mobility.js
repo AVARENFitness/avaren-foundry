@@ -327,12 +327,16 @@ export function buildAdaptiveDailyReset({
   history = [],
   plannedWorkout,
   durationPreferences = {},
+  readiness,
 }) {
   const lastWorkout = latestWorkout(history)
   const previousMuscles = musclesFromSession(lastWorkout)
   const plannedFocus = workoutFocus(plannedWorkout)
 
-  const movementIds = ['neck-cars', 'cat-cow']
+  const movementIds =
+    readiness?.completed && readiness.score < 50
+      ? ['cat-cow', 'child-pose']
+      : ['neck-cars', 'cat-cow']
 
   addMovementIds(movementIds, previousMuscles, 4)
   addMovementIds(movementIds, plannedFocus, 6)
@@ -350,6 +354,12 @@ export function buildAdaptiveDailyReset({
   if (lastWorkout?.name) {
     reasonParts.push(
       `Your last workout was ${lastWorkout.name}, so recovery work is included.`,
+    )
+  }
+
+  if (readiness?.completed && readiness.score < 50) {
+    reasonParts.push(
+      'Today’s readiness is low, so the reset uses a gentler recovery emphasis.',
     )
   }
 

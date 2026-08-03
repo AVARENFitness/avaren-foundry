@@ -14,6 +14,7 @@ import {
 import { useMemo, useState } from 'react'
 import CoachCard from '../components/CoachCard'
 import WeeklyTrainingStrip from '../components/WeeklyTrainingStrip'
+import ReadinessCard from '../components/ReadinessCard'
 import WorkoutSelector from '../components/WorkoutSelector'
 import { forgeSnapshot } from '../lib/forge'
 import {
@@ -96,6 +97,8 @@ export default function HomeScreen({
   onCoachAction,
   onCoachInsightSeen,
   userName,
+  readiness,
+  onOpenReadiness,
 }) {
   const [showSelector, setShowSelector] = useState(false)
 
@@ -213,6 +216,11 @@ export default function HomeScreen({
         </p>
       </section>
 
+      <ReadinessCard
+        readiness={readiness}
+        onOpen={onOpenReadiness}
+      />
+
       <section className="home-focus-card">
         <div className="home-focus-orbit one" />
         <div className="home-focus-orbit two" />
@@ -227,11 +235,23 @@ export default function HomeScreen({
           </div>
 
           <div
-            className={`home-readiness-badge ${recovery.tone}`}
+            className={`home-readiness-badge ${
+              readiness?.completed
+                ? readiness.tone
+                : recovery.tone
+            }`}
           >
             <HeartPulse size={16} />
-            <strong>{recovery.score}</strong>
-            <span>Recovery</span>
+            <strong>
+              {readiness?.completed
+                ? readiness.score
+                : recovery.score}
+            </strong>
+            <span>
+              {readiness?.completed
+                ? 'Readiness'
+                : 'Recovery'}
+            </span>
           </div>
         </div>
 

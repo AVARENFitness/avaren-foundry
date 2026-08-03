@@ -36,6 +36,12 @@ import {
   coachSnapshot,
   recordCoachInsightShown,
 } from './lib/coach'
+import {
+  calculateReadiness,
+  readinessEntryForDate,
+  saveReadinessEntry,
+} from './lib/readiness'
+import ReadinessCheckIn from './components/ReadinessCheckIn'
 
 const createInitialState = () => ({
   program: DEFAULT_PROGRAM,
@@ -62,6 +68,10 @@ const createInitialState = () => ({
   coach: {
     history: [],
     lastShownInsight: null,
+  },
+  readiness: {
+    entries: [],
+    lastPromptedDate: null,
   },
 })
 
@@ -103,6 +113,8 @@ function App() {
   const [transitioning, setTransitioning] = useState(false)
   const [showSplash, setShowSplash] = useState(true)
   const [mobilityFlow, setMobilityFlow] = useState(null)
+  const [showReadinessCheckIn, setShowReadinessCheckIn] =
+    useState(false)
   const [session, setSession] = useState(null)
   const [authLoading, setAuthLoading] = useState(true)
   const [cloudReady, setCloudReady] = useState(false)
@@ -265,11 +277,14 @@ function App() {
       ? scheduledWorkout
       : state.selectedWorkout || state.program.nextWorkout
 
+  const readiness = calculateReadiness(state)
+
   const adaptiveDailyReset = buildAdaptiveDailyReset({
     history: state.history,
     plannedWorkout,
     durationPreferences:
       state.mobility?.durationPreferences ?? {},
+    readiness,
   })
 
   const recoveryIntelligence =
@@ -280,6 +295,25 @@ function App() {
     limit: 3,
     cooldownDays: 5,
   })
+
+
+  const saveReadinessCheckIn = (values) => {
+    setState((current) => ({
+      ...current,
+      readiness: saveReadinessEntry(
+        current.readiness ?? {
+          entries: [],
+          lastPromptedDate: null,
+        },
+        values,
+      ),
+    }))
+    setShowReadinessCheckIn(false)
+
+    if (navigator.vibrate) {
+      navigator.vibrate([18, 30, 18])
+    }
+  }
 
   const handleCoachInsightSeen = (insight) => {
     if (!insight) return
@@ -904,6 +938,10 @@ function App() {
             session?.user?.email?.split('@')[0] ??
             ''
           }
+          readiness={readiness}
+          onOpenReadiness={() =>
+            setShowReadinessCheckIn(true)
+          }
           onSelectWorkout={(workout) =>
             setState((current) => ({
               ...current,
@@ -962,6 +1000,19 @@ function App() {
     >
       <CloudStatus status={cloudStatus} />
       {activeScreen}
+      {showReadinessCheckIn && (
+        <ReadinessCheckIn
+          initialValues={
+            readinessEntryForDate(
+              state.readiness ?? {},
+            ) ?? undefined
+          }
+          onSave={saveReadinessCheckIn}
+          onClose={() =>
+            setShowReadinessCheckIn(false)
+          }
+        />
+      )}
     </AppShell>
   )
 }

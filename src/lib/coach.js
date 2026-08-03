@@ -6,6 +6,7 @@ import {
 } from './analytics'
 import { buildMilestones } from './milestones'
 import { calculateRecoveryIntelligence } from '../data/mobility'
+import { calculateReadiness } from './readiness'
 
 export const COACH_CATEGORIES = {
   RECOVERY: 'recovery',
@@ -152,6 +153,87 @@ const strengthTrend = (history, exercise) => {
     change,
     percent,
   }
+}
+
+
+const readinessInsights = (state) => {
+  const readiness = calculateReadiness(state)
+
+  if (!readiness.completed) {
+    return [
+      makeInsight({
+        category: COACH_CATEGORIES.RECOVERY,
+        priority: 83,
+        title: 'Complete today’s readiness check-in',
+        description:
+          'Sleep, energy, soreness, and stress will help personalize today’s recommendation.',
+        evidence: ['4 quick ratings', 'Daily guidance'],
+        action: COACH_ACTIONS.NONE,
+        key: 'readiness-missing',
+        expiresInDays: 1,
+      }),
+    ]
+  }
+
+  if (readiness.score < 48) {
+    return [
+      makeInsight({
+        category: COACH_CATEGORIES.RECOVERY,
+        priority: 99,
+        title: 'Your readiness is low today',
+        description:
+          readiness.recommendation,
+        evidence: readiness.factors
+          .filter((factor) => factor.concern)
+          .map(
+            (factor) =>
+              `${factor.label} ${factor.value}/5`,
+          ),
+        action: COACH_ACTIONS.START_RESET,
+        actionLabel: 'Start Today’s Reset',
+        key: `readiness-low-${readiness.score}`,
+        expiresInDays: 1,
+      }),
+    ]
+  }
+
+  if (readiness.score >= 82) {
+    return [
+      makeInsight({
+        category: COACH_CATEGORIES.MOMENTUM,
+        priority: 79,
+        title: 'You are ready to push today',
+        description:
+          readiness.recommendation,
+        evidence: readiness.factors
+          .filter((factor) => factor.supportive)
+          .map(
+            (factor) =>
+              `${factor.label} ${factor.value}/5`,
+          ),
+        action: COACH_ACTIONS.START_WORKOUT,
+        actionLabel: 'Start Workout',
+        key: `readiness-high-${readiness.score}`,
+        expiresInDays: 1,
+      }),
+    ]
+  }
+
+  return [
+    makeInsight({
+      category: COACH_CATEGORIES.RECOVERY,
+      priority: 72,
+      title: readiness.status,
+      description: readiness.recommendation,
+      evidence: [
+        `Readiness ${readiness.score}`,
+      ],
+      action: COACH_ACTIONS.START_WORKOUT,
+      actionLabel: 'Start Workout',
+      key: `readiness-middle-${readiness.score}`,
+      expiresInDays: 1,
+    }),
+  ]
 }
 
 const recoveryInsights = (state) => {
@@ -534,6 +616,7 @@ const milestoneInsights = (state) => {
 
 export const buildCoachInsights = (state = {}) =>
   [
+    ...readinessInsights(state),
     ...recoveryInsights(state),
     ...consistencyInsights(state),
     ...programmingInsights(state),
