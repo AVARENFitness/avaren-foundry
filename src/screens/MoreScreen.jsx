@@ -2,6 +2,7 @@ import {
   CalendarDays,
   Download,
   History,
+  Hammer,
   LogOut,
   RotateCcw,
   Settings2,
@@ -33,6 +34,7 @@ export default function MoreScreen({
   onOpenBuilder,
   onOpenPlanner,
   onOpenHistory,
+  onOpenForge,
   session,
 }) {
   return (
@@ -80,6 +82,10 @@ export default function MoreScreen({
 
         <button className="setting-row" onClick={onOpenHistory}>
           <History /> Workout History <span>›</span>
+        </button>
+
+        <button className="setting-row" onClick={onOpenForge}>
+          <Hammer /> The Forge <span>›</span>
         </button>
 
         <button className="setting-row" onClick={onOpenPlanner}>

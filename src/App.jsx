@@ -6,6 +6,7 @@ import ProgressScreen from './screens/ProgressScreen'
 import MoreScreen from './screens/MoreScreen'
 import WeeklyPlannerScreen from './screens/WeeklyPlannerScreen'
 import HistoryScreen from './screens/HistoryScreen'
+import ForgeScreen from './screens/ForgeScreen'
 import WorkoutBuilderScreen from './screens/WorkoutBuilderScreen'
 import CompletionScreen from './screens/CompletionScreen'
 import WorkoutIntelligenceSummary from './components/WorkoutIntelligenceSummary'
@@ -816,6 +817,15 @@ function App() {
       )
     }
 
+    if (screen === 'forge') {
+      return (
+        <ForgeScreen
+          state={state}
+          onClose={() => navigate('more')}
+        />
+      )
+    }
+
     if (screen === 'history') {
       return (
         <HistoryScreen
@@ -842,6 +852,7 @@ function App() {
           onOpenBuilder={() => navigate('builder')}
           onOpenPlanner={() => navigate('planner')}
           onOpenHistory={() => navigate('history')}
+          onOpenForge={() => navigate('forge')}
           session={session}
         />
       )
