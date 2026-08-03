@@ -2480,3 +2480,167 @@ body {
     justify-content: flex-start;
   }
 }
+
+/* ===== WORKOUT SELECTOR ===== */
+
+.hero-workout-button {
+  width: 100%;
+  border: 0;
+  border-top: 1px solid rgba(248,243,230,.08);
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.hero-workout-button strong {
+  margin-left: auto;
+}
+
+.hero-workout-button svg {
+  margin-left: 9px;
+  color: var(--gold-bright);
+  transition: transform .18s ease;
+}
+
+.hero-workout-button:not(.locked):active svg {
+  transform: translateY(2px);
+}
+
+.hero-workout-button.locked {
+  cursor: default;
+}
+
+.workout-selector-backdrop {
+  position: fixed;
+  z-index: 120;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 12px;
+  background: rgba(0,0,0,.74);
+  backdrop-filter: blur(10px);
+  animation: modalFade .2s ease both;
+}
+
+.workout-selector-sheet {
+  width: min(720px, 100%);
+  max-height: min(82vh, 720px);
+  overflow-y: auto;
+  padding: 20px;
+  border: 1px solid rgba(248,243,230,.1);
+  border-radius: 27px;
+  background:
+    radial-gradient(circle at 88% -10%, rgba(184,149,78,.13), transparent 30%),
+    linear-gradient(145deg, #171a1f, #080a0d);
+  box-shadow: 0 32px 100px rgba(0,0,0,.68);
+  animation: modalRise .3s cubic-bezier(.18,.8,.2,1) both;
+}
+
+.workout-selector-sheet > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 16px;
+}
+
+.workout-selector-sheet h2 {
+  margin: 7px 0 5px;
+  font-size: 29px;
+  letter-spacing: -.05em;
+}
+
+.workout-selector-sheet header p {
+  margin: 0;
+  color: #77736d;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.selector-close {
+  display: grid;
+  place-items: center;
+  flex: 0 0 39px;
+  width: 39px;
+  height: 39px;
+  border: 1px solid rgba(248,243,230,.08);
+  border-radius: 12px;
+  background: rgba(255,255,255,.025);
+  color: #8d887f;
+}
+
+.workout-selector-list {
+  display: grid;
+  gap: 8px;
+}
+
+.workout-selector-list > button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  width: 100%;
+  min-height: 66px;
+  padding: 13px 15px;
+  border: 1px solid rgba(248,243,230,.075);
+  border-radius: 16px;
+  background: rgba(255,255,255,.018);
+  color: var(--cream);
+  text-align: left;
+}
+
+.workout-selector-list > button.selected {
+  border-color: rgba(184,149,78,.34);
+  background:
+    linear-gradient(90deg, rgba(184,149,78,.09), rgba(184,149,78,.025));
+  box-shadow: inset 3px 0 0 var(--gold);
+}
+
+.workout-selector-list small,
+.workout-selector-list strong {
+  display: block;
+}
+
+.workout-selector-list small {
+  color: #68645e;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: .12em;
+}
+
+.workout-selector-list strong {
+  margin-top: 5px;
+  font-size: 15px;
+}
+
+.workout-selector-list > button > svg {
+  color: #69655f;
+}
+
+.selector-check {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--gold);
+  color: #171208;
+}
+
+.selector-builder {
+  display: grid;
+  grid-template-columns: 24px 1fr auto;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  margin-top: 12px;
+  padding: 15px;
+  border: 1px dashed rgba(184,149,78,.25);
+  border-radius: 15px;
+  background: rgba(184,149,78,.025);
+  color: var(--gold-bright);
+  font-weight: 800;
+  text-align: left;
+}

@@ -16,6 +16,7 @@ const createInitialState = () => ({
   history: [],
   achievements: [],
   baselines: BASELINES,
+  selectedWorkout: DEFAULT_PROGRAM.nextWorkout,
 })
 
 const makeSet = (number, type = 'Working') => ({
@@ -76,7 +77,7 @@ function App() {
       return
     }
 
-    const name = state.program.nextWorkout
+    const name = state.selectedWorkout || state.program.nextWorkout
     const definitions = state.program.workouts[name] ?? []
 
     const activeWorkout = {
@@ -270,6 +271,7 @@ function App() {
     setState((current) => ({
       ...current,
       program: { ...current.program, nextWorkout },
+      selectedWorkout: nextWorkout,
       activeWorkout: null,
       history: [...current.history, completedSession],
       achievements:
@@ -354,6 +356,9 @@ function App() {
         state={state}
         onStart={startWorkout}
         setScreen={setScreen}
+        onSelectWorkout={(workout) =>
+          setState((current) => ({ ...current, selectedWorkout: workout }))
+        }
       />
     )
   }, [screen, state, activeExercise, completedSession])

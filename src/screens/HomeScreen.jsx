@@ -1,10 +1,20 @@
-import { ArrowRight, Dumbbell, Flame, Layers3, Trophy } from 'lucide-react'
+import { ArrowRight, ChevronDown, Dumbbell, Flame, Layers3, Trophy } from 'lucide-react'
+import { useState } from 'react'
 import MetricCard from '../components/MetricCard'
+import WorkoutSelector from '../components/WorkoutSelector'
 import { totalSets, totalVolume } from '../lib/metrics'
 
-export default function HomeScreen({ state, onStart, setScreen }) {
+export default function HomeScreen({
+  state,
+  onStart,
+  setScreen,
+  onSelectWorkout,
+}) {
+  const [showSelector, setShowSelector] = useState(false)
   const active = state.activeWorkout
-  const workoutName = active ? active.name : state.program.nextWorkout
+  const workoutName = active
+    ? active.name
+    : state.selectedWorkout || state.program.nextWorkout
 
   return (
     <>
@@ -17,10 +27,15 @@ export default function HomeScreen({ state, onStart, setScreen }) {
         <h1>{active ? 'Continue.' : 'Ready.'}</h1>
         <p>{active ? 'Return to the set that matters.' : 'Forge your next PR.'}</p>
 
-        <div className="hero-workout">
+        <button
+          className={`hero-workout hero-workout-button ${active ? 'locked' : ''}`}
+          onClick={() => !active && setShowSelector(true)}
+          disabled={Boolean(active)}
+        >
           <span>Today</span>
           <strong>{workoutName}</strong>
-        </div>
+          {!active && <ChevronDown size={18} />}
+        </button>
 
         <button className="gold-button machined" onClick={onStart}>
           <Dumbbell size={18} />
@@ -42,6 +57,22 @@ export default function HomeScreen({ state, onStart, setScreen }) {
         <button onClick={() => setScreen('builder')}><Layers3 /> Workout Builder <ArrowRight /></button>
         <button onClick={() => setScreen('progress')}><Trophy /> Achievements <ArrowRight /></button>
       </section>
+
+      {showSelector && !active && (
+        <WorkoutSelector
+          workouts={state.program.rotation}
+          selectedWorkout={workoutName}
+          onClose={() => setShowSelector(false)}
+          onSelect={(workout) => {
+            onSelectWorkout(workout)
+            setShowSelector(false)
+          }}
+          onOpenBuilder={() => {
+            setShowSelector(false)
+            setScreen('builder')
+          }}
+        />
+      )}
     </>
   )
 }
