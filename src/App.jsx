@@ -686,7 +686,7 @@ function App() {
     if (screen === 'history') {
       return (
         <HistoryScreen
-          history={state.history}
+          state={state}
           onClose={() => navigate('more')}
           onDelete={(sessionId) =>
             setState((current) => ({
