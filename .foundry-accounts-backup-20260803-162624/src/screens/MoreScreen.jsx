@@ -2,13 +2,10 @@ import {
   CalendarDays,
   Download,
   History,
-  LogOut,
   RotateCcw,
   Settings2,
-  UserRound,
 } from 'lucide-react'
 import ImportBackupButton from '../components/ImportBackupButton'
-import { supabase } from '../lib/supabase'
 import {
   clearState,
   exportState,
@@ -33,7 +30,6 @@ export default function MoreScreen({
   onOpenBuilder,
   onOpenPlanner,
   onOpenHistory,
-  session,
 }) {
   return (
     <>
@@ -88,30 +84,6 @@ export default function MoreScreen({
 
         <button className="setting-row" onClick={onOpenBuilder}>
           <Settings2 /> Workout Builder <span>›</span>
-        </button>
-      </section>
-
-      <section className="luxury-panel settings-group">
-        <div className="settings-caption">ACCOUNT</div>
-
-        <div className="account-row">
-          <UserRound />
-          <div>
-            <strong>
-              {session?.user?.user_metadata?.display_name || 'AVAREN Athlete'}
-            </strong>
-            <span>{session?.user?.email}</span>
-          </div>
-        </div>
-
-        <button
-          className="setting-row"
-          onClick={async () => {
-            const { error } = await supabase.auth.signOut()
-            if (error) alert(error.message)
-          }}
-        >
-          <LogOut /> Sign out <span>›</span>
         </button>
       </section>
 

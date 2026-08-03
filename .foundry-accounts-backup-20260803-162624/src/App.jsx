@@ -8,8 +8,6 @@ import WeeklyPlannerScreen from './screens/WeeklyPlannerScreen'
 import HistoryScreen from './screens/HistoryScreen'
 import WorkoutBuilderScreen from './screens/WorkoutBuilderScreen'
 import CompletionScreen from './screens/CompletionScreen'
-import AuthScreen from './screens/AuthScreen'
-import { isSupabaseConfigured, supabase } from './lib/supabase'
 import { BASELINES, DEFAULT_PROGRAM } from './data/defaultProgram'
 import { estimatedOneRepMax, recentPRs } from './lib/metrics'
 import { loadState, saveState } from './lib/storage'
@@ -69,30 +67,6 @@ function App() {
   const [isFinishing, setIsFinishing] = useState(false)
   const [transitioning, setTransitioning] = useState(false)
   const [showSplash, setShowSplash] = useState(true)
-  const [session, setSession] = useState(null)
-  const [authLoading, setAuthLoading] = useState(true)
-
-  useEffect(() => {
-    if (!isSupabaseConfigured) {
-      setAuthLoading(false)
-      return
-    }
-
-    supabase.auth.getSession().then(({ data, error }) => {
-      if (error) console.error('Unable to restore session:', error)
-      setSession(data?.session ?? null)
-      setAuthLoading(false)
-    })
-
-    const { data: listener } = supabase.auth.onAuthStateChange(
-      (_event, nextSession) => {
-        setSession(nextSession)
-        setAuthLoading(false)
-      },
-    )
-
-    return () => listener.subscription.unsubscribe()
-  }, [])
 
   useEffect(() => {
     const timer = setTimeout(() => setShowSplash(false), 1050)
@@ -457,7 +431,6 @@ function App() {
           onOpenBuilder={() => navigate('builder')}
           onOpenPlanner={() => navigate('planner')}
           onOpenHistory={() => navigate('history')}
-          session={session}
         />
       )
     }
@@ -473,33 +446,6 @@ function App() {
       />
     )
   }, [screen, state, activeExercise, completedSession])
-
-  if (!isSupabaseConfigured) {
-    return (
-      <main className="auth-screen">
-        <section className="auth-card">
-          <span className="eyebrow">CLOUD SETUP REQUIRED</span>
-          <h2>Supabase is not configured.</h2>
-          <p className="auth-copy">
-            Add your Supabase URL and publishable key to .env.local, then restart the app.
-          </p>
-        </section>
-      </main>
-    )
-  }
-
-  if (authLoading) {
-    return (
-      <main className="auth-screen">
-        <section className="auth-card auth-loading">
-          <span className="eyebrow">AVAREN</span>
-          <h2>Opening The Foundry…</h2>
-        </section>
-      </main>
-    )
-  }
-
-  if (!session) return <AuthScreen />
 
   if (showSplash) {
     return (
