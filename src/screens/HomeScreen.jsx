@@ -13,6 +13,7 @@ import {
 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import CoachCard from '../components/CoachCard'
+import WeeklyTrainingStrip from '../components/WeeklyTrainingStrip'
 import WorkoutSelector from '../components/WorkoutSelector'
 import { forgeSnapshot } from '../lib/forge'
 import {
@@ -362,6 +363,11 @@ export default function HomeScreen({
           )}
         </button>
       </section>
+
+      <WeeklyTrainingStrip
+        state={state}
+        onOpenPlanner={() => setScreen('planner')}
+      />
 
       <section className="home-week-card">
         <header>

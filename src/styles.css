@@ -5946,3 +5946,329 @@ body {
     margin-top: 0;
   }
 }
+
+
+/* ===== AVAREN BUILDER v1.0 · WEEKLY TRAINING CALENDAR ===== */
+
+.weekly-training-strip {
+  margin-bottom: 12px;
+  padding: 16px;
+  border: 1px solid rgba(248,243,230,.075);
+  border-radius: 19px;
+  background:
+    linear-gradient(145deg, rgba(19,22,26,.98), rgba(8,10,12,.995));
+}
+
+.weekly-training-strip > header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.weekly-training-strip h2 {
+  margin: 5px 0 0;
+  font-size: 18px;
+}
+
+.weekly-training-strip > header button {
+  padding: 7px 9px;
+  border: 1px solid rgba(184,149,78,.17);
+  border-radius: 999px;
+  background: rgba(184,149,78,.04);
+  color: var(--gold-bright);
+  font-size: 8px;
+  font-weight: 900;
+}
+
+.weekly-training-days {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 5px;
+}
+
+.weekly-training-day {
+  min-width: 0;
+  padding: 8px 3px;
+  border: 1px solid rgba(248,243,230,.06);
+  border-radius: 12px;
+  background: rgba(255,255,255,.015);
+  color: #777169;
+}
+
+.weekly-training-day > span,
+.weekly-training-day > strong,
+.weekly-training-day > small {
+  display: block;
+}
+
+.weekly-training-day > span {
+  font-size: 7px;
+  font-weight: 900;
+}
+
+.weekly-training-day > strong {
+  margin-top: 3px;
+  color: var(--cream);
+  font-size: 13px;
+}
+
+.weekly-training-day > small {
+  overflow: hidden;
+  margin-top: 5px;
+  color: #625e58;
+  font-size: 6px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.weekly-day-status {
+  display: grid;
+  place-items: center;
+  width: 23px;
+  height: 23px;
+  margin: 6px auto 0;
+  border-radius: 50%;
+  background: rgba(255,255,255,.025);
+}
+
+.weekly-training-day.completed {
+  border-color: rgba(83,132,108,.23);
+  color: #91b8a0;
+}
+
+.weekly-training-day.today,
+.weekly-training-day.rest-today {
+  border-color: rgba(184,149,78,.28);
+  background: rgba(184,149,78,.05);
+  color: var(--gold-bright);
+}
+
+.weekly-training-day.missed {
+  border-color: rgba(166,83,54,.2);
+  color: #b87863;
+}
+
+.weekly-training-day.rest {
+  color: #777169;
+}
+
+.weekly-mobility-icons {
+  display: flex;
+  justify-content: center;
+  gap: 3px;
+  margin-top: 5px;
+  color: var(--gold);
+}
+
+.weekly-calendar-hero {
+  display: grid;
+  grid-template-columns: 52px 1fr;
+  align-items: center;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid rgba(184,149,78,.17);
+  border-radius: 21px;
+  background:
+    radial-gradient(circle at 90% -18%, rgba(184,149,78,.14), transparent 36%),
+    linear-gradient(145deg, rgba(22,22,19,.99), rgba(8,9,8,.995));
+}
+
+.weekly-calendar-hero > svg {
+  color: var(--gold-bright);
+}
+
+.weekly-calendar-hero h2 {
+  margin: 6px 0 4px;
+  font-size: 24px;
+}
+
+.weekly-calendar-hero p {
+  margin: 0;
+  color: #777169;
+  font-size: 9px;
+  line-height: 1.45;
+}
+
+.weekly-calendar-summary {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 7px;
+  margin: 11px 0;
+}
+
+.weekly-calendar-summary article {
+  padding: 11px 8px;
+  border: 1px solid rgba(248,243,230,.06);
+  border-radius: 13px;
+  background: rgba(255,255,255,.015);
+}
+
+.weekly-calendar-summary span,
+.weekly-calendar-summary strong {
+  display: block;
+  text-align: center;
+}
+
+.weekly-calendar-summary span {
+  color: #6c675f;
+  font-size: 7px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.weekly-calendar-summary strong {
+  margin-top: 4px;
+  font-size: 17px;
+}
+
+.weekly-calendar-days {
+  display: grid;
+  gap: 9px;
+}
+
+.weekly-calendar-day {
+  padding: 15px;
+  border: 1px solid rgba(248,243,230,.07);
+  border-radius: 17px;
+  background:
+    linear-gradient(145deg, rgba(19,22,26,.98), rgba(8,10,12,.995));
+}
+
+.weekly-calendar-day.completed {
+  border-color: rgba(83,132,108,.22);
+}
+
+.weekly-calendar-day.today,
+.weekly-calendar-day.rest-today {
+  border-color: rgba(184,149,78,.26);
+}
+
+.weekly-calendar-day.missed {
+  border-color: rgba(166,83,54,.2);
+}
+
+.weekly-calendar-day > header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.weekly-calendar-date span,
+.weekly-calendar-date strong {
+  display: block;
+}
+
+.weekly-calendar-date span {
+  color: #7c766e;
+  font-size: 9px;
+  font-weight: 900;
+}
+
+.weekly-calendar-date strong {
+  margin-top: 3px;
+  font-size: 20px;
+}
+
+.weekly-calendar-status {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: #817a71;
+  font-size: 8px;
+  font-weight: 900;
+}
+
+.weekly-calendar-day.completed .weekly-calendar-status {
+  color: #91b8a0;
+}
+
+.weekly-calendar-day.missed .weekly-calendar-status {
+  color: #b87863;
+}
+
+.weekly-calendar-day > label {
+  display: block;
+  margin-top: 13px;
+}
+
+.weekly-calendar-day > label > span {
+  display: block;
+  margin-bottom: 6px;
+  color: #69645e;
+  font-size: 8px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.weekly-calendar-day select {
+  width: 100%;
+  padding: 11px 12px;
+  border: 1px solid rgba(248,243,230,.07);
+  border-radius: 12px;
+  background: #0b0e12;
+  color: var(--cream);
+}
+
+.weekly-completed-workout {
+  display: grid;
+  grid-template-columns: 20px 1fr;
+  align-items: center;
+  gap: 8px;
+  margin-top: 11px;
+  padding: 10px;
+  border-radius: 11px;
+  background: rgba(83,132,108,.05);
+  color: #91b8a0;
+}
+
+.weekly-completed-workout span,
+.weekly-completed-workout strong {
+  display: block;
+}
+
+.weekly-completed-workout span {
+  font-size: 7px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.weekly-completed-workout strong {
+  margin-top: 3px;
+  font-size: 10px;
+}
+
+.weekly-recovery-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.weekly-recovery-tags span {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 8px;
+  border-radius: 999px;
+  background: rgba(184,149,78,.04);
+  color: #938978;
+  font-size: 7px;
+  font-weight: 800;
+}
+
+@media (max-width: 390px) {
+  .weekly-training-days {
+    gap: 3px;
+  }
+
+  .weekly-training-day {
+    padding-inline: 1px;
+  }
+
+  .weekly-calendar-summary {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
