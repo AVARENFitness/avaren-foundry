@@ -3,6 +3,7 @@ import { Award, Flame, Layers3, Trophy } from 'lucide-react'
 import { BASELINES, MILESTONE_CHAINS } from '../data/defaultProgram'
 import StrengthChart from '../components/StrengthChart'
 import ExerciseProfile from '../components/ExerciseProfile'
+import TrainingOverview from '../components/TrainingOverview'
 import {
   consistencyStreak,
   exerciseNames,
@@ -39,6 +40,7 @@ export default function ProgressScreen({ state }) {
 
   return (
     <>
+      <TrainingOverview state={state} />
       <section className="section-heading progress-heading">
         <span className="eyebrow">MY TRAINING</span>
         <h1>Progress, without noise.</h1>

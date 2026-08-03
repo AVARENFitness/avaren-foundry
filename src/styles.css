@@ -3860,3 +3860,152 @@ body {
   font-size: 11px;
   text-align: right;
 }
+
+
+/* ===== TRAINING OVERVIEW ===== */
+
+.training-overview {
+  margin-bottom: 13px;
+  padding: 19px;
+  border: 1px solid rgba(248,243,230,.09);
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at 90% -18%, rgba(184,149,78,.14), transparent 32%),
+    linear-gradient(145deg, rgba(21,24,28,.99), rgba(8,10,12,.995));
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.028),
+    0 24px 70px rgba(0,0,0,.34);
+}
+
+.training-overview > header h2 {
+  margin: 7px 0 6px;
+  font-size: clamp(31px, 9vw, 46px);
+  letter-spacing: -.06em;
+}
+
+.training-overview > header p {
+  max-width: 520px;
+  margin: 0;
+  color: #77726b;
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.training-overview-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin-top: 17px;
+}
+
+.training-overview-grid article {
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid rgba(248,243,230,.065);
+  border-radius: 15px;
+  background: rgba(255,255,255,.016);
+}
+
+.training-overview-grid svg {
+  color: var(--gold);
+}
+
+.training-overview-grid span,
+.training-overview-grid strong {
+  display: block;
+}
+
+.training-overview-grid span {
+  margin-top: 11px;
+  color: #68645e;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+
+.training-overview-grid strong {
+  overflow: hidden;
+  margin-top: 5px;
+  color: var(--cream);
+  font-size: 17px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.muscle-volume-panel {
+  margin-top: 17px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(248,243,230,.065);
+}
+
+.muscle-volume-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.muscle-volume-heading h3 {
+  margin: 5px 0 0;
+  font-size: 18px;
+  letter-spacing: -.035em;
+}
+
+.muscle-volume-heading > small {
+  color: #625e58;
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+.muscle-volume-row {
+  display: grid;
+  grid-template-columns: minmax(90px, .45fr) 1fr;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 0;
+}
+
+.muscle-volume-row > div:first-child strong,
+.muscle-volume-row > div:first-child span {
+  display: block;
+}
+
+.muscle-volume-row > div:first-child strong {
+  font-size: 11px;
+}
+
+.muscle-volume-row > div:first-child span {
+  margin-top: 3px;
+  color: #66625d;
+  font-size: 8px;
+}
+
+.muscle-volume-track {
+  height: 5px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(248,243,230,.055);
+}
+
+.muscle-volume-track div {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #806127, var(--gold-bright));
+}
+
+.analytics-empty {
+  margin: 0;
+  color: #6e6963;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+@media (min-width: 700px) {
+  .training-overview-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
