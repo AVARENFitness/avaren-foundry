@@ -899,6 +899,11 @@ function App() {
           coachInsight={coach.primary}
           onCoachAction={handleCoachAction}
           onCoachInsightSeen={handleCoachInsightSeen}
+          userName={
+            session?.user?.user_metadata?.display_name ??
+            session?.user?.email?.split('@')[0] ??
+            ''
+          }
           onSelectWorkout={(workout) =>
             setState((current) => ({
               ...current,
