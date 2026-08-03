@@ -28,6 +28,11 @@ import { BASELINES, DEFAULT_PROGRAM } from './data/defaultProgram'
 import { estimatedOneRepMax, recentPRs } from './lib/metrics'
 import { newlyEarnedMilestones } from './lib/milestones'
 import { loadState, saveState } from './lib/storage'
+import {
+  COACH_ACTIONS,
+  coachSnapshot,
+  recordCoachInsightShown,
+} from './lib/coach'
 
 const createInitialState = () => ({
   program: DEFAULT_PROGRAM,
@@ -50,6 +55,10 @@ const createInitialState = () => ({
   mobility: {
     durationPreferences: {},
     completed: [],
+  },
+  coach: {
+    history: [],
+    lastShownInsight: null,
   },
 })
 
@@ -261,6 +270,76 @@ function App() {
 
   const recoveryIntelligence =
     calculateRecoveryIntelligence(state)
+
+
+  const coach = coachSnapshot(state, {
+    limit: 3,
+    cooldownDays: 5,
+  })
+
+  const handleCoachInsightSeen = (insight) => {
+    if (!insight) return
+
+    setState((current) => {
+      const currentCoach = current.coach ?? {
+        history: [],
+        lastShownInsight: null,
+      }
+
+      if (
+        currentCoach.lastShownInsight ===
+        insight.fingerprint
+      ) {
+        return current
+      }
+
+      return {
+        ...current,
+        coach: recordCoachInsightShown(
+          currentCoach,
+          insight,
+        ),
+      }
+    })
+  }
+
+  const handleCoachAction = (action) => {
+    if (action === COACH_ACTIONS.START_RESET) {
+      openDailyReset()
+      return
+    }
+
+    if (action === COACH_ACTIONS.START_RECOVERY) {
+      const lastWorkout = [...state.history]
+        .sort((first, second) =>
+          String(first?.date).localeCompare(
+            String(second?.date),
+          ),
+        )
+        .at(-1)
+
+      if (lastWorkout) {
+        openRecoveryFlow(lastWorkout)
+      } else {
+        openDailyReset()
+      }
+      return
+    }
+
+    if (action === COACH_ACTIONS.START_WORKOUT) {
+      startWorkout()
+      return
+    }
+
+    if (action === COACH_ACTIONS.OPEN_PROGRESS) {
+      navigate('progress')
+      return
+    }
+
+    if (action === COACH_ACTIONS.OPEN_JOURNEY) {
+      navigate('history')
+    }
+  }
 
   const openDailyReset = () => {
     setMobilityFlow(adaptiveDailyReset)
@@ -786,6 +865,9 @@ function App() {
           onStart={startWorkout}
           setScreen={setScreen}
           recoveryIntelligence={recoveryIntelligence}
+          coachInsight={coach.primary}
+          onCoachAction={handleCoachAction}
+          onCoachInsightSeen={handleCoachInsightSeen}
           onSelectWorkout={(workout) =>
             setState((current) => ({
               ...current,

@@ -4665,3 +4665,158 @@ body {
     height: 58px;
   }
 }
+
+
+/* ===== AVAREN BUILDER v0.4 · COACH UI ===== */
+
+.coach-card {
+  margin-bottom: 12px;
+  padding: 17px;
+  border: 1px solid rgba(184,149,78,.16);
+  border-radius: 21px;
+  background:
+    radial-gradient(circle at 90% -20%, rgba(184,149,78,.14), transparent 36%),
+    linear-gradient(145deg, rgba(22,22,19,.99), rgba(8,9,8,.995));
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.028),
+    0 20px 62px rgba(0,0,0,.29);
+}
+
+.coach-card.recovery {
+  border-color: rgba(83,132,108,.22);
+  background:
+    radial-gradient(circle at 90% -20%, rgba(83,132,108,.16), transparent 36%),
+    linear-gradient(145deg, rgba(17,25,21,.99), rgba(7,10,8,.995));
+}
+
+.coach-card.consistency,
+.coach-card.momentum {
+  border-color: rgba(178,93,46,.2);
+  background:
+    radial-gradient(circle at 90% -20%, rgba(178,93,46,.15), transparent 36%),
+    linear-gradient(145deg, rgba(25,18,14,.99), rgba(10,8,7,.995));
+}
+
+.coach-card.strength,
+.coach-card.milestone {
+  border-color: rgba(184,149,78,.22);
+}
+
+.coach-card.programming {
+  border-color: rgba(105,92,143,.2);
+  background:
+    radial-gradient(circle at 90% -20%, rgba(105,92,143,.15), transparent 36%),
+    linear-gradient(145deg, rgba(20,18,27,.99), rgba(8,8,11,.995));
+}
+
+.coach-card-header {
+  display: grid;
+  grid-template-columns: 43px 1fr auto;
+  align-items: center;
+  gap: 11px;
+}
+
+.coach-card-icon {
+  display: grid;
+  place-items: center;
+  width: 43px;
+  height: 43px;
+  border: 1px solid rgba(184,149,78,.2);
+  border-radius: 14px;
+  background: rgba(184,149,78,.045);
+  color: var(--gold-bright);
+}
+
+.coach-card-header small {
+  display: block;
+  margin-top: 3px;
+  color: #777169;
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.coach-priority {
+  display: grid;
+  place-items: center;
+  min-width: 35px;
+  height: 28px;
+  padding: 0 7px;
+  border: 1px solid rgba(248,243,230,.07);
+  border-radius: 999px;
+  color: #7d776f;
+  font-size: 9px;
+  font-weight: 900;
+}
+
+.coach-card-body {
+  margin-top: 14px;
+}
+
+.coach-card-body h2 {
+  margin: 0;
+  font-size: 21px;
+  letter-spacing: -.042em;
+}
+
+.coach-card-body p {
+  margin: 7px 0 0;
+  color: #7d776f;
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.coach-evidence {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.coach-evidence span {
+  padding: 6px 8px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.026);
+  color: #898278;
+  font-size: 8px;
+  font-weight: 800;
+}
+
+.coach-action {
+  display: grid;
+  grid-template-columns: 18px 1fr 18px;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: 14px;
+  padding: 12px;
+  border: 1px solid rgba(184,149,78,.18);
+  border-radius: 13px;
+  background: rgba(184,149,78,.045);
+  color: var(--gold-bright);
+  font-size: 10px;
+  font-weight: 900;
+  text-align: left;
+}
+
+.coach-action svg:last-child {
+  justify-self: end;
+}
+
+.coach-card-empty {
+  display: grid;
+  grid-template-columns: 43px 1fr;
+  align-items: center;
+  gap: 12px;
+}
+
+.coach-card-empty h2 {
+  margin: 5px 0 3px;
+  font-size: 17px;
+}
+
+.coach-card-empty p {
+  margin: 0;
+  color: #777169;
+  font-size: 10px;
+  line-height: 1.45;
+}

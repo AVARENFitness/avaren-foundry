@@ -1,6 +1,7 @@
 import { ArrowRight, ChevronDown, Dumbbell, Flame, HeartPulse, Layers3, Trophy } from 'lucide-react'
 import { useState } from 'react'
 import MetricCard from '../components/MetricCard'
+import CoachCard from '../components/CoachCard'
 import WorkoutSelector from '../components/WorkoutSelector'
 import { totalSets, totalVolume } from '../lib/metrics'
 
@@ -10,6 +11,9 @@ export default function HomeScreen({
   setScreen,
   onSelectWorkout,
   recoveryIntelligence,
+  coachInsight,
+  onCoachAction,
+  onCoachInsightSeen,
 }) {
   const [showSelector, setShowSelector] = useState(false)
   const active = state.activeWorkout
@@ -32,6 +36,12 @@ export default function HomeScreen({
 
   return (
     <>
+      <CoachCard
+        insight={coachInsight}
+        onAction={onCoachAction}
+        onSeen={onCoachInsightSeen}
+      />
+
       <section className="hero-card luxury-surface">
         <div className="hero-noise" />
         <div className="hero-orbit one" />
