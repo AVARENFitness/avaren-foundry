@@ -1,8 +1,8 @@
 import {
   currentWorkoutStreak,
   longestWorkoutStreak,
-  totalWorkoutVolume,
 } from './analytics'
+import { buildMilestones } from './milestones'
 
 export const JOURNEY_EVENT_TYPES = {
   WORKOUT: 'workout',
@@ -235,105 +235,20 @@ const streakEvents = (history = []) => {
   return events
 }
 
-const milestoneEvents = (state = {}) => {
-  const history = state?.history ?? []
-  const mobility = state?.mobility?.completed ?? []
-  const events = []
+const milestoneEvents = (state = {}) =>
+  buildMilestones(state).map((milestone) => ({
+    id: milestone.id,
+    type: JOURNEY_EVENT_TYPES.MILESTONE,
+    occurredAt: milestone.achievedAt,
+    title: milestone.title,
+    subtitle: milestone.subtitle,
+    summary: {
+      milestone: milestone.type,
+      value: milestone.value,
+    },
+    source: milestone,
+  }))
 
-  const firstWorkout = [...history].sort((first, second) =>
-    String(first?.date).localeCompare(String(second?.date)),
-  )[0]
-
-  if (firstWorkout) {
-    events.push({
-      id: 'milestone-first-workout',
-      type: JOURNEY_EVENT_TYPES.MILESTONE,
-      occurredAt:
-        firstWorkout.finishedAt ??
-        `${firstWorkout.date}T12:00:00`,
-      title: 'First Foundry Workout',
-      subtitle: 'The journey began',
-      summary: {
-        milestone: 'first-workout',
-      },
-    })
-  }
-
-  const workoutTargets = [10, 25, 50, 100, 250, 500, 1000]
-
-  workoutTargets.forEach((target) => {
-    if (history.length < target) return
-
-    const session = history[target - 1]
-
-    events.push({
-      id: `milestone-workouts-${target}`,
-      type: JOURNEY_EVENT_TYPES.MILESTONE,
-      occurredAt:
-        session?.finishedAt ??
-        `${session?.date ?? new Date().toISOString().slice(0, 10)}T12:00:00`,
-      title: `${target} Workouts`,
-      subtitle: 'Training milestone',
-      summary: {
-        milestone: 'workout-count',
-        value: target,
-      },
-    })
-  })
-
-  const mobilityTargets = [10, 25, 50, 100, 250]
-
-  mobilityTargets.forEach((target) => {
-    if (mobility.length < target) return
-
-    const completion = mobility[target - 1]
-
-    events.push({
-      id: `milestone-mobility-${target}`,
-      type: JOURNEY_EVENT_TYPES.MILESTONE,
-      occurredAt: completion?.completedAt,
-      title: `${target} Mobility Flows`,
-      subtitle: 'Movement milestone',
-      summary: {
-        milestone: 'mobility-count',
-        value: target,
-      },
-    })
-  })
-
-  const volume = totalWorkoutVolume(history)
-  const volumeTargets = [
-    100000,
-    250000,
-    500000,
-    1000000,
-    2500000,
-    5000000,
-    10000000,
-  ]
-
-  volumeTargets.forEach((target) => {
-    if (volume < target || !history.length) return
-
-    const latest = history.at(-1)
-
-    events.push({
-      id: `milestone-volume-${target}`,
-      type: JOURNEY_EVENT_TYPES.MILESTONE,
-      occurredAt:
-        latest?.finishedAt ??
-        `${latest?.date ?? new Date().toISOString().slice(0, 10)}T21:00:00`,
-      title: `${target.toLocaleString()} lb Lifted`,
-      subtitle: 'Lifetime volume milestone',
-      summary: {
-        milestone: 'lifetime-volume',
-        value: target,
-      },
-    })
-  })
-
-  return events
-}
 
 export const buildJourneyEvents = (state = {}) => {
   const history = state?.history ?? []
