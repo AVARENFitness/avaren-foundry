@@ -22,6 +22,7 @@ import AuthScreen from './screens/AuthScreen'
 import { isSupabaseConfigured, supabase } from './lib/supabase'
 import { BASELINES, DEFAULT_PROGRAM } from './data/defaultProgram'
 import { estimatedOneRepMax, recentPRs } from './lib/metrics'
+import { newlyEarnedMilestones } from './lib/milestones'
 import { loadState, saveState } from './lib/storage'
 
 const createInitialState = () => ({
@@ -80,6 +81,7 @@ function App() {
     )
   }
   const [completedSession, setCompletedSession] = useState(null)
+  const [earnedMilestones, setEarnedMilestones] = useState([])
   const [isFinishing, setIsFinishing] = useState(false)
   const [transitioning, setTransitioning] = useState(false)
   const [showSplash, setShowSplash] = useState(true)
@@ -543,24 +545,33 @@ function App() {
 
     const completionPayload = { session: completedSession, nextWorkout }
     setCompletedSession(completionPayload)
-    setState((current) => ({
-      ...current,
-      program: { ...current.program, nextWorkout },
-      selectedWorkout: nextWorkout,
-      activeWorkout: null,
-      history: [...current.history, completedSession],
-      achievements:
-        current.history.length === 0
-          ? [
-              ...current.achievements,
-              {
-                id: crypto.randomUUID(),
-                name: 'First Foundry Workout',
-                earnedAt: new Date().toISOString(),
-              },
-            ]
-          : current.achievements,
-    }))
+
+    setState((current) => {
+      const nextState = {
+        ...current,
+        program: { ...current.program, nextWorkout },
+        selectedWorkout: nextWorkout,
+        activeWorkout: null,
+        history: [...current.history, completedSession],
+        achievements:
+          current.history.length === 0
+            ? [
+                ...current.achievements,
+                {
+                  id: crypto.randomUUID(),
+                  name: 'First Foundry Workout',
+                  earnedAt: new Date().toISOString(),
+                },
+              ]
+            : current.achievements,
+      }
+
+      setEarnedMilestones(
+        newlyEarnedMilestones(current, nextState),
+      )
+
+      return nextState
+    })
 
     if (navigator.vibrate) navigator.vibrate([25, 40, 35])
     navigate('complete')
@@ -633,6 +644,7 @@ function App() {
           <WorkoutIntelligenceSummary
             session={completedSession?.session}
             recentPrs={completionPrs}
+          milestones={earnedMilestones}
           />
           <MobilityPrompt
             type="recovery"
@@ -647,6 +659,7 @@ function App() {
           recentPrs={completionPrs}
           onDone={() => {
             setCompletedSession(null)
+            setEarnedMilestones([])
             setIsFinishing(false)
             navigate('home')
           }}
@@ -733,7 +746,7 @@ function App() {
           />
       </>
     )
-  }, [screen, state, activeExercise, completedSession, mobilityFlow])
+  }, [screen, state, activeExercise, completedSession, mobilityFlow, earnedMilestones])
 
   if (!isSupabaseConfigured) {
     return (

@@ -4327,3 +4327,177 @@ body {
     padding-left: 14px;
   }
 }
+
+/* ===== SPRINT 6C.2 CELEBRATION UI ===== */
+
+.celebration-completion {
+  overflow: visible;
+}
+
+.celebration-seal {
+  animation: celebrationSealIn .72s cubic-bezier(.16,.84,.24,1) both;
+}
+
+.celebration-reveal {
+  display: grid;
+  gap: 9px;
+  width: 100%;
+  margin: 22px 0 14px;
+  text-align: left;
+}
+
+.celebration-reveal > .eyebrow {
+  padding: 0 3px;
+}
+
+.celebration-card {
+  --celebration-index: 0;
+  display: grid;
+  grid-template-columns: 48px 1fr;
+  align-items: center;
+  gap: 13px;
+  padding: 16px;
+  border: 1px solid rgba(184,149,78,.24);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 88% -25%, rgba(205,169,87,.18), transparent 38%),
+    linear-gradient(145deg, rgba(25,22,15,.99), rgba(10,9,7,.995));
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.035),
+    0 18px 55px rgba(0,0,0,.32);
+  animation:
+    celebrationCardIn .58s
+    calc(.12s + var(--celebration-index) * .1s)
+    cubic-bezier(.16,.84,.24,1)
+    both;
+}
+
+.celebration-card.milestone.streak {
+  border-color: rgba(188,97,49,.27);
+  background:
+    radial-gradient(circle at 88% -25%, rgba(188,97,49,.2), transparent 38%),
+    linear-gradient(145deg, rgba(28,18,13,.99), rgba(10,8,7,.995));
+}
+
+.celebration-card.milestone.recovery {
+  border-color: rgba(76,125,103,.26);
+  background:
+    radial-gradient(circle at 88% -25%, rgba(76,125,103,.18), transparent 38%),
+    linear-gradient(145deg, rgba(16,25,21,.99), rgba(7,10,9,.995));
+}
+
+.celebration-card.milestone.reset {
+  border-color: rgba(188,132,67,.25);
+}
+
+.celebration-card.milestone.first,
+.celebration-card.milestone.volume,
+.celebration-card.milestone.workouts {
+  border-color: rgba(184,149,78,.24);
+}
+
+.celebration-card-icon {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border: 1px solid rgba(223,195,125,.28);
+  border-radius: 15px;
+  background: rgba(184,149,78,.055);
+  color: var(--gold-bright);
+  box-shadow: 0 0 35px rgba(184,149,78,.1);
+}
+
+.celebration-card-copy span,
+.celebration-card-copy strong,
+.celebration-card-copy small {
+  display: block;
+}
+
+.celebration-card-copy span {
+  color: var(--gold);
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+.celebration-card-copy h2 {
+  margin: 5px 0 3px;
+  font-size: 19px;
+  letter-spacing: -.035em;
+}
+
+.celebration-card-copy strong {
+  color: var(--gold-bright);
+  font-size: 16px;
+}
+
+.celebration-card-copy small {
+  margin-top: 3px;
+  color: #817a6f;
+  font-size: 9px;
+}
+
+.celebration-summary {
+  width: 100%;
+  margin-top: 8px;
+  padding: 17px;
+  border: 1px solid rgba(248,243,230,.075);
+  border-radius: 19px;
+  background: rgba(255,255,255,.014);
+  text-align: left;
+}
+
+.celebration-metrics {
+  grid-template-columns: repeat(2, 1fr);
+  margin-top: 12px;
+}
+
+.completion-muscles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 11px;
+}
+
+.completion-muscles span {
+  padding: 6px 8px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.026);
+  color: #827c73;
+  font-size: 8px;
+  font-weight: 800;
+}
+
+@keyframes celebrationSealIn {
+  0% {
+    opacity: 0;
+    transform: scale(.62) rotate(-10deg);
+  }
+  70% {
+    opacity: 1;
+    transform: scale(1.06) rotate(2deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(0);
+  }
+}
+
+@keyframes celebrationCardIn {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (min-width: 620px) {
+  .celebration-metrics {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
