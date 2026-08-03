@@ -5,6 +5,7 @@ import {
   ChevronDown,
   Dumbbell,
   Flame,
+  Hammer,
   Search,
   Sunrise,
   Target,
@@ -26,6 +27,7 @@ const FILTERS = [
   [JOURNEY_EVENT_TYPES.RECOVERY_FLOW, 'Recovery'],
   [JOURNEY_EVENT_TYPES.STREAK, 'Streaks'],
   [JOURNEY_EVENT_TYPES.MILESTONE, 'Milestones'],
+  [JOURNEY_EVENT_TYPES.FORGE, 'The Forge'],
 ]
 
 const EVENT_META = {
@@ -58,6 +60,11 @@ const EVENT_META = {
     icon: Target,
     label: 'Milestone',
     className: 'milestone',
+  },
+  [JOURNEY_EVENT_TYPES.FORGE]: {
+    icon: Hammer,
+    label: 'Forged Achievement',
+    className: 'forge',
   },
 }
 
@@ -127,6 +134,13 @@ function JourneyEventCard({ event, open, onToggle, onDelete }) {
           {event.type === JOURNEY_EVENT_TYPES.STREAK && (
             <div className="journey-inline-stats">
               <span>{event.summary.days} consecutive days</span>
+            </div>
+          )}
+
+          {event.type === JOURNEY_EVENT_TYPES.FORGE && (
+            <div className="journey-inline-stats">
+              <span>{event.summary.category}</span>
+              <span>{event.summary.rarity}</span>
             </div>
           )}
         </div>

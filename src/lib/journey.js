@@ -3,6 +3,7 @@ import {
   longestWorkoutStreak,
 } from './analytics'
 import { buildMilestones } from './milestones'
+import { forgeJourneyEvents } from './forge'
 
 export const JOURNEY_EVENT_TYPES = {
   WORKOUT: 'workout',
@@ -11,11 +12,13 @@ export const JOURNEY_EVENT_TYPES = {
   RECOVERY_FLOW: 'recovery-flow',
   STREAK: 'streak',
   MILESTONE: 'milestone',
+  FORGE: 'forge-achievement',
 }
 
 const EVENT_PRIORITY = {
   [JOURNEY_EVENT_TYPES.PR]: 6,
   [JOURNEY_EVENT_TYPES.MILESTONE]: 5,
+  [JOURNEY_EVENT_TYPES.FORGE]: 5.5,
   [JOURNEY_EVENT_TYPES.STREAK]: 4,
   [JOURNEY_EVENT_TYPES.WORKOUT]: 3,
   [JOURNEY_EVENT_TYPES.RECOVERY_FLOW]: 2,
@@ -259,6 +262,7 @@ export const buildJourneyEvents = (state = {}) => {
     ...mobilityEvents(state?.mobility),
     ...streakEvents(history),
     ...milestoneEvents(state),
+    ...forgeJourneyEvents(state),
   ].sort((first, second) => {
     const timeDifference =
       eventTimestamp(second) - eventTimestamp(first)
@@ -420,6 +424,10 @@ export const journeySnapshot = (state = {}) => {
       milestones: events.filter(
         (event) =>
           event.type === JOURNEY_EVENT_TYPES.MILESTONE,
+      ).length,
+      forgeAchievements: events.filter(
+        (event) =>
+          event.type === JOURNEY_EVENT_TYPES.FORGE,
       ).length,
     },
   }

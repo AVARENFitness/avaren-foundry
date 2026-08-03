@@ -1,9 +1,5 @@
 import { analyticsSnapshot } from './analytics'
 import {
-  buildJourneyEvents,
-  JOURNEY_EVENT_TYPES,
-} from './journey'
-import {
   FORGE_ACHIEVEMENTS,
   FORGE_CATEGORIES,
 } from '../data/forgeAchievements'
@@ -13,10 +9,44 @@ const clamp = (value, minimum = 0, maximum = 1) =>
 
 const metricSnapshot = (state = {}) => {
   const analytics = analyticsSnapshot(state)
-  const journeyEvents = buildJourneyEvents(state)
-  const prCount = journeyEvents.filter(
-    (event) => event.type === JOURNEY_EVENT_TYPES.PR,
-  ).length
+  const bestByExercise = {}
+  let prCount = 0
+
+  ;[...(state.history ?? [])]
+    .sort((first, second) =>
+      String(first?.date).localeCompare(
+        String(second?.date),
+      ),
+    )
+    .forEach((session) => {
+      ;(session?.sets ?? []).forEach((set) => {
+        const exercise = set?.exercise
+        if (!exercise) return
+
+        const weight = Number(set?.weight || 0)
+        const reps = Number(set?.reps || 0)
+        const estimatedOneRepMax = Number(
+          set?.estimatedOneRepMax || 0,
+        )
+
+        const score =
+          estimatedOneRepMax > 0
+            ? estimatedOneRepMax
+            : weight > 0 && reps > 0
+            ? weight * (1 + reps / 30)
+            : 0
+
+        if (score <= 0) return
+
+        const previousBest =
+          bestByExercise[exercise] ?? 0
+
+        if (score > previousBest) {
+          prCount += 1
+          bestByExercise[exercise] = score
+        }
+      })
+    })
 
   const legendRequirements = [
     analytics.totalWorkouts >= 250,

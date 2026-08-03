@@ -4,6 +4,7 @@ import {
   Check,
   Dumbbell,
   Flame,
+  Hammer,
   Sparkles,
   Target,
   Trophy,
@@ -51,11 +52,12 @@ export default function CompletionScreen({
   onDone,
   recentPrs = [],
   milestones = [],
+  forgeAchievements = [],
 }) {
   useEffect(() => {
     if (!session) return
 
-    if (recentPrs.length || milestones.length) {
+    if (recentPrs.length || milestones.length || forgeAchievements.length) {
       if (navigator.vibrate) {
         navigator.vibrate([35, 55, 45, 70, 60])
       }
@@ -103,7 +105,7 @@ export default function CompletionScreen({
       <h1>Forged.</h1>
       <p>{session.name} complete.</p>
 
-      {(recentPrs.length > 0 || milestones.length > 0) && (
+      {(recentPrs.length > 0 || milestones.length > 0 || forgeAchievements.length > 0) && (
         <section className="celebration-reveal">
           <span className="eyebrow">TODAY’S VICTORIES</span>
 
@@ -122,6 +124,27 @@ export default function CompletionScreen({
                 <h2>{pr.exercise}</h2>
                 <strong>{pr.value}</strong>
                 <small>{pr.type}</small>
+              </div>
+            </article>
+          ))}
+
+          {forgeAchievements.map((achievement, index) => (
+            <article
+              className={`celebration-card forge rarity-${achievement.rarity}`}
+              key={achievement.id}
+              style={{
+                '--celebration-index':
+                  recentPrs.length + forgeAchievements.length + index,
+              }}
+            >
+              <div className="celebration-card-icon">
+                <Hammer size={23} />
+              </div>
+
+              <div className="celebration-card-copy">
+                <span>Achievement Forged · {achievement.rarity}</span>
+                <h2>{achievement.title}</h2>
+                <small>{achievement.description}</small>
               </div>
             </article>
           ))}

@@ -5179,3 +5179,47 @@ body {
     grid-template-columns: repeat(2, 1fr);
   }
 }
+
+
+/* ===== AVAREN BUILDER v0.7 · FORGE UNLOCKS ===== */
+
+.celebration-card.forge {
+  border-color: rgba(202,162,76,.32);
+  background:
+    radial-gradient(circle at 88% -25%, rgba(202,162,76,.2), transparent 38%),
+    linear-gradient(145deg, rgba(29,24,14,.99), rgba(10,9,6,.995));
+}
+
+.celebration-card.forge.rarity-rare {
+  border-color: rgba(82,112,141,.28);
+  background:
+    radial-gradient(circle at 88% -25%, rgba(82,112,141,.18), transparent 38%),
+    linear-gradient(145deg, rgba(15,21,28,.99), rgba(7,9,11,.995));
+}
+
+.celebration-card.forge.rarity-epic {
+  border-color: rgba(113,85,154,.31);
+  background:
+    radial-gradient(circle at 88% -25%, rgba(113,85,154,.2), transparent 38%),
+    linear-gradient(145deg, rgba(22,17,30,.99), rgba(8,7,11,.995));
+}
+
+.celebration-card.forge.rarity-legendary {
+  border-color: rgba(223,183,87,.4);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.04),
+    0 0 55px rgba(184,149,78,.13);
+}
+
+.journey-event.forge {
+  border-color: rgba(202,162,76,.25);
+  background:
+    radial-gradient(circle at 92% -30%, rgba(202,162,76,.13), transparent 40%),
+    linear-gradient(145deg, rgba(24,21,15,.99), rgba(9,9,7,.995));
+}
+
+.journey-event.forge .journey-event-icon {
+  border-color: rgba(202,162,76,.27);
+  color: var(--gold-bright);
+  box-shadow: 0 0 30px rgba(184,149,78,.08);
+}

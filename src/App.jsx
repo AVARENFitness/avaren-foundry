@@ -27,6 +27,7 @@ import AuthScreen from './screens/AuthScreen'
 import { isSupabaseConfigured, supabase } from './lib/supabase'
 import { BASELINES, DEFAULT_PROGRAM } from './data/defaultProgram'
 import { estimatedOneRepMax, recentPRs } from './lib/metrics'
+import { newlyUnlockedForgeAchievements } from './lib/forge'
 import { newlyEarnedMilestones } from './lib/milestones'
 import { loadState, saveState } from './lib/storage'
 import {
@@ -96,6 +97,7 @@ function App() {
   }
   const [completedSession, setCompletedSession] = useState(null)
   const [earnedMilestones, setEarnedMilestones] = useState([])
+  const [earnedForgeAchievements, setEarnedForgeAchievements] = useState([])
   const [isFinishing, setIsFinishing] = useState(false)
   const [transitioning, setTransitioning] = useState(false)
   const [showSplash, setShowSplash] = useState(true)
@@ -676,6 +678,9 @@ function App() {
       setEarnedMilestones(
         newlyEarnedMilestones(current, nextState),
       )
+      setEarnedForgeAchievements(
+        newlyUnlockedForgeAchievements(current, nextState),
+      )
 
       return nextState
     })
@@ -778,9 +783,12 @@ function App() {
           session={completedSession?.session}
           nextWorkout={completedSession?.nextWorkout}
           recentPrs={completionPrs}
+          milestones={earnedMilestones}
+          forgeAchievements={earnedForgeAchievements}
           onDone={() => {
             setCompletedSession(null)
             setEarnedMilestones([])
+            setEarnedForgeAchievements([])
             setIsFinishing(false)
             navigate('home')
           }}
@@ -888,7 +896,7 @@ function App() {
         />
       </>
     )
-  }, [screen, state, activeExercise, completedSession, mobilityFlow, earnedMilestones])
+  }, [screen, state, activeExercise, completedSession, mobilityFlow, earnedMilestones, earnedForgeAchievements])
 
   if (!isSupabaseConfigured) {
     return (
