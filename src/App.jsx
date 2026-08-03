@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import AppShell from './components/AppShell'
 import HomeScreen from './screens/HomeScreen'
 import GymScreen from './screens/GymScreen'
@@ -8,6 +8,12 @@ import WeeklyPlannerScreen from './screens/WeeklyPlannerScreen'
 import HistoryScreen from './screens/HistoryScreen'
 import WorkoutBuilderScreen from './screens/WorkoutBuilderScreen'
 import CompletionScreen from './screens/CompletionScreen'
+import CloudStatus from './components/CloudStatus'
+import {
+  chooseNewestState,
+  loadCloudState,
+  saveCloudState,
+} from './lib/cloudSync'
 import AuthScreen from './screens/AuthScreen'
 import { isSupabaseConfigured, supabase } from './lib/supabase'
 import { BASELINES, DEFAULT_PROGRAM } from './data/defaultProgram'
@@ -71,6 +77,13 @@ function App() {
   const [showSplash, setShowSplash] = useState(true)
   const [session, setSession] = useState(null)
   const [authLoading, setAuthLoading] = useState(true)
+  const [cloudReady, setCloudReady] = useState(false)
+  const [cloudStatus, setCloudStatus] = useState(
+    navigator.onLine ? 'ready' : 'offline',
+  )
+  const hydratedUserId = useRef(null)
+  const cloudSaveTimer = useRef(null)
+  const latestStateRef = useRef(state)
 
   useEffect(() => {
     if (!isSupabaseConfigured) {
@@ -88,6 +101,12 @@ function App() {
       (_event, nextSession) => {
         setSession(nextSession)
         setAuthLoading(false)
+
+        if (!nextSession) {
+          hydratedUserId.current = null
+          setCloudReady(false)
+          setCloudStatus(navigator.onLine ? 'ready' : 'offline')
+        }
       },
     )
 
@@ -102,10 +121,115 @@ function App() {
   useEffect(() => saveState(state), [state])
 
   useEffect(() => {
+    latestStateRef.current = state
+  }, [state])
+
+  useEffect(() => {
     if (state.activeWorkout?.activeExerciseIndex !== undefined) {
       setActiveExerciseState(state.activeWorkout.activeExerciseIndex)
     }
   }, [])
+
+  useEffect(() => {
+    const userId = session?.user?.id
+    if (!userId || hydratedUserId.current === userId) return
+
+    let cancelled = false
+    setCloudReady(false)
+    setCloudStatus(navigator.onLine ? 'syncing' : 'offline')
+
+    const hydrateAccount = async () => {
+      try {
+        const cloudRecord = await loadCloudState(userId)
+        if (cancelled) return
+
+        const decision = chooseNewestState(latestStateRef.current, cloudRecord)
+
+        if (decision.source === 'cloud') {
+          setState((current) => ({
+            ...current,
+            ...decision.state,
+            activeWorkout:
+              decision.state?.activeWorkout ?? current.activeWorkout,
+          }))
+        }
+
+        if (decision.uploadLocal && navigator.onLine) {
+          await saveCloudState(userId, decision.state)
+        }
+
+        hydratedUserId.current = userId
+        setCloudReady(true)
+        setCloudStatus(navigator.onLine ? 'synced' : 'offline')
+      } catch (error) {
+        console.error('Foundry cloud hydration failed:', error)
+        hydratedUserId.current = userId
+        setCloudReady(true)
+        setCloudStatus(navigator.onLine ? 'error' : 'offline')
+      }
+    }
+
+    hydrateAccount()
+
+    return () => {
+      cancelled = true
+    }
+  }, [session?.user?.id])
+
+  useEffect(() => {
+    const userId = session?.user?.id
+    if (!userId || !cloudReady) return
+
+    window.clearTimeout(cloudSaveTimer.current)
+
+    cloudSaveTimer.current = window.setTimeout(async () => {
+      if (!navigator.onLine) {
+        setCloudStatus('offline')
+        return
+      }
+
+      try {
+        setCloudStatus('syncing')
+        await saveCloudState(userId, latestStateRef.current)
+        setCloudStatus('synced')
+      } catch (error) {
+        console.error('Foundry cloud save failed:', error)
+        setCloudStatus(navigator.onLine ? 'error' : 'offline')
+      }
+    }, 1200)
+
+    return () => window.clearTimeout(cloudSaveTimer.current)
+  }, [state, session?.user?.id, cloudReady])
+
+  useEffect(() => {
+    const handleOffline = () => setCloudStatus('offline')
+
+    const handleOnline = async () => {
+      const userId = session?.user?.id
+
+      if (!userId || !cloudReady) {
+        setCloudStatus('ready')
+        return
+      }
+
+      try {
+        setCloudStatus('syncing')
+        await saveCloudState(userId, latestStateRef.current)
+        setCloudStatus('synced')
+      } catch (error) {
+        console.error('Foundry reconnect sync failed:', error)
+        setCloudStatus('error')
+      }
+    }
+
+    window.addEventListener('offline', handleOffline)
+    window.addEventListener('online', handleOnline)
+
+    return () => {
+      window.removeEventListener('offline', handleOffline)
+      window.removeEventListener('online', handleOnline)
+    }
+  }, [session?.user?.id, cloudReady])
 
   const navigate = (nextScreen, callback) => {
     setTransitioning(true)
@@ -519,6 +643,7 @@ function App() {
       activeWorkout={state.activeWorkout}
       transitioning={transitioning}
     >
+      <CloudStatus status={cloudStatus} />
       {activeScreen}
     </AppShell>
   )
