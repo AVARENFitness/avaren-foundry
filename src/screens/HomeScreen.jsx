@@ -307,6 +307,11 @@ export default function HomeScreen({
         <button
           className="gold-button machined home-primary-action"
           onClick={onStart}
+          aria-label={
+            dashboard.active
+              ? 'Resume active workout'
+              : 'Start today’s workout'
+          }
         >
           <Dumbbell size={18} />
           {dashboard.active

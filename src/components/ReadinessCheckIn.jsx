@@ -6,7 +6,7 @@ import {
   X,
   Zap,
 } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import {
   READINESS_FIELDS,
@@ -29,6 +29,41 @@ export default function ReadinessCheckIn({
     initialValues ?? defaultReadinessCheckIn(),
   )
 
+
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow
+    const previousPaddingRight =
+      document.body.style.paddingRight
+    const scrollbarWidth =
+      window.innerWidth -
+      document.documentElement.clientWidth
+
+    document.body.style.overflow = 'hidden'
+
+    if (scrollbarWidth > 0) {
+      document.body.style.paddingRight =
+        `${scrollbarWidth}px`
+    }
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        onClose?.()
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      document.body.style.overflow = previousOverflow
+      document.body.style.paddingRight =
+        previousPaddingRight
+      window.removeEventListener(
+        'keydown',
+        handleKeyDown,
+      )
+    }
+  }, [onClose])
+
   const average = useMemo(
     () =>
       Math.round(
@@ -43,12 +78,27 @@ export default function ReadinessCheckIn({
   )
 
   return createPortal(
-    <div className="readiness-overlay" role="dialog">
-      <section className="readiness-modal">
+    <div
+      className="readiness-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="readiness-dialog-title"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) {
+          onClose?.()
+        }
+      }}
+    >
+      <section
+        className="readiness-modal"
+        onMouseDown={(event) =>
+          event.stopPropagation()
+        }
+      >
         <header>
           <div>
             <span className="eyebrow">DAILY READINESS</span>
-            <h2>How are you feeling today?</h2>
+            <h2 id="readiness-dialog-title">How are you feeling today?</h2>
             <p>
               Four quick ratings help AVAREN adjust today’s
               training and recovery guidance.

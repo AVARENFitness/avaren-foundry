@@ -137,6 +137,44 @@ function App() {
   const hydratedUserId = useRef(null)
   const cloudSaveTimer = useRef(null)
   const latestStateRef = useRef(state)
+  const navigationLockRef = useRef(false)
+
+
+  useEffect(() => {
+    const handleUnhandledError = (event) => {
+      console.error(
+        'AVAREN unhandled window error:',
+        event.error ?? event.message,
+      )
+    }
+
+    const handleUnhandledRejection = (event) => {
+      console.error(
+        'AVAREN unhandled promise rejection:',
+        event.reason,
+      )
+    }
+
+    window.addEventListener(
+      'error',
+      handleUnhandledError,
+    )
+    window.addEventListener(
+      'unhandledrejection',
+      handleUnhandledRejection,
+    )
+
+    return () => {
+      window.removeEventListener(
+        'error',
+        handleUnhandledError,
+      )
+      window.removeEventListener(
+        'unhandledrejection',
+        handleUnhandledRejection,
+      )
+    }
+  }, [])
 
   useEffect(() => {
     if (!isSupabaseConfigured) {
@@ -540,12 +578,33 @@ function App() {
   }
 
   const navigate = (nextScreen, callback) => {
+    if (navigationLockRef.current) return
+
+    if (nextScreen === screen && !callback) {
+      window.scrollTo({
+        top: 0,
+        behavior: 'smooth',
+      })
+      return
+    }
+
+    navigationLockRef.current = true
     setTransitioning(true)
+
     window.setTimeout(() => {
-      callback?.()
-      setScreen(nextScreen)
-      window.scrollTo({ top: 0, behavior: 'smooth' })
-      window.setTimeout(() => setTransitioning(false), 260)
+      try {
+        callback?.()
+        setScreen(nextScreen)
+        window.scrollTo({
+          top: 0,
+          behavior: 'smooth',
+        })
+      } finally {
+        window.setTimeout(() => {
+          setTransitioning(false)
+          navigationLockRef.current = false
+        }, 260)
+      }
     }, 180)
   }
 
@@ -732,7 +791,10 @@ function App() {
     if (isFinishing) return
     setIsFinishing(true)
     const workout = state.activeWorkout
-    if (!workout) return
+    if (!workout) {
+      setIsFinishing(false)
+      return
+    }
 
     const sets = workout.exercises
       .filter((exercise) => !exercise.skipped)

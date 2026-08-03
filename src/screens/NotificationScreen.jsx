@@ -11,6 +11,7 @@ import {
   Wind,
   X,
 } from 'lucide-react'
+import { useState } from 'react'
 
 const ICONS = {
   readiness: HeartPulse,
@@ -45,6 +46,39 @@ export default function NotificationScreen({
   onDismiss,
   onAction,
 }) {
+  const [pendingFingerprint, setPendingFingerprint] =
+    useState(null)
+
+  const runAction = async (notification) => {
+    if (pendingFingerprint) return
+
+    setPendingFingerprint(notification.fingerprint)
+
+    try {
+      await onAction(notification)
+    } finally {
+      window.setTimeout(
+        () => setPendingFingerprint(null),
+        450,
+      )
+    }
+  }
+
+  const runDismiss = async (notification) => {
+    if (pendingFingerprint) return
+
+    setPendingFingerprint(notification.fingerprint)
+
+    try {
+      await onDismiss(notification)
+    } finally {
+      window.setTimeout(
+        () => setPendingFingerprint(null),
+        350,
+      )
+    }
+  }
+
   return (
     <section className="notification-screen">
       <header className="builder-header">
@@ -118,10 +152,17 @@ export default function NotificationScreen({
                     <button
                       onClick={(event) => {
                         event.stopPropagation()
-                        onAction(notification)
+                        runAction(notification)
                       }}
+                      disabled={
+                        pendingFingerprint ===
+                        notification.fingerprint
+                      }
                     >
-                      {notification.actionLabel}
+                      {pendingFingerprint ===
+                      notification.fingerprint
+                        ? 'Opening…'
+                        : notification.actionLabel}
                       <ArrowRight size={14} />
                     </button>
                   )}
@@ -129,10 +170,17 @@ export default function NotificationScreen({
                     className="dismiss"
                     onClick={(event) => {
                       event.stopPropagation()
-                      onDismiss(notification)
+                      runDismiss(notification)
                     }}
+                    disabled={
+                      pendingFingerprint ===
+                      notification.fingerprint
+                    }
                   >
-                    Dismiss
+                    {pendingFingerprint ===
+                    notification.fingerprint
+                      ? 'Working…'
+                      : 'Dismiss'}
                     <X size={13} />
                   </button>
                 </div>
