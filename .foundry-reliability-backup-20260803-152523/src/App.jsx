@@ -64,7 +64,6 @@ function App() {
     )
   }
   const [completedSession, setCompletedSession] = useState(null)
-  const [isFinishing, setIsFinishing] = useState(false)
   const [transitioning, setTransitioning] = useState(false)
   const [showSplash, setShowSplash] = useState(true)
 
@@ -233,8 +232,6 @@ function App() {
   }
 
   const finishWorkout = () => {
-    if (isFinishing) return
-    setIsFinishing(true)
     const workout = state.activeWorkout
     if (!workout) return
 
@@ -258,7 +255,6 @@ function App() {
 
     if (sets.length === 0) {
       alert('Log at least one set before finishing.')
-      setIsFinishing(false)
       return
     }
 
@@ -278,7 +274,6 @@ function App() {
         } are not marked complete. Finish the workout anyway?`,
       )
     ) {
-      setIsFinishing(false)
       return
     }
 
@@ -295,8 +290,7 @@ function App() {
       sets,
     }
 
-    const completionPayload = { session: completedSession, nextWorkout }
-    setCompletedSession(completionPayload)
+    setCompletedSession({ session: completedSession, nextWorkout })
     setState((current) => ({
       ...current,
       program: { ...current.program, nextWorkout },
@@ -331,7 +325,6 @@ function App() {
           onSetChange={updateSet}
           onAddSet={addSet}
           onFinish={finishWorkout}
-          isFinishing={isFinishing}
           onRepeatSet={repeatPreviousSet}
           onSkipExercise={skipExercise}
           onQuickAddExercise={quickAddExercise}
@@ -342,25 +335,6 @@ function App() {
     }
 
     if (screen === 'complete') {
-      if (!completedSession?.session) {
-        return (
-          <section className="completion-recovery">
-            <span className="eyebrow">WORKOUT SAVED</span>
-            <h1>Completion data unavailable.</h1>
-            <p>Your workout was saved safely. Return Home to continue.</p>
-            <button
-              className="gold-button machined"
-              onClick={() => {
-                setIsFinishing(false)
-                navigate('home')
-              }}
-            >
-              Return Home
-            </button>
-          </section>
-        )
-      }
-
       return (
         <CompletionScreen
           session={completedSession?.session}
@@ -370,7 +344,6 @@ function App() {
           )}
           onDone={() => {
             setCompletedSession(null)
-            setIsFinishing(false)
             navigate('home')
           }}
         />

@@ -37,10 +37,8 @@ export default function GymScreen({
   onQuickAddExercise,
   onRemoveSet,
   onUndoSkip,
-  isFinishing = false,
 }) {
   const [showQuickAdd, setShowQuickAdd] = useState(false)
-  const [supersetRound, setSupersetRound] = useState(0)
   const [navigationDirection, setNavigationDirection] = useState('next')
 
   const goPrevious = () => {
@@ -89,6 +87,7 @@ export default function GymScreen({
         (exercise) => exercise.supersetGroup === supersetGroup,
       )
     : []
+  const [supersetRound, setSupersetRound] = useState(0)
   const supersetRounds = supersetExercises.length
     ? Math.max(...supersetExercises.map((exercise) => exercise.sets.length))
     : 0
@@ -176,12 +175,8 @@ export default function GymScreen({
         <button className="focus-more-button" aria-label="Workout options">
           <MoreHorizontal />
         </button>
-        <button
-          className="gold-button machined"
-          disabled={isFinishing}
-          onClick={onFinish}
-        >
-          {isFinishing ? 'Saving Workout…' : 'Finish Workout'}
+        <button className="gold-button machined" onClick={onFinish}>
+          Finish Workout
         </button>
       </div>
     </div>
