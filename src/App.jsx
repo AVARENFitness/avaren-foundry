@@ -8,6 +8,7 @@ import WeeklyPlannerScreen from './screens/WeeklyPlannerScreen'
 import HistoryScreen from './screens/HistoryScreen'
 import WorkoutBuilderScreen from './screens/WorkoutBuilderScreen'
 import CompletionScreen from './screens/CompletionScreen'
+import WorkoutIntelligenceSummary from './components/WorkoutIntelligenceSummary'
 import MobilityScreen from './screens/MobilityScreen'
 import MobilityPrompt from './components/MobilityPrompt'
 import { DAILY_RESET, buildRecoveryFlow } from './data/mobility'
@@ -623,8 +624,16 @@ function App() {
         )
       }
 
+      const completionPrs = recentPRs(state.history, 8).filter(
+        (pr) => pr.date === completedSession?.session?.date,
+      )
+
       return (
         <>
+          <WorkoutIntelligenceSummary
+            session={completedSession?.session}
+            recentPrs={completionPrs}
+          />
           <MobilityPrompt
             type="recovery"
             subtitle="OPTIONAL RECOVERY"
@@ -635,9 +644,7 @@ function App() {
           <CompletionScreen
           session={completedSession?.session}
           nextWorkout={completedSession?.nextWorkout}
-          recentPrs={recentPRs(state.history, 8).filter(
-            (pr) => pr.date === completedSession?.session?.date,
-          )}
+          recentPrs={completionPrs}
           onDone={() => {
             setCompletedSession(null)
             setIsFinishing(false)
