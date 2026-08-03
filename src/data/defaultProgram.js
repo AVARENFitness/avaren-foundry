@@ -1,0 +1,46 @@
+export const DEFAULT_PROGRAM = {
+  rotation: ['Chest + Back', 'Arms', 'Legs + Core'],
+  nextWorkout: 'Legs + Core',
+  workouts: {
+    'Chest + Back': [
+      { name: 'Bench Press', sets: 6, muscle: 'Chest' },
+      { name: 'Incline Press Machine', sets: 3, muscle: 'Chest' },
+      { name: 'Decline Press Machine', sets: 3, muscle: 'Chest' },
+      { name: 'Lat Pulldowns', sets: 3, muscle: 'Back' },
+      { name: 'Single-Arm Cable Pulldowns', sets: 3, muscle: 'Back' },
+      { name: 'Seated Cable Rows', sets: 3, muscle: 'Back' },
+      { name: 'Back Extension Machine', sets: 3, muscle: 'Lower Back' },
+    ],
+    Arms: [
+      { name: 'Standing Barbell Press', sets: 5, muscle: 'Shoulders' },
+      { name: 'Barbell Shrugs', sets: 3, muscle: 'Traps' },
+      { name: 'Dumbbell Lateral Raise', sets: 3, muscle: 'Shoulders', supersetGroup: 'A' },
+      { name: 'Incline Dumbbell Curls', sets: 3, muscle: 'Biceps', supersetGroup: 'A' },
+      { name: 'Dumbbell Preacher Hammer Curls', sets: 3, muscle: 'Biceps' },
+      { name: 'Single-Arm Cable Pushdown', sets: 3, muscle: 'Triceps' },
+      { name: 'V-Bar Pushdowns', sets: 3, muscle: 'Triceps' },
+      { name: 'Single-Arm Rear-Delt Cable Flys', sets: 3, muscle: 'Rear Delts' },
+    ],
+    'Legs + Core': [
+      { name: 'Barbell Squats', sets: 5, muscle: 'Quads' },
+      { name: 'Lying Leg Curls', sets: 3, muscle: 'Hamstrings' },
+      { name: 'Single-Leg Extensions', sets: 3, muscle: 'Quads' },
+      { name: 'Calf Extensions', sets: 3, muscle: 'Calves' },
+      { name: 'Weighted Leg Lifts', sets: 3, muscle: 'Core' },
+      { name: 'Mason Twist', sets: 3, muscle: 'Core' },
+      { name: 'Toe Touches', sets: 3, muscle: 'Core' },
+    ],
+  },
+}
+
+export const MILESTONE_CHAINS = {
+  'Bench Press': [245, 275, 315, 365, 405],
+  'Barbell Squats': [275, 315, 365, 405, 455],
+  'Standing Barbell Press': [155, 185, 205, 225],
+}
+
+export const BASELINES = {
+  'Bench Press': 225,
+  'Barbell Squats': 225,
+  'Standing Barbell Press': 135,
+}
