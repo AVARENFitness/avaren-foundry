@@ -12,14 +12,9 @@ export default function HomeScreen({
 }) {
   const [showSelector, setShowSelector] = useState(false)
   const active = state.activeWorkout
-  const scheduledWorkout = state.weeklySchedule?.[new Date().getDay()]
-  const defaultWorkout =
-    scheduledWorkout && scheduledWorkout !== 'Rest'
-      ? scheduledWorkout
-      : state.program.nextWorkout
   const workoutName = active
     ? active.name
-    : state.selectedWorkout || defaultWorkout
+    : state.selectedWorkout || state.program.nextWorkout
 
   return (
     <>
@@ -30,13 +25,7 @@ export default function HomeScreen({
 
         <span className="eyebrow">{active ? 'WORKOUT IN PROGRESS' : workoutName}</span>
         <h1>{active ? 'Continue.' : 'Ready.'}</h1>
-        <p>
-          {active
-            ? 'Return to the set that matters.'
-            : scheduledWorkout === 'Rest' && !state.selectedWorkout
-            ? 'A recovery day is scheduled. Override it whenever you want.'
-            : 'Forge your next PR.'}
-        </p>
+        <p>{active ? 'Return to the set that matters.' : 'Forge your next PR.'}</p>
 
         <button
           className={`hero-workout hero-workout-button ${active ? 'locked' : ''}`}

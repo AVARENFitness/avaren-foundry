@@ -4,8 +4,6 @@ import HomeScreen from './screens/HomeScreen'
 import GymScreen from './screens/GymScreen'
 import ProgressScreen from './screens/ProgressScreen'
 import MoreScreen from './screens/MoreScreen'
-import WeeklyPlannerScreen from './screens/WeeklyPlannerScreen'
-import HistoryScreen from './screens/HistoryScreen'
 import WorkoutBuilderScreen from './screens/WorkoutBuilderScreen'
 import CompletionScreen from './screens/CompletionScreen'
 import { BASELINES, DEFAULT_PROGRAM } from './data/defaultProgram'
@@ -19,17 +17,6 @@ const createInitialState = () => ({
   achievements: [],
   baselines: BASELINES,
   selectedWorkout: DEFAULT_PROGRAM.nextWorkout,
-  weeklySchedule: {
-    0: 'Rest',
-    1: 'Chest + Back',
-    2: 'Arms',
-    3: 'Legs + Core',
-    4: 'Chest + Back',
-    5: 'Arms',
-    6: 'Legs + Core',
-  },
-  lastBackupAt: null,
-  schemaVersion: 2,
 })
 
 const makeSet = (number, type = 'Working') => ({
@@ -74,12 +61,6 @@ function App() {
 
   useEffect(() => saveState(state), [state])
 
-  useEffect(() => {
-    if (state.activeWorkout?.activeExerciseIndex !== undefined) {
-      setActiveExerciseState(state.activeWorkout.activeExerciseIndex)
-    }
-  }, [])
-
   const navigate = (nextScreen, callback) => {
     setTransitioning(true)
     window.setTimeout(() => {
@@ -96,11 +77,7 @@ function App() {
       return
     }
 
-    const scheduled = state.weeklySchedule?.[new Date().getDay()]
-    const name =
-      state.selectedWorkout ||
-      (scheduled && scheduled !== 'Rest' ? scheduled : null) ||
-      state.program.nextWorkout
+    const name = state.selectedWorkout || state.program.nextWorkout
     const definitions = state.program.workouts[name] ?? []
 
     const activeWorkout = {
@@ -364,46 +341,12 @@ function App() {
       )
     }
 
-    if (screen === 'planner') {
-      return (
-        <WeeklyPlannerScreen
-          program={state.program}
-          schedule={state.weeklySchedule}
-          onSave={(weeklySchedule) => {
-            setState((current) => ({ ...current, weeklySchedule }))
-            navigate('home')
-          }}
-          onClose={() => navigate('more')}
-        />
-      )
-    }
-
-    if (screen === 'history') {
-      return (
-        <HistoryScreen
-          history={state.history}
-          onClose={() => navigate('more')}
-          onDelete={(sessionId) =>
-            setState((current) => ({
-              ...current,
-              history: current.history.filter(
-                (session) => session.id !== sessionId,
-              ),
-            }))
-          }
-        />
-      )
-    }
-
     if (screen === 'more') {
       return (
         <MoreScreen
           state={state}
           setState={setState}
-          fallbackState={createInitialState()}
           onOpenBuilder={() => navigate('builder')}
-          onOpenPlanner={() => navigate('planner')}
-          onOpenHistory={() => navigate('history')}
         />
       )
     }

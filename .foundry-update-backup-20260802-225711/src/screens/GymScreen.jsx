@@ -1,0 +1,184 @@
+import { Dumbbell, MoreHorizontal } from 'lucide-react'
+import FocusExercise from '../components/FocusExercise'
+import ProgressRing from '../components/ProgressRing'
+import QuickAddModal from '../components/QuickAddModal'
+import SupersetFocus from '../components/SupersetFocus'
+import { useState } from 'react'
+
+const MUSCLE_LIGHTS = {
+  Chest: '#6f2f36',
+  Back: '#4d6478',
+  Shoulders: '#665775',
+  Traps: '#6a6258',
+  Biceps: '#9b653f',
+  Triceps: '#8b5a3b',
+  'Rear Delts': '#6d5877',
+  Quads: '#456b4e',
+  Hamstrings: '#4f6852',
+  Calves: '#5d6b62',
+  Core: '#8a8f91',
+  'Lower Back': '#5b6670',
+  Glutes: '#596f58',
+  Forearms: '#7a684d',
+  Other: '#6c6a65',
+}
+import { recentExerciseSets } from '../lib/metrics'
+
+export default function GymScreen({
+  state,
+  onStart,
+  activeExercise,
+  setActiveExercise,
+  onSetChange,
+  onAddSet,
+  onFinish,
+  onRepeatSet,
+  onSkipExercise,
+  onQuickAddExercise,
+  onRemoveSet,
+  onUndoSkip,
+}) {
+  const [showQuickAdd, setShowQuickAdd] = useState(false)
+  const [navigationDirection, setNavigationDirection] = useState('next')
+
+  const goPrevious = () => {
+    setNavigationDirection('previous')
+    setActiveExercise(Math.max(0, activeExercise - 1))
+  }
+
+  const goNext = () => {
+    setNavigationDirection('next')
+    setActiveExercise(
+      Math.min(workout.exercises.length - 1, activeExercise + 1),
+    )
+  }
+  const workout = state.activeWorkout
+
+  if (!workout) {
+    return (
+      <section className="empty-state">
+        <Dumbbell size={34} />
+        <h1>No active workout</h1>
+        <p>Your next session is {state.program.nextWorkout}.</p>
+        <button className="gold-button machined" onClick={onStart}>
+          Start Workout
+        </button>
+      </section>
+    )
+  }
+
+  const completedExercises = workout.exercises.filter((exercise) => {
+    const entered = exercise.sets.filter(
+      (set) => set.weight !== '' && set.reps !== '',
+    )
+    return entered.length > 0 && entered.every((set) => set.done)
+  }).length
+
+  const progress = Math.round(
+    (completedExercises / Math.max(1, workout.exercises.length)) * 100,
+  )
+
+  const currentExercise =
+    workout.exercises[activeExercise] ?? workout.exercises[0]
+
+  const supersetGroup = currentExercise.supersetGroup
+  const supersetExercises = supersetGroup
+    ? workout.exercises.filter(
+        (exercise) => exercise.supersetGroup === supersetGroup,
+      )
+    : []
+  const [supersetRound, setSupersetRound] = useState(0)
+  const supersetRounds = supersetExercises.length
+    ? Math.max(...supersetExercises.map((exercise) => exercise.sets.length))
+    : 0
+
+  return (
+    <div
+      className="focus-mode"
+      style={{
+        '--active-muscle-accent': currentExercise.muscle,
+        '--muscle-light': MUSCLE_LIGHTS[currentExercise.muscle] || MUSCLE_LIGHTS.Other,
+      }}
+    >
+      <section className="focus-mode-bar">
+        <div>
+          <span className="eyebrow">GYM MODE</span>
+          <h2>{workout.name}</h2>
+          <p>{completedExercises} of {workout.exercises.length} complete</p>
+        </div>
+        <ProgressRing value={progress} />
+      </section>
+
+      {supersetGroup ? (
+        <SupersetFocus
+          exercises={supersetExercises}
+          group={supersetGroup}
+          round={Math.min(supersetRound, Math.max(0, supersetRounds - 1))}
+          totalRounds={supersetRounds}
+          onSetChange={(exerciseId, setIndex, key, value) => {
+            const exerciseIndex = workout.exercises.findIndex(
+              (exercise) => exercise.id === exerciseId,
+            )
+            onSetChange(exerciseIndex, setIndex, key, value)
+          }}
+          onPreviousRound={() =>
+            setSupersetRound(Math.max(0, supersetRound - 1))
+          }
+          onNextRound={() =>
+            setSupersetRound(
+              Math.min(supersetRounds - 1, supersetRound + 1),
+            )
+          }
+          onAddRound={() => {
+            supersetExercises.forEach((exercise) => {
+              const exerciseIndex = workout.exercises.findIndex(
+                (item) => item.id === exercise.id,
+              )
+              onAddSet(exerciseIndex)
+            })
+            setSupersetRound(supersetRounds)
+          }}
+        />
+      ) : (
+        <FocusExercise
+          key={currentExercise.id}
+          exercise={currentExercise}
+          exerciseIndex={activeExercise}
+          totalExercises={workout.exercises.length}
+          previousSets={recentExerciseSets(state.history, currentExercise.name)}
+          onSetChange={(setIndex, key, value) =>
+            onSetChange(activeExercise, setIndex, key, value)
+          }
+          onAddSet={() => onAddSet(activeExercise)}
+          onPrevious={goPrevious}
+          onNext={goNext}
+          onRepeatSet={(setIndex) => onRepeatSet(activeExercise, setIndex)}
+          onSkipExercise={() => onSkipExercise(activeExercise)}
+          onQuickAdd={() => setShowQuickAdd(true)}
+          onRemoveSet={(setIndex) => onRemoveSet(activeExercise, setIndex)}
+          onUndoSkip={() => onUndoSkip(activeExercise)}
+          navigationDirection={navigationDirection}
+        />
+      )}
+
+      {showQuickAdd && (
+        <QuickAddModal
+          onClose={() => setShowQuickAdd(false)}
+          onAdd={(exercise) => {
+            onQuickAddExercise(exercise)
+            setShowQuickAdd(false)
+          }}
+        />
+      )}
+
+      <div className="focus-finish-bar">
+        <button className="focus-more-button" aria-label="Workout options">
+          <MoreHorizontal />
+        </button>
+        <button className="gold-button machined" onClick={onFinish}>
+          Finish Workout
+        </button>
+      </div>
+    </div>
+  )
+}
