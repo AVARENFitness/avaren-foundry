@@ -11,7 +11,11 @@ import CompletionScreen from './screens/CompletionScreen'
 import WorkoutIntelligenceSummary from './components/WorkoutIntelligenceSummary'
 import MobilityScreen from './screens/MobilityScreen'
 import MobilityPrompt from './components/MobilityPrompt'
-import { DAILY_RESET, buildRecoveryFlow } from './data/mobility'
+import {
+  buildAdaptiveDailyReset,
+  buildRecoveryFlow,
+  calculateRecoveryIntelligence,
+} from './data/mobility'
 import CloudStatus from './components/CloudStatus'
 import {
   chooseNewestState,
@@ -242,13 +246,36 @@ function App() {
     }
   }, [session?.user?.id, cloudReady])
 
+  const scheduledWorkout = state.weeklySchedule?.[new Date().getDay()]
+  const plannedWorkout =
+    scheduledWorkout && scheduledWorkout !== 'Rest'
+      ? scheduledWorkout
+      : state.selectedWorkout || state.program.nextWorkout
+
+  const adaptiveDailyReset = buildAdaptiveDailyReset({
+    history: state.history,
+    plannedWorkout,
+    durationPreferences:
+      state.mobility?.durationPreferences ?? {},
+  })
+
+  const recoveryIntelligence =
+    calculateRecoveryIntelligence(state)
+
   const openDailyReset = () => {
-    setMobilityFlow(DAILY_RESET)
+    setMobilityFlow(adaptiveDailyReset)
     navigate('mobility')
   }
 
-  const openRecoveryFlow = (session = completedSession?.session) => {
-    setMobilityFlow(buildRecoveryFlow(session))
+  const openRecoveryFlow = (
+    session = completedSession?.session,
+  ) => {
+    setMobilityFlow(
+      buildRecoveryFlow(
+        session,
+        state.mobility?.durationPreferences ?? {},
+      ),
+    )
     navigate('mobility')
   }
 
@@ -648,10 +675,24 @@ function App() {
           />
           <MobilityPrompt
             type="recovery"
-            subtitle="OPTIONAL RECOVERY"
+            subtitle="ADAPTIVE RECOVERY"
             title="Recovery Flow"
             detail="Equipment-free · Start when ready"
-            onOpen={() => openRecoveryFlow(completedSession?.session)}
+            reason={
+              buildRecoveryFlow(
+                completedSession?.session,
+                state.mobility?.durationPreferences ?? {},
+              ).reason
+            }
+            focusAreas={
+              buildRecoveryFlow(
+                completedSession?.session,
+                state.mobility?.durationPreferences ?? {},
+              ).focusAreas
+            }
+            onOpen={() =>
+              openRecoveryFlow(completedSession?.session)
+            }
           />
           <CompletionScreen
           session={completedSession?.session}
@@ -731,19 +772,27 @@ function App() {
       <>
         <MobilityPrompt
           type="daily"
-          subtitle="DAILY RESET"
-          title="Start moving"
-          detail="Equipment-free · Move at your pace"
+          subtitle="TODAY’S RESET"
+          title={adaptiveDailyReset.title}
+          detail={`${adaptiveDailyReset.movements.length} movements · Equipment-free`}
+          reason={adaptiveDailyReset.reason}
+          focusAreas={adaptiveDailyReset.focusAreas}
+          score={recoveryIntelligence.score}
+          scoreStatus="Recovery"
           onOpen={openDailyReset}
         />
         <HomeScreen
-        state={state}
-        onStart={startWorkout}
-        setScreen={setScreen}
-        onSelectWorkout={(workout) =>
-          setState((current) => ({ ...current, selectedWorkout: workout }))
-        }
-          />
+          state={state}
+          onStart={startWorkout}
+          setScreen={setScreen}
+          recoveryIntelligence={recoveryIntelligence}
+          onSelectWorkout={(workout) =>
+            setState((current) => ({
+              ...current,
+              selectedWorkout: workout,
+            }))
+          }
+        />
       </>
     )
   }, [screen, state, activeExercise, completedSession, mobilityFlow, earnedMilestones])

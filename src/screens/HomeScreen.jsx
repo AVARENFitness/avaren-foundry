@@ -1,4 +1,4 @@
-import { ArrowRight, ChevronDown, Dumbbell, Flame, Layers3, Trophy } from 'lucide-react'
+import { ArrowRight, ChevronDown, Dumbbell, Flame, HeartPulse, Layers3, Trophy } from 'lucide-react'
 import { useState } from 'react'
 import MetricCard from '../components/MetricCard'
 import WorkoutSelector from '../components/WorkoutSelector'
@@ -9,6 +9,7 @@ export default function HomeScreen({
   onStart,
   setScreen,
   onSelectWorkout,
+  recoveryIntelligence,
 }) {
   const [showSelector, setShowSelector] = useState(false)
   const active = state.activeWorkout
@@ -20,6 +21,14 @@ export default function HomeScreen({
   const workoutName = active
     ? active.name
     : state.selectedWorkout || defaultWorkout
+
+
+  const recovery = recoveryIntelligence ?? {
+    score: 0,
+    status: 'Recovery profile building',
+    insight: 'Complete workouts and mobility flows to build your recovery profile.',
+    tone: 'low',
+  }
 
   return (
     <>
@@ -53,6 +62,18 @@ export default function HomeScreen({
           {active ? 'Resume Workout' : 'Start Workout'}
           <ArrowRight size={17} />
         </button>
+      </section>
+
+      <section className={`recovery-intelligence-card ${recovery.tone}`}>
+        <div className="recovery-score-ring">
+          <HeartPulse size={19} />
+          <strong>{recovery.score}</strong>
+        </div>
+        <div>
+          <span className="eyebrow">RECOVERY INTELLIGENCE</span>
+          <h2>{recovery.status}</h2>
+          <p>{recovery.insight}</p>
+        </div>
       </section>
 
       <section className="metric-grid">
