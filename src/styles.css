@@ -3103,3 +3103,286 @@ body {
   color: #6d6962;
   font-size: 10px;
 }
+
+/* ===== IN-WORKOUT WORKOUT SWITCHER ===== */
+
+.gym-workout-heading {
+  min-width: 0;
+  flex: 1;
+}
+
+.gym-workout-title-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-top: 5px;
+}
+
+.gym-workout-title-row h2 {
+  min-width: 0;
+  margin: 0;
+}
+
+.change-workout-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex: 0 0 auto;
+  min-height: 31px;
+  padding: 7px 9px;
+  border: 1px solid rgba(184,149,78,.22);
+  border-radius: 999px;
+  background: rgba(184,149,78,.045);
+  color: var(--gold-bright);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .03em;
+}
+
+.workout-change-modal {
+  width: min(620px, 100%);
+  padding: 20px;
+  border: 1px solid rgba(248,243,230,.1);
+  border-radius: 25px;
+  background:
+    radial-gradient(circle at 85% -15%, rgba(184,149,78,.12), transparent 30%),
+    linear-gradient(145deg, #171a1f, #090b0e);
+  box-shadow: 0 30px 90px rgba(0,0,0,.62);
+  animation: modalRise .28s cubic-bezier(.18,.8,.2,1) both;
+}
+
+.workout-change-modal header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.workout-change-modal header h2 {
+  margin: 6px 0 0;
+  font-size: 28px;
+  letter-spacing: -.045em;
+}
+
+.workout-change-modal header button {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border: 1px solid rgba(248,243,230,.08);
+  border-radius: 12px;
+  background: rgba(255,255,255,.025);
+  color: #8d887f;
+}
+
+.workout-change-modal > p {
+  margin: 14px 0 17px;
+  color: #77736d;
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.workout-change-list {
+  display: grid;
+  gap: 8px;
+}
+
+.workout-change-list button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  width: 100%;
+  min-height: 52px;
+  padding: 12px 14px;
+  border: 1px solid rgba(248,243,230,.075);
+  border-radius: 14px;
+  background: rgba(255,255,255,.018);
+  color: var(--cream);
+  text-align: left;
+}
+
+.workout-change-list button small {
+  color: var(--gold);
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+.workout-change-list button.active {
+  border-color: rgba(92,145,108,.28);
+  background: rgba(92,145,108,.06);
+}
+
+.workout-change-list button.active small {
+  color: #8fb89b;
+}
+
+.workout-change-list button:disabled {
+  opacity: .72;
+}
+
+@media (max-width: 390px) {
+  .gym-workout-title-row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .change-workout-button {
+    margin-top: 2px;
+  }
+}
+
+/* ===== WORKOUT PICKER VISIBILITY FIX ===== */
+
+.workout-change-modal {
+  max-height: min(78vh, 620px);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.workout-change-modal > p {
+  margin: 9px 0 11px;
+}
+
+.workout-change-list {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: max(4px, env(safe-area-inset-bottom));
+}
+
+@media (max-width: 600px) {
+  .modal-backdrop:has(.workout-change-modal) {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .workout-change-modal {
+    width: 100%;
+    max-height: 72vh;
+    margin: 0;
+    padding: 17px 16px max(16px, env(safe-area-inset-bottom));
+    border-radius: 24px 24px 0 0;
+  }
+
+  .workout-change-modal header h2 {
+    font-size: 24px;
+  }
+
+  .workout-change-modal > p {
+    font-size: 10px;
+    line-height: 1.4;
+  }
+
+  .workout-change-list {
+    gap: 7px;
+  }
+
+  .workout-change-list button {
+    min-height: 48px;
+    padding: 10px 13px;
+  }
+}
+
+/* ===== WORKOUT PICKER FIXED OVERLAY ===== */
+
+/*
+  The workout picker must attach to the viewport, not the scrolled Gym page.
+  This guarantees the choices appear immediately wherever the page is scrolled.
+*/
+.modal-backdrop:has(.workout-change-modal) {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 1000 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  overflow: hidden !important;
+  padding:
+    max(18px, env(safe-area-inset-top))
+    16px
+    max(18px, env(safe-area-inset-bottom)) !important;
+  background: rgba(2, 3, 5, .76) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.workout-change-modal {
+  position: relative !important;
+  inset: auto !important;
+  margin: 0 !important;
+  max-height: calc(
+    100dvh -
+    max(36px, env(safe-area-inset-top)) -
+    max(36px, env(safe-area-inset-bottom))
+  ) !important;
+}
+
+@media (max-width: 600px) {
+  .modal-backdrop:has(.workout-change-modal) {
+    align-items: flex-end !important;
+    padding:
+      max(12px, env(safe-area-inset-top))
+      0
+      0 !important;
+  }
+
+  .workout-change-modal {
+    width: 100% !important;
+    max-height: min(72dvh, 590px) !important;
+    border-radius: 24px 24px 0 0 !important;
+  }
+}
+
+/* ===== WORKOUT PICKER REACT PORTAL ===== */
+
+.workout-picker-portal {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 99999 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  overflow: hidden !important;
+  padding:
+    max(18px, env(safe-area-inset-top))
+    16px
+    max(18px, env(safe-area-inset-bottom)) !important;
+  background: rgba(2, 3, 5, .78) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.workout-picker-portal .workout-change-modal {
+  position: relative !important;
+  inset: auto !important;
+  width: min(620px, 100%) !important;
+  max-height: calc(100dvh - 36px) !important;
+  margin: 0 !important;
+  overflow: hidden !important;
+}
+
+.workout-picker-portal .workout-change-list {
+  overflow-y: auto !important;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 600px) {
+  .workout-picker-portal {
+    align-items: flex-end !important;
+    padding:
+      max(12px, env(safe-area-inset-top))
+      0
+      0 !important;
+  }
+
+  .workout-picker-portal .workout-change-modal {
+    width: 100% !important;
+    max-height: min(72dvh, 590px) !important;
+    border-radius: 24px 24px 0 0 !important;
+  }
+}

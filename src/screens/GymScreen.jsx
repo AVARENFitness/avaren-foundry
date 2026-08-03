@@ -1,9 +1,10 @@
-import { Dumbbell, MoreHorizontal } from 'lucide-react'
+import { Dumbbell, MoreHorizontal, RefreshCw, X } from 'lucide-react'
 import FocusExercise from '../components/FocusExercise'
 import ProgressRing from '../components/ProgressRing'
 import QuickAddModal from '../components/QuickAddModal'
 import SupersetFocus from '../components/SupersetFocus'
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 
 const MUSCLE_LIGHTS = {
   Chest: '#6f2f36',
@@ -37,11 +38,14 @@ export default function GymScreen({
   onQuickAddExercise,
   onRemoveSet,
   onUndoSkip,
+  workoutOptions = [],
+  onChangeWorkout,
   isFinishing = false,
 }) {
   const [showQuickAdd, setShowQuickAdd] = useState(false)
   const [supersetRound, setSupersetRound] = useState(0)
   const [navigationDirection, setNavigationDirection] = useState('next')
+  const [showWorkoutPicker, setShowWorkoutPicker] = useState(false)
 
   const goPrevious = () => {
     setNavigationDirection('previous')
@@ -102,9 +106,17 @@ export default function GymScreen({
       }}
     >
       <section className="focus-mode-bar">
-        <div>
+        <div className="gym-workout-heading">
           <span className="eyebrow">GYM MODE</span>
-          <h2>{workout.name}</h2>
+          <div className="gym-workout-title-row">
+            <h2>{workout.name}</h2>
+            <button
+              className="change-workout-button"
+              onClick={() => setShowWorkoutPicker(true)}
+            >
+              <RefreshCw size={13} /> Change
+            </button>
+          </div>
           <p>{completedExercises} of {workout.exercises.length} complete</p>
         </div>
         <ProgressRing value={progress} />
@@ -161,6 +173,54 @@ export default function GymScreen({
           navigationDirection={navigationDirection}
         />
       )}
+
+      {showWorkoutPicker &&
+        createPortal(
+          <div
+            className="modal-backdrop workout-picker-portal"
+            onClick={() => setShowWorkoutPicker(false)}
+          >
+            <section
+              className="workout-change-modal"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <header>
+                <div>
+                  <span className="eyebrow">CURRENT SESSION</span>
+                  <h2>Change Workout</h2>
+                </div>
+                <button onClick={() => setShowWorkoutPicker(false)}>
+                  <X size={20} />
+                </button>
+              </header>
+
+              <p>
+                Choose the workout you want to perform today. If you have entered
+                any set data, The Foundry will ask before replacing it.
+              </p>
+
+              <div className="workout-change-list">
+                {workoutOptions.map((option) => (
+                  <button
+                    key={option}
+                    className={option === workout.name ? 'active' : ''}
+                    disabled={option === workout.name}
+                    onClick={() => {
+                      onChangeWorkout(option)
+                      setShowWorkoutPicker(false)
+                    }}
+                  >
+                    <span>{option}</span>
+                    <small>
+                      {option === workout.name ? 'Current workout' : 'Switch'}
+                    </small>
+                  </button>
+                ))}
+              </div>
+            </section>
+          </div>,
+          document.body,
+        )}
 
       {showQuickAdd && (
         <QuickAddModal

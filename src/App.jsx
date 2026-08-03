@@ -241,20 +241,10 @@ function App() {
     }, 180)
   }
 
-  const startWorkout = () => {
-    if (state.activeWorkout) {
-      navigate('gym')
-      return
-    }
-
-    const scheduled = state.weeklySchedule?.[new Date().getDay()]
-    const name =
-      state.selectedWorkout ||
-      (scheduled && scheduled !== 'Rest' ? scheduled : null) ||
-      state.program.nextWorkout
+  const buildActiveWorkout = (name) => {
     const definitions = state.program.workouts[name] ?? []
 
-    const activeWorkout = {
+    return {
       id: crypto.randomUUID(),
       name,
       date: new Date().toISOString().slice(0, 10),
@@ -278,6 +268,54 @@ function App() {
         ),
       })),
     }
+  }
+
+  const changeActiveWorkout = (name) => {
+    const currentWorkout = state.activeWorkout
+    if (!currentWorkout || currentWorkout.name === name) return
+
+    const hasEnteredData = currentWorkout.exercises.some((exercise) =>
+      exercise.sets.some(
+        (set) =>
+          set.weight !== '' ||
+          set.reps !== '' ||
+          set.done,
+      ),
+    )
+
+    if (
+      hasEnteredData &&
+      !confirm(
+        `Switch from ${currentWorkout.name} to ${name}? Your entered workout progress will be discarded.`,
+      )
+    ) {
+      return
+    }
+
+    const replacement = buildActiveWorkout(name)
+    setActiveExerciseState(0)
+    setState((current) => ({
+      ...current,
+      selectedWorkout: name,
+      activeWorkout: replacement,
+    }))
+
+    if (navigator.vibrate) navigator.vibrate(12)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const startWorkout = () => {
+    if (state.activeWorkout) {
+      navigate('gym')
+      return
+    }
+
+    const scheduled = state.weeklySchedule?.[new Date().getDay()]
+    const name =
+      state.selectedWorkout ||
+      (scheduled && scheduled !== 'Rest' ? scheduled : null) ||
+      state.program.nextWorkout
+    const activeWorkout = buildActiveWorkout(name)
 
     setActiveExercise(0)
     navigate('gym', () => {
@@ -487,6 +525,8 @@ function App() {
           onQuickAddExercise={quickAddExercise}
           onRemoveSet={removeSet}
           onUndoSkip={undoSkipExercise}
+          workoutOptions={state.program.rotation}
+          onChangeWorkout={changeActiveWorkout}
         />
       )
     }
