@@ -42,6 +42,14 @@ import {
   saveReadinessEntry,
 } from './lib/readiness'
 import ReadinessCheckIn from './components/ReadinessCheckIn'
+import NotificationScreen from './screens/NotificationScreen'
+import {
+  NOTIFICATION_ACTIONS,
+  dismissNotification,
+  markNotificationActedOn,
+  markNotificationRead,
+  notificationSnapshot as buildNotificationSnapshot,
+} from './lib/notifications'
 
 const createInitialState = () => ({
   program: DEFAULT_PROGRAM,
@@ -72,6 +80,11 @@ const createInitialState = () => ({
   readiness: {
     entries: [],
     lastPromptedDate: null,
+  },
+  notifications: {
+    read: [],
+    dismissed: [],
+    actedOn: [],
   },
 })
 
@@ -296,6 +309,8 @@ function App() {
     cooldownDays: 5,
   })
 
+  const notifications = buildNotificationSnapshot(state)
+
 
   const saveReadinessCheckIn = (values) => {
     setState((current) => ({
@@ -312,6 +327,95 @@ function App() {
 
     if (navigator.vibrate) {
       navigator.vibrate([18, 30, 18])
+    }
+  }
+
+
+  const updateNotificationState = (updater) => {
+    setState((current) => ({
+      ...current,
+      notifications: updater(
+        current.notifications ?? {
+          read: [],
+          dismissed: [],
+          actedOn: [],
+        },
+      ),
+    }))
+  }
+
+  const handleNotificationRead = (notification) => {
+    updateNotificationState((current) =>
+      markNotificationRead(current, notification),
+    )
+  }
+
+  const handleNotificationDismiss = (notification) => {
+    updateNotificationState((current) =>
+      dismissNotification(current, notification),
+    )
+  }
+
+  const handleNotificationAction = (notification) => {
+    updateNotificationState((current) =>
+      markNotificationActedOn(current, notification),
+    )
+
+    if (
+      notification.action ===
+      NOTIFICATION_ACTIONS.OPEN_READINESS
+    ) {
+      setShowReadinessCheckIn(true)
+      return
+    }
+
+    if (
+      notification.action ===
+      NOTIFICATION_ACTIONS.START_WORKOUT
+    ) {
+      startWorkout()
+      return
+    }
+
+    if (
+      notification.action ===
+      NOTIFICATION_ACTIONS.START_RECOVERY
+    ) {
+      const lastWorkout = [...state.history]
+        .sort((first, second) =>
+          String(first?.date).localeCompare(
+            String(second?.date),
+          ),
+        )
+        .at(-1)
+
+      if (lastWorkout) {
+        openRecoveryFlow(lastWorkout)
+      }
+      return
+    }
+
+    if (
+      notification.action ===
+      NOTIFICATION_ACTIONS.OPEN_PLANNER
+    ) {
+      navigate('planner')
+      return
+    }
+
+    if (
+      notification.action ===
+      NOTIFICATION_ACTIONS.OPEN_FORGE
+    ) {
+      navigate('forge')
+      return
+    }
+
+    if (
+      notification.action ===
+      NOTIFICATION_ACTIONS.OPEN_JOURNEY
+    ) {
+      navigate('history')
     }
   }
 
@@ -860,6 +964,18 @@ function App() {
       )
     }
 
+    if (screen === 'notifications') {
+      return (
+        <NotificationScreen
+          snapshot={notifications}
+          onClose={() => navigate('more')}
+          onRead={handleNotificationRead}
+          onDismiss={handleNotificationDismiss}
+          onAction={handleNotificationAction}
+        />
+      )
+    }
+
     if (screen === 'coach') {
       return (
         <CoachScreen
@@ -907,6 +1023,12 @@ function App() {
           onOpenHistory={() => navigate('history')}
           onOpenForge={() => navigate('forge')}
           onOpenCoach={() => navigate('coach')}
+          onOpenNotifications={() =>
+            navigate('notifications')
+          }
+          notificationCount={
+            notifications.unreadCount
+          }
           session={session}
         />
       )
@@ -941,6 +1063,10 @@ function App() {
           readiness={readiness}
           onOpenReadiness={() =>
             setShowReadinessCheckIn(true)
+          }
+          notificationSnapshot={notifications}
+          onOpenNotifications={() =>
+            navigate('notifications')
           }
           onSelectWorkout={(workout) =>
             setState((current) => ({

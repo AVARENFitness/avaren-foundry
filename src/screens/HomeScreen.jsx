@@ -15,6 +15,7 @@ import { useMemo, useState } from 'react'
 import CoachCard from '../components/CoachCard'
 import WeeklyTrainingStrip from '../components/WeeklyTrainingStrip'
 import ReadinessCard from '../components/ReadinessCard'
+import NotificationPreview from '../components/NotificationPreview'
 import WorkoutSelector from '../components/WorkoutSelector'
 import { forgeSnapshot } from '../lib/forge'
 import {
@@ -99,6 +100,8 @@ export default function HomeScreen({
   userName,
   readiness,
   onOpenReadiness,
+  notificationSnapshot,
+  onOpenNotifications,
 }) {
   const [showSelector, setShowSelector] = useState(false)
 
@@ -219,6 +222,11 @@ export default function HomeScreen({
       <ReadinessCard
         readiness={readiness}
         onOpen={onOpenReadiness}
+      />
+
+      <NotificationPreview
+        snapshot={notificationSnapshot}
+        onOpen={onOpenNotifications}
       />
 
       <section className="home-focus-card">

@@ -1,4 +1,5 @@
 import {
+  Bell,
   BrainCircuit,
   CalendarDays,
   Download,
@@ -37,6 +38,8 @@ export default function MoreScreen({
   onOpenHistory,
   onOpenForge,
   onOpenCoach,
+  onOpenNotifications,
+  notificationCount = 0,
   session,
 }) {
   return (
@@ -81,6 +84,19 @@ export default function MoreScreen({
 
       <section className="luxury-panel settings-group">
         <div className="settings-caption">TRAINING</div>
+
+        <button
+          className="setting-row"
+          onClick={onOpenNotifications}
+        >
+          <Bell />
+          Notifications
+          <span>
+            {notificationCount > 0
+              ? notificationCount
+              : '›'}
+          </span>
+        </button>
 
         <button className="setting-row" onClick={onOpenHistory}>
           <History /> Workout History <span>›</span>
