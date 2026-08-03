@@ -3386,3 +3386,322 @@ body {
     border-radius: 24px 24px 0 0 !important;
   }
 }
+
+
+/* ===== AVAREN MOBILITY ===== */
+
+.mobility-prompt {
+  display: grid;
+  grid-template-columns: 42px 1fr auto;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  margin-bottom: 12px;
+  padding: 14px;
+  border: 1px solid rgba(184,149,78,.17);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 90% -30%, rgba(184,149,78,.12), transparent 38%),
+    linear-gradient(145deg, rgba(20,23,27,.98), rgba(8,10,12,.99));
+  color: var(--cream);
+  text-align: left;
+}
+
+.mobility-prompt.recovery {
+  margin-top: 8px;
+  border-color: rgba(99,132,118,.22);
+  background:
+    radial-gradient(circle at 90% -30%, rgba(79,116,100,.14), transparent 38%),
+    linear-gradient(145deg, rgba(18,24,22,.98), rgba(8,11,10,.99));
+}
+
+.mobility-prompt-icon {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border: 1px solid rgba(184,149,78,.22);
+  border-radius: 14px;
+  color: var(--gold-bright);
+  background: rgba(184,149,78,.04);
+}
+
+.mobility-prompt span,
+.mobility-prompt strong,
+.mobility-prompt small {
+  display: block;
+}
+
+.mobility-prompt span {
+  color: var(--gold);
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: .12em;
+}
+
+.mobility-prompt strong {
+  margin-top: 4px;
+  font-size: 15px;
+}
+
+.mobility-prompt small {
+  margin-top: 3px;
+  color: #716d66;
+  font-size: 9px;
+}
+
+.mobility-prompt > svg {
+  color: #625e58;
+}
+
+.mobility-screen {
+  min-height: calc(100vh - 100px);
+  padding-bottom: 30px;
+}
+
+.mobility-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.mobility-topbar button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  background: transparent;
+  color: #8a857d;
+  font-size: 11px;
+}
+
+.mobility-topbar > span {
+  color: #625e58;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.mobility-progress {
+  height: 3px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(248,243,230,.06);
+}
+
+.mobility-progress div {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #806127, var(--gold-bright));
+  transition: width .3s ease;
+}
+
+.mobility-flow-heading {
+  padding: 22px 2px 14px;
+}
+
+.mobility-flow-heading h1 {
+  margin: 7px 0 0;
+  font-size: clamp(35px, 11vw, 54px);
+  letter-spacing: -.06em;
+}
+
+.movement-stage {
+  padding: 22px 18px;
+  border: 1px solid rgba(248,243,230,.085);
+  border-radius: 25px;
+  background:
+    radial-gradient(circle at 80% -15%, rgba(184,149,78,.1), transparent 30%),
+    linear-gradient(145deg, rgba(20,23,27,.99), rgba(8,10,12,.995));
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.025),
+    0 24px 70px rgba(0,0,0,.36);
+  text-align: center;
+}
+
+.movement-number {
+  color: var(--gold);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: .14em;
+}
+
+.movement-stage h2 {
+  margin: 10px auto 8px;
+  max-width: 500px;
+  font-size: clamp(28px, 8vw, 42px);
+  letter-spacing: -.05em;
+}
+
+.movement-stage > p {
+  max-width: 520px;
+  margin: 0 auto;
+  color: #7a756e;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.movement-side {
+  display: inline-block;
+  margin-top: 13px;
+  padding: 6px 9px;
+  border-radius: 999px;
+  background: rgba(184,149,78,.05);
+  color: #aa925e;
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+.mobility-timer {
+  display: grid;
+  place-items: center;
+  width: 158px;
+  height: 158px;
+  margin: 25px auto 16px;
+  border: 1px solid rgba(223,195,125,.25);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, rgba(184,149,78,.08), transparent 66%);
+  box-shadow:
+    inset 0 0 30px rgba(184,149,78,.035),
+    0 0 45px rgba(184,149,78,.07);
+}
+
+.mobility-timer.running {
+  animation: mobilityTimerPulse 1.8s ease-in-out infinite;
+}
+
+.mobility-timer strong {
+  display: block;
+  font-size: 55px;
+  line-height: .8;
+  letter-spacing: -.06em;
+}
+
+.mobility-timer span {
+  display: block;
+  margin-top: -31px;
+  color: #746f68;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+@keyframes mobilityTimerPulse {
+  50% {
+    box-shadow:
+      inset 0 0 30px rgba(184,149,78,.055),
+      0 0 65px rgba(184,149,78,.15);
+  }
+}
+
+.duration-adjuster {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 8px;
+  max-width: 300px;
+  margin: 0 auto 14px;
+}
+
+.duration-adjuster button,
+.mobility-secondary-action,
+.mobility-finished-actions button {
+  min-height: 42px;
+  border: 1px solid rgba(248,243,230,.075);
+  border-radius: 11px;
+  background: rgba(255,255,255,.018);
+  color: #908a81;
+  font-weight: 800;
+}
+
+.duration-adjuster span {
+  color: var(--cream);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.mobility-primary-actions {
+  display: grid;
+  gap: 8px;
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.mobility-primary-actions .gold-button {
+  margin: 0;
+}
+
+.mobility-secondary-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+}
+
+.mobility-finished-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  max-width: 400px;
+  margin: 9px auto 0;
+}
+
+.mobility-finished-actions button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.rep-target {
+  margin: 28px 0 22px;
+}
+
+.rep-target strong,
+.rep-target span {
+  display: block;
+}
+
+.rep-target strong {
+  font-size: 65px;
+  line-height: 1;
+  letter-spacing: -.07em;
+}
+
+.rep-target span {
+  margin-top: 6px;
+  color: #77726b;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+}
+
+.skip-movement {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  margin-top: 13px;
+  border: 0;
+  background: transparent;
+  color: #625e58;
+  font-size: 9px;
+  font-weight: 800;
+}
+
+@media (max-width: 390px) {
+  .movement-stage {
+    padding: 20px 14px;
+  }
+
+  .mobility-timer {
+    width: 142px;
+    height: 142px;
+  }
+}

@@ -8,6 +8,9 @@ import WeeklyPlannerScreen from './screens/WeeklyPlannerScreen'
 import HistoryScreen from './screens/HistoryScreen'
 import WorkoutBuilderScreen from './screens/WorkoutBuilderScreen'
 import CompletionScreen from './screens/CompletionScreen'
+import MobilityScreen from './screens/MobilityScreen'
+import MobilityPrompt from './components/MobilityPrompt'
+import { DAILY_RESET, buildRecoveryFlow } from './data/mobility'
 import CloudStatus from './components/CloudStatus'
 import {
   chooseNewestState,
@@ -38,6 +41,10 @@ const createInitialState = () => ({
   },
   lastBackupAt: null,
   schemaVersion: 2,
+  mobility: {
+    durationPreferences: {},
+    completed: [],
+  },
 })
 
 const makeSet = (number, type = 'Working') => ({
@@ -75,6 +82,7 @@ function App() {
   const [isFinishing, setIsFinishing] = useState(false)
   const [transitioning, setTransitioning] = useState(false)
   const [showSplash, setShowSplash] = useState(true)
+  const [mobilityFlow, setMobilityFlow] = useState(null)
   const [session, setSession] = useState(null)
   const [authLoading, setAuthLoading] = useState(true)
   const [cloudReady, setCloudReady] = useState(false)
@@ -230,6 +238,55 @@ function App() {
       window.removeEventListener('online', handleOnline)
     }
   }, [session?.user?.id, cloudReady])
+
+  const openDailyReset = () => {
+    setMobilityFlow(DAILY_RESET)
+    navigate('mobility')
+  }
+
+  const openRecoveryFlow = (session = completedSession?.session) => {
+    setMobilityFlow(buildRecoveryFlow(session))
+    navigate('mobility')
+  }
+
+  const saveMobilityDuration = (movementId, seconds) => {
+    setState((current) => ({
+      ...current,
+      mobility: {
+        ...(current.mobility ?? {}),
+        durationPreferences: {
+          ...(current.mobility?.durationPreferences ?? {}),
+          [movementId]: seconds,
+        },
+        completed: current.mobility?.completed ?? [],
+      },
+    }))
+  }
+
+  const completeMobilityFlow = () => {
+    const completion = {
+      id: crypto.randomUUID(),
+      flowId: mobilityFlow?.id,
+      title: mobilityFlow?.title,
+      completedAt: new Date().toISOString(),
+    }
+
+    setState((current) => ({
+      ...current,
+      mobility: {
+        ...(current.mobility ?? {}),
+        durationPreferences:
+          current.mobility?.durationPreferences ?? {},
+        completed: [
+          ...(current.mobility?.completed ?? []),
+          completion,
+        ],
+      },
+    }))
+
+    setMobilityFlow(null)
+    navigate('home')
+  }
 
   const navigate = (nextScreen, callback) => {
     setTransitioning(true)
@@ -509,6 +566,21 @@ function App() {
   }
 
   const activeScreen = useMemo(() => {
+    if (screen === 'mobility' && mobilityFlow) {
+      return (
+        <MobilityScreen
+          flow={mobilityFlow}
+          savedDurations={state.mobility?.durationPreferences ?? {}}
+          onSaveDuration={saveMobilityDuration}
+          onComplete={completeMobilityFlow}
+          onClose={() => {
+            setMobilityFlow(null)
+            navigate('home')
+          }}
+        />
+      )
+    }
+
     if (screen === 'gym') {
       return (
         <GymScreen
@@ -552,7 +624,15 @@ function App() {
       }
 
       return (
-        <CompletionScreen
+        <>
+          <MobilityPrompt
+            type="recovery"
+            subtitle="OPTIONAL RECOVERY"
+            title="Recovery Flow"
+            detail="Equipment-free · Start when ready"
+            onOpen={() => openRecoveryFlow(completedSession?.session)}
+          />
+          <CompletionScreen
           session={completedSession?.session}
           nextWorkout={completedSession?.nextWorkout}
           recentPrs={recentPRs(state.history, 8).filter(
@@ -563,7 +643,8 @@ function App() {
             setIsFinishing(false)
             navigate('home')
           }}
-        />
+          />
+        </>
       )
     }
 
@@ -627,16 +708,25 @@ function App() {
     }
 
     return (
-      <HomeScreen
+      <>
+        <MobilityPrompt
+          type="daily"
+          subtitle="DAILY RESET"
+          title="Start moving"
+          detail="Equipment-free · Move at your pace"
+          onOpen={openDailyReset}
+        />
+        <HomeScreen
         state={state}
         onStart={startWorkout}
         setScreen={setScreen}
         onSelectWorkout={(workout) =>
           setState((current) => ({ ...current, selectedWorkout: workout }))
         }
-      />
+          />
+      </>
     )
-  }, [screen, state, activeExercise, completedSession])
+  }, [screen, state, activeExercise, completedSession, mobilityFlow])
 
   if (!isSupabaseConfigured) {
     return (
