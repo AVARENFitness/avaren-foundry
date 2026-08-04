@@ -8051,3 +8051,297 @@ select:focus-visible {
     justify-items: start;
   }
 }
+
+
+/* ===== AVAREN BUILDER v1.8 · MOTION SYSTEM 2.0 ===== */
+
+.motion2-card {
+  margin: 18px 0;
+  padding: 15px;
+  border: 1px solid rgba(223,195,125,.19);
+  border-radius: 21px;
+  background:
+    radial-gradient(
+      circle at 86% -10%,
+      rgba(223,195,125,.14),
+      transparent 36%
+    ),
+    linear-gradient(
+      145deg,
+      rgba(20,22,22,.99),
+      rgba(8,9,10,.998)
+    );
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.025),
+    0 22px 65px rgba(0,0,0,.34);
+}
+
+.motion2-card > header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.motion2-card header strong {
+  display: block;
+  margin-top: 5px;
+  font-size: 13px;
+}
+
+.motion2-controls {
+  display: flex;
+  gap: 6px;
+}
+
+.motion2-controls button {
+  display: grid;
+  place-items: center;
+  width: 35px;
+  height: 35px;
+  border: 1px solid rgba(248,243,230,.075);
+  border-radius: 11px;
+  background: rgba(255,255,255,.018);
+  color: var(--gold-bright);
+}
+
+.motion2-stage {
+  position: relative;
+  overflow: hidden;
+  margin-top: 13px;
+  border: 1px solid rgba(248,243,230,.055);
+  border-radius: 18px;
+  background:
+    radial-gradient(
+      circle at 50% 42%,
+      rgba(223,195,125,.075),
+      transparent 43%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(255,255,255,.015),
+      rgba(0,0,0,.13)
+    );
+}
+
+.motion2-stage svg {
+  display: block;
+  width: 100%;
+  min-height: 260px;
+}
+
+.motion2-frame-label {
+  position: absolute;
+  top: 12px;
+  z-index: 2;
+  padding: 5px 8px;
+  border: 1px solid rgba(248,243,230,.065);
+  border-radius: 999px;
+  background: rgba(5,6,7,.66);
+  color: #7c756c;
+  font-size: 7px;
+  font-weight: 900;
+  text-transform: uppercase;
+  backdrop-filter: blur(10px);
+}
+
+.motion2-frame-label.start {
+  left: 12px;
+}
+
+.motion2-frame-label.finish {
+  right: 12px;
+}
+
+.motion2-floor {
+  fill: rgba(248,243,230,.045);
+}
+
+.motion2-figure line,
+.motion2-spine {
+  fill: none;
+  stroke: #e1dbcf;
+  stroke-width: 7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter:
+    drop-shadow(0 0 3px rgba(255,255,255,.05));
+}
+
+.motion2-head {
+  fill: rgba(225,219,207,.08);
+  stroke: #e1dbcf;
+  stroke-width: 5;
+}
+
+.motion2-joint {
+  fill: #8e8370;
+  stroke: rgba(223,195,125,.28);
+  stroke-width: 2;
+}
+
+.motion2-muscle {
+  fill: url(#motion2-muscle-gradient);
+  animation:
+    motion2Glow 2.1s
+    ease-in-out infinite;
+}
+
+.motion2-trail {
+  fill: none;
+  stroke: rgba(223,195,125,.7);
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-dasharray: 7 9;
+  opacity: .72;
+}
+
+.motion2-stage.is-playing .motion2-trail {
+  animation:
+    motion2Trail 1.4s
+    linear infinite;
+}
+
+@keyframes motion2Trail {
+  from { stroke-dashoffset: 0; }
+  to { stroke-dashoffset: -32; }
+}
+
+@keyframes motion2Glow {
+  0%, 100% { opacity: .45; transform: scale(.96); }
+  50% { opacity: .9; transform: scale(1.04); }
+}
+
+.motion2-static-steps {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 7px;
+  padding: 0 12px 12px;
+}
+
+.motion2-static-steps > div {
+  padding: 9px;
+  border: 1px solid rgba(248,243,230,.055);
+  border-radius: 11px;
+  background: rgba(255,255,255,.015);
+}
+
+.motion2-static-steps span,
+.motion2-static-steps small {
+  display: block;
+}
+
+.motion2-static-steps span {
+  color: var(--gold-bright);
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.motion2-static-steps small {
+  margin-top: 4px;
+  color: #777169;
+  font-size: 7px;
+  line-height: 1.35;
+}
+
+.motion2-details {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 7px;
+  margin-top: 10px;
+}
+
+.motion2-details article {
+  padding: 10px;
+  border: 1px solid rgba(248,243,230,.055);
+  border-radius: 12px;
+  background: rgba(255,255,255,.013);
+}
+
+.motion2-details span,
+.motion2-details strong {
+  display: block;
+}
+
+.motion2-details span {
+  color: #67615b;
+  font-size: 7px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.motion2-details strong {
+  margin-top: 5px;
+  color: #a49b90;
+  font-size: 8px;
+  line-height: 1.4;
+}
+
+.motion2-warning {
+  margin-top: 9px;
+  padding: 11px;
+  border: 1px solid rgba(181,90,82,.17);
+  border-radius: 12px;
+  background: rgba(181,90,82,.025);
+}
+
+.motion2-warning span {
+  color: #c88982;
+  font-size: 7px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.motion2-warning p {
+  margin: 5px 0 0;
+  color: #8d7d78;
+  font-size: 8px;
+  line-height: 1.45;
+}
+
+.motion-side-hint {
+  margin: -8px 0 13px;
+  color: #716b64;
+  font-size: 7px;
+  text-align: center;
+}
+
+@media (min-width: 700px) {
+  .motion2-stage svg {
+    min-height: 330px;
+  }
+
+  .motion2-details {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (max-width: 390px) {
+  .motion2-card {
+    padding: 12px;
+  }
+
+  .motion2-card > header {
+    align-items: flex-start;
+  }
+
+  .motion2-controls button {
+    width: 32px;
+    height: 32px;
+  }
+
+  .motion2-stage svg {
+    min-height: 235px;
+  }
+
+  .motion2-static-steps {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .motion2-muscle,
+  .motion2-trail {
+    animation: none !important;
+  }
+}

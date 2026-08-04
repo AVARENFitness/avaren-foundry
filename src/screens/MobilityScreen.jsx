@@ -104,6 +104,12 @@ export default function MobilityScreen({
         <MotionIllustration movement={movement} />
 
         {movement.side && (
+          <div className="motion-side-hint">
+            Use the arrow control in the guide to switch sides.
+          </div>
+        )}
+
+        {movement.side && (
           <div className="movement-side">{movement.side}</div>
         )}
 
