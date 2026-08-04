@@ -183,7 +183,7 @@ function App() {
   }, [])
 
   useEffect(() => {
-    const timer = setTimeout(() => setShowSplash(false), 1050)
+    const timer = setTimeout(() => setShowSplash(false), 820)
     return () => clearTimeout(timer)
   }, [])
 

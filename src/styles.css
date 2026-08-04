@@ -10354,3 +10354,478 @@ textarea:focus {
 @keyframes foundationPulse{0%,100%{opacity:.7;transform:scale(.97);box-shadow:0 0 0 rgba(216,184,109,0)}50%{opacity:1;transform:scale(1);box-shadow:0 0 42px rgba(216,184,109,.12)}}
 @media(max-width:430px){.foundation-header-mark{width:38px;height:38px;flex-basis:38px}.foundation-auth-brand>img{width:150px}}
 @media(prefers-reduced-motion:reduce){.foundation-splash-mark,.foundation-loading-mark{animation:none!important}}
+
+
+/* ===== SPRINT 3.6C · FOUNDATION MOTION & POLISH ===== */
+
+:root {
+  --foundation-ease:
+    cubic-bezier(.22, .76, .26, 1);
+  --foundation-fast: 160ms;
+  --foundation-medium: 280ms;
+  --foundation-slow: 620ms;
+}
+
+/* Launch sequence */
+.splash-screen {
+  animation:
+    foundationSplashExit
+    .34s var(--foundation-ease)
+    .62s both;
+}
+
+.foundation-splash-mark {
+  animation:
+    foundationMarkEnter
+      .54s var(--foundation-ease) both,
+    foundationCrossbarSheen
+      1.05s ease .18s both;
+}
+
+.splash-overline {
+  animation:
+    foundationCopyEnter
+    .42s var(--foundation-ease)
+    .12s both;
+}
+
+.splash-title {
+  animation:
+    foundationCopyEnter
+    .42s var(--foundation-ease)
+    .19s both;
+}
+
+.splash-line {
+  transform-origin: center;
+  animation:
+    foundationLineGrow
+    .45s var(--foundation-ease)
+    .26s both;
+}
+
+@keyframes foundationSplashExit {
+  0%, 78% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(1.012);
+  }
+}
+
+@keyframes foundationCopyEnter {
+  from {
+    opacity: 0;
+    transform: translateY(7px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes foundationLineGrow {
+  from {
+    opacity: 0;
+    transform: scaleX(0);
+  }
+
+  to {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+}
+
+@keyframes foundationCrossbarSheen {
+  0% {
+    filter:
+      brightness(.9)
+      contrast(1);
+  }
+
+  46% {
+    filter:
+      brightness(1.09)
+      contrast(1.035);
+  }
+
+  100% {
+    filter:
+      brightness(1)
+      contrast(1);
+  }
+}
+
+/* Screen transitions */
+.screen-stage {
+  overflow: clip;
+}
+
+.screen {
+  transform-origin:
+    50% 12%;
+  animation:
+    foundationScreenEnter
+    .3s var(--foundation-ease) both;
+}
+
+.app-shell.is-transitioning
+  .screen {
+  opacity: .5;
+  transform:
+    translateY(5px)
+    scale(.995);
+  filter: blur(1.5px);
+  transition:
+    opacity
+      var(--foundation-fast) ease,
+    transform
+      var(--foundation-fast) ease,
+    filter
+      var(--foundation-fast) ease;
+}
+
+@keyframes foundationScreenEnter {
+  from {
+    opacity: 0;
+    transform:
+      translateY(8px)
+      scale(.996);
+  }
+
+  to {
+    opacity: 1;
+    transform:
+      translateY(0)
+      scale(1);
+  }
+}
+
+/* Header identity */
+.foundation-header-mark {
+  transition:
+    transform
+      var(--foundation-medium)
+      var(--foundation-ease),
+    box-shadow
+      var(--foundation-medium)
+      ease,
+    filter
+      var(--foundation-medium)
+      ease;
+}
+
+.brand-lockup:hover
+  .foundation-header-mark {
+  transform:
+    translateY(-1px)
+    scale(1.025);
+  filter: brightness(1.04);
+  box-shadow:
+    0 14px 34px
+      rgba(0,0,0,.4),
+    0 0 0 1px
+      rgba(216,184,109,.22),
+    0 0 26px
+      rgba(216,184,109,.07);
+}
+
+/* Authentication refinement */
+.foundation-auth-brand > img {
+  width:
+    min(164px, 40vw);
+  margin-bottom: 22px;
+  transition:
+    transform
+      var(--foundation-medium)
+      var(--foundation-ease),
+    filter
+      var(--foundation-medium)
+      ease;
+}
+
+.foundation-auth-brand {
+  margin-bottom: 26px;
+}
+
+.foundation-auth
+  .auth-card {
+  animation:
+    foundationCardEnter
+    .42s var(--foundation-ease)
+    .08s both;
+}
+
+@keyframes foundationCardEnter {
+  from {
+    opacity: 0;
+    transform: translateY(11px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Buttons */
+button,
+.gold-button,
+.bottom-nav button {
+  -webkit-tap-highlight-color:
+    transparent;
+}
+
+button {
+  transition:
+    transform
+      var(--foundation-fast)
+      var(--foundation-ease),
+    border-color
+      var(--foundation-fast)
+      ease,
+    background
+      var(--foundation-fast)
+      ease,
+    color
+      var(--foundation-fast)
+      ease,
+    box-shadow
+      var(--foundation-fast)
+      ease,
+    opacity
+      var(--foundation-fast)
+      ease;
+}
+
+button:active {
+  transform: scale(.985);
+}
+
+.gold-button:active {
+  transform:
+    translateY(1px)
+    scale(.992);
+}
+
+/* Navigation */
+.bottom-nav button {
+  position: relative;
+}
+
+.bottom-nav button::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: 3px;
+  width: 22px;
+  height: 2px;
+  border-radius: 999px;
+  background:
+    var(--gold-bright);
+  opacity: 0;
+  transform:
+    translateX(-50%)
+    scaleX(.25);
+  transition:
+    opacity
+      var(--foundation-medium)
+      ease,
+    transform
+      var(--foundation-medium)
+      var(--foundation-ease);
+}
+
+.bottom-nav button.active::after {
+  opacity: .9;
+  transform:
+    translateX(-50%)
+    scaleX(1);
+}
+
+.bottom-nav button svg {
+  transition:
+    transform
+      var(--foundation-medium)
+      var(--foundation-ease),
+    filter
+      var(--foundation-medium)
+      ease;
+}
+
+.bottom-nav button.active svg {
+  transform:
+    translateY(-1px)
+    scale(1.04);
+  filter:
+    drop-shadow(
+      0 0 7px
+      rgba(216,184,109,.2)
+    );
+}
+
+/* Cards and data surfaces */
+.home-readiness-first,
+.home-v2-hero,
+.home-v2-routines > button,
+.home-v2-week,
+.focus-set-card,
+.auth-card {
+  transition:
+    transform
+      var(--foundation-medium)
+      var(--foundation-ease),
+    border-color
+      var(--foundation-medium)
+      ease,
+    box-shadow
+      var(--foundation-medium)
+      ease,
+    background
+      var(--foundation-medium)
+      ease;
+}
+
+.home-v2-routines > button:hover,
+.home-v2-week:hover {
+  transform: translateY(-2px);
+  border-color:
+    rgba(216,184,109,.13);
+  box-shadow:
+    0 20px 50px
+      rgba(0,0,0,.28);
+}
+
+.home-readiness-first.pending {
+  animation:
+    foundationReadinessBreathe
+    3.2s ease-in-out infinite;
+}
+
+@keyframes foundationReadinessBreathe {
+  0%, 100% {
+    box-shadow:
+      inset 0 1px 0
+        rgba(255,255,255,.025),
+      0 18px 48px
+        rgba(0,0,0,.25),
+      0 0 0
+        rgba(216,184,109,0);
+  }
+
+  50% {
+    box-shadow:
+      inset 0 1px 0
+        rgba(255,255,255,.025),
+      0 20px 54px
+        rgba(0,0,0,.28),
+      0 0 32px
+        rgba(216,184,109,.055);
+  }
+}
+
+/* Lift experience */
+.focus-set-card.current {
+  animation:
+    foundationCurrentSet
+    .34s var(--foundation-ease)
+    both;
+}
+
+@keyframes foundationCurrentSet {
+  from {
+    opacity: .78;
+    transform:
+      translateY(5px)
+      scale(.995);
+  }
+
+  to {
+    opacity: 1;
+    transform:
+      translateY(0)
+      scale(1);
+  }
+}
+
+.focus-set-card.done.collapsed {
+  animation:
+    foundationSetCollapse
+    .28s var(--foundation-ease)
+    both;
+}
+
+@keyframes foundationSetCollapse {
+  from {
+    opacity: .74;
+    transform:
+      translateY(-3px);
+  }
+
+  to {
+    opacity: 1;
+    transform:
+      translateY(0);
+  }
+}
+
+/* Cloud status */
+.cloud-status {
+  animation:
+    foundationStatusEnter
+    .28s var(--foundation-ease)
+    both;
+}
+
+@keyframes foundationStatusEnter {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Mobile restraint */
+@media (max-width: 520px) {
+  .foundation-auth-brand {
+    margin-bottom: 18px;
+  }
+
+  .foundation-auth-brand > img {
+    width: 138px;
+    margin-bottom: 16px;
+  }
+
+  .home-v2-routines
+    > button:hover,
+  .home-v2-week:hover {
+    transform: none;
+  }
+}
+
+/* Accessibility */
+@media (
+  prefers-reduced-motion:
+  reduce
+) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior:
+      auto !important;
+    animation-duration:
+      .01ms !important;
+    animation-iteration-count:
+      1 !important;
+    transition-duration:
+      .01ms !important;
+  }
+}
