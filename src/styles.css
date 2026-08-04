@@ -11650,3 +11650,34 @@ button:active {
   font-size: 9px;
   font-weight: 850;
 }
+
+
+/* ===== SPRINT 5.0E · WORKOUT HEADER CONSOLIDATION ===== */
+
+.lift-overview-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 9px;
+  margin-top: 7px;
+}
+
+.lift-overview-meta > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #777169;
+  font-size: 8px;
+  font-weight: 800;
+}
+
+.lift-overview-meta > span + span {
+  padding-left: 9px;
+  border-left: 1px solid rgba(216,184,109,.12);
+  color: #a99a79;
+  font-variant-numeric: tabular-nums;
+}
+
+.lift-session-strip {
+  display: none !important;
+}

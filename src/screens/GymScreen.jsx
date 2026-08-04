@@ -216,21 +216,6 @@ export default function GymScreen({
         '--muscle-light': MUSCLE_LIGHTS[currentExercise.muscle] || MUSCLE_LIGHTS.Other,
       }}
     >
-      <section className="lift-session-strip">
-        <div>
-          <span className="eyebrow">LIFT SESSION</span>
-          <strong>{workout.name}</strong>
-        </div>
-        <div className="lift-session-strip-meta">
-          <span>
-            {completedExercises} / {workout.exercises.length}
-          </span>
-          <span className="lift-session-clock">
-            <Clock3 size={13} />
-            {elapsedLabel}
-          </span>
-        </div>
-      </section>
 
       <section className="focus-mode-bar lift-session-overview">
         <div className="gym-workout-heading">
@@ -244,7 +229,16 @@ export default function GymScreen({
               <RefreshCw size={13} /> Change
             </button>
           </div>
-          <p>{completedExercises} of {workout.exercises.length} complete</p>
+          <div className="lift-overview-meta">
+            <span>
+              {completedExercises} of {workout.exercises.length} complete
+            </span>
+
+            <span>
+              <Clock3 size={13} />
+              {elapsedLabel}
+            </span>
+          </div>
         </div>
         <ProgressRing value={progress} />
       </section>
