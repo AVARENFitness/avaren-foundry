@@ -9,6 +9,7 @@ import {
   SkipForward,
 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
+import MotionIllustration from '../components/MotionIllustration'
 
 export default function MobilityScreen({
   flow,
@@ -99,6 +100,8 @@ export default function MobilityScreen({
         </span>
         <h2>{movement.name}</h2>
         <p>{movement.instruction}</p>
+
+        <MotionIllustration movement={movement} />
 
         {movement.side && (
           <div className="movement-side">{movement.side}</div>

@@ -1064,7 +1064,7 @@ function App() {
       return (
         <NotificationScreen
           snapshot={notifications}
-          onClose={() => navigate('more')}
+          onClose={() => navigate('home')}
           onRead={handleNotificationRead}
           onDismiss={handleNotificationDismiss}
           onAction={handleNotificationAction}

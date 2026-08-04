@@ -7603,3 +7603,225 @@ select:focus-visible {
     display: none;
   }
 }
+
+
+/* ===== AVAREN BUILDER v1.6 · MOTION SYSTEM FOUNDATION ===== */
+
+.motion-illustration-card {
+  margin: 17px 0;
+  padding: 14px;
+  border: 1px solid rgba(184,149,78,.17);
+  border-radius: 18px;
+  background:
+    radial-gradient(
+      circle at 85% -10%,
+      rgba(184,149,78,.13),
+      transparent 35%
+    ),
+    linear-gradient(
+      145deg,
+      rgba(17,19,20,.99),
+      rgba(8,9,10,.995)
+    );
+}
+
+.motion-illustration-card > header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.motion-illustration-card header strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+}
+
+.motion-controls {
+  display: flex;
+  gap: 6px;
+}
+
+.motion-controls button {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid rgba(248,243,230,.07);
+  border-radius: 11px;
+  background: rgba(255,255,255,.018);
+  color: var(--gold-bright);
+}
+
+.motion-canvas {
+  position: relative;
+  overflow: hidden;
+  margin-top: 12px;
+  border: 1px solid rgba(248,243,230,.055);
+  border-radius: 16px;
+  background:
+    radial-gradient(
+      circle at 50% 45%,
+      rgba(184,149,78,.07),
+      transparent 42%
+    ),
+    rgba(0,0,0,.16);
+}
+
+.motion-canvas svg {
+  display: block;
+  width: 100%;
+  max-height: 265px;
+}
+
+.motion-floor {
+  fill: rgba(248,243,230,.045);
+}
+
+.motion-figure circle,
+.motion-figure line,
+.motion-spine {
+  fill: none;
+  stroke: #d8d1c3;
+  stroke-width: 5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.motion-figure circle {
+  fill: rgba(216,209,195,.06);
+}
+
+.motion-target-glow {
+  fill: rgba(184,149,78,.035);
+  stroke: rgba(184,149,78,.1);
+  stroke-width: 1;
+}
+
+.motion-direction {
+  fill: none;
+  stroke: var(--gold-bright);
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-dasharray: 8 8;
+  opacity: .9;
+}
+
+.motion-direction + * {
+  color: var(--gold-bright);
+}
+
+.motion-canvas marker path {
+  fill: var(--gold-bright);
+}
+
+.motion-canvas.is-playing .motion-direction {
+  animation: motionArrowFlow 1.25s linear infinite;
+}
+
+.motion-canvas.is-playing .motion-figure {
+  transform-origin: 100px 110px;
+  animation:
+    motionBodyPulse 2.4s
+    ease-in-out infinite;
+}
+
+.motion-canvas.is-playing.motion-neck-circle
+  .motion-figure circle {
+  transform-origin: 100px 35px;
+  animation:
+    motionNeckCircle 2.8s
+    ease-in-out infinite;
+}
+
+.motion-canvas.is-playing.motion-spine-wave
+  .motion-spine {
+  animation:
+    motionSpineWave 2.2s
+    ease-in-out infinite;
+}
+
+.motion-canvas.is-playing.motion-wall-angel
+  .motion-figure,
+.motion-canvas.is-playing.motion-overhead-reach
+  .motion-figure {
+  animation:
+    motionReachLift 2.2s
+    ease-in-out infinite;
+}
+
+.motion-canvas.is-paused *,
+.motion-canvas.is-paused .motion-figure {
+  animation-play-state: paused !important;
+}
+
+@keyframes motionArrowFlow {
+  from { stroke-dashoffset: 0; }
+  to { stroke-dashoffset: -32; }
+}
+
+@keyframes motionBodyPulse {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-2px) scale(1.015);
+  }
+}
+
+@keyframes motionNeckCircle {
+  0%, 100% { transform: translate(0, 0); }
+  25% { transform: translate(3px, -2px); }
+  50% { transform: translate(0, 3px); }
+  75% { transform: translate(-3px, -2px); }
+}
+
+@keyframes motionSpineWave {
+  0%, 100% {
+    d: path('M64 82 Q98 68 132 90');
+  }
+  50% {
+    d: path('M64 82 Q98 104 132 90');
+  }
+}
+
+@keyframes motionReachLift {
+  0%, 100% {
+    transform: translateY(2px);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+.motion-illustration-card > footer {
+  display: grid;
+  gap: 4px;
+  margin-top: 10px;
+}
+
+.motion-illustration-card footer span {
+  color: var(--gold-bright);
+  font-size: 9px;
+  font-weight: 900;
+}
+
+.motion-illustration-card footer small {
+  color: #6f6961;
+  font-size: 7px;
+  line-height: 1.4;
+}
+
+@media (min-width: 700px) {
+  .motion-canvas svg {
+    max-height: 310px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .motion-canvas *,
+  .motion-canvas .motion-figure {
+    animation: none !important;
+  }
+}

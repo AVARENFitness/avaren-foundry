@@ -1,6 +1,9 @@
 const MOVEMENTS = {
   'neck-cars': {
     id: 'neck-cars',
+    visual: 'neck-circle',
+    targetArea: 'Neck and upper spine',
+    motionCue: 'Circle slowly',
     name: 'Neck CARs',
     type: 'reps',
     target: 5,
@@ -11,6 +14,9 @@ const MOVEMENTS = {
   },
   'cat-cow': {
     id: 'cat-cow',
+    visual: 'spine-wave',
+    targetArea: 'Spine and core',
+    motionCue: 'Round and extend',
     name: 'Cat-Cow',
     type: 'reps',
     target: 8,
@@ -20,6 +26,9 @@ const MOVEMENTS = {
   },
   'worlds-greatest-stretch': {
     id: 'worlds-greatest-stretch',
+    visual: 'lunge-rotate',
+    targetArea: 'Hips and upper back',
+    motionCue: 'Lunge, reach, rotate',
     name: "World's Greatest Stretch",
     type: 'timed',
     seconds: 30,
@@ -30,6 +39,9 @@ const MOVEMENTS = {
   },
   'hip-flexor': {
     id: 'hip-flexor',
+    visual: 'half-kneeling',
+    targetArea: 'Front of hip',
+    motionCue: 'Tuck and shift',
     name: 'Half-Kneeling Hip Flexor',
     type: 'timed',
     seconds: 30,
@@ -40,6 +52,9 @@ const MOVEMENTS = {
   },
   'thoracic-rotation': {
     id: 'thoracic-rotation',
+    visual: 'side-rotation',
+    targetArea: 'Upper back',
+    motionCue: 'Rotate open',
     name: 'Open-Book Rotation',
     type: 'reps',
     target: 6,
@@ -50,6 +65,9 @@ const MOVEMENTS = {
   },
   'squat-pry': {
     id: 'squat-pry',
+    visual: 'deep-squat',
+    targetArea: 'Hips and ankles',
+    motionCue: 'Sink and shift',
     name: 'Bodyweight Squat Pry',
     type: 'timed',
     seconds: 30,
@@ -59,6 +77,9 @@ const MOVEMENTS = {
   },
   'ankle-rocks': {
     id: 'ankle-rocks',
+    visual: 'ankle-rock',
+    targetArea: 'Ankle and calf',
+    motionCue: 'Knee forward, heel down',
     name: 'Knee-to-Wall Ankle Rocks',
     type: 'reps',
     target: 8,
@@ -69,6 +90,9 @@ const MOVEMENTS = {
   },
   'wall-pec': {
     id: 'wall-pec',
+    visual: 'wall-turn',
+    targetArea: 'Chest and shoulder',
+    motionCue: 'Arm fixed, rotate away',
     name: 'Wall Pec Stretch',
     type: 'timed',
     seconds: 30,
@@ -79,6 +103,9 @@ const MOVEMENTS = {
   },
   'thread-needle': {
     id: 'thread-needle',
+    visual: 'thread-reach',
+    targetArea: 'Upper back and shoulder',
+    motionCue: 'Reach under, then open',
     name: 'Thread the Needle',
     type: 'reps',
     target: 6,
@@ -89,6 +116,9 @@ const MOVEMENTS = {
   },
   'child-pose-lat': {
     id: 'child-pose-lat',
+    visual: 'child-reach',
+    targetArea: 'Lats and back',
+    motionCue: 'Sit back and reach',
     name: "Child's Pose Lat Reach",
     type: 'timed',
     seconds: 30,
@@ -99,6 +129,9 @@ const MOVEMENTS = {
   },
   'cross-body': {
     id: 'cross-body',
+    visual: 'cross-body',
+    targetArea: 'Rear shoulder',
+    motionCue: 'Draw arm across',
     name: 'Cross-Body Shoulder Stretch',
     type: 'timed',
     seconds: 30,
@@ -109,6 +142,9 @@ const MOVEMENTS = {
   },
   'wall-angels': {
     id: 'wall-angels',
+    visual: 'wall-angel',
+    targetArea: 'Shoulders and upper back',
+    motionCue: 'Slide arms upward',
     name: 'Floor or Wall Angels',
     type: 'reps',
     target: 8,
@@ -118,6 +154,9 @@ const MOVEMENTS = {
   },
   'triceps': {
     id: 'triceps',
+    visual: 'overhead-reach',
+    targetArea: 'Triceps and shoulder',
+    motionCue: 'Elbow up, hand down',
     name: 'Overhead Triceps Stretch',
     type: 'timed',
     seconds: 30,
@@ -128,6 +167,9 @@ const MOVEMENTS = {
   },
   'wrist-flexor': {
     id: 'wrist-flexor',
+    visual: 'wrist-extend',
+    targetArea: 'Forearm flexors',
+    motionCue: 'Palm forward',
     name: 'Wrist Flexor Stretch',
     type: 'timed',
     seconds: 25,
@@ -138,6 +180,9 @@ const MOVEMENTS = {
   },
   'wrist-extensor': {
     id: 'wrist-extensor',
+    visual: 'wrist-flex',
+    targetArea: 'Forearm extensors',
+    motionCue: 'Knuckles down',
     name: 'Wrist Extensor Stretch',
     type: 'timed',
     seconds: 25,
@@ -148,6 +193,9 @@ const MOVEMENTS = {
   },
   'standing-quad': {
     id: 'standing-quad',
+    visual: 'standing-balance',
+    targetArea: 'Quad and hip',
+    motionCue: 'Heel toward glute',
     name: 'Standing Quad Stretch',
     type: 'timed',
     seconds: 30,
@@ -158,6 +206,9 @@ const MOVEMENTS = {
   },
   'hamstring-fold': {
     id: 'hamstring-fold',
+    visual: 'hinge-forward',
+    targetArea: 'Hamstring',
+    motionCue: 'Long spine, hinge',
     name: 'Supported Hamstring Fold',
     type: 'timed',
     seconds: 30,
@@ -168,6 +219,9 @@ const MOVEMENTS = {
   },
   'figure-four': {
     id: 'figure-four',
+    visual: 'figure-four',
+    targetArea: 'Glute and hip',
+    motionCue: 'Cross ankle, sit back',
     name: 'Figure-Four Glute Stretch',
     type: 'timed',
     seconds: 30,
@@ -178,6 +232,9 @@ const MOVEMENTS = {
   },
   'ninety-ninety': {
     id: 'ninety-ninety',
+    visual: 'hip-switch',
+    targetArea: 'Hips',
+    motionCue: 'Rotate knees side to side',
     name: '90/90 Hip Switches',
     type: 'reps',
     target: 8,
@@ -187,6 +244,9 @@ const MOVEMENTS = {
   },
   'calf-wall': {
     id: 'calf-wall',
+    visual: 'calf-lean',
+    targetArea: 'Calf and ankle',
+    motionCue: 'Heel down, lean forward',
     name: 'Wall Calf Stretch',
     type: 'timed',
     seconds: 30,
@@ -197,6 +257,9 @@ const MOVEMENTS = {
   },
   'cobra': {
     id: 'cobra',
+    visual: 'prone-press',
+    targetArea: 'Abdominals and spine',
+    motionCue: 'Press chest upward',
     name: 'Gentle Prone Press-Up',
     type: 'reps',
     target: 6,
@@ -206,6 +269,9 @@ const MOVEMENTS = {
   },
   'child-pose': {
     id: 'child-pose',
+    visual: 'child-pose',
+    targetArea: 'Back and hips',
+    motionCue: 'Sit back and breathe',
     name: "Child's Pose",
     type: 'timed',
     seconds: 30,
