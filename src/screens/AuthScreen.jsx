@@ -3,7 +3,8 @@ import { useState } from 'react'
 import { supabase } from '../lib/supabase'
 
 const authReturnUrl = () =>
-  import.meta.env.VITE_APP_URL?.trim() || window.location.origin
+  import.meta.env.VITE_APP_URL?.trim() ||
+  window.location.origin
 
 export default function AuthScreen() {
   const [mode, setMode] = useState('signin')
@@ -26,19 +27,27 @@ export default function AuthScreen() {
           options: {
             emailRedirectTo: authReturnUrl(),
             data: {
-              display_name: displayName.trim() || email.split('@')[0],
+              display_name:
+                displayName.trim() ||
+                email.split('@')[0],
             },
           },
         })
+
         if (error) throw error
+
         if (!data.session) {
-          setStatus('Check your email to confirm your AVAREN account. The link will return you to this app.')
+          setStatus(
+            'Check your email to confirm your AVAREN account. The link will return you to this app.',
+          )
         }
       } else {
-        const { error } = await supabase.auth.signInWithPassword({
-          email: email.trim(),
-          password,
-        })
+        const { error } =
+          await supabase.auth.signInWithPassword({
+            email: email.trim(),
+            password,
+          })
+
         if (error) throw error
       }
     } catch (error) {
@@ -53,48 +62,118 @@ export default function AuthScreen() {
       setStatus('Enter your email first.')
       return
     }
-    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-      redirectTo: authReturnUrl(),
-    })
-    setStatus(error ? error.message : 'Password reset instructions were sent to your email.')
+
+    const { error } =
+      await supabase.auth.resetPasswordForEmail(
+        email.trim(),
+        { redirectTo: authReturnUrl() },
+      )
+
+    setStatus(
+      error
+        ? error.message
+        : 'Password reset instructions were sent to your email.',
+    )
   }
 
   return (
-    <main className="auth-screen">
-      <section className="auth-brand">
+    <main className="auth-screen foundation-auth">
+      <section className="auth-brand foundation-auth-brand">
+        <img
+          src="/brand/foundation/foundation-master-1024.png"
+          alt="AVAREN Foundation mark"
+        />
         <span>AVAREN</span>
         <h1>THE FOUNDRY</h1>
         <p>Strength, refined.</p>
       </section>
+
       <section className="auth-card">
-        <div className="auth-seal"><Dumbbell size={25} /></div>
+        <div className="auth-seal foundation-auth-seal">
+          <img src="/brand/foundation/icon-96.png" alt="" aria-hidden="true" />
+        </div>
+
         <span className="eyebrow">YOUR TRAINING, EVERYWHERE</span>
         <h2>{mode === 'signup' ? 'Create your account.' : 'Welcome back.'}</h2>
-        <p className="auth-copy">Each account has its own private workouts, readiness, mobility, and progress.</p>
+        <p className="auth-copy">
+          Each account has its own private workouts, readiness, mobility, and progress.
+        </p>
+
         <form onSubmit={submit}>
           {mode === 'signup' && (
             <label>
               <span>Name</span>
-              <div><Dumbbell size={16} /><input required value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="Your name" /></div>
+              <div>
+                <Dumbbell size={16} />
+                <input
+                  required
+                  value={displayName}
+                  onChange={(event) => setDisplayName(event.target.value)}
+                  placeholder="Your name"
+                />
+              </div>
             </label>
           )}
+
           <label>
             <span>Email</span>
-            <div><Mail size={16} /><input required type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" /></div>
+            <div>
+              <Mail size={16} />
+              <input
+                required
+                type="email"
+                autoComplete="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                placeholder="you@example.com"
+              />
+            </div>
           </label>
+
           <label>
             <span>Password</span>
-            <div><LockKeyhole size={16} /><input required minLength="8" type="password" autoComplete={mode === 'signup' ? 'new-password' : 'current-password'} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="At least 8 characters" /></div>
+            <div>
+              <LockKeyhole size={16} />
+              <input
+                required
+                minLength="8"
+                type="password"
+                autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                placeholder="At least 8 characters"
+              />
+            </div>
           </label>
+
           {status && <div className="auth-status">{status}</div>}
+
           <button className="gold-button machined" disabled={working}>
             <Cloud size={18} />
-            {working ? 'Connecting…' : mode === 'signup' ? 'Create AVAREN Account' : 'Sign In'}
+            {working
+              ? 'Connecting...'
+              : mode === 'signup'
+              ? 'Create AVAREN Account'
+              : 'Sign In'}
           </button>
         </form>
-        {mode === 'signin' && <button className="auth-text-button" onClick={resetPassword}>Forgot password?</button>}
-        <button className="auth-switch" onClick={() => { setMode(mode === 'signup' ? 'signin' : 'signup'); setStatus('') }}>
-          {mode === 'signup' ? 'Already have an account? Sign in' : 'New to The Foundry? Create account'}
+
+        {mode === 'signin' && (
+          <button className="auth-text-button" onClick={resetPassword}>
+            Forgot password?
+          </button>
+        )}
+
+        <button
+          className="auth-switch"
+          onClick={() => {
+            setMode(mode === 'signup' ? 'signin' : 'signup')
+            setStatus('')
+          }}
+        >
+          {mode === 'signup'
+            ? 'Already have an account? Sign in'
+            : 'New to The Foundry? Create account'}
         </button>
       </section>
     </main>

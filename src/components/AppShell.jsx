@@ -1,5 +1,4 @@
 import { Dumbbell, Home, LineChart, MoreHorizontal } from 'lucide-react'
-import ErrorBoundary from './ErrorBoundary'
 
 const tabs = [
   { id: 'home', label: 'Home', Icon: Home },
@@ -18,8 +17,13 @@ export default function AppShell({
   return (
     <div className={`app-shell ${transitioning ? 'is-transitioning' : ''}`}>
       <header className="app-header">
-        <div className="brand-lockup">
-          <div className="brand-mark">A</div>
+        <div className="brand-lockup foundation-lockup">
+          <img
+            className="foundation-header-mark"
+            src="/brand/foundation/icon-96.png"
+            alt=""
+            aria-hidden="true"
+          />
           <div>
             <div className="brand-overline">AVAREN</div>
             <div className="brand-title">THE FOUNDRY</div>
@@ -33,18 +37,8 @@ export default function AppShell({
         </div>
       </header>
 
-      <div
-        className="screen-stage"
-        aria-busy={transitioning}
-      >
-        <main className="screen">
-          <ErrorBoundary
-            resetKey={screen}
-            onReturnHome={() => setScreen('home')}
-          >
-            {children}
-          </ErrorBoundary>
-        </main>
+      <div className="screen-stage">
+        <main className="screen">{children}</main>
       </div>
 
       <nav className="bottom-nav">
@@ -53,10 +47,6 @@ export default function AppShell({
             key={id}
             className={screen === id ? 'active' : ''}
             onClick={() => setScreen(id)}
-            disabled={transitioning}
-            aria-current={
-              screen === id ? 'page' : undefined
-            }
           >
             <Icon size={21} strokeWidth={1.65} />
             <span>{label}</span>

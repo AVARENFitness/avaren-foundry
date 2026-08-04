@@ -161,6 +161,12 @@ function App() {
         setSession(nextSession)
         setAuthLoading(false)
 
+        if (nextSession) {
+          setScreen('home')
+          setShowReadinessCheckIn(false)
+          window.scrollTo({ top: 0, behavior: 'auto' })
+        }
+
         if (!nextSession) {
           hydratedUserId.current = null
           setCloudReady(false)
@@ -1298,8 +1304,9 @@ function App() {
     return (
       <main className="auth-screen">
         <section className="auth-card auth-loading">
+          <img className="foundation-loading-mark" src="/brand/foundation/icon-192.png" alt="" aria-hidden="true" />
           <span className="eyebrow">AVAREN</span>
-          <h2>Opening The Foundry…</h2>
+          <h2>Opening The Foundry...</h2>
         </section>
       </main>
     )
@@ -1310,7 +1317,7 @@ function App() {
   if (showSplash) {
     return (
       <div className="splash-screen">
-        <div className="splash-emblem">A</div>
+        <img className="foundation-splash-mark" src="/brand/foundation/icon-192.png" alt="AVAREN" />
         <div className="splash-overline">AVAREN</div>
         <div className="splash-title">THE FOUNDRY</div>
         <div className="splash-line" />

@@ -10333,3 +10333,24 @@ textarea:focus {
 .focus-done-button span{min-height:52px;border-radius:14px}.focus-utility-grid{margin-top:8px}.focus-add-set{min-height:47px}.skip-exercise-button,.undo-skip-button{opacity:.68}.exercise-pager{margin-top:12px}.next-exercise-button{border-color:rgba(223,195,125,.18)}.focus-finish-bar{backdrop-filter:blur(18px)}
 @media(max-width:520px){.focus-mode-bar.lift-session-overview{display:none}.focus-exercise-header{padding-top:16px}.focus-control-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.focus-control .stepper{grid-template-columns:34px 1fr 34px}}
 @media(prefers-reduced-motion:reduce){.focus-set-card{transition:none}}
+
+
+/* ===== SPRINT 3.6B · FOUNDATION PRODUCT INTEGRATION ===== */
+.foundation-header-mark{display:block;width:43px;height:43px;flex:0 0 43px;border-radius:13px;object-fit:cover;box-shadow:0 10px 28px rgba(0,0,0,.34),0 0 0 1px rgba(216,184,109,.16)}
+.foundation-auth{position:relative;overflow:hidden;background:radial-gradient(circle at 50% 12%,rgba(216,184,109,.11),transparent 28%),linear-gradient(180deg,#080a0d,#0c0f13)}
+.foundation-auth::before{content:'';position:absolute;inset:0;pointer-events:none;opacity:.045;background-image:repeating-linear-gradient(115deg,rgba(255,255,255,.12) 0 1px,transparent 1px 6px)}
+.foundation-auth-brand{position:relative;z-index:1;display:grid;justify-items:center;text-align:center}
+.foundation-auth-brand>img{width:min(190px,46vw);height:auto;margin-bottom:18px;border-radius:28%;box-shadow:0 30px 80px rgba(0,0,0,.5),0 0 55px rgba(216,184,109,.08)}
+.foundation-auth-brand>span{color:#d8b86d;font-size:11px;font-weight:800;letter-spacing:.52em}
+.foundation-auth-brand h1{margin:10px 0 6px;font-size:25px;letter-spacing:.2em}
+.foundation-auth-brand p{margin:0;color:#716b63;font-size:11px;letter-spacing:.04em}
+.foundation-auth-seal{overflow:hidden;padding:0;border:0;background:transparent}
+.foundation-auth-seal img{display:block;width:100%;height:100%;border-radius:inherit;object-fit:cover}
+.splash-screen{position:relative;overflow:hidden;background:radial-gradient(circle at 50% 43%,rgba(216,184,109,.13),transparent 25%),#080a0d}
+.splash-screen::before{content:'';position:absolute;inset:0;opacity:.04;background-image:repeating-linear-gradient(115deg,rgba(255,255,255,.11) 0 1px,transparent 1px 6px)}
+.foundation-splash-mark{position:relative;z-index:1;width:126px;height:126px;margin:0 auto 25px;border-radius:28%;object-fit:cover;box-shadow:0 30px 85px rgba(0,0,0,.5),0 0 80px rgba(216,184,109,.12);animation:foundationMarkEnter .82s cubic-bezier(.2,.75,.25,1) both}
+.foundation-loading-mark{display:block;width:72px;height:72px;margin:0 auto 18px;border-radius:23%;object-fit:cover;animation:foundationPulse 1.55s ease-in-out infinite}
+@keyframes foundationMarkEnter{from{opacity:0;transform:translateY(12px) scale(.92);filter:blur(7px)}to{opacity:1;transform:translateY(0) scale(1);filter:blur(0)}}
+@keyframes foundationPulse{0%,100%{opacity:.7;transform:scale(.97);box-shadow:0 0 0 rgba(216,184,109,0)}50%{opacity:1;transform:scale(1);box-shadow:0 0 42px rgba(216,184,109,.12)}}
+@media(max-width:430px){.foundation-header-mark{width:38px;height:38px;flex-basis:38px}.foundation-auth-brand>img{width:150px}}
+@media(prefers-reduced-motion:reduce){.foundation-splash-mark,.foundation-loading-mark{animation:none!important}}
