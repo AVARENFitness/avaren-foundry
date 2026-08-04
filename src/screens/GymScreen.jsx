@@ -1,4 +1,4 @@
-import { Clock3, Dumbbell, MoreHorizontal, Pause, Play, RefreshCw, RotateCcw, TimerReset, X, LogOut } from 'lucide-react'
+import { Clock3, Dumbbell, MoreHorizontal, Pause, Play, RefreshCw, RotateCcw, StickyNote, TimerReset, X, LogOut } from 'lucide-react'
 import FocusExercise from '../components/FocusExercise'
 import ProgressRing from '../components/ProgressRing'
 import QuickAddModal from '../components/QuickAddModal'
@@ -31,6 +31,7 @@ export default function GymScreen({
   activeExercise,
   setActiveExercise,
   onSetChange,
+  onWorkoutMetaChange,
   onAddSet,
   onFinish,
   onRepeatSet,
@@ -50,6 +51,12 @@ export default function GymScreen({
   const [navigationDirection, setNavigationDirection] = useState('next')
   const [showWorkoutPicker, setShowWorkoutPicker] = useState(false)
   const [showWorkoutMenu, setShowWorkoutMenu] = useState(false)
+  const [showSessionNotes, setShowSessionNotes] = useState(
+    Boolean(
+      state.activeWorkout?.intent ||
+      state.activeWorkout?.notes,
+    ),
+  )
   const [now, setNow] = useState(() => Date.now())
   const [restDuration, setRestDuration] = useState(90)
   const [restRemaining, setRestRemaining] = useState(0)
@@ -240,6 +247,66 @@ export default function GymScreen({
           <p>{completedExercises} of {workout.exercises.length} complete</p>
         </div>
         <ProgressRing value={progress} />
+      </section>
+
+      <section className="lift-session-notes">
+        <button
+          className="lift-session-notes-toggle"
+          onClick={() =>
+            setShowSessionNotes(
+              (current) => !current,
+            )
+          }
+        >
+          <span>
+            <StickyNote size={16} />
+            <span>
+              <strong>Session Intent & Notes</strong>
+              <small>
+                Keep the purpose of today’s work clear.
+              </small>
+            </span>
+          </span>
+
+          <span>
+            {showSessionNotes ? 'Hide' : 'Open'}
+          </span>
+        </button>
+
+        {showSessionNotes && (
+          <div className="lift-session-notes-fields">
+            <label>
+              <span>Today’s intention</span>
+              <input
+                value={workout.intent ?? ''}
+                onChange={(event) =>
+                  onWorkoutMetaChange?.(
+                    'intent',
+                    event.target.value,
+                  )
+                }
+                placeholder="Example: Controlled reps and strong bracing."
+                maxLength={140}
+              />
+            </label>
+
+            <label>
+              <span>Session notes</span>
+              <textarea
+                value={workout.notes ?? ''}
+                onChange={(event) =>
+                  onWorkoutMetaChange?.(
+                    'notes',
+                    event.target.value,
+                  )
+                }
+                placeholder="Technique cues, pain-free substitutions, or anything worth remembering."
+                rows={3}
+                maxLength={500}
+              />
+            </label>
+          </div>
+        )}
       </section>
 
       {supersetGroup ? (

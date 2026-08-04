@@ -1,6 +1,7 @@
 import {
   ArrowRight,
   Award,
+  BookOpen,
   Check,
   Clock3,
   Dumbbell,
@@ -8,11 +9,12 @@ import {
   Gauge,
   Hammer,
   Layers3,
+  Save,
   Sparkles,
   Target,
   Trophy,
 } from 'lucide-react'
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { sessionVolume } from '../lib/metrics'
 import { MILESTONE_TYPES } from '../lib/milestones'
 
@@ -75,7 +77,14 @@ export default function CompletionScreen({
   recentPrs = [],
   milestones = [],
   forgeAchievements = [],
+  onSaveReflection,
 }) {
+  const [reflection, setReflection] = useState(
+    session?.reflection ?? '',
+  )
+  const [reflectionSaved, setReflectionSaved] =
+    useState(false)
+
   useEffect(() => {
     if (!session) return
 
@@ -581,6 +590,75 @@ export default function CompletionScreen({
           )}
         </div>
       )}
+
+      {(session.intent || session.notes) && (
+        <section className="sprint5-completion-section">
+          <div className="sprint5-section-heading">
+            <div>
+              <span className="eyebrow">
+                SESSION CONTEXT
+              </span>
+              <h2>What guided the work.</h2>
+            </div>
+
+            <BookOpen size={22} />
+          </div>
+
+          {session.intent && (
+            <article className="session-context-card">
+              <span>Intention</span>
+              <p>{session.intent}</p>
+            </article>
+          )}
+
+          {session.notes && (
+            <article className="session-context-card">
+              <span>Training notes</span>
+              <p>{session.notes}</p>
+            </article>
+          )}
+        </section>
+      )}
+
+      <section className="sprint5-completion-section session-reflection-section">
+        <div className="sprint5-section-heading">
+          <div>
+            <span className="eyebrow">
+              SESSION REFLECTION
+            </span>
+            <h2>What should you remember?</h2>
+          </div>
+
+          <BookOpen size={22} />
+        </div>
+
+        <textarea
+          value={reflection}
+          onChange={(event) => {
+            setReflection(event.target.value)
+            setReflectionSaved(false)
+          }}
+          placeholder="What felt strong? What needs adjustment next time?"
+          rows={4}
+          maxLength={600}
+        />
+
+        <button
+          className="session-reflection-save"
+          onClick={() => {
+            onSaveReflection?.(
+              session.id,
+              reflection.trim(),
+            )
+            setReflectionSaved(true)
+          }}
+        >
+          <Save size={16} />
+          {reflectionSaved
+            ? 'Reflection Saved'
+            : 'Save Reflection'}
+        </button>
+      </section>
 
       <div className="next-workout-card sprint5-next-workout">
         <span>Next workout</span>

@@ -11518,3 +11518,135 @@ button:active {
   font-size: 10px;
   text-align: right;
 }
+
+
+/* ===== SPRINT 5.0D · WORKOUT NOTES & SESSION INTENT ===== */
+
+.lift-session-notes {
+  margin: 10px 0;
+  border: 1px solid rgba(216,184,109,.09);
+  border-radius: 15px;
+  background: rgba(255,255,255,.008);
+}
+
+.lift-session-notes-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  width: 100%;
+  padding: 13px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+}
+
+.lift-session-notes-toggle > span:first-child {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.lift-session-notes-toggle svg {
+  color: #d8b86d;
+}
+
+.lift-session-notes-toggle strong,
+.lift-session-notes-toggle small {
+  display: block;
+}
+
+.lift-session-notes-toggle strong {
+  font-size: 10px;
+}
+
+.lift-session-notes-toggle small {
+  margin-top: 3px;
+  color: #6f6962;
+  font-size: 7px;
+}
+
+.lift-session-notes-toggle > span:last-child {
+  color: #b8a87f;
+  font-size: 8px;
+  font-weight: 850;
+}
+
+.lift-session-notes-fields {
+  display: grid;
+  gap: 10px;
+  padding: 0 13px 13px;
+}
+
+.lift-session-notes-fields label > span {
+  display: block;
+  margin-bottom: 6px;
+  color: #756f67;
+  font-size: 7px;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.lift-session-notes-fields input,
+.lift-session-notes-fields textarea,
+.session-reflection-section textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px;
+  border: 1px solid rgba(246,242,233,.065);
+  border-radius: 12px;
+  outline: none;
+  resize: vertical;
+  background: rgba(5,7,9,.42);
+  color: #e5ddd0;
+  font: inherit;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.lift-session-notes-fields input:focus,
+.lift-session-notes-fields textarea:focus,
+.session-reflection-section textarea:focus {
+  border-color: rgba(216,184,109,.26);
+  box-shadow: 0 0 0 3px rgba(216,184,109,.04);
+}
+
+.session-context-card {
+  padding: 13px;
+  border: 1px solid rgba(246,242,233,.05);
+  border-radius: 13px;
+  background: rgba(5,7,9,.28);
+}
+
+.session-context-card + .session-context-card {
+  margin-top: 8px;
+}
+
+.session-context-card span {
+  color: #887e6c;
+  font-size: 7px;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.session-context-card p {
+  margin: 7px 0 0;
+  color: #c5bdae;
+  font-size: 10px;
+  line-height: 1.55;
+}
+
+.session-reflection-save {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 10px;
+  padding: 10px 12px;
+  border: 1px solid rgba(216,184,109,.16);
+  border-radius: 11px;
+  background: rgba(216,184,109,.035);
+  color: #dbc37f;
+  font-size: 9px;
+  font-weight: 850;
+}

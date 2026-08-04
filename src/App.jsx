@@ -833,6 +833,20 @@ function App() {
     })
   }
 
+  const updateWorkoutMeta = (key, value) => {
+    setState((current) => {
+      if (!current.activeWorkout) return current
+
+      return {
+        ...current,
+        activeWorkout: {
+          ...current.activeWorkout,
+          [key]: value,
+        },
+      }
+    })
+  }
+
   const updateSet = (exerciseIndex, setIndex, key, value) => {
     setState((current) => {
       const activeWorkout = structuredClone(current.activeWorkout)
@@ -990,6 +1004,9 @@ function App() {
       date: workout.date,
       startedAt: workout.startedAt,
       finishedAt: new Date().toISOString(),
+      intent: workout.intent ?? '',
+      notes: workout.notes ?? '',
+      reflection: workout.reflection ?? '',
       sets,
     }
 
@@ -1030,6 +1047,35 @@ function App() {
     navigate('complete')
   }
 
+  const saveSessionReflection = (
+    sessionId,
+    reflection,
+  ) => {
+    setCompletedSession((current) =>
+      current?.session?.id === sessionId
+        ? {
+            ...current,
+            session: {
+              ...current.session,
+              reflection,
+            },
+          }
+        : current,
+    )
+
+    setState((current) => ({
+      ...current,
+      history: current.history.map((session) =>
+        session.id === sessionId
+          ? {
+              ...session,
+              reflection,
+            }
+          : session,
+      ),
+    }))
+  }
+
   const activeScreen = useMemo(() => {
     if (screen === 'mobility' && mobilityFlow) {
       return (
@@ -1054,6 +1100,7 @@ function App() {
           activeExercise={activeExercise}
           setActiveExercise={setActiveExercise}
           onSetChange={updateSet}
+          onWorkoutMetaChange={updateWorkoutMeta}
           onAddSet={addSet}
           onFinish={finishWorkout}
           isFinishing={isFinishing}
@@ -1140,6 +1187,7 @@ function App() {
           recentPrs={completionPrs}
           milestones={earnedMilestones}
           forgeAchievements={earnedForgeAchievements}
+          onSaveReflection={saveSessionReflection}
           onDone={() => {
             setCompletedSession(null)
             setEarnedMilestones([])
