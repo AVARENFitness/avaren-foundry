@@ -1187,6 +1187,26 @@ function App() {
           onOpenNotifications={() =>
             navigate('notifications')
           }
+          onOpenMobility={openDailyReset}
+          onOpenReset={openDailyReset}
+          mobilityTitle={adaptiveDailyReset.title}
+          mobilityMinutes={Math.max(
+            1,
+            Math.round(
+              adaptiveDailyReset.movements.reduce(
+                (total, movement) =>
+                  total +
+                  Number(
+                    state.mobility
+                      ?.durationPreferences
+                      ?.[movement.id] ??
+                      movement.seconds ??
+                      30,
+                  ),
+                0,
+              ) / 60,
+            ),
+          )}
           notificationCount={
             notifications.unreadCount
           }
@@ -1197,17 +1217,6 @@ function App() {
 
     return (
       <>
-        <MobilityPrompt
-          type="daily"
-          subtitle="TODAY’S RESET"
-          title={adaptiveDailyReset.title}
-          detail={`${adaptiveDailyReset.movements.length} movements · Equipment-free`}
-          reason={adaptiveDailyReset.reason}
-          focusAreas={adaptiveDailyReset.focusAreas}
-          score={recoveryIntelligence.score}
-          scoreStatus="Recovery"
-          onOpen={openDailyReset}
-        />
         <HomeScreen
           state={state}
           onStart={startWorkout}

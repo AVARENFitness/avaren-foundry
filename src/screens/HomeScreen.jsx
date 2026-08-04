@@ -1,29 +1,15 @@
 import {
   ArrowRight,
-  CalendarDays,
+  Check,
   ChevronDown,
   Dumbbell,
-  Flame,
-  Hammer,
   HeartPulse,
-  History,
-  Layers3,
-  Sparkles,
-  Trophy,
+  Moon,
+  Sun,
 } from 'lucide-react'
 import { useMemo, useState } from 'react'
-import CoachCard from '../components/CoachCard'
-import WeeklyTrainingStrip from '../components/WeeklyTrainingStrip'
-import ReadinessCard from '../components/ReadinessCard'
-import NotificationPreview from '../components/NotificationPreview'
-import TrainingRecommendationCard from '../components/TrainingRecommendationCard'
 import WorkoutSelector from '../components/WorkoutSelector'
-import { forgeSnapshot } from '../lib/forge'
-import {
-  recentPRs,
-  totalSets,
-  totalVolume,
-} from '../lib/metrics'
+import { recentPRs, sessionVolume } from '../lib/metrics'
 
 const DAY_MS = 86400000
 
@@ -39,47 +25,22 @@ const sessionDate = (session) =>
 
 const isWithinDays = (value, days) => {
   const time = new Date(value).getTime()
-  if (!Number.isFinite(time)) return false
-  return Date.now() - time < days * DAY_MS
+  return Number.isFinite(time) && Date.now() - time < days * DAY_MS
 }
-
-const sessionVolume = (session) =>
-  (session?.sets ?? []).reduce(
-    (total, set) =>
-      total +
-      Number(set?.weight || 0) *
-        Number(set?.reps || 0),
-    0,
-  )
 
 const compactNumber = (value) => {
   const number = Number(value || 0)
-  if (number >= 1_000_000) {
-    return `${(number / 1_000_000).toFixed(1)}M`
-  }
-  if (number >= 1_000) {
-    return `${(number / 1_000).toFixed(1)}K`
-  }
+  if (number >= 1_000_000) return `${(number / 1_000_000).toFixed(1)}M`
+  if (number >= 1_000) return `${(number / 1_000).toFixed(1)}K`
   return Math.round(number).toLocaleString()
-}
-
-const formatDate = (value) => {
-  if (!value) return 'No completed workout yet'
-
-  return new Date(value).toLocaleDateString([], {
-    month: 'short',
-    day: 'numeric',
-  })
 }
 
 const activeWorkoutProgress = (activeWorkout) => {
   if (!activeWorkout) return null
-
   const sets = activeWorkout.exercises.flatMap(
     (exercise) => exercise.sets ?? [],
   )
   const completed = sets.filter((set) => set.done).length
-
   return {
     completed,
     total: sets.length,
@@ -89,33 +50,34 @@ const activeWorkoutProgress = (activeWorkout) => {
   }
 }
 
+const completedToday = (completions = [], flowId) => {
+  const today = new Date().toISOString().slice(0, 10)
+  return completions.some((item) => {
+    const date = String(item?.completedAt ?? '').slice(0, 10)
+    return date === today && (!flowId || item?.flowId === flowId)
+  })
+}
+
 export default function HomeScreen({
   state,
   onStart,
   setScreen,
   onSelectWorkout,
   recoveryIntelligence,
-  coachInsight,
-  onCoachAction,
-  onCoachInsightSeen,
   userName,
   readiness,
   onOpenReadiness,
-  onOpenReadinessTrends,
-  notificationSnapshot,
-  onOpenNotifications,
-  trainingRecommendation,
-  onApplyRecommendation,
-  onTrainAsPlanned,
-  onRecommendationRecovery,
+  onOpenMobility,
+  onOpenReset,
+  mobilityTitle = 'Morning Mobility',
+  mobilityMinutes = 7,
 }) {
   const [showSelector, setShowSelector] = useState(false)
 
   const dashboard = useMemo(() => {
     const active = state.activeWorkout
     const now = new Date()
-    const scheduledWorkout =
-      state.weeklySchedule?.[now.getDay()]
+    const scheduledWorkout = state.weeklySchedule?.[now.getDay()]
     const isRestDay = scheduledWorkout === 'Rest'
     const defaultWorkout =
       scheduledWorkout && !isRestDay
@@ -125,12 +87,13 @@ export default function HomeScreen({
       ? active.name
       : state.selectedWorkout || defaultWorkout
 
-    const orderedHistory = [...state.history].sort(
-      (first, second) =>
-        new Date(sessionDate(first)).getTime() -
-        new Date(sessionDate(second)).getTime(),
-    )
-    const lastWorkout = orderedHistory.at(-1) ?? null
+    const lastWorkout = [...state.history]
+      .sort(
+        (first, second) =>
+          new Date(sessionDate(first)).getTime() -
+          new Date(sessionDate(second)).getTime(),
+      )
+      .at(-1)
 
     const workoutsThisWeek = state.history.filter(
       (session) =>
@@ -143,143 +106,115 @@ export default function HomeScreen({
       0,
     )
 
-    const prs = recentPRs(state.history, 8)
-    const latestPr = prs[0] ?? null
-    const forge = forgeSnapshot(state)
-    const nextAchievement = forge.closest[0] ?? null
-    const workoutProgress = activeWorkoutProgress(active)
+    const weeklyPRs = recentPRs(state.history, 100).filter((pr) =>
+      isWithinDays(`${pr.date}T12:00:00`, 7),
+    )
 
     const firstName =
       userName?.trim()?.split(/\s+/)[0] || null
 
-    const greeting = `${greetingForHour(now.getHours())}${
-      firstName ? `, ${firstName}` : ''
-    }`
-
-    let focusLabel = workoutName
-    let focusTitle = 'Ready to train.'
-    let focusCopy = 'Your next session is ready when you are.'
-
-    if (active) {
-      focusLabel = 'Workout in progress'
-      focusTitle = 'Continue where you left off.'
-      focusCopy = `${active.name} is ${
-        workoutProgress?.percent ?? 0
-      }% complete.`
-    } else if (isRestDay) {
-      focusLabel = 'Recovery day'
-      focusTitle = 'Recovery is training too.'
-      focusCopy =
-        'A rest day is scheduled. You can still override it and train.'
-    }
-
     return {
       active,
-      scheduledWorkout,
       isRestDay,
       workoutName,
-      workoutProgress,
       lastWorkout,
       workoutsThisWeek,
       weeklyVolume,
-      latestPr,
-      forge,
-      nextAchievement,
-      greeting,
-      focusLabel,
-      focusTitle,
-      focusCopy,
+      weeklyPRs,
+      workoutProgress: activeWorkoutProgress(active),
+      greeting: `${greetingForHour(now.getHours())}${
+        firstName ? `, ${firstName}` : ''
+      }`,
+      date: now.toLocaleDateString([], {
+        weekday: 'long',
+        month: 'long',
+        day: 'numeric',
+      }),
     }
   }, [state, userName])
 
   const recovery = recoveryIntelligence ?? {
     score: 0,
-    status: 'Recovery profile building',
+    status: 'Profile building',
     insight:
-      'Complete workouts and mobility flows to build your recovery profile.',
+      'Complete workouts and check-ins to build your profile.',
     tone: 'low',
   }
 
-  const weeklyTarget = Math.max(
-    1,
-    Object.values(state.weeklySchedule ?? {}).filter(
-      (workout) => workout && workout !== 'Rest',
-    ).length,
+  const score = readiness?.completed
+    ? readiness.score
+    : recovery.score
+  const scoreLabel = readiness?.completed
+    ? 'Readiness'
+    : 'Recovery'
+  const scoreStatus = readiness?.completed
+    ? readiness.status ?? 'Check-in complete'
+    : recovery.status
+
+  const mobilityCompleted = completedToday(
+    state.mobility?.completed,
+    'daily-reset',
   )
-  const weeklyPercent = Math.min(
-    100,
-    Math.round(
-      (dashboard.workoutsThisWeek.length / weeklyTarget) *
-        100,
-    ),
+  const resetCompleted = completedToday(
+    state.mobility?.completed,
+    'recovery-flow',
   )
+
+  const lastWorkoutContext = dashboard.active
+    ? `${dashboard.active.name} is ${
+        dashboard.workoutProgress?.percent ?? 0
+      }% complete.`
+    : dashboard.lastWorkout
+    ? `Last workout: ${dashboard.lastWorkout.name} · ${Math.max(
+        0,
+        Math.round(
+          (Date.now() -
+            new Date(sessionDate(dashboard.lastWorkout)).getTime()) /
+            DAY_MS,
+        ),
+      )} days ago`
+    : 'Your training journal is ready.'
 
   return (
-    <div className="home-dashboard">
-      <section className="home-welcome">
-        <span className="eyebrow">TODAY IN THE FOUNDRY</span>
-        <h1>{dashboard.greeting}</h1>
-        <p>
-          Train with purpose, recover intentionally, and
-          keep building.
-        </p>
-      </section>
+    <div className="home-v2">
+      <section className="home-v2-hero">
+        <div className="home-v2-orbit one" />
+        <div className="home-v2-orbit two" />
 
-      <ReadinessCard
-        readiness={readiness}
-        onOpen={onOpenReadiness}
-        onOpenTrends={onOpenReadinessTrends}
-      />
-
-      <NotificationPreview
-        snapshot={notificationSnapshot}
-        onOpen={onOpenNotifications}
-      />
-
-      <TrainingRecommendationCard
-        recommendation={trainingRecommendation}
-        onPrimaryAction={onApplyRecommendation}
-        onTrainAsPlanned={onTrainAsPlanned}
-        onChooseWorkout={() => setShowSelector(true)}
-        onRecovery={onRecommendationRecovery}
-      />
-
-      <section className="home-focus-card">
-        <div className="home-focus-orbit one" />
-        <div className="home-focus-orbit two" />
-
-        <div className="home-focus-head">
+        <div className="home-v2-heading">
           <div>
-            <span className="eyebrow">
-              {dashboard.focusLabel}
-            </span>
-            <h2>{dashboard.focusTitle}</h2>
-            <p>{dashboard.focusCopy}</p>
+            <span className="eyebrow">{dashboard.date}</span>
+            <h1>{dashboard.greeting}</h1>
+            <p>{lastWorkoutContext}</p>
           </div>
 
-          <div
-            className={`home-readiness-badge ${
+          <button
+            className={`home-v2-readiness ${
               readiness?.completed
                 ? readiness.tone
                 : recovery.tone
             }`}
+            onClick={onOpenReadiness}
+            aria-label="Open readiness check-in"
           >
-            <HeartPulse size={16} />
-            <strong>
-              {readiness?.completed
-                ? readiness.score
-                : recovery.score}
-            </strong>
-            <span>
-              {readiness?.completed
-                ? 'Readiness'
-                : 'Recovery'}
-            </span>
-          </div>
+            <HeartPulse size={17} />
+            <strong>{score}</strong>
+            <span>{scoreLabel}</span>
+          </button>
+        </div>
+
+        <div className="home-v2-status">
+          <span>{scoreStatus}</span>
+          <p>
+            {readiness?.completed
+              ? readiness.summary ??
+                'Your check-in is recorded for today.'
+              : recovery.insight}
+          </p>
         </div>
 
         <button
-          className={`home-workout-selector ${
+          className={`home-v2-workout-select ${
             dashboard.active ? 'locked' : ''
           }`}
           onClick={() =>
@@ -290,8 +225,10 @@ export default function HomeScreen({
           <div>
             <span>
               {dashboard.active
-                ? 'Current workout'
-                : 'Today’s workout'}
+                ? 'Workout in progress'
+                : dashboard.isRestDay
+                ? 'Selected workout'
+                : 'Workout'}
             </span>
             <strong>{dashboard.workoutName}</strong>
           </div>
@@ -299,18 +236,18 @@ export default function HomeScreen({
         </button>
 
         {dashboard.workoutProgress && (
-          <div className="home-active-progress">
+          <div className="home-v2-progress">
             <div>
               <span>
                 {dashboard.workoutProgress.completed} of{' '}
-                {dashboard.workoutProgress.total} sets complete
+                {dashboard.workoutProgress.total} sets
               </span>
               <strong>
                 {dashboard.workoutProgress.percent}%
               </strong>
             </div>
-            <div className="home-progress-track">
-              <div
+            <div>
+              <span
                 style={{
                   width: `${dashboard.workoutProgress.percent}%`,
                 }}
@@ -320,238 +257,98 @@ export default function HomeScreen({
         )}
 
         <button
-          className="gold-button machined home-primary-action"
+          className="gold-button machined home-v2-primary"
           onClick={onStart}
-          aria-label={
-            dashboard.active
-              ? 'Resume active workout'
-              : 'Start today’s workout'
-          }
         >
           <Dumbbell size={18} />
           {dashboard.active
-            ? 'Resume Workout'
-            : dashboard.isRestDay
-            ? 'Train Anyway'
-            : 'Start Today’s Workout'}
+            ? 'Continue Workout'
+            : 'Start Workout'}
           <ArrowRight size={17} />
         </button>
       </section>
 
-      <CoachCard
-        insight={coachInsight}
-        onAction={onCoachAction}
-        onSeen={onCoachInsightSeen}
-      />
-
-      <section className="home-intelligence-grid">
-        <article
-          className={`home-dashboard-card recovery ${recovery.tone}`}
+      <section className="home-v2-routines">
+        <button
+          onClick={onOpenMobility}
+          className={mobilityCompleted ? 'complete' : ''}
         >
-          <header>
-            <div className="home-card-icon">
-              <HeartPulse size={19} />
-            </div>
-            <span>Recovery</span>
-          </header>
-          <div className="home-score-row">
-            <strong>{recovery.score}</strong>
-            <div>
-              <span>{recovery.status}</span>
-              <small>{recovery.insight}</small>
-            </div>
+          <div className="home-v2-routine-icon">
+            {mobilityCompleted ? (
+              <Check size={18} />
+            ) : (
+              <Sun size={18} />
+            )}
           </div>
-        </article>
+          <div>
+            <span>
+              {mobilityCompleted
+                ? 'Completed today'
+                : 'Morning mobility'}
+            </span>
+            <strong>{mobilityTitle}</strong>
+            <small>
+              {mobilityCompleted
+                ? 'Ready again tomorrow'
+                : `${mobilityMinutes} minutes`}
+            </small>
+          </div>
+          <ArrowRight size={17} />
+        </button>
 
         <button
-          className="home-dashboard-card forge"
-          onClick={() => setScreen('forge')}
+          onClick={onOpenReset}
+          className={resetCompleted ? 'complete' : ''}
         >
-          <header>
-            <div className="home-card-icon">
-              <Hammer size={19} />
-            </div>
-            <span>Next in The Forge</span>
-          </header>
-
-          {dashboard.nextAchievement ? (
-            <>
-              <strong>
-                {dashboard.nextAchievement.title}
-              </strong>
-              <small>
-                {dashboard.nextAchievement.description}
-              </small>
-              <div className="home-card-progress-copy">
-                <span>
-                  {dashboard.nextAchievement.percent}% forged
-                </span>
-                <span>
-                  {compactNumber(
-                    dashboard.nextAchievement.remaining,
-                  )}{' '}
-                  remaining
-                </span>
-              </div>
-              <div className="home-progress-track">
-                <div
-                  style={{
-                    width: `${dashboard.nextAchievement.percent}%`,
-                  }}
-                />
-              </div>
-            </>
-          ) : (
-            <>
-              <strong>Every achievement forged.</strong>
-              <small>
-                Your current Forge catalog is complete.
-              </small>
-            </>
-          )}
+          <div className="home-v2-routine-icon">
+            {resetCompleted ? (
+              <Check size={18} />
+            ) : (
+              <Moon size={18} />
+            )}
+          </div>
+          <div>
+            <span>
+              {resetCompleted ? 'Completed' : 'Daily reset'}
+            </span>
+            <strong>
+              {resetCompleted
+                ? 'Recovery logged'
+                : 'Available when needed'}
+            </strong>
+            <small>Mobility and stretching</small>
+          </div>
+          <ArrowRight size={17} />
         </button>
       </section>
 
-      <WeeklyTrainingStrip
-        state={state}
-        onOpenPlanner={() => setScreen('planner')}
-      />
-
-      <section className="home-week-card">
+      <button
+        className="home-v2-week"
+        onClick={() => setScreen('progress')}
+      >
         <header>
           <div>
             <span className="eyebrow">THIS WEEK</span>
-            <h2>Training momentum.</h2>
+            <h2>Training at a glance.</h2>
           </div>
-          <strong>{weeklyPercent}%</strong>
+          <ArrowRight size={18} />
         </header>
 
-        <div className="home-week-track">
-          <div style={{ width: `${weeklyPercent}%` }} />
-        </div>
-
-        <div className="home-week-stats">
+        <div>
           <article>
-            <Dumbbell size={16} />
+            <strong>{dashboard.workoutsThisWeek.length}</strong>
             <span>Workouts</span>
-            <strong>
-              {dashboard.workoutsThisWeek.length} /{' '}
-              {weeklyTarget}
-            </strong>
           </article>
           <article>
-            <Layers3 size={16} />
-            <span>Lifetime sets</span>
-            <strong>
-              {compactNumber(totalSets(state.history))}
-            </strong>
+            <strong>{compactNumber(dashboard.weeklyVolume)}</strong>
+            <span>Volume</span>
           </article>
           <article>
-            <Flame size={16} />
-            <span>Weekly volume</span>
-            <strong>
-              {compactNumber(dashboard.weeklyVolume)} lb
-            </strong>
-          </article>
-          <article>
-            <Trophy size={16} />
-            <span>Lifetime volume</span>
-            <strong>
-              {compactNumber(totalVolume(state.history))} lb
-            </strong>
+            <strong>{dashboard.weeklyPRs.length}</strong>
+            <span>PRs</span>
           </article>
         </div>
-      </section>
-
-      <section className="home-recent-grid">
-        <button
-          className="home-recent-card"
-          onClick={() => setScreen('history')}
-        >
-          <header>
-            <History size={18} />
-            <span>Last workout</span>
-            <ArrowRight size={15} />
-          </header>
-
-          {dashboard.lastWorkout ? (
-            <>
-              <strong>{dashboard.lastWorkout.name}</strong>
-              <small>
-                {formatDate(
-                  sessionDate(dashboard.lastWorkout),
-                )}{' '}
-                · {dashboard.lastWorkout.sets?.length ?? 0}{' '}
-                sets ·{' '}
-                {compactNumber(
-                  sessionVolume(dashboard.lastWorkout),
-                )}{' '}
-                lb
-              </small>
-            </>
-          ) : (
-            <>
-              <strong>Your Journey starts here.</strong>
-              <small>
-                Complete a workout to create your first
-                entry.
-              </small>
-            </>
-          )}
-        </button>
-
-        <button
-          className="home-recent-card"
-          onClick={() => setScreen('progress')}
-        >
-          <header>
-            <Sparkles size={18} />
-            <span>Latest PR</span>
-            <ArrowRight size={15} />
-          </header>
-
-          {dashboard.latestPr ? (
-            <>
-              <strong>{dashboard.latestPr.exercise}</strong>
-              <small>
-                {dashboard.latestPr.value} ·{' '}
-                {dashboard.latestPr.type}
-              </small>
-            </>
-          ) : (
-            <>
-              <strong>No PR recorded yet.</strong>
-              <small>
-                Your first completed workouts will begin the
-                PR timeline.
-              </small>
-            </>
-          )}
-        </button>
-      </section>
-
-      <section className="home-quick-actions">
-        <button onClick={() => setScreen('gym')}>
-          <Dumbbell />
-          <span>Gym Mode</span>
-          <ArrowRight />
-        </button>
-        <button onClick={() => setScreen('progress')}>
-          <Flame />
-          <span>My Training</span>
-          <ArrowRight />
-        </button>
-        <button onClick={() => setScreen('forge')}>
-          <Hammer />
-          <span>The Forge</span>
-          <ArrowRight />
-        </button>
-        <button onClick={() => setScreen('planner')}>
-          <CalendarDays />
-          <span>Weekly Plan</span>
-          <ArrowRight />
-        </button>
-      </section>
+      </button>
 
       {showSelector && !dashboard.active && (
         <WorkoutSelector
