@@ -10312,3 +10312,24 @@ textarea:focus {
 .home-readiness-first h2{margin:5px 0 4px;font-size:17px}.home-readiness-first p{margin:0;max-width:470px;color:#7a746c;font-size:9px;line-height:1.45}
 .home-readiness-first .gold-button{width:auto;min-width:170px;min-height:46px;margin:0}.home-readiness-review{display:flex;align-items:center;justify-content:center;gap:7px;min-height:42px;padding:10px 13px;border:1px solid rgba(80,138,99,.2);border-radius:13px;background:rgba(80,138,99,.035);color:#83b492;font-size:9px;font-weight:900}
 @media(max-width:560px){.home-readiness-first{grid-template-columns:42px 1fr}.home-readiness-first-icon{width:42px;height:42px}.home-readiness-first>button{grid-column:1/-1;width:100%!important}}
+
+
+/* ===== SPRINT 3.5 · THE LIFT EXPERIENCE ===== */
+.focus-mode{display:grid;gap:9px}
+.lift-session-strip{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 14px;border:1px solid rgba(248,243,230,.055);border-radius:14px;background:rgba(255,255,255,.012)}
+.lift-session-strip strong{display:block;margin-top:4px;font-size:12px}.lift-session-strip>span{color:var(--gold-bright);font-size:11px;font-weight:900}
+.lift-session-overview{padding:13px 15px}.lift-session-overview .gym-workout-title-row h2{font-size:18px}.lift-session-overview .gym-workout-heading>p{display:none}
+.focus-exercise{border-radius:22px}.focus-exercise-header{padding-bottom:12px}.focus-exercise-header h1{margin-bottom:9px;font-size:clamp(32px,9vw,48px);line-height:.96;letter-spacing:-.06em}
+.previous-session-toggle.lift-reference{min-height:48px;padding:10px 12px;border-radius:13px}.previous-session-toggle.lift-reference small{color:#625d57;font-size:7px;letter-spacing:.14em}.previous-session-toggle.lift-reference strong{margin-top:4px;font-size:14px}
+.focus-set-list{gap:8px}.focus-set-card{overflow:hidden;border-radius:16px;transition:transform .2s var(--ease-premium),opacity .2s ease,border-color .2s ease,background .2s ease}
+.focus-set-card.current{border-color:rgba(223,195,125,.32);background:radial-gradient(circle at 90% -20%,rgba(223,195,125,.1),transparent 38%),linear-gradient(145deg,rgba(22,24,25,.995),rgba(9,11,13,.998));box-shadow:0 20px 50px rgba(0,0,0,.28),0 0 0 1px rgba(223,195,125,.04)}
+.focus-set-card.upcoming{opacity:.63}.focus-set-card.done.collapsed{padding-bottom:0;border-color:rgba(80,138,99,.18);background:rgba(80,138,99,.025)}
+.focus-set-card.done.collapsed .set-utility-row,.focus-set-card.done.collapsed .focus-control-grid,.focus-set-card.done.collapsed .quick-adjust,.focus-set-card.done.collapsed .lift-current-label{display:none}
+.focus-set-card.done.collapsed .focus-set-topline{border-bottom:0}.focus-set-card.done.collapsed .focus-done-button{margin:0 10px 10px}
+.focus-set-card.done.collapsed .focus-done-button span{min-height:40px;border-color:rgba(80,138,99,.19);background:rgba(80,138,99,.03);color:#8fb59b;font-size:12px}
+.lift-current-label{margin:2px 12px 0;color:var(--gold-bright);font-size:7px;font-weight:900;letter-spacing:.16em}
+.focus-control-grid{gap:9px}.focus-control label{font-size:8px}.focus-control .stepper{min-height:58px;border-radius:13px}
+.focus-control .stepper input{font-size:24px;font-weight:800;font-variant-numeric:tabular-nums}.focus-control .stepper button{font-size:21px}.quick-adjust button{min-height:34px}
+.focus-done-button span{min-height:52px;border-radius:14px}.focus-utility-grid{margin-top:8px}.focus-add-set{min-height:47px}.skip-exercise-button,.undo-skip-button{opacity:.68}.exercise-pager{margin-top:12px}.next-exercise-button{border-color:rgba(223,195,125,.18)}.focus-finish-bar{backdrop-filter:blur(18px)}
+@media(max-width:520px){.focus-mode-bar.lift-session-overview{display:none}.focus-exercise-header{padding-top:16px}.focus-control-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.focus-control .stepper{grid-template-columns:34px 1fr 34px}}
+@media(prefers-reduced-motion:reduce){.focus-set-card{transition:none}}

@@ -7,7 +7,7 @@ import {
   RotateCcw,
   Trash2,
 } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import Stepper from './Stepper'
 
 const SET_TYPES = [
@@ -56,35 +56,8 @@ export default function FocusExercise({
   onRemoveSet,
   onUndoSkip,
   navigationDirection,
-  liveSnapshot,
-  comparison,
 }) {
   const [showPrevious, setShowPrevious] = useState(false)
-  const [completedFlash, setCompletedFlash] = useState(null)
-  const previousDoneCount = useRef(
-    exercise.sets.filter((set) => set.done).length,
-  )
-
-  useEffect(() => {
-    const doneCount = exercise.sets.filter(
-      (set) => set.done,
-    ).length
-
-    if (doneCount > previousDoneCount.current) {
-      setCompletedFlash(doneCount)
-      if (navigator.vibrate) navigator.vibrate(16)
-
-      const timer = window.setTimeout(
-        () => setCompletedFlash(null),
-        650,
-      )
-      previousDoneCount.current = doneCount
-      return () => window.clearTimeout(timer)
-    }
-
-    previousDoneCount.current = doneCount
-  }, [exercise.sets])
-
   const touchStart = useRef(null)
 
   const onTouchStart = (event) => {
@@ -101,6 +74,21 @@ export default function FocusExercise({
     if (distance < 0 && exerciseIndex < totalExercises - 1) onNext()
     if (distance > 0 && exerciseIndex > 0) onPrevious()
   }
+  const activeSetIndex = Math.max(
+    0,
+    exercise.sets.findIndex((set) => !set.done),
+  )
+  const lastSessionBest = previousSets.length
+    ? previousSets.reduce(
+        (best, set) =>
+          Number(set.weight || 0) >
+          Number(best?.weight || 0)
+            ? set
+            : best,
+        previousSets[0],
+      )
+    : null
+
   const entered = exercise.sets.filter(
     (set) => set.weight !== '' && set.reps !== '',
   )
@@ -121,40 +109,20 @@ export default function FocusExercise({
 
         <span className="muscle-pill">{exercise.muscle}</span>
         <h1>{exercise.name}</h1>
-        <div className="living-exercise-summary">
-          <article>
-            <span>Session volume</span>
-            <strong>
-              {Math.round(
-                liveSnapshot?.volume ?? 0,
-              ).toLocaleString()} lb
-            </strong>
-          </article>
-          <article>
-            <span>Completed sets</span>
-            <strong>
-              {liveSnapshot?.completedSets ?? 0}
-            </strong>
-          </article>
-        </div>
-
-        {comparison?.previous && (
-          <div className="living-exercise-insight">
-            <span>Compared with last {comparison.previous.name}</span>
-            <strong>{comparison.message}</strong>
-          </div>
-        )}
-
 
         <button
-          className={`previous-session-toggle ${showPrevious ? 'open' : ''}`}
-          onClick={() => setShowPrevious((value) => !value)}
+          className={`previous-session-toggle lift-reference ${
+            showPrevious ? 'open' : ''
+          }`}
+          onClick={() =>
+            setShowPrevious((value) => !value)
+          }
         >
           <span>
             <small>LAST SESSION</small>
             <strong>
-              {previousSets.length
-                ? `${previousSets.length} recorded sets`
+              {lastSessionBest
+                ? `${lastSessionBest.weight} × ${lastSessionBest.reps}`
                 : 'No previous workout'}
             </strong>
           </span>
@@ -196,16 +164,23 @@ export default function FocusExercise({
         {exercise.sets.map((set, setIndex) => (
           <section
             className={`focus-set-card ${
-              set.done ? 'done' : ''
+              set.done ? 'done collapsed' : ''
             } ${
-              completedFlash === setIndex + 1
-                ? 'just-completed'
+              !set.done && setIndex === activeSetIndex
+                ? 'current'
+                : ''
+            } ${
+              !set.done && setIndex > activeSetIndex
+                ? 'upcoming'
                 : ''
             }`}
             key={set.id}
           >
             <div className="focus-set-topline">
-              <span>SET {String(setIndex + 1).padStart(2, '0')}</span>
+              <span>
+                {set.done ? '✓' : 'SET'}{' '}
+                {String(setIndex + 1).padStart(2, '0')}
+              </span>
               <select
                 value={set.type}
                 onChange={(event) =>
@@ -237,6 +212,13 @@ export default function FocusExercise({
                 </button>
               )}
             </div>
+
+            {!set.done &&
+              setIndex === activeSetIndex && (
+                <div className="lift-current-label">
+                  CURRENT SET
+                </div>
+              )}
 
             <div className="focus-control-grid">
               <div className="focus-control">
@@ -271,24 +253,13 @@ export default function FocusExercise({
               <input
                 type="checkbox"
                 checked={set.done}
-                onChange={(event) => {
-                  onSetChange(
-                    setIndex,
-                    'done',
-                    event.target.checked,
-                  )
-
-                  if (
-                    event.target.checked &&
-                    navigator.vibrate
-                  ) {
-                    navigator.vibrate([12, 18, 12])
-                  }
-                }}
+                onChange={(event) =>
+                  onSetChange(setIndex, 'done', event.target.checked)
+                }
               />
               <span>
                 <Check size={19} />
-                {set.done ? 'Set complete' : 'Complete set'}
+                {set.done ? `${set.weight} × ${set.reps}` : 'Complete set'}
               </span>
             </label>
           </section>

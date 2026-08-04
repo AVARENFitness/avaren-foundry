@@ -3,7 +3,7 @@ import FocusExercise from '../components/FocusExercise'
 import ProgressRing from '../components/ProgressRing'
 import QuickAddModal from '../components/QuickAddModal'
 import SupersetFocus from '../components/SupersetFocus'
-import { useEffect, useMemo, useState } from 'react'
+import { useState } from 'react'
 import { createPortal } from 'react-dom'
 
 const MUSCLE_LIGHTS = {
@@ -23,11 +23,7 @@ const MUSCLE_LIGHTS = {
   Forearms: '#7a684d',
   Other: '#6c6a65',
 }
-import {
-  activeWorkoutSnapshot,
-  compareActiveWorkout,
-  recentExerciseSets,
-} from '../lib/metrics'
+import { recentExerciseSets } from '../lib/metrics'
 
 export default function GymScreen({
   state,
@@ -54,17 +50,6 @@ export default function GymScreen({
   const [navigationDirection, setNavigationDirection] = useState('next')
   const [showWorkoutPicker, setShowWorkoutPicker] = useState(false)
   const [showWorkoutMenu, setShowWorkoutMenu] = useState(false)
-  const [clockTick, setClockTick] = useState(0)
-
-  useEffect(() => {
-    const timer = window.setInterval(
-      () => setClockTick((value) => value + 1),
-      1000,
-    )
-
-    return () => window.clearInterval(timer)
-  }, [])
-
 
   const goPrevious = () => {
     setNavigationDirection('previous')
@@ -78,27 +63,6 @@ export default function GymScreen({
     )
   }
   const workout = state.activeWorkout
-
-  const liveSnapshot = useMemo(
-    () => activeWorkoutSnapshot(workout),
-    [workout, clockTick],
-  )
-  const comparison = useMemo(
-    () => compareActiveWorkout(workout, state.history),
-    [workout, state.history, clockTick],
-  )
-
-  const formatElapsed = (seconds) => {
-    const hours = Math.floor(seconds / 3600)
-    const minutes = Math.floor((seconds % 3600) / 60)
-    const remainingSeconds = seconds % 60
-
-    return hours > 0
-      ? `${hours}:${String(minutes).padStart(2, '0')}:${String(
-          remainingSeconds,
-        ).padStart(2, '0')}`
-      : `${minutes}:${String(remainingSeconds).padStart(2, '0')}`
-  }
 
   if (!workout) {
     return (
@@ -145,80 +109,17 @@ export default function GymScreen({
         '--muscle-light': MUSCLE_LIGHTS[currentExercise.muscle] || MUSCLE_LIGHTS.Other,
       }}
     >
-      <section className="living-workout-dashboard">
-        <header>
-          <div>
-            <span className="eyebrow">LIVE SESSION</span>
-            <h1>{workout.name}</h1>
-          </div>
-          <div className="living-workout-clock">
-            <span>Elapsed</span>
-            <strong>
-              {formatElapsed(liveSnapshot.elapsedSeconds)}
-            </strong>
-          </div>
-        </header>
-
-        <div className="living-workout-metrics">
-          <article>
-            <span>Volume</span>
-            <strong>
-              {Math.round(
-                liveSnapshot.volume,
-              ).toLocaleString()}
-              <small> lb</small>
-            </strong>
-          </article>
-          <article>
-            <span>Sets</span>
-            <strong>
-              {liveSnapshot.completedSets}
-              <small> / {liveSnapshot.totalSets}</small>
-            </strong>
-          </article>
-          <article>
-            <span>Exercises</span>
-            <strong>
-              {liveSnapshot.completedExercises}
-              <small> / {liveSnapshot.totalExercises}</small>
-            </strong>
-          </article>
-          <article>
-            <span>Intensity</span>
-            <strong>{liveSnapshot.intensity}</strong>
-          </article>
+      <section className="lift-session-strip">
+        <div>
+          <span className="eyebrow">LIFT SESSION</span>
+          <strong>{workout.name}</strong>
         </div>
-
-        <div className="living-workout-insight">
-          <span>Session insight</span>
-          <strong>{comparison.message}</strong>
-        </div>
+        <span>
+          {completedExercises} / {workout.exercises.length}
+        </span>
       </section>
 
-      {workout.recommendation && (
-        <section className="gym-recommendation-banner">
-          <span className="eyebrow">APPLIED GUIDANCE</span>
-          <strong>{workout.recommendation.title}</strong>
-          <p>{workout.recommendation.summary}</p>
-          <div>
-            {workout.recommendation.plan
-              .slice(0, 3)
-              .map((item) => (
-                <span key={item}>{item}</span>
-              ))}
-          </div>
-        </section>
-      )}
-
-      {!workout.recommendation && recommendation && (
-        <section className="gym-recommendation-banner preview">
-          <span className="eyebrow">TODAY’S GUIDANCE</span>
-          <strong>{recommendation.title}</strong>
-          <p>{recommendation.summary}</p>
-        </section>
-      )}
-
-      <section className="focus-mode-bar">
+      <section className="focus-mode-bar lift-session-overview">
         <div className="gym-workout-heading">
           <span className="eyebrow">GYM MODE</span>
           <div className="gym-workout-title-row">
@@ -284,8 +185,6 @@ export default function GymScreen({
           onRemoveSet={(setIndex) => onRemoveSet(activeExercise, setIndex)}
           onUndoSkip={() => onUndoSkip(activeExercise)}
           navigationDirection={navigationDirection}
-          liveSnapshot={liveSnapshot}
-          comparison={comparison}
         />
       )}
 
