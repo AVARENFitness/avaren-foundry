@@ -42,6 +42,7 @@ export default function GymScreen({
   onChangeWorkout,
   onRestartWorkout,
   onEndWorkout,
+  recommendation,
   isFinishing = false,
 }) {
   const [showQuickAdd, setShowQuickAdd] = useState(false)
@@ -108,6 +109,29 @@ export default function GymScreen({
         '--muscle-light': MUSCLE_LIGHTS[currentExercise.muscle] || MUSCLE_LIGHTS.Other,
       }}
     >
+      {workout.recommendation && (
+        <section className="gym-recommendation-banner">
+          <span className="eyebrow">APPLIED GUIDANCE</span>
+          <strong>{workout.recommendation.title}</strong>
+          <p>{workout.recommendation.summary}</p>
+          <div>
+            {workout.recommendation.plan
+              .slice(0, 3)
+              .map((item) => (
+                <span key={item}>{item}</span>
+              ))}
+          </div>
+        </section>
+      )}
+
+      {!workout.recommendation && recommendation && (
+        <section className="gym-recommendation-banner preview">
+          <span className="eyebrow">TODAY’S GUIDANCE</span>
+          <strong>{recommendation.title}</strong>
+          <p>{recommendation.summary}</p>
+        </section>
+      )}
+
       <section className="focus-mode-bar">
         <div className="gym-workout-heading">
           <span className="eyebrow">GYM MODE</span>

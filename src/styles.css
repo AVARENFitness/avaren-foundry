@@ -7825,3 +7825,229 @@ select:focus-visible {
     animation: none !important;
   }
 }
+
+
+/* ===== AVAREN BUILDER v1.7 · SMART TRAINING RECOMMENDATIONS ===== */
+
+.training-recommendation-card {
+  margin-bottom: 12px;
+  padding: 17px;
+  border: 1px solid rgba(184,149,78,.19);
+  border-radius: 21px;
+  background:
+    radial-gradient(
+      circle at 91% -18%,
+      rgba(184,149,78,.15),
+      transparent 36%
+    ),
+    linear-gradient(
+      145deg,
+      rgba(22,21,17,.99),
+      rgba(8,9,8,.995)
+    );
+}
+
+.training-recommendation-card.high {
+  border-color: rgba(83,132,108,.25);
+}
+
+.training-recommendation-card.low {
+  border-color: rgba(181,90,82,.25);
+}
+
+.training-recommendation-card.moderate {
+  border-color: rgba(184,132,65,.25);
+}
+
+.training-recommendation-card > header {
+  display: grid;
+  grid-template-columns: 46px 1fr auto;
+  align-items: center;
+  gap: 11px;
+}
+
+.training-recommendation-icon {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border: 1px solid rgba(184,149,78,.2);
+  border-radius: 14px;
+  background: rgba(184,149,78,.045);
+  color: var(--gold-bright);
+}
+
+.training-recommendation-card h2 {
+  margin: 5px 0 0;
+  font-size: 18px;
+}
+
+.training-confidence {
+  display: grid;
+  justify-items: end;
+}
+
+.training-confidence strong {
+  color: var(--gold-bright);
+  font-size: 18px;
+}
+
+.training-confidence span {
+  color: #6d675f;
+  font-size: 7px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.training-recommendation-card > p {
+  margin: 13px 0 0;
+  color: #827b72;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.training-recommendation-evidence {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 11px;
+}
+
+.training-recommendation-evidence span {
+  padding: 6px 8px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.025);
+  color: #8b8379;
+  font-size: 8px;
+  font-weight: 800;
+}
+
+.training-recommendation-plan {
+  display: grid;
+  gap: 7px;
+  margin-top: 13px;
+  padding: 12px;
+  border: 1px solid rgba(248,243,230,.055);
+  border-radius: 13px;
+  background: rgba(255,255,255,.014);
+}
+
+.training-recommendation-plan > span {
+  color: #716b64;
+  font-size: 7px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.training-recommendation-plan > div {
+  display: grid;
+  grid-template-columns: 16px 1fr;
+  align-items: start;
+  gap: 7px;
+}
+
+.training-recommendation-plan svg {
+  color: var(--gold);
+}
+
+.training-recommendation-plan small {
+  color: #91897f;
+  font-size: 8px;
+  line-height: 1.4;
+}
+
+.training-recommendation-actions {
+  display: grid;
+  gap: 7px;
+  margin-top: 13px;
+}
+
+.training-recommendation-actions .gold-button {
+  margin-top: 0;
+  width: 100%;
+}
+
+.training-recommendation-actions > button:not(.gold-button) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 42px;
+  border: 1px solid rgba(248,243,230,.07);
+  border-radius: 12px;
+  background: rgba(255,255,255,.016);
+  color: #8b847c;
+  font-size: 9px;
+  font-weight: 900;
+}
+
+.gym-recommendation-banner {
+  margin-bottom: 11px;
+  padding: 14px;
+  border: 1px solid rgba(83,132,108,.21);
+  border-radius: 16px;
+  background:
+    linear-gradient(
+      145deg,
+      rgba(16,23,19,.98),
+      rgba(8,10,9,.995)
+    );
+}
+
+.gym-recommendation-banner.preview {
+  border-color: rgba(184,149,78,.18);
+}
+
+.gym-recommendation-banner strong,
+.gym-recommendation-banner p {
+  display: block;
+}
+
+.gym-recommendation-banner strong {
+  margin-top: 5px;
+  font-size: 14px;
+}
+
+.gym-recommendation-banner p {
+  margin: 5px 0 0;
+  color: #7e776f;
+  font-size: 9px;
+  line-height: 1.45;
+}
+
+.gym-recommendation-banner > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 9px;
+}
+
+.gym-recommendation-banner > div span {
+  padding: 5px 7px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.025);
+  color: #8b837a;
+  font-size: 7px;
+  font-weight: 800;
+}
+
+@media (min-width: 700px) {
+  .training-recommendation-actions {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .training-recommendation-actions .gold-button {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 390px) {
+  .training-recommendation-card > header {
+    grid-template-columns: 42px 1fr;
+  }
+
+  .training-confidence {
+    grid-column: 2;
+    justify-items: start;
+  }
+}

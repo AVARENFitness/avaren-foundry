@@ -16,6 +16,7 @@ import CoachCard from '../components/CoachCard'
 import WeeklyTrainingStrip from '../components/WeeklyTrainingStrip'
 import ReadinessCard from '../components/ReadinessCard'
 import NotificationPreview from '../components/NotificationPreview'
+import TrainingRecommendationCard from '../components/TrainingRecommendationCard'
 import WorkoutSelector from '../components/WorkoutSelector'
 import { forgeSnapshot } from '../lib/forge'
 import {
@@ -103,6 +104,10 @@ export default function HomeScreen({
   onOpenReadinessTrends,
   notificationSnapshot,
   onOpenNotifications,
+  trainingRecommendation,
+  onApplyRecommendation,
+  onTrainAsPlanned,
+  onRecommendationRecovery,
 }) {
   const [showSelector, setShowSelector] = useState(false)
 
@@ -229,6 +234,14 @@ export default function HomeScreen({
       <NotificationPreview
         snapshot={notificationSnapshot}
         onOpen={onOpenNotifications}
+      />
+
+      <TrainingRecommendationCard
+        recommendation={trainingRecommendation}
+        onPrimaryAction={onApplyRecommendation}
+        onTrainAsPlanned={onTrainAsPlanned}
+        onChooseWorkout={() => setShowSelector(true)}
+        onRecovery={onRecommendationRecovery}
       />
 
       <section className="home-focus-card">

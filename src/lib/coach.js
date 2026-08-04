@@ -7,6 +7,7 @@ import {
 import { buildMilestones } from './milestones'
 import { calculateRecoveryIntelligence } from '../data/mobility'
 import { calculateReadiness } from './readiness'
+import { buildTrainingRecommendation } from './trainingRecommendations'
 
 export const COACH_CATEGORIES = {
   RECOVERY: 'recovery',
@@ -231,6 +232,48 @@ const readinessInsights = (state) => {
       action: COACH_ACTIONS.START_WORKOUT,
       actionLabel: 'Start Workout',
       key: `readiness-middle-${readiness.score}`,
+      expiresInDays: 1,
+    }),
+  ]
+}
+
+
+const trainingRecommendationInsights = (state) => {
+  const scheduled =
+    state.weeklySchedule?.[new Date().getDay()] ??
+    state.selectedWorkout ??
+    state.program?.nextWorkout
+  const recommendation =
+    buildTrainingRecommendation(state, scheduled)
+
+  if (
+    recommendation.id === 'train-normal' ||
+    recommendation.id === 'check-in'
+  ) {
+    return []
+  }
+
+  return [
+    makeInsight({
+      category: COACH_CATEGORIES.PROGRAMMING,
+      priority:
+        recommendation.id === 'recovery-day'
+          ? 98
+          : recommendation.id === 'reduce-volume'
+          ? 91
+          : 84,
+      title: recommendation.title,
+      description: recommendation.summary,
+      evidence: recommendation.evidence.slice(0, 4),
+      action:
+        recommendation.id === 'recovery-day'
+          ? COACH_ACTIONS.START_RESET
+          : COACH_ACTIONS.START_WORKOUT,
+      actionLabel:
+        recommendation.id === 'recovery-day'
+          ? 'Start Recovery'
+          : recommendation.primaryLabel,
+      key: `training-recommendation-${recommendation.id}-${recommendation.confidence}`,
       expiresInDays: 1,
     }),
   ]
@@ -616,6 +659,7 @@ const milestoneInsights = (state) => {
 
 export const buildCoachInsights = (state = {}) =>
   [
+    ...trainingRecommendationInsights(state),
     ...readinessInsights(state),
     ...recoveryInsights(state),
     ...consistencyInsights(state),

@@ -45,6 +45,11 @@ import ReadinessCheckIn from './components/ReadinessCheckIn'
 import NotificationScreen from './screens/NotificationScreen'
 import ReadinessTrendsScreen from './screens/ReadinessTrendsScreen'
 import {
+  applyRecommendationToWorkout,
+  buildTrainingRecommendation,
+  TRAINING_RECOMMENDATIONS,
+} from './lib/trainingRecommendations'
+import {
   NOTIFICATION_ACTIONS,
   dismissNotification,
   markNotificationActedOn,
@@ -311,6 +316,9 @@ function App() {
   })
 
   const notifications = buildNotificationSnapshot(state)
+
+  const trainingRecommendation =
+    buildTrainingRecommendation(state, plannedWorkout)
 
 
   const saveReadinessCheckIn = (values) => {
@@ -688,6 +696,62 @@ function App() {
     navigate('home')
   }
 
+  const startWorkoutWithRecommendation = (
+    recommendation = trainingRecommendation,
+    overrideWorkout = null,
+  ) => {
+    if (
+      recommendation?.id ===
+      TRAINING_RECOMMENDATIONS.CHECK_IN
+    ) {
+      setShowReadinessCheckIn(true)
+      return
+    }
+
+    if (
+      recommendation?.id ===
+      TRAINING_RECOMMENDATIONS.RECOVERY_DAY
+    ) {
+      openDailyReset()
+      return
+    }
+
+    if (state.activeWorkout) {
+      setState((current) => ({
+        ...current,
+        activeWorkout: applyRecommendationToWorkout(
+          current.activeWorkout,
+          recommendation,
+        ),
+      }))
+      navigate('gym')
+      return
+    }
+
+    const name =
+      overrideWorkout ||
+      recommendation?.alternateWorkout ||
+      plannedWorkout
+
+    const activeWorkout = applyRecommendationToWorkout(
+      buildActiveWorkout(name),
+      recommendation,
+    )
+
+    setActiveExerciseState(0)
+    navigate('gym', () => {
+      setState((current) => ({
+        ...current,
+        selectedWorkout: name,
+        activeWorkout,
+      }))
+    })
+  }
+
+  const trainAsPlanned = () => {
+    startWorkout()
+  }
+
   const startWorkout = () => {
     if (state.activeWorkout) {
       navigate('gym')
@@ -940,6 +1004,7 @@ function App() {
           onChangeWorkout={changeActiveWorkout}
           onRestartWorkout={restartActiveWorkout}
           onEndWorkout={endActiveWorkoutWithoutSaving}
+          recommendation={trainingRecommendation}
         />
       )
     }
@@ -1167,6 +1232,12 @@ function App() {
           onOpenNotifications={() =>
             navigate('notifications')
           }
+          trainingRecommendation={trainingRecommendation}
+          onApplyRecommendation={() =>
+            startWorkoutWithRecommendation()
+          }
+          onTrainAsPlanned={trainAsPlanned}
+          onRecommendationRecovery={openDailyReset}
           onSelectWorkout={(workout) =>
             setState((current) => ({
               ...current,
