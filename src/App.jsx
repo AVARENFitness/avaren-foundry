@@ -105,7 +105,7 @@ const makeSet = (number, type = 'Working') => ({
 
 function App() {
   const [screen, setScreen] = useState('home')
-  const [state, setState] = useState(() => loadState(createInitialState()))
+  const [state, setState] = useState(() => createInitialState())
   const [activeExercise, setActiveExerciseState] = useState(
     state.activeWorkout?.activeExerciseIndex ?? 0,
   )
@@ -164,6 +164,10 @@ function App() {
         if (!nextSession) {
           hydratedUserId.current = null
           setCloudReady(false)
+          setState(createInitialState())
+          setActiveExerciseState(0)
+          setCompletedSession(null)
+          setMobilityFlow(null)
           setCloudStatus(navigator.onLine ? 'ready' : 'offline')
         }
       },
@@ -177,7 +181,11 @@ function App() {
     return () => clearTimeout(timer)
   }, [])
 
-  useEffect(() => saveState(state), [state])
+  useEffect(() => {
+    const userId = session?.user?.id
+    if (!userId || !cloudReady) return
+    saveState(state, userId)
+  }, [state, session?.user?.id, cloudReady])
 
   useEffect(() => {
     latestStateRef.current = state
@@ -199,19 +207,20 @@ function App() {
 
     const hydrateAccount = async () => {
       try {
+        const localAccountState = loadState(createInitialState(), userId)
         const cloudRecord = await loadCloudState(userId)
         if (cancelled) return
 
-        const decision = chooseNewestState(latestStateRef.current, cloudRecord)
+        const decision = chooseNewestState(localAccountState, cloudRecord)
 
-        if (decision.source === 'cloud') {
-          setState((current) => ({
-            ...current,
-            ...decision.state,
-            activeWorkout:
-              decision.state?.activeWorkout ?? current.activeWorkout,
-          }))
-        }
+        setState({
+          ...createInitialState(),
+          ...decision.state,
+          activeWorkout: decision.state?.activeWorkout ?? null,
+        })
+        setActiveExerciseState(
+          decision.state?.activeWorkout?.activeExerciseIndex ?? 0,
+        )
 
         if (decision.uploadLocal && navigator.onLine) {
           await saveCloudState(userId, decision.state)
@@ -495,6 +504,19 @@ function App() {
   const openDailyReset = () => {
     setMobilityFlow(adaptiveDailyReset)
     navigate('mobility')
+  }
+
+  const openHomeReset = () => {
+    const lastWorkout = [...state.history]
+      .sort((first, second) => String(first?.date).localeCompare(String(second?.date)))
+      .at(-1)
+
+    if (lastWorkout) {
+      openRecoveryFlow(lastWorkout)
+      return
+    }
+
+    openDailyReset()
   }
 
   const openRecoveryFlow = (

@@ -177,6 +177,18 @@ export default function HomeScreen({
 
   return (
     <div className="home-v2">
+      <section className={`home-readiness-first ${readiness?.completed ? 'complete' : 'pending'}`}>
+        <div className="home-readiness-first-icon"><HeartPulse size={21} /></div>
+        <div>
+          <span className="eyebrow">TODAY’S READINESS</span>
+          <h2>{readiness?.completed ? `${readiness.score} · ${readiness.status ?? 'Check-in complete'}` : 'Start with your check-in.'}</h2>
+          <p>{readiness?.completed ? readiness.summary ?? 'Your readiness is recorded for today.' : 'Record sleep, soreness, energy, and stress before planning the rest of your day.'}</p>
+        </div>
+        <button className={readiness?.completed ? 'home-readiness-review' : 'gold-button machined'} onClick={onOpenReadiness}>
+          {readiness?.completed ? 'Review' : 'Complete Check-In'} <ArrowRight size={16} />
+        </button>
+      </section>
+
       <section className="home-v2-hero">
         <div className="home-v2-orbit one" />
         <div className="home-v2-orbit two" />
@@ -188,19 +200,7 @@ export default function HomeScreen({
             <p>{lastWorkoutContext}</p>
           </div>
 
-          <button
-            className={`home-v2-readiness ${
-              readiness?.completed
-                ? readiness.tone
-                : recovery.tone
-            }`}
-            onClick={onOpenReadiness}
-            aria-label="Open readiness check-in"
-          >
-            <HeartPulse size={17} />
-            <strong>{score}</strong>
-            <span>{scoreLabel}</span>
-          </button>
+
         </div>
 
         <div className="home-v2-status">
