@@ -11223,3 +11223,262 @@ button:active {
     gap: 7px;
   }
 }
+
+
+/* ===== SPRINT 5.0B · WORKOUT COMPLETION & RECORDS ===== */
+
+.sprint5-completion {
+  display: grid;
+  gap: 14px;
+  padding-bottom: 120px;
+}
+
+.sprint5-completion-hero,
+.sprint5-completion-section,
+.sprint5-victories {
+  border: 1px solid rgba(216,184,109,.11);
+  border-radius: 22px;
+  background:
+    radial-gradient(
+      circle at 90% -10%,
+      rgba(216,184,109,.08),
+      transparent 35%
+    ),
+    rgba(255,255,255,.012);
+  box-shadow:
+    0 24px 70px rgba(0,0,0,.28),
+    inset 0 1px 0 rgba(255,255,255,.02);
+}
+
+.sprint5-completion-hero {
+  display: grid;
+  justify-items: center;
+  padding: 30px 18px 20px;
+  text-align: center;
+}
+
+.sprint5-completion-hero h1 {
+  margin: 14px 0 4px;
+  font-size: clamp(42px,12vw,68px);
+  letter-spacing: -.065em;
+}
+
+.sprint5-completion-hero > p {
+  margin: 0;
+  color: #8d867d;
+  font-size: 12px;
+}
+
+.sprint5-hero-stats {
+  display: grid;
+  grid-template-columns: repeat(3,1fr);
+  width: 100%;
+  margin-top: 24px;
+  overflow: hidden;
+  border: 1px solid rgba(246,242,233,.055);
+  border-radius: 16px;
+}
+
+.sprint5-hero-stats article {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 14px 10px;
+  text-align: left;
+}
+
+.sprint5-hero-stats article + article {
+  border-left: 1px solid rgba(246,242,233,.055);
+}
+
+.sprint5-hero-stats svg {
+  color: #d8b86d;
+}
+
+.sprint5-hero-stats strong,
+.sprint5-hero-stats span {
+  display: block;
+}
+
+.sprint5-hero-stats strong {
+  overflow: hidden;
+  color: #efe7d5;
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sprint5-hero-stats span {
+  margin-top: 2px;
+  color: #69645e;
+  font-size: 7px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.sprint5-completion-section,
+.sprint5-victories {
+  padding: 17px;
+}
+
+.sprint5-section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 15px;
+}
+
+.sprint5-section-heading h2 {
+  margin: 5px 0 0;
+  font-size: 22px;
+}
+
+.sprint5-section-heading > svg {
+  color: #d8b86d;
+}
+
+.sprint5-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(2,1fr);
+  gap: 8px;
+}
+
+.sprint5-summary-grid article {
+  padding: 13px;
+  border: 1px solid rgba(246,242,233,.05);
+  border-radius: 13px;
+  background: rgba(5,7,9,.28);
+}
+
+.sprint5-summary-grid span,
+.sprint5-summary-grid strong {
+  display: block;
+}
+
+.sprint5-summary-grid span {
+  color: #6f6962;
+  font-size: 8px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.sprint5-summary-grid strong {
+  margin-top: 5px;
+  color: #e7d7ad;
+  font-size: 19px;
+}
+
+.sprint5-exercise-breakdown {
+  display: grid;
+  gap: 7px;
+  margin-top: 12px;
+}
+
+.sprint5-exercise-breakdown article {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 12px 13px;
+  border: 1px solid rgba(246,242,233,.045);
+  border-radius: 12px;
+  background: rgba(255,255,255,.008);
+}
+
+.sprint5-exercise-breakdown article > div:last-child {
+  text-align: right;
+}
+
+.sprint5-exercise-breakdown strong,
+.sprint5-exercise-breakdown span {
+  display: block;
+}
+
+.sprint5-exercise-breakdown strong {
+  color: #d9d0c2;
+  font-size: 10px;
+}
+
+.sprint5-exercise-breakdown span {
+  margin-top: 3px;
+  color: #65605a;
+  font-size: 7px;
+}
+
+.sprint5-highlight-grid {
+  display: grid;
+  grid-template-columns: repeat(2,1fr);
+  gap: 8px;
+}
+
+.sprint5-highlight-grid article {
+  display: grid;
+  gap: 5px;
+  padding: 14px;
+  border: 1px solid rgba(216,184,109,.1);
+  border-radius: 14px;
+  background:
+    linear-gradient(
+      145deg,
+      rgba(216,184,109,.045),
+      rgba(255,255,255,.008)
+    );
+}
+
+.sprint5-highlight-grid svg {
+  color: #d8b86d;
+  margin-bottom: 3px;
+}
+
+.sprint5-highlight-grid span {
+  color: #766f65;
+  font-size: 7px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.sprint5-highlight-grid strong {
+  color: #eee4d2;
+  font-size: 11px;
+}
+
+.sprint5-highlight-grid small {
+  color: #d1b972;
+  font-size: 10px;
+}
+
+.sprint5-muscles {
+  justify-content: center;
+  margin: 0;
+}
+
+.sprint5-next-workout {
+  margin: 0;
+}
+
+.sprint5-done-button {
+  position: sticky;
+  bottom: 82px;
+  z-index: 14;
+  width: 100%;
+  box-shadow:
+    0 20px 60px rgba(0,0,0,.5);
+}
+
+@media (max-width: 480px) {
+  .sprint5-hero-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .sprint5-hero-stats article + article {
+    border-top: 1px solid rgba(246,242,233,.055);
+    border-left: 0;
+  }
+
+  .sprint5-highlight-grid {
+    grid-template-columns: 1fr;
+  }
+}
