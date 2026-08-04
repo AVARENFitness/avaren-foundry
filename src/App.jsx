@@ -137,44 +137,6 @@ function App() {
   const hydratedUserId = useRef(null)
   const cloudSaveTimer = useRef(null)
   const latestStateRef = useRef(state)
-  const navigationLockRef = useRef(false)
-
-
-  useEffect(() => {
-    const handleUnhandledError = (event) => {
-      console.error(
-        'AVAREN unhandled window error:',
-        event.error ?? event.message,
-      )
-    }
-
-    const handleUnhandledRejection = (event) => {
-      console.error(
-        'AVAREN unhandled promise rejection:',
-        event.reason,
-      )
-    }
-
-    window.addEventListener(
-      'error',
-      handleUnhandledError,
-    )
-    window.addEventListener(
-      'unhandledrejection',
-      handleUnhandledRejection,
-    )
-
-    return () => {
-      window.removeEventListener(
-        'error',
-        handleUnhandledError,
-      )
-      window.removeEventListener(
-        'unhandledrejection',
-        handleUnhandledRejection,
-      )
-    }
-  }, [])
 
   useEffect(() => {
     if (!isSupabaseConfigured) {
@@ -578,33 +540,12 @@ function App() {
   }
 
   const navigate = (nextScreen, callback) => {
-    if (navigationLockRef.current) return
-
-    if (nextScreen === screen && !callback) {
-      window.scrollTo({
-        top: 0,
-        behavior: 'smooth',
-      })
-      return
-    }
-
-    navigationLockRef.current = true
     setTransitioning(true)
-
     window.setTimeout(() => {
-      try {
-        callback?.()
-        setScreen(nextScreen)
-        window.scrollTo({
-          top: 0,
-          behavior: 'smooth',
-        })
-      } finally {
-        window.setTimeout(() => {
-          setTransitioning(false)
-          navigationLockRef.current = false
-        }, 260)
-      }
+      callback?.()
+      setScreen(nextScreen)
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+      window.setTimeout(() => setTransitioning(false), 260)
     }, 180)
   }
 
@@ -669,6 +610,81 @@ function App() {
 
     if (navigator.vibrate) navigator.vibrate(12)
     window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const restartActiveWorkout = () => {
+    const currentWorkout = state.activeWorkout
+    if (!currentWorkout) return
+
+    const hasEnteredData = currentWorkout.exercises.some(
+      (exercise) =>
+        exercise.sets.some(
+          (set) =>
+            set.weight !== '' ||
+            set.reps !== '' ||
+            set.done,
+        ),
+    )
+
+    if (
+      hasEnteredData &&
+      !confirm(
+        `Restart ${currentWorkout.name}? All entered progress in this session will be discarded.`,
+      )
+    ) {
+      return
+    }
+
+    const replacement = buildActiveWorkout(
+      currentWorkout.name,
+    )
+
+    setActiveExerciseState(0)
+    setState((current) => ({
+      ...current,
+      activeWorkout: replacement,
+    }))
+
+    if (navigator.vibrate) navigator.vibrate(14)
+
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth',
+    })
+  }
+
+  const endActiveWorkoutWithoutSaving = () => {
+    const currentWorkout = state.activeWorkout
+    if (!currentWorkout) return
+
+    const hasEnteredData = currentWorkout.exercises.some(
+      (exercise) =>
+        exercise.sets.some(
+          (set) =>
+            set.weight !== '' ||
+            set.reps !== '' ||
+            set.done,
+        ),
+    )
+
+    const message = hasEnteredData
+      ? `End ${currentWorkout.name} without saving? All entered progress in this session will be discarded.`
+      : `End ${currentWorkout.name} without saving? This session will be removed and nothing will be added to your training history.`
+
+    if (!confirm(message)) return
+
+    setActiveExerciseState(0)
+    setIsFinishing(false)
+    setState((current) => ({
+      ...current,
+      activeWorkout: null,
+    }))
+
+    if (navigator.vibrate) {
+      navigator.vibrate([12, 25, 12])
+    }
+
+    navigate('home')
   }
 
   const startWorkout = () => {
@@ -791,10 +807,7 @@ function App() {
     if (isFinishing) return
     setIsFinishing(true)
     const workout = state.activeWorkout
-    if (!workout) {
-      setIsFinishing(false)
-      return
-    }
+    if (!workout) return
 
     const sets = workout.exercises
       .filter((exercise) => !exercise.skipped)
@@ -924,6 +937,8 @@ function App() {
           onUndoSkip={undoSkipExercise}
           workoutOptions={state.program.rotation}
           onChangeWorkout={changeActiveWorkout}
+          onRestartWorkout={restartActiveWorkout}
+          onEndWorkout={endActiveWorkoutWithoutSaving}
         />
       )
     }

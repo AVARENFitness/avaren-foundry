@@ -1,4 +1,4 @@
-import { Dumbbell, MoreHorizontal, RefreshCw, X } from 'lucide-react'
+import { Dumbbell, MoreHorizontal, RefreshCw, RotateCcw, X, LogOut } from 'lucide-react'
 import FocusExercise from '../components/FocusExercise'
 import ProgressRing from '../components/ProgressRing'
 import QuickAddModal from '../components/QuickAddModal'
@@ -40,12 +40,15 @@ export default function GymScreen({
   onUndoSkip,
   workoutOptions = [],
   onChangeWorkout,
+  onRestartWorkout,
+  onEndWorkout,
   isFinishing = false,
 }) {
   const [showQuickAdd, setShowQuickAdd] = useState(false)
   const [supersetRound, setSupersetRound] = useState(0)
   const [navigationDirection, setNavigationDirection] = useState('next')
   const [showWorkoutPicker, setShowWorkoutPicker] = useState(false)
+  const [showWorkoutMenu, setShowWorkoutMenu] = useState(false)
 
   const goPrevious = () => {
     setNavigationDirection('previous')
@@ -222,6 +225,107 @@ export default function GymScreen({
           document.body,
         )}
 
+      {showWorkoutMenu &&
+        createPortal(
+          <div
+            className="modal-backdrop workout-menu-portal"
+            onClick={() => setShowWorkoutMenu(false)}
+          >
+            <section
+              className="workout-options-modal"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="workout-options-title"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <header>
+                <div>
+                  <span className="eyebrow">CURRENT SESSION</span>
+                  <h2 id="workout-options-title">
+                    Workout Options
+                  </h2>
+                </div>
+                <button
+                  className="workout-options-close"
+                  onClick={() => setShowWorkoutMenu(false)}
+                  aria-label="Close workout options"
+                >
+                  <X size={20} />
+                </button>
+              </header>
+
+              <p>
+                Manage the active workout without adding
+                anything to your training history unless you
+                choose Finish Workout.
+              </p>
+
+              <div className="workout-options-list">
+                <button
+                  onClick={() => {
+                    setShowWorkoutMenu(false)
+                    setShowWorkoutPicker(true)
+                  }}
+                >
+                  <div className="workout-option-icon">
+                    <RefreshCw size={18} />
+                  </div>
+                  <div>
+                    <strong>Change Workout</strong>
+                    <small>
+                      Replace this session with another workout.
+                    </small>
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setShowWorkoutMenu(false)
+                    onRestartWorkout?.()
+                  }}
+                >
+                  <div className="workout-option-icon">
+                    <RotateCcw size={18} />
+                  </div>
+                  <div>
+                    <strong>Restart Workout</strong>
+                    <small>
+                      Clear all entered progress and begin again.
+                    </small>
+                  </div>
+                </button>
+
+                <button
+                  className="danger"
+                  onClick={() => {
+                    setShowWorkoutMenu(false)
+                    onEndWorkout?.()
+                  }}
+                >
+                  <div className="workout-option-icon">
+                    <LogOut size={18} />
+                  </div>
+                  <div>
+                    <strong>End Without Saving</strong>
+                    <small>
+                      Remove the active session without affecting
+                      History, Journey, Forge, streaks, or volume.
+                    </small>
+                  </div>
+                </button>
+              </div>
+
+              <button
+                className="workout-options-cancel"
+                onClick={() => setShowWorkoutMenu(false)}
+              >
+                Cancel
+              </button>
+            </section>
+          </div>,
+          document.body,
+        )}
+
       {showQuickAdd && (
         <QuickAddModal
           onClose={() => setShowQuickAdd(false)}
@@ -233,7 +337,11 @@ export default function GymScreen({
       )}
 
       <div className="focus-finish-bar">
-        <button className="focus-more-button" aria-label="Workout options">
+        <button
+          className="focus-more-button"
+          aria-label="Workout options"
+          onClick={() => setShowWorkoutMenu(true)}
+        >
           <MoreHorizontal />
         </button>
         <button

@@ -7114,3 +7114,155 @@ select:focus-visible {
     transform: none !important;
   }
 }
+
+
+/* ===== AVAREN BUILDER v1.4 · WORKOUT SESSION CONTROLS ===== */
+
+.workout-menu-portal {
+  z-index: 1200;
+  display: grid;
+  place-items: end center;
+  padding:
+    max(14px, env(safe-area-inset-top))
+    14px
+    max(14px, env(safe-area-inset-bottom));
+}
+
+.workout-options-modal {
+  width: min(100%, 520px);
+  max-height: calc(100dvh - 28px);
+  overflow-y: auto;
+  padding: 20px;
+  border: 1px solid rgba(184,149,78,.2);
+  border-radius: 24px;
+  background:
+    radial-gradient(
+      circle at 90% -18%,
+      rgba(184,149,78,.15),
+      transparent 36%
+    ),
+    linear-gradient(
+      145deg,
+      rgba(22,22,19,.995),
+      rgba(8,9,8,.999)
+    );
+  box-shadow: 0 28px 90px rgba(0,0,0,.58);
+  animation:
+    avarenModalIn .28s
+    cubic-bezier(.2,.8,.2,1) both;
+}
+
+.workout-options-modal > header {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: start;
+  gap: 12px;
+}
+
+.workout-options-modal h2 {
+  margin: 7px 0 0;
+  font-size: 25px;
+}
+
+.workout-options-modal > p {
+  margin: 12px 0 0;
+  color: #777169;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.workout-options-close {
+  display: grid;
+  place-items: center;
+  width: 37px;
+  height: 37px;
+  border: 1px solid rgba(248,243,230,.07);
+  border-radius: 12px;
+  background: rgba(255,255,255,.018);
+  color: #807970;
+}
+
+.workout-options-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.workout-options-list > button {
+  display: grid;
+  grid-template-columns: 43px 1fr;
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  padding: 13px;
+  border: 1px solid rgba(248,243,230,.07);
+  border-radius: 14px;
+  background: rgba(255,255,255,.016);
+  color: var(--cream);
+  text-align: left;
+}
+
+.workout-options-list > button:active {
+  transform: translateY(1px) scale(.99);
+}
+
+.workout-option-icon {
+  display: grid;
+  place-items: center;
+  width: 43px;
+  height: 43px;
+  border: 1px solid rgba(184,149,78,.17);
+  border-radius: 13px;
+  background: rgba(184,149,78,.035);
+  color: var(--gold);
+}
+
+.workout-options-list strong,
+.workout-options-list small {
+  display: block;
+}
+
+.workout-options-list strong {
+  font-size: 12px;
+}
+
+.workout-options-list small {
+  margin-top: 4px;
+  color: #746e66;
+  font-size: 8px;
+  line-height: 1.45;
+}
+
+.workout-options-list > button.danger {
+  border-color: rgba(181,90,82,.22);
+  background: rgba(181,90,82,.035);
+}
+
+.workout-options-list > button.danger
+  .workout-option-icon {
+  border-color: rgba(181,90,82,.25);
+  background: rgba(181,90,82,.055);
+  color: #d17a72;
+}
+
+.workout-options-list > button.danger strong {
+  color: #d9958e;
+}
+
+.workout-options-cancel {
+  width: 100%;
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid rgba(248,243,230,.07);
+  border-radius: 13px;
+  background: rgba(255,255,255,.015);
+  color: #8a837a;
+  font-size: 10px;
+  font-weight: 900;
+}
+
+@media (min-width: 700px) {
+  .workout-menu-portal {
+    place-items: center;
+  }
+}
