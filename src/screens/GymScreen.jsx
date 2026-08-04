@@ -1,9 +1,9 @@
-import { Dumbbell, MoreHorizontal, RefreshCw, RotateCcw, X, LogOut } from 'lucide-react'
+import { Clock3, Dumbbell, MoreHorizontal, Pause, Play, RefreshCw, RotateCcw, TimerReset, X, LogOut } from 'lucide-react'
 import FocusExercise from '../components/FocusExercise'
 import ProgressRing from '../components/ProgressRing'
 import QuickAddModal from '../components/QuickAddModal'
 import SupersetFocus from '../components/SupersetFocus'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 
 const MUSCLE_LIGHTS = {
@@ -50,6 +50,11 @@ export default function GymScreen({
   const [navigationDirection, setNavigationDirection] = useState('next')
   const [showWorkoutPicker, setShowWorkoutPicker] = useState(false)
   const [showWorkoutMenu, setShowWorkoutMenu] = useState(false)
+  const [now, setNow] = useState(() => Date.now())
+  const [restDuration, setRestDuration] = useState(90)
+  const [restRemaining, setRestRemaining] = useState(0)
+  const [restRunning, setRestRunning] = useState(false)
+  const [restContext, setRestContext] = useState(null)
 
   const goPrevious = () => {
     setNavigationDirection('previous')
@@ -63,6 +68,44 @@ export default function GymScreen({
     )
   }
   const workout = state.activeWorkout
+
+  useEffect(() => {
+    if (!workout?.startedAt) return
+
+    const timer = window.setInterval(
+      () => setNow(Date.now()),
+      1000,
+    )
+
+    return () => window.clearInterval(timer)
+  }, [workout?.startedAt])
+
+  useEffect(() => {
+    if (!restRunning || restRemaining <= 0) return
+
+    const timer = window.setInterval(() => {
+      setRestRemaining((current) =>
+        Math.max(0, current - 1),
+      )
+    }, 1000)
+
+    return () => window.clearInterval(timer)
+  }, [restRunning, restRemaining])
+
+  useEffect(() => {
+    if (
+      restRemaining !== 0 ||
+      !restRunning
+    ) {
+      return
+    }
+
+    setRestRunning(false)
+
+    if (navigator.vibrate) {
+      navigator.vibrate([35, 55, 45])
+    }
+  }, [restRemaining, restRunning])
 
   if (!workout) {
     return (
@@ -91,6 +134,63 @@ export default function GymScreen({
   const currentExercise =
     workout.exercises[activeExercise] ?? workout.exercises[0]
 
+  const elapsedSeconds = Math.max(
+    0,
+    Math.floor(
+      (
+        now -
+        new Date(
+          workout.startedAt ??
+          Date.now(),
+        ).getTime()
+      ) / 1000,
+    ),
+  )
+
+  const elapsedHours = Math.floor(
+    elapsedSeconds / 3600,
+  )
+  const elapsedMinutes = Math.floor(
+    (elapsedSeconds % 3600) / 60,
+  )
+  const elapsedRemainderSeconds =
+    elapsedSeconds % 60
+
+  const elapsedLabel =
+    elapsedHours > 0
+      ? `${elapsedHours}:${String(
+          elapsedMinutes,
+        ).padStart(2, '0')}:${String(
+          elapsedRemainderSeconds,
+        ).padStart(2, '0')}`
+      : `${elapsedMinutes}:${String(
+          elapsedRemainderSeconds,
+        ).padStart(2, '0')}`
+
+  const restLabel = `${Math.floor(
+    restRemaining / 60,
+  )}:${String(
+    restRemaining % 60,
+  ).padStart(2, '0')}`
+
+  const startRest = ({
+    exercise,
+    setIndex,
+    potentialPr,
+  }) => {
+    setRestContext({
+      exercise: exercise.name,
+      setNumber: setIndex + 1,
+      potentialPr,
+    })
+    setRestRemaining(restDuration)
+    setRestRunning(true)
+
+    if (navigator.vibrate) {
+      navigator.vibrate(12)
+    }
+  }
+
   const supersetGroup = currentExercise.supersetGroup
   const supersetExercises = supersetGroup
     ? workout.exercises.filter(
@@ -114,9 +214,15 @@ export default function GymScreen({
           <span className="eyebrow">LIFT SESSION</span>
           <strong>{workout.name}</strong>
         </div>
-        <span>
-          {completedExercises} / {workout.exercises.length}
-        </span>
+        <div className="lift-session-strip-meta">
+          <span>
+            {completedExercises} / {workout.exercises.length}
+          </span>
+          <span className="lift-session-clock">
+            <Clock3 size={13} />
+            {elapsedLabel}
+          </span>
+        </div>
       </section>
 
       <section className="focus-mode-bar lift-session-overview">
@@ -185,6 +291,7 @@ export default function GymScreen({
           onRemoveSet={(setIndex) => onRemoveSet(activeExercise, setIndex)}
           onUndoSkip={() => onUndoSkip(activeExercise)}
           navigationDirection={navigationDirection}
+          onSetCompleted={startRest}
         />
       )}
 
@@ -271,6 +378,29 @@ export default function GymScreen({
                 choose Finish Workout.
               </p>
 
+              <div className="lift-rest-preference">
+                <div>
+                  <strong>Default Rest Timer</strong>
+                  <small>
+                    Starts automatically after a completed set.
+                  </small>
+                </div>
+
+                <select
+                  value={restDuration}
+                  onChange={(event) =>
+                    setRestDuration(
+                      Number(event.target.value),
+                    )
+                  }
+                >
+                  <option value={60}>1:00</option>
+                  <option value={90}>1:30</option>
+                  <option value={120}>2:00</option>
+                  <option value={180}>3:00</option>
+                </select>
+              </div>
+
               <div className="workout-options-list">
                 <button
                   onClick={() => {
@@ -345,6 +475,106 @@ export default function GymScreen({
             setShowQuickAdd(false)
           }}
         />
+      )}
+
+      {restContext && (
+        <section
+          className={`lift-rest-dock ${
+            restRunning ? 'running' : 'paused'
+          } ${
+            restRemaining === 0 ? 'complete' : ''
+          }`}
+        >
+          <div className="lift-rest-copy">
+            <span className="eyebrow">
+              {restRemaining === 0
+                ? 'REST COMPLETE'
+                : 'BETWEEN SETS'}
+            </span>
+            <strong>{restLabel}</strong>
+            <small>
+              {restContext.exercise} · Set{' '}
+              {restContext.setNumber}
+              {restContext.potentialPr
+                ? ' · PR effort'
+                : ''}
+            </small>
+          </div>
+
+          <div className="lift-rest-actions">
+            <button
+              onClick={() =>
+                setRestRunning(
+                  (current) => !current,
+                )
+              }
+              disabled={restRemaining === 0}
+              aria-label={
+                restRunning
+                  ? 'Pause rest timer'
+                  : 'Resume rest timer'
+              }
+            >
+              {restRunning ? (
+                <Pause size={17} />
+              ) : (
+                <Play size={17} />
+              )}
+            </button>
+
+            <button
+              onClick={() => {
+                setRestRemaining(
+                  (current) => current + 30,
+                )
+                setRestRunning(true)
+              }}
+              aria-label="Add 30 seconds"
+            >
+              +30
+            </button>
+
+            <button
+              onClick={() => {
+                setRestRemaining(restDuration)
+                setRestRunning(true)
+              }}
+              aria-label="Restart rest timer"
+            >
+              <TimerReset size={17} />
+            </button>
+
+            <button
+              className="lift-rest-dismiss"
+              onClick={() => {
+                setRestRunning(false)
+                setRestContext(null)
+                setRestRemaining(0)
+              }}
+            >
+              Done
+            </button>
+          </div>
+
+          <div
+            className="lift-rest-progress"
+            style={{
+              '--rest-progress':
+                restDuration > 0
+                  ? `${
+                      (
+                        1 -
+                        restRemaining /
+                          Math.max(
+                            restDuration,
+                            restRemaining,
+                          )
+                      ) * 100
+                    }%`
+                  : '100%',
+            }}
+          />
+        </section>
       )}
 
       <div className="focus-finish-bar">
