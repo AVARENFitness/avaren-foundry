@@ -100,6 +100,7 @@ export default function HomeScreen({
   userName,
   readiness,
   onOpenReadiness,
+  onOpenReadinessTrends,
   notificationSnapshot,
   onOpenNotifications,
 }) {
@@ -222,6 +223,7 @@ export default function HomeScreen({
       <ReadinessCard
         readiness={readiness}
         onOpen={onOpenReadiness}
+        onOpenTrends={onOpenReadinessTrends}
       />
 
       <NotificationPreview

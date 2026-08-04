@@ -17,6 +17,7 @@ const ICONS = {
 export default function ReadinessCard({
   readiness,
   onOpen,
+  onOpenTrends,
 }) {
   if (!readiness?.completed) {
     return (
@@ -43,7 +44,7 @@ export default function ReadinessCard({
   return (
     <button
       className={`readiness-home-card ${readiness.tone}`}
-      onClick={onOpen}
+      onClick={onOpenTrends}
     >
       <div className="readiness-score">
         <strong>{readiness.score}</strong>
@@ -77,7 +78,10 @@ export default function ReadinessCard({
         </div>
       </div>
 
-      <ArrowRight size={18} />
+      <div className="readiness-card-trends">
+        <span>View Trends</span>
+        <ArrowRight size={18} />
+      </div>
     </button>
   )
 }

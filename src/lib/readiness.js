@@ -252,3 +252,146 @@ export const recentReadinessEntries = (
       ),
     )
     .slice(0, limit)
+
+
+const average = (values = []) =>
+  values.length
+    ? Math.round(
+        values.reduce((sum, value) => sum + value, 0) /
+          values.length,
+      )
+    : null
+
+const entryScore = (entry) => {
+  if (!entry) return null
+
+  return Math.round(
+    ((normalizeRating(entry.sleep) * 0.32 +
+      normalizeRating(entry.energy) * 0.32 +
+      (6 - normalizeRating(entry.soreness)) * 0.2 +
+      (6 - normalizeRating(entry.stress)) * 0.16) /
+      5) *
+      100,
+  )
+}
+
+const isWithinDays = (date, days) => {
+  const time = new Date(`${date}T12:00:00`).getTime()
+  return Number.isFinite(time) &&
+    Date.now() - time <= days * 86400000
+}
+
+export const readinessTrendSnapshot = (
+  state = {},
+  days = 30,
+) => {
+  const entries = recentReadinessEntries(
+    state.readiness ?? {},
+    365,
+  )
+    .filter((entry) => isWithinDays(entry.date, days))
+    .sort((first, second) =>
+      String(first.date).localeCompare(String(second.date)),
+    )
+
+  const scored = entries.map((entry) => ({
+    ...entry,
+    score: entryScore(entry),
+  }))
+
+  const workoutDates = new Set(
+    (state.history ?? []).map((session) => session.date),
+  )
+
+  const workoutDays = scored.filter((entry) =>
+    workoutDates.has(entry.date),
+  )
+  const restDays = scored.filter(
+    (entry) => !workoutDates.has(entry.date),
+  )
+
+  const factorAverage = (field) =>
+    average(scored.map((entry) => Number(entry[field] ?? 0)))
+
+  const best = [...scored].sort(
+    (first, second) => second.score - first.score,
+  )[0] ?? null
+
+  const lowest = [...scored].sort(
+    (first, second) => first.score - second.score,
+  )[0] ?? null
+
+  const scores = scored.map((entry) => entry.score)
+  const scoreAverage = average(scores)
+  const consistency =
+    scores.length > 1
+      ? Math.max(
+          0,
+          Math.round(
+            100 -
+              scores.reduce(
+                (sum, score) =>
+                  sum + Math.abs(score - scoreAverage),
+                0,
+              ) /
+                scores.length,
+          ),
+        )
+      : scores.length
+      ? 100
+      : null
+
+  return {
+    entries: scored,
+    count: scored.length,
+    average: scoreAverage,
+    sleep: factorAverage('sleep'),
+    energy: factorAverage('energy'),
+    soreness: factorAverage('soreness'),
+    stress: factorAverage('stress'),
+    best,
+    lowest,
+    consistency,
+    workoutDayAverage: average(
+      workoutDays.map((entry) => entry.score),
+    ),
+    restDayAverage: average(
+      restDays.map((entry) => entry.score),
+    ),
+    lowReadinessWorkoutCount: workoutDays.filter(
+      (entry) => entry.score < 50,
+    ).length,
+  }
+}
+
+export const readinessCorrelationSnapshot = (
+  state = {},
+) => {
+  const entries = recentReadinessEntries(
+    state.readiness ?? {},
+    365,
+  )
+  const byDate = new Map(
+    entries.map((entry) => [
+      entry.date,
+      {
+        ...entry,
+        score: entryScore(entry),
+      },
+    ]),
+  )
+
+  const workoutDays = (state.history ?? [])
+    .map((session) => ({
+      session,
+      readiness: byDate.get(session.date) ?? null,
+    }))
+    .filter((item) => item.readiness)
+
+  return {
+    workoutDays,
+    averageWorkoutReadiness: average(
+      workoutDays.map((item) => item.readiness.score),
+    ),
+  }
+}

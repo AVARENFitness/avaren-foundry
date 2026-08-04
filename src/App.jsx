@@ -43,6 +43,7 @@ import {
 } from './lib/readiness'
 import ReadinessCheckIn from './components/ReadinessCheckIn'
 import NotificationScreen from './screens/NotificationScreen'
+import ReadinessTrendsScreen from './screens/ReadinessTrendsScreen'
 import {
   NOTIFICATION_ACTIONS,
   dismissNotification,
@@ -1013,7 +1014,25 @@ function App() {
       )
     }
 
-    if (screen === 'progress') return <ProgressScreen state={state} />
+    if (screen === 'readiness-trends') {
+      return (
+        <ReadinessTrendsScreen
+          state={state}
+          onClose={() => navigate('progress')}
+        />
+      )
+    }
+
+    if (screen === 'progress') {
+      return (
+        <ProgressScreen
+          state={state}
+          onOpenReadinessTrends={() =>
+            navigate('readiness-trends')
+          }
+        />
+      )
+    }
 
     if (screen === 'builder') {
       return (
@@ -1140,6 +1159,9 @@ function App() {
           readiness={readiness}
           onOpenReadiness={() =>
             setShowReadinessCheckIn(true)
+          }
+          onOpenReadinessTrends={() =>
+            navigate('readiness-trends')
           }
           notificationSnapshot={notifications}
           onOpenNotifications={() =>

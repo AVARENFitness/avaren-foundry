@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Award, Flame, Layers3, Trophy } from 'lucide-react'
+import { Award, Flame, Layers3, Trophy, HeartPulse, ArrowRight } from 'lucide-react'
 import { BASELINES, MILESTONE_CHAINS } from '../data/defaultProgram'
 import StrengthChart from '../components/StrengthChart'
 import ExerciseProfile from '../components/ExerciseProfile'
@@ -21,7 +21,10 @@ const METRICS = [
   { id: 'volume', label: 'Session Volume' },
 ]
 
-export default function ProgressScreen({ state }) {
+export default function ProgressScreen({
+  state,
+  onOpenReadinessTrends,
+}) {
   const exercises = useMemo(() => {
     const fromHistory = exerciseNames(state.history)
     const fromProgram = Object.values(state.program.workouts)
@@ -46,6 +49,24 @@ export default function ProgressScreen({ state }) {
         <h1>Progress, without noise.</h1>
         <p>Open the details when you want them. Gym Mode stays focused.</p>
       </section>
+
+      <button
+        className="progress-readiness-entry"
+        onClick={onOpenReadinessTrends}
+      >
+        <div className="progress-readiness-icon">
+          <HeartPulse size={21} />
+        </div>
+        <div>
+          <span className="eyebrow">READINESS ANALYTICS</span>
+          <strong>Review your recovery patterns.</strong>
+          <small>
+            Compare sleep, energy, soreness, stress, workouts,
+            and PR performance.
+          </small>
+        </div>
+        <ArrowRight size={18} />
+      </button>
 
       <section className="progress-overview-grid">
         <article><Trophy /><span>Workouts</span><strong>{state.history.length}</strong></article>

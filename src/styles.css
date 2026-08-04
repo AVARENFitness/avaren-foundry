@@ -7266,3 +7266,340 @@ select:focus-visible {
     place-items: center;
   }
 }
+
+/* ===== AVAREN BUILDER v1.5 · READINESS TRENDS ===== */
+
+.progress-readiness-entry {
+  display: grid;
+  grid-template-columns: 46px 1fr auto;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  margin-bottom: 13px;
+  padding: 15px;
+  border: 1px solid rgba(83,132,108,.21);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 90% -22%, rgba(83,132,108,.13), transparent 36%),
+    linear-gradient(145deg, rgba(17,23,20,.99), rgba(8,10,9,.995));
+  color: var(--cream);
+  text-align: left;
+}
+
+.progress-readiness-icon {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border: 1px solid rgba(83,132,108,.24);
+  border-radius: 14px;
+  background: rgba(83,132,108,.05);
+  color: #91b8a0;
+}
+
+.progress-readiness-entry strong,
+.progress-readiness-entry small {
+  display: block;
+}
+
+.progress-readiness-entry strong {
+  margin-top: 5px;
+  font-size: 14px;
+}
+
+.progress-readiness-entry small {
+  margin-top: 4px;
+  color: #777169;
+  font-size: 8px;
+  line-height: 1.45;
+}
+
+.progress-readiness-entry > svg {
+  color: #6e6861;
+}
+
+.readiness-card-trends {
+  display: grid;
+  justify-items: end;
+  gap: 4px;
+  color: var(--gold-bright);
+}
+
+.readiness-card-trends span {
+  font-size: 7px;
+  font-weight: 900;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.readiness-trends-screen {
+  padding-bottom: 96px;
+}
+
+.readiness-trends-hero {
+  display: grid;
+  grid-template-columns: 92px 1fr;
+  align-items: center;
+  gap: 16px;
+  padding: 19px;
+  border: 1px solid rgba(83,132,108,.2);
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at 90% -18%, rgba(83,132,108,.14), transparent 36%),
+    linear-gradient(145deg, rgba(17,23,20,.99), rgba(8,10,9,.995));
+}
+
+.readiness-trends-score {
+  display: grid;
+  place-items: center;
+  width: 92px;
+  height: 92px;
+  border: 1px solid rgba(83,132,108,.24);
+  border-radius: 50%;
+  background: rgba(83,132,108,.05);
+}
+
+.readiness-trends-score strong {
+  font-size: 30px;
+}
+
+.readiness-trends-score span {
+  color: #777169;
+  font-size: 7px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.readiness-trends-score.high {
+  color: #91b8a0;
+}
+
+.readiness-trends-score.low {
+  color: #d17a72;
+  border-color: rgba(181,90,82,.24);
+}
+
+.readiness-trends-hero h2 {
+  margin: 6px 0 4px;
+  font-size: 23px;
+}
+
+.readiness-trends-hero p {
+  margin: 0;
+  color: #777169;
+  font-size: 9px;
+  line-height: 1.45;
+}
+
+.readiness-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin: 11px 0;
+}
+
+.readiness-summary-grid article,
+.readiness-factor-grid article,
+.readiness-correlation-grid article {
+  padding: 13px;
+  border: 1px solid rgba(248,243,230,.065);
+  border-radius: 14px;
+  background: rgba(255,255,255,.015);
+}
+
+.readiness-summary-grid svg,
+.readiness-factor-grid svg,
+.readiness-correlation-grid svg {
+  color: var(--gold);
+}
+
+.readiness-summary-grid span,
+.readiness-summary-grid strong,
+.readiness-summary-grid small {
+  display: block;
+}
+
+.readiness-summary-grid span {
+  margin-top: 8px;
+  color: #6c675f;
+  font-size: 7px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.readiness-summary-grid strong {
+  margin-top: 4px;
+  font-size: 21px;
+}
+
+.readiness-summary-grid small {
+  margin-top: 3px;
+  color: #777169;
+  font-size: 8px;
+}
+
+.readiness-chart-panel,
+.readiness-correlation-panel,
+.readiness-low-guidance {
+  margin-bottom: 11px;
+  padding: 17px;
+  border: 1px solid rgba(248,243,230,.07);
+  border-radius: 18px;
+  background:
+    linear-gradient(145deg, rgba(19,22,26,.98), rgba(8,10,12,.995));
+}
+
+.readiness-chart-panel > header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+
+.readiness-chart-panel h2 {
+  margin: 5px 0 0;
+  font-size: 18px;
+}
+
+.readiness-chart-panel > header > strong {
+  color: var(--gold-bright);
+  font-size: 24px;
+}
+
+.readiness-mini-trend {
+  display: flex;
+  align-items: end;
+  gap: 4px;
+  height: 92px;
+  margin-top: 15px;
+}
+
+.readiness-mini-trend span {
+  flex: 1;
+  min-width: 3px;
+  border-radius: 999px 999px 2px 2px;
+  background:
+    linear-gradient(180deg, var(--gold-bright), #74531d);
+}
+
+.readiness-chart-dates {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 7px;
+}
+
+.readiness-chart-dates span {
+  color: #66615b;
+  font-size: 7px;
+}
+
+.readiness-factor-grid {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 11px;
+}
+
+.readiness-factor-grid article > header {
+  display: grid;
+  grid-template-columns: 18px 1fr auto;
+  align-items: center;
+  gap: 7px;
+}
+
+.readiness-factor-grid article header span {
+  color: #827b72;
+  font-size: 9px;
+  font-weight: 900;
+}
+
+.readiness-factor-grid article header strong {
+  font-size: 16px;
+}
+
+.readiness-factor-grid .readiness-mini-trend {
+  height: 48px;
+  margin-top: 10px;
+}
+
+.readiness-correlation-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin-top: 13px;
+}
+
+.readiness-correlation-grid span,
+.readiness-correlation-grid strong {
+  display: block;
+}
+
+.readiness-correlation-grid span {
+  margin-top: 8px;
+  color: #6d6861;
+  font-size: 7px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.readiness-correlation-grid strong {
+  margin-top: 4px;
+  font-size: 20px;
+}
+
+.readiness-correlation-note {
+  margin: 12px 0 0;
+  color: #777169;
+  font-size: 8px;
+  line-height: 1.5;
+}
+
+.readiness-low-guidance {
+  display: grid;
+  grid-template-columns: 44px 1fr;
+  gap: 12px;
+  border-color: rgba(181,90,82,.2);
+}
+
+.readiness-low-guidance > svg {
+  color: #d17a72;
+}
+
+.readiness-low-guidance h2 {
+  margin: 6px 0 4px;
+  font-size: 17px;
+}
+
+.readiness-low-guidance p {
+  margin: 0;
+  color: #7b736d;
+  font-size: 9px;
+  line-height: 1.5;
+}
+
+@media (min-width: 700px) {
+  .readiness-summary-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .readiness-factor-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .readiness-correlation-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (max-width: 390px) {
+  .readiness-trends-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .readiness-trends-score {
+    width: 78px;
+    height: 78px;
+  }
+
+  .readiness-card-trends span {
+    display: none;
+  }
+}
