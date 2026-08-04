@@ -11681,3 +11681,17 @@ button:active {
 .lift-session-strip {
   display: none !important;
 }
+
+/* ===== SPRINT 4.1C · ADAPTIVE FLOW COMPOSER VERIFIED ===== */
+.movement-flow-complete{min-height:calc(100dvh - 130px);display:grid;align-content:center;justify-items:center;gap:14px;padding:34px 20px;text-align:center;background:radial-gradient(circle at 50% 35%,rgba(216,184,109,.1),transparent 28%)}
+.movement-flow-complete>img{width:88px;height:88px;border-radius:24px;box-shadow:0 25px 65px rgba(0,0,0,.45),0 0 45px rgba(216,184,109,.08)}
+.movement-flow-complete h1{margin:4px 0 0;font-size:clamp(48px,14vw,76px);letter-spacing:-.065em}
+.movement-flow-complete>p{max-width:350px;margin:0;color:#817a71;font-size:11px;line-height:1.6}
+.movement-flow-complete-stats{display:grid;grid-template-columns:repeat(2,1fr);width:min(300px,100%);overflow:hidden;border:1px solid rgba(216,184,109,.12);border-radius:16px;background:rgba(255,255,255,.012)}
+.movement-flow-complete-stats article{display:grid;gap:4px;padding:16px}
+.movement-flow-complete-stats article+article{border-left:1px solid rgba(216,184,109,.1)}
+.movement-flow-complete-stats strong{color:#f2d992;font-size:24px}
+.movement-flow-complete-stats span{color:#716a62;font-size:8px;font-weight:800;text-transform:uppercase}
+.movement-flow-complete-regions{display:flex;flex-wrap:wrap;justify-content:center;gap:6px}
+.movement-flow-complete-regions span{padding:6px 9px;border:1px solid rgba(216,184,109,.12);border-radius:999px;color:#9f947f;font-size:7px;font-weight:800;text-transform:capitalize}
+.movement-flow-complete .gold-button{width:min(340px,100%);margin-top:8px}

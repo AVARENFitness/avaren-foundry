@@ -87,6 +87,8 @@ export default function MobilityScreen({
     useState(false)
   const [finished, setFinished] =
     useState(false)
+  const [flowComplete, setFlowComplete] =
+    useState(false)
 
   const guide = useMemo(
     () => movementGuide(movement ?? {}),
@@ -152,7 +154,7 @@ export default function MobilityScreen({
       index >=
       flow.movements.length - 1
     ) {
-      onComplete()
+      setFlowComplete(true)
       return
     }
 
@@ -183,13 +185,56 @@ export default function MobilityScreen({
     )
   }
 
-  if (!movement) return null
-
   const isMorning =
-    flow.id === 'daily-reset' ||
-    /morning|daily/i.test(
-      `${flow.title} ${flow.subtitle}`,
+    flow.title === 'Morning Movement' ||
+    String(flow.id ?? '').startsWith('daily-reset-')
+
+  if (!movement && !flowComplete) return null
+
+  if (flowComplete) {
+    const totalSeconds = flow.movements.reduce(
+      (total, item) =>
+        total + Number(savedDurations[item.id] ?? item.seconds ?? 30),
+      0,
     )
+    const minutes = Math.max(1, Math.round(totalSeconds / 60))
+    const regions = [
+      ...new Set(
+        flow.movements.flatMap(
+          (item) => item.targets ?? item.muscles ?? item.tags ?? [],
+        ),
+      ),
+    ].slice(0, 4)
+
+    return (
+      <section className="movement-flow-complete">
+        <img
+          src="/brand/foundation/icon-192.png"
+          alt=""
+          aria-hidden="true"
+        />
+        <span className="eyebrow">{flow.title?.toUpperCase()}</span>
+        <h1>Complete.</h1>
+        <p>
+          {isMorning
+            ? 'Your body is prepared for the day.'
+            : 'Your recovery work is complete.'}
+        </p>
+        <div className="movement-flow-complete-stats">
+          <article><strong>{flow.movements.length}</strong><span>movements</span></article>
+          <article><strong>{minutes}</strong><span>minutes</span></article>
+        </div>
+        {regions.length > 0 && (
+          <div className="movement-flow-complete-regions">
+            {regions.map((region) => <span key={region}>{region}</span>)}
+          </div>
+        )}
+        <button className="gold-button machined" onClick={onComplete}>
+          Continue to Home
+        </button>
+      </section>
+    )
+  }
 
   return (
     <section className="mobility-screen movement-coach-screen">
@@ -220,11 +265,7 @@ export default function MobilityScreen({
             : flow.subtitle}
         </span>
 
-        <h1>
-          {isMorning
-            ? 'Prepare for the day.'
-            : flow.title}
-        </h1>
+        <h1>{flow.subtitle || flow.title}</h1>
 
         {flow.reason && (
           <p>{flow.reason}</p>

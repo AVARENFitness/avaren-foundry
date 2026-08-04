@@ -1993,16 +1993,42 @@ const rotatePool = (items = [], offset = 0) => {
   return [...items.slice(start), ...items.slice(0, start)]
 }
 
-const addMovementIds = (target, focusKeys, limit = 6) => {
+const recentMovementIds = (completions = [], limit = 3) =>
+  new Set(
+    completions
+      .slice(-limit)
+      .flatMap((entry) => entry.movementIds ?? [])
+      .filter(Boolean),
+  )
+
+const addMovementIds = (
+  target,
+  focusKeys,
+  limit = 6,
+  blocked = new Set(),
+) => {
+  const fallback = []
+
   focusKeys.forEach((key, index) => {
     rotatePool(
       movementIdsForFocus[key] ?? [],
       index * 3,
     ).forEach((id) => {
-      if (!target.includes(id) && target.length < limit) {
-        target.push(id)
+      if (target.includes(id) || target.length >= limit) return
+
+      if (blocked.has(id)) {
+        fallback.push(id)
+        return
       }
+
+      target.push(id)
     })
+  })
+
+  fallback.forEach((id) => {
+    if (target.length < limit && !target.includes(id)) {
+      target.push(id)
+    }
   })
 }
 
@@ -2027,24 +2053,27 @@ export function buildAdaptiveDailyReset({
   plannedWorkout,
   durationPreferences = {},
   readiness,
+  recentCompletions = [],
 }) {
   const lastWorkout = latestWorkout(history)
   const previousMuscles = musclesFromSession(lastWorkout)
   const plannedFocus = workoutFocus(plannedWorkout)
+  const blockedMovements = recentMovementIds(recentCompletions)
 
   const movementIds =
     readiness?.completed && readiness.score < 50
       ? ['cat-cow', 'child-pose']
       : ['neck-cars', 'cat-cow']
 
-  addMovementIds(movementIds, previousMuscles, 4)
-  addMovementIds(movementIds, plannedFocus, 6)
+  addMovementIds(movementIds, previousMuscles, 4, blockedMovements)
+  addMovementIds(movementIds, plannedFocus, 6, blockedMovements)
 
   if (movementIds.length < 6) {
     addMovementIds(
       movementIds,
       ['general', 'hips', 'thoracic', 'ankles'],
       6,
+      blockedMovements,
     )
   }
 
@@ -2084,10 +2113,23 @@ export function buildAdaptiveDailyReset({
         .replace(/\b\w/g, (character) => character.toUpperCase()),
     )
 
+  const goal =
+    readiness?.completed && readiness.score < 50
+      ? 'Move gently into the day.'
+      : previousMuscles.some((value) =>
+          ['hips', 'quads', 'hamstrings', 'glutes', 'ankles'].includes(value),
+        )
+      ? 'Restore the lower body.'
+      : previousMuscles.some((value) =>
+          ['chest', 'back', 'shoulders', 'arms'].includes(value),
+        )
+      ? 'Open the upper body.'
+      : 'Prepare the whole body.'
+
   return {
     id: `daily-reset-${new Date().toISOString().slice(0, 10)}`,
     title: 'Morning Movement',
-    subtitle: 'Prepared for your day',
+    subtitle: goal,
     reason: reasonParts.join(' '),
     focusAreas,
     movements: movementIds
@@ -2115,12 +2157,20 @@ export function buildRecoveryFlow(
     )
   }
 
+  const goal = selected.some((value) =>
+    ['hips', 'quads', 'hamstrings', 'glutes', 'ankles', 'calves'].includes(value),
+  )
+    ? 'Recover the lower body.'
+    : selected.some((value) =>
+        ['chest', 'back', 'shoulders', 'arms', 'wrists'].includes(value),
+      )
+    ? 'Restore the upper body.'
+    : 'Return the body to neutral.'
+
   return {
     id: `recovery-${session?.id ?? 'current'}`,
-    title: 'Recovery Flow',
-    subtitle: session?.name
-      ? `After ${session.name}`
-      : 'Post-workout recovery',
+    title: 'Daily Reset',
+    subtitle: goal,
     reason: session?.name
       ? `Built from the muscles you trained during ${session.name}.`
       : 'A balanced equipment-free recovery flow.',

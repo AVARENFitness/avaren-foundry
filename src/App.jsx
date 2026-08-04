@@ -353,6 +353,8 @@ function App() {
     durationPreferences:
       state.mobility?.durationPreferences ?? {},
     readiness,
+    recentCompletions:
+      state.mobility?.completed ?? [],
   })
 
   const recoveryIntelligence =
@@ -590,6 +592,8 @@ function App() {
       id: crypto.randomUUID(),
       flowId: mobilityFlow?.id,
       title: mobilityFlow?.title,
+      movementIds:
+        mobilityFlow?.movements?.map((movement) => movement.id) ?? [],
       completedAt: new Date().toISOString(),
     }
 
