@@ -1389,6 +1389,16 @@ function App() {
               ),
             }))
           }
+          onUpdateSession={(sessionId, patch) =>
+            setState((current) => ({
+              ...current,
+              history: current.history.map((session) =>
+                session.id === sessionId
+                  ? { ...session, ...patch }
+                  : session,
+              ),
+            }))
+          }
         />
       )
     }
