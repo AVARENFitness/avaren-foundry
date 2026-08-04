@@ -1091,9 +1091,20 @@ function App() {
         )
       }
 
-      const completionPrs = recentPRs(state.history, 8).filter(
-        (pr) => pr.date === completedSession?.session?.date,
-      )
+      const completedSessionId =
+        completedSession?.session?.id
+
+      const completionPrs =
+        completedSessionId
+          ? recentPRs(
+              state.history,
+              1000,
+            ).filter((pr) =>
+              String(pr.id).startsWith(
+                `${completedSessionId}-`,
+              ),
+            )
+          : []
 
       return (
         <>

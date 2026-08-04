@@ -209,8 +209,23 @@ export default function CompletionScreen({
 
   if (!session || !summary) return null
 
+  const groupedPrs = Object.values(
+    recentPrs.reduce(
+      (groups, pr) => {
+        groups[pr.exercise] ??= {
+          exercise: pr.exercise,
+          records: [],
+        }
+
+        groups[pr.exercise].records.push(pr)
+        return groups
+      },
+      {},
+    ),
+  )
+
   const victoryCount =
-    recentPrs.length +
+    groupedPrs.length +
     milestones.length +
     forgeAchievements.length
 
@@ -283,12 +298,12 @@ export default function CompletionScreen({
             <Trophy size={22} />
           </div>
 
-          {recentPrs
+          {groupedPrs
             .slice(0, 4)
-            .map((pr, index) => (
+            .map((group, index) => (
               <article
                 className="celebration-card pr"
-                key={pr.id}
+                key={group.exercise}
                 style={{
                   '--celebration-index':
                     index,
@@ -302,11 +317,23 @@ export default function CompletionScreen({
                   <span>
                     New Personal Record
                   </span>
-                  <h2>{pr.exercise}</h2>
-                  <strong>
-                    {pr.value}
-                  </strong>
-                  <small>{pr.type}</small>
+                  <h2>{group.exercise}</h2>
+
+                  <div className="session-pr-list">
+                    {group.records.map(
+                      (pr) => (
+                        <div key={pr.id}>
+                          <Check size={13} />
+                          <span>
+                            {pr.type}
+                          </span>
+                          <strong>
+                            {pr.value}
+                          </strong>
+                        </div>
+                      ),
+                    )}
+                  </div>
                 </div>
               </article>
             ))}
@@ -318,7 +345,7 @@ export default function CompletionScreen({
                 key={achievement.id}
                 style={{
                   '--celebration-index':
-                    recentPrs.length +
+                    groupedPrs.length +
                     index,
                 }}
               >
@@ -362,7 +389,7 @@ export default function CompletionScreen({
                   key={milestone.id}
                   style={{
                     '--celebration-index':
-                      recentPrs.length +
+                      groupedPrs.length +
                       forgeAchievements.length +
                       index,
                   }}

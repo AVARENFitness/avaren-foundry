@@ -11482,3 +11482,39 @@ button:active {
     grid-template-columns: 1fr;
   }
 }
+
+
+/* ===== SPRINT 5.0C · SESSION-ONLY WINS ===== */
+
+.session-pr-list {
+  display: grid;
+  gap: 7px;
+  margin-top: 10px;
+}
+
+.session-pr-list > div {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 9px;
+  border: 1px solid rgba(216,184,109,.1);
+  border-radius: 10px;
+  background: rgba(255,255,255,.012);
+}
+
+.session-pr-list svg {
+  color: #d8b86d;
+}
+
+.session-pr-list span {
+  color: #8b8378;
+  font-size: 8px;
+  font-weight: 800;
+}
+
+.session-pr-list strong {
+  color: #e7cb7f;
+  font-size: 10px;
+  text-align: right;
+}
