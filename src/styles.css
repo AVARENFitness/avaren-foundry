@@ -11734,3 +11734,17 @@ button:active {
   background: transparent;
   color: #817a71;
 }
+
+
+/* ===== SPRINT 4.1E REV B · FLOW PERSONALIZATION ===== */
+
+.mobility-topbar-actions{display:flex;align-items:center;gap:8px}
+.mobility-preferences-toggle{display:grid;place-items:center;width:34px;height:34px;padding:0;border:1px solid rgba(216,184,109,.11);border-radius:10px;background:rgba(216,184,109,.02);color:#a99a79}
+.mobility-flow-preferences{display:grid;gap:12px;margin:10px 0 15px;padding:14px;border:1px solid rgba(216,184,109,.1);border-radius:15px;background:radial-gradient(circle at 100% 0%,rgba(216,184,109,.06),transparent 35%),rgba(255,255,255,.009)}
+.mobility-flow-preferences p,.mobility-flow-preferences small{margin:4px 0 0;color:#6f6962;font-size:8px;line-height:1.45}
+.mobility-length-options{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
+.mobility-length-options button{display:grid;gap:4px;min-width:0;padding:10px 6px;border:1px solid rgba(246,242,233,.055);border-radius:11px;background:rgba(5,7,9,.3);color:#817a71}
+.mobility-length-options button.active{border-color:rgba(216,184,109,.24);background:rgba(216,184,109,.05);color:#e0c77f}
+.mobility-length-options strong{font-size:9px}
+.mobility-length-options span{font-size:7px}
+.avoid-movement-button{display:inline-flex;align-items:center;justify-content:center;gap:7px;width:100%;margin-top:9px;padding:10px 12px;border:1px solid rgba(180,119,109,.12);border-radius:11px;background:rgba(180,119,109,.018);color:#8f756f;font-size:8px;font-weight:800}

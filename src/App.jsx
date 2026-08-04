@@ -355,6 +355,8 @@ function App() {
     readiness,
     recentCompletions:
       state.mobility?.completed ?? [],
+    preferences:
+      state.mobility?.preferences ?? {},
   })
 
   const recoveryIntelligence =
@@ -568,9 +570,53 @@ function App() {
       buildRecoveryFlow(
         session,
         state.mobility?.durationPreferences ?? {},
+        state.mobility?.preferences ?? {},
       ),
     )
     navigate('mobility')
+  }
+
+  const updateMobilityPreferences = (
+    patch,
+  ) => {
+    setState((current) => ({
+      ...current,
+      mobility: {
+        ...(current.mobility ?? {}),
+        durationPreferences:
+          current.mobility?.durationPreferences ?? {},
+        completed:
+          current.mobility?.completed ?? [],
+        preferences: {
+          routineLength:
+            current.mobility?.preferences
+              ?.routineLength ??
+            'standard',
+          dislikedMovementIds:
+            current.mobility?.preferences
+              ?.dislikedMovementIds ??
+            [],
+          ...patch,
+        },
+      },
+    }))
+  }
+
+  const avoidMobilityMovement = (
+    movementId,
+  ) => {
+    const current =
+      state.mobility?.preferences
+        ?.dislikedMovementIds ?? []
+
+    updateMobilityPreferences({
+      dislikedMovementIds: [
+        ...new Set([
+          ...current,
+          movementId,
+        ]),
+      ],
+    })
   }
 
   const saveMobilityDuration = (movementId, seconds) => {
@@ -583,6 +629,11 @@ function App() {
           [movementId]: seconds,
         },
         completed: current.mobility?.completed ?? [],
+        preferences:
+          current.mobility?.preferences ?? {
+            routineLength: 'standard',
+            dislikedMovementIds: [],
+          },
       },
     }))
   }
@@ -607,6 +658,11 @@ function App() {
           ...(current.mobility?.completed ?? []),
           completion,
         ],
+        preferences:
+          current.mobility?.preferences ?? {
+            routineLength: 'standard',
+            dislikedMovementIds: [],
+          },
       },
     }))
 
@@ -1087,6 +1143,22 @@ function App() {
           flow={mobilityFlow}
           savedDurations={state.mobility?.durationPreferences ?? {}}
           onSaveDuration={saveMobilityDuration}
+          routineLength={
+            state.mobility?.preferences
+              ?.routineLength ??
+            'standard'
+          }
+          dislikedMovementIds={
+            state.mobility?.preferences
+              ?.dislikedMovementIds ??
+            []
+          }
+          onRoutineLengthChange={(value) =>
+            updateMobilityPreferences({
+              routineLength: value,
+            })
+          }
+          onAvoidMovement={avoidMobilityMovement}
           onComplete={completeMobilityFlow}
           onClose={() => {
             setMobilityFlow(null)

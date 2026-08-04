@@ -1993,6 +1993,13 @@ const rotatePool = (items = [], offset = 0) => {
   return [...items.slice(start), ...items.slice(0, start)]
 }
 
+const routineLengthLimit = (value) =>
+  value === 'short'
+    ? 4
+    : value === 'extended'
+    ? 8
+    : 6
+
 const recentMovementIds = (completions = [], limit = 3) =>
   new Set(
     completions
@@ -2054,26 +2061,52 @@ export function buildAdaptiveDailyReset({
   durationPreferences = {},
   readiness,
   recentCompletions = [],
+  preferences = {},
 }) {
   const lastWorkout = latestWorkout(history)
   const previousMuscles = musclesFromSession(lastWorkout)
   const plannedFocus = workoutFocus(plannedWorkout)
-  const blockedMovements = recentMovementIds(recentCompletions)
+  const dislikedMovementIds =
+    preferences.dislikedMovementIds ?? []
+  const limit = routineLengthLimit(
+    preferences.routineLength,
+  )
+  const blockedMovements = new Set([
+    ...recentMovementIds(recentCompletions),
+    ...dislikedMovementIds,
+  ])
+  const dislikedOnly = new Set(
+    dislikedMovementIds,
+  )
 
   const movementIds =
     readiness?.completed && readiness.score < 50
-      ? ['cat-cow', 'child-pose']
-      : ['neck-cars', 'cat-cow']
+      ? ['cat-cow', 'child-pose'].filter(
+          (id) => !dislikedOnly.has(id),
+        )
+      : ['neck-cars', 'cat-cow'].filter(
+          (id) => !dislikedOnly.has(id),
+        )
 
-  addMovementIds(movementIds, previousMuscles, 4, blockedMovements)
-  addMovementIds(movementIds, plannedFocus, 6, blockedMovements)
+  addMovementIds(
+    movementIds,
+    previousMuscles,
+    Math.min(4, limit),
+    blockedMovements,
+  )
+  addMovementIds(
+    movementIds,
+    plannedFocus,
+    limit,
+    blockedMovements,
+  )
 
-  if (movementIds.length < 6) {
+  if (movementIds.length < limit) {
     addMovementIds(
       movementIds,
       ['general', 'hips', 'thoracic', 'ankles'],
-      6,
-      blockedMovements,
+      limit,
+      dislikedOnly,
     )
   }
 
@@ -2133,6 +2166,7 @@ export function buildAdaptiveDailyReset({
     reason: reasonParts.join(' '),
     focusAreas,
     movements: movementIds
+      .slice(0, limit)
       .map((id) => cloneMovement(id, durationPreferences))
       .filter(Boolean),
   }
@@ -2141,19 +2175,32 @@ export function buildAdaptiveDailyReset({
 export function buildRecoveryFlow(
   session,
   durationPreferences = {},
+  preferences = {},
 ) {
   const muscleKeys = musclesFromSession(session)
   const fallback = ['shoulders', 'back']
   const selected = muscleKeys.length ? muscleKeys : fallback
+  const limit = routineLengthLimit(
+    preferences.routineLength,
+  )
+  const dislikedMovementIds = new Set(
+    preferences.dislikedMovementIds ?? [],
+  )
   const movementIds = []
 
-  addMovementIds(movementIds, selected, 6)
+  addMovementIds(
+    movementIds,
+    selected,
+    limit,
+    dislikedMovementIds,
+  )
 
-  if (movementIds.length < 5) {
+  if (movementIds.length < limit) {
     addMovementIds(
       movementIds,
       ['thoracic', 'hips', 'general'],
-      6,
+      limit,
+      dislikedMovementIds,
     )
   }
 
@@ -2180,6 +2227,7 @@ export function buildRecoveryFlow(
         .replace(/\b\w/g, (character) => character.toUpperCase()),
     ),
     movements: movementIds
+      .slice(0, limit)
       .map((id) => cloneMovement(id, durationPreferences))
       .filter(Boolean),
   }

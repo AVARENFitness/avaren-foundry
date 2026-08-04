@@ -6,7 +6,9 @@ import {
   Play,
   Plus,
   RotateCcw,
+  Settings2,
   SkipForward,
+  ThumbsDown,
 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 
@@ -68,6 +70,10 @@ export default function MobilityScreen({
   flow,
   savedDurations = {},
   onSaveDuration,
+  routineLength = 'standard',
+  dislikedMovementIds = [],
+  onRoutineLengthChange,
+  onAvoidMovement,
   onComplete,
   onClose,
 }) {
@@ -88,6 +94,8 @@ export default function MobilityScreen({
   const [finished, setFinished] =
     useState(false)
   const [flowComplete, setFlowComplete] =
+    useState(false)
+  const [showFlowPreferences, setShowFlowPreferences] =
     useState(false)
 
   const guide = useMemo(
@@ -244,10 +252,24 @@ export default function MobilityScreen({
           Exit
         </button>
 
-        <span>
-          {index + 1} of{' '}
-          {flow.movements.length}
-        </span>
+        <div className="mobility-topbar-actions">
+          <span>
+            {index + 1} of{' '}
+            {flow.movements.length}
+          </span>
+
+          <button
+            className="mobility-preferences-toggle"
+            onClick={() =>
+              setShowFlowPreferences(
+                (current) => !current,
+              )
+            }
+            aria-label="Movement preferences"
+          >
+            <Settings2 size={17} />
+          </button>
+        </div>
       </header>
 
       <div className="mobility-progress">
@@ -257,6 +279,56 @@ export default function MobilityScreen({
           }}
         />
       </div>
+
+      {showFlowPreferences && (
+        <section className="mobility-flow-preferences">
+          <div>
+            <span className="eyebrow">
+              ROUTINE LENGTH
+            </span>
+            <p>
+              Applies the next time you open a flow.
+            </p>
+          </div>
+
+          <div className="mobility-length-options">
+            {[
+              ['short', 'Short', '4'],
+              ['standard', 'Standard', '6'],
+              ['extended', 'Extended', '8'],
+            ].map(
+              ([value, label, count]) => (
+                <button
+                  key={value}
+                  className={
+                    routineLength === value
+                      ? 'active'
+                      : ''
+                  }
+                  onClick={() =>
+                    onRoutineLengthChange?.(
+                      value,
+                    )
+                  }
+                >
+                  <strong>{label}</strong>
+                  <span>{count} movements</span>
+                </button>
+              ),
+            )}
+          </div>
+
+          {dislikedMovementIds.length > 0 && (
+            <small>
+              {dislikedMovementIds.length}{' '}
+              {dislikedMovementIds.length === 1
+                ? 'movement is'
+                : 'movements are'}{' '}
+              currently avoided.
+            </small>
+          )}
+        </section>
+      )}
 
       <div className="mobility-flow-heading">
         <span className="eyebrow">
@@ -533,6 +605,19 @@ export default function MobilityScreen({
                 : 'Complete Movement'}
             </button>
           </>
+        )}
+
+        {!finished && (
+          <button
+            className="avoid-movement-button"
+            onClick={() => {
+              onAvoidMovement?.(movement.id)
+              next()
+            }}
+          >
+            <ThumbsDown size={15} />
+            Avoid this movement
+          </button>
         )}
 
         {movement.type !== 'timed' &&
