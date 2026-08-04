@@ -10847,3 +10847,182 @@ button:active {
 .morning-ritual-result>img{width:78px;height:78px;margin-bottom:18px;border-radius:22px;box-shadow:0 22px 55px rgba(0,0,0,.42),0 0 40px rgba(216,184,109,.08)}.morning-ritual-score{display:block;margin:13px 0 5px;color:#f2d992;font-size:clamp(70px,20vw,102px);line-height:.86;letter-spacing:-.07em}.morning-ritual-result h2{margin:15px 0 8px;font-size:24px}.morning-ritual-result p{margin:0;max-width:360px;color:#817a71;font-size:10px;line-height:1.6}.morning-ritual-save{margin-top:24px}
 .morning-ritual-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:19px;padding-top:14px;border-top:1px solid rgba(246,242,233,.055)}.morning-ritual-footer button{display:flex;align-items:center;gap:6px;padding:8px 4px;border:0;background:transparent;color:#7d766e;font-size:9px;font-weight:800}.morning-ritual-footer button:disabled{opacity:0;pointer-events:none}
 @media(max-width:430px){.morning-ritual{padding:18px;border-radius:21px}.morning-ritual-options{gap:5px}.morning-ritual-options button{padding:12px 3px 10px}.morning-ritual-options button span{font-size:6px}}
+
+
+/* ===== SPRINT 4.1A · TEXT-FIRST MOVEMENT COACHING ===== */
+
+.movement-coach-screen .mobility-flow-heading p {
+  margin: 9px 0 0;
+  max-width: 560px;
+  color: #777169;
+  font-size: 10px;
+  line-height: 1.55;
+}
+
+.movement-coach-stage {
+  display: grid;
+  gap: 15px;
+}
+
+.movement-coach-heading {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: start;
+  gap: 14px;
+}
+
+.movement-coach-heading h2 {
+  margin: 6px 0 0;
+  font-size: clamp(30px, 8vw, 46px);
+  line-height: .97;
+  letter-spacing: -.055em;
+}
+
+.movement-targets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.movement-targets span {
+  padding: 6px 9px;
+  border: 1px solid rgba(216,184,109,.13);
+  border-radius: 999px;
+  background: rgba(216,184,109,.025);
+  color: #a99c86;
+  font-size: 7px;
+  font-weight: 850;
+  text-transform: capitalize;
+}
+
+.coach-guide {
+  padding: 17px;
+  border: 1px solid rgba(216,184,109,.12);
+  border-radius: 18px;
+  background:
+    radial-gradient(
+      circle at 93% -15%,
+      rgba(216,184,109,.08),
+      transparent 35%
+    ),
+    rgba(255,255,255,.012);
+}
+
+.coach-guide h3 {
+  margin: 6px 0 0;
+  font-size: 18px;
+}
+
+.coach-guide-steps {
+  display: grid;
+  gap: 9px;
+  margin-top: 15px;
+}
+
+.coach-guide-steps article {
+  display: grid;
+  grid-template-columns: 32px 1fr;
+  gap: 11px;
+  padding: 12px;
+  border: 1px solid rgba(246,242,233,.055);
+  border-radius: 13px;
+  background: rgba(6,8,10,.35);
+}
+
+.coach-guide-steps article > span {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid rgba(216,184,109,.2);
+  border-radius: 10px;
+  color: #f2d992;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.coach-guide-steps small {
+  color: #b7a98f;
+  font-size: 8px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.coach-guide-steps p {
+  margin: 5px 0 0;
+  color: #8a837a;
+  font-size: 10px;
+  line-height: 1.55;
+}
+
+.movement-coach-notes {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 9px;
+}
+
+.movement-coach-notes section,
+.movement-purpose {
+  padding: 14px;
+  border: 1px solid rgba(246,242,233,.055);
+  border-radius: 15px;
+  background: rgba(255,255,255,.01);
+}
+
+.movement-coach-notes ul {
+  display: grid;
+  gap: 8px;
+  margin: 11px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.movement-coach-notes li {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  color: #79736c;
+  font-size: 9px;
+  line-height: 1.45;
+}
+
+.movement-coach-notes li svg {
+  flex: 0 0 auto;
+  color: #7aa589;
+}
+
+.movement-coach-notes li > span {
+  flex: 0 0 auto;
+  color: #b4776d;
+  font-size: 14px;
+  line-height: 11px;
+}
+
+.movement-purpose p {
+  margin: 8px 0 0;
+  color: #8b8378;
+  font-size: 10px;
+  line-height: 1.6;
+}
+
+.motion-illustration-card,
+.motion3-studio,
+.motion-canvas,
+.motion3-live-stage,
+.motion3-comparison {
+  display: none !important;
+}
+
+@media (max-width: 560px) {
+  .movement-coach-notes {
+    grid-template-columns: 1fr;
+  }
+
+  .movement-coach-heading {
+    grid-template-columns: 1fr;
+  }
+
+  .movement-coach-heading .movement-number {
+    width: fit-content;
+  }
+}

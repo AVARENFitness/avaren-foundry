@@ -69,7 +69,7 @@ export default function HomeScreen({
   onOpenReadiness,
   onOpenMobility,
   onOpenReset,
-  mobilityTitle = 'Morning Mobility',
+  mobilityTitle = 'Morning Movement',
   mobilityMinutes = 7,
 }) {
   const [showSelector, setShowSelector] = useState(false)
@@ -284,7 +284,7 @@ export default function HomeScreen({
             <span>
               {mobilityCompleted
                 ? 'Completed today'
-                : 'Morning mobility'}
+                : 'Morning movement'}
             </span>
             <strong>{mobilityTitle}</strong>
             <small>
