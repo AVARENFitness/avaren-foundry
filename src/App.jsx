@@ -602,6 +602,27 @@ function App() {
     }))
   }
 
+  const restoreMobilityMovement = (
+    movementId,
+  ) => {
+    const current =
+      state.mobility?.preferences
+        ?.dislikedMovementIds ?? []
+
+    updateMobilityPreferences({
+      dislikedMovementIds:
+        current.filter(
+          (id) => id !== movementId,
+        ),
+    })
+  }
+
+  const restoreAllMobilityMovements = () => {
+    updateMobilityPreferences({
+      dislikedMovementIds: [],
+    })
+  }
+
   const avoidMobilityMovement = (
     movementId,
   ) => {
@@ -1159,6 +1180,8 @@ function App() {
             })
           }
           onAvoidMovement={avoidMobilityMovement}
+          onRestoreMovement={restoreMobilityMovement}
+          onRestoreAllMovements={restoreAllMobilityMovements}
           onComplete={completeMobilityFlow}
           onClose={() => {
             setMobilityFlow(null)

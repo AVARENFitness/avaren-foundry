@@ -9,6 +9,7 @@ import {
   Settings2,
   SkipForward,
   ThumbsDown,
+  Undo2,
 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 
@@ -74,6 +75,8 @@ export default function MobilityScreen({
   dislikedMovementIds = [],
   onRoutineLengthChange,
   onAvoidMovement,
+  onRestoreMovement,
+  onRestoreAllMovements,
   onComplete,
   onClose,
 }) {
@@ -97,6 +100,8 @@ export default function MobilityScreen({
     useState(false)
   const [showFlowPreferences, setShowFlowPreferences] =
     useState(false)
+  const [preferenceNotice, setPreferenceNotice] =
+    useState('')
 
   const guide = useMemo(
     () => movementGuide(movement ?? {}),
@@ -317,6 +322,80 @@ export default function MobilityScreen({
               ),
             )}
           </div>
+
+          <div className="avoided-movements-manager">
+            <div className="avoided-movements-heading">
+              <div>
+                <strong>
+                  Avoided Movements
+                </strong>
+                <small>
+                  {dislikedMovementIds.length}{' '}
+                  {dislikedMovementIds.length === 1
+                    ? 'movement'
+                    : 'movements'}
+                </small>
+              </div>
+
+              {dislikedMovementIds.length > 0 && (
+                <button
+                  onClick={() => {
+                    onRestoreAllMovements?.()
+                    setPreferenceNotice(
+                      'All movements restored.',
+                    )
+                  }}
+                >
+                  Restore All
+                </button>
+              )}
+            </div>
+
+            {dislikedMovementIds.length > 0 ? (
+              <div className="avoided-movements-list">
+                {dislikedMovementIds.map(
+                  (movementId) => (
+                    <article key={movementId}>
+                      <span>
+                        {movementId
+                          .replaceAll('-', ' ')
+                          .replace(
+                            /\b\w/g,
+                            (letter) =>
+                              letter.toUpperCase(),
+                          )}
+                      </span>
+
+                      <button
+                        onClick={() => {
+                          onRestoreMovement?.(
+                            movementId,
+                          )
+                          setPreferenceNotice(
+                            'Movement restored.',
+                          )
+                        }}
+                      >
+                        <Undo2 size={14} />
+                        Restore
+                      </button>
+                    </article>
+                  ),
+                )}
+              </div>
+            ) : (
+              <small>
+                No movements are currently avoided.
+              </small>
+            )}
+          </div>
+
+          {preferenceNotice && (
+            <div className="mobility-preference-notice">
+              {preferenceNotice}
+            </div>
+          )}
+
 
           {dislikedMovementIds.length > 0 && (
             <small>
@@ -611,7 +690,19 @@ export default function MobilityScreen({
           <button
             className="avoid-movement-button"
             onClick={() => {
+              if (
+                dislikedMovementIds.length >= 20
+              ) {
+                setPreferenceNotice(
+                  'Restore an avoided movement before adding another.',
+                )
+                return
+              }
+
               onAvoidMovement?.(movement.id)
+              setPreferenceNotice(
+                `${movement.name} will be avoided in future flows.`,
+              )
               next()
             }}
           >

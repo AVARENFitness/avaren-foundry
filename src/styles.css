@@ -11748,3 +11748,93 @@ button:active {
 .mobility-length-options strong{font-size:9px}
 .mobility-length-options span{font-size:7px}
 .avoid-movement-button{display:inline-flex;align-items:center;justify-content:center;gap:7px;width:100%;margin-top:9px;padding:10px 12px;border:1px solid rgba(180,119,109,.12);border-radius:11px;background:rgba(180,119,109,.018);color:#8f756f;font-size:8px;font-weight:800}
+
+
+/* ===== SPRINT 4.1F REV C · MOVEMENT PREFERENCES MANAGER ===== */
+
+.avoided-movements-manager {
+  display: grid;
+  gap: 9px;
+  margin-top: 2px;
+  padding-top: 11px;
+  border-top: 1px solid rgba(246,242,233,.05);
+}
+
+.avoided-movements-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.avoided-movements-heading strong,
+.avoided-movements-heading small {
+  display: block;
+}
+
+.avoided-movements-heading strong {
+  color: #c9b98f;
+  font-size: 9px;
+}
+
+.avoided-movements-heading small {
+  margin-top: 3px;
+  color: #69635d;
+  font-size: 7px;
+}
+
+.avoided-movements-heading > button {
+  padding: 7px 9px;
+  border: 1px solid rgba(216,184,109,.14);
+  border-radius: 9px;
+  background: rgba(216,184,109,.025);
+  color: #bda96f;
+  font-size: 7px;
+  font-weight: 850;
+}
+
+.avoided-movements-list {
+  display: grid;
+  gap: 6px;
+  max-height: 190px;
+  overflow-y: auto;
+}
+
+.avoided-movements-list article {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 10px;
+  border: 1px solid rgba(246,242,233,.045);
+  border-radius: 10px;
+  background: rgba(5,7,9,.28);
+}
+
+.avoided-movements-list article > span {
+  color: #958d81;
+  font-size: 8px;
+  font-weight: 750;
+}
+
+.avoided-movements-list article > button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 8px;
+  border: 0;
+  background: transparent;
+  color: #c2ad72;
+  font-size: 7px;
+  font-weight: 850;
+}
+
+.mobility-preference-notice {
+  padding: 9px 10px;
+  border: 1px solid rgba(93,155,112,.13);
+  border-radius: 10px;
+  background: rgba(93,155,112,.025);
+  color: #8eaf98;
+  font-size: 8px;
+  line-height: 1.45;
+}
