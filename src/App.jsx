@@ -1309,6 +1309,26 @@ function App() {
           }
           onTrainAsPlanned={trainAsPlanned}
           onRecommendationRecovery={openDailyReset}
+          onOpenMobility={openDailyReset}
+          onOpenReset={openHomeReset}
+          mobilityTitle={adaptiveDailyReset.title}
+          mobilityMinutes={Math.max(
+            1,
+            Math.round(
+              adaptiveDailyReset.movements.reduce(
+                (total, movement) =>
+                  total +
+                  Number(
+                    state.mobility
+                      ?.durationPreferences
+                      ?.[movement.id] ??
+                      movement.seconds ??
+                      30,
+                  ),
+                0,
+              ) / 60,
+            ),
+          )}
           onSelectWorkout={(workout) =>
             setState((current) => ({
               ...current,
