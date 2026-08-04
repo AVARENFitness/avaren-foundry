@@ -11695,3 +11695,42 @@ button:active {
 .movement-flow-complete-regions{display:flex;flex-wrap:wrap;justify-content:center;gap:6px}
 .movement-flow-complete-regions span{padding:6px 9px;border:1px solid rgba(216,184,109,.12);border-radius:999px;color:#9f947f;font-size:7px;font-weight:800;text-transform:capitalize}
 .movement-flow-complete .gold-button{width:min(340px,100%);margin-top:8px}
+
+
+/* ===== SPRINT 4.1D · SMARTER TIMED MOVEMENTS ===== */
+
+.finish-early-button,
+.timed-repeat-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  width: 100%;
+  padding: 11px 14px;
+  border: 1px solid rgba(216,184,109,.12);
+  border-radius: 12px;
+  background: rgba(216,184,109,.025);
+  color: #b7aa8b;
+  font-size: 9px;
+  font-weight: 850;
+}
+
+.finish-early-button {
+  margin-top: 9px;
+}
+
+.finish-early-button:hover,
+.timed-repeat-button:hover {
+  border-color: rgba(216,184,109,.24);
+  color: #e3ca86;
+}
+
+.timed-continue-button {
+  width: 100%;
+}
+
+.timed-repeat-button {
+  margin-top: 9px;
+  background: transparent;
+  color: #817a71;
+}

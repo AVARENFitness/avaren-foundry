@@ -424,75 +424,86 @@ export default function MobilityScreen({
                 </div>
               )}
 
-            <div className="mobility-primary-actions">
-              {!finished ? (
-                <button
-                  className="gold-button machined"
-                  onClick={() => {
-                    if (!started) {
-                      setStarted(true)
-                    }
+            {!finished ? (
+              <>
+                <div className="mobility-primary-actions">
+                  <button
+                    className="gold-button machined"
+                    onClick={() => {
+                      if (!started) {
+                        setStarted(true)
+                      }
 
-                    setRunning(
-                      (current) => !current,
-                    )
-                  }}
-                >
-                  {running ? (
-                    <Pause size={19} />
-                  ) : (
-                    <Play size={19} />
+                      setRunning(
+                        (current) => !current,
+                      )
+                    }}
+                  >
+                    {running ? (
+                      <Pause size={19} />
+                    ) : (
+                      <Play size={19} />
+                    )}
+
+                    {running
+                      ? 'Pause'
+                      : started
+                      ? 'Resume Timer'
+                      : 'Start Movement'}
+                  </button>
+
+                  {started && (
+                    <button
+                      className="mobility-secondary-action"
+                      onClick={addTime}
+                    >
+                      <Plus size={17} />
+                      15 sec
+                    </button>
                   )}
+                </div>
 
-                  {running
-                    ? 'Pause'
-                    : started
-                    ? 'Resume Timer'
-                    : 'Start Movement'}
-                </button>
-              ) : (
+                {started && (
+                  <button
+                    className="finish-early-button"
+                    onClick={() => {
+                      setRunning(false)
+                      setRemaining(0)
+                      setFinished(true)
+                    }}
+                  >
+                    <Check size={15} />
+                    Finish Early
+                  </button>
+                )}
+              </>
+            ) : (
+              <>
                 <button
-                  className="gold-button machined"
+                  className="gold-button machined timed-continue-button"
                   onClick={next}
                 >
-                  <Check size={19} />
+                  <ChevronRight size={19} />
 
                   {index ===
                   flow.movements.length - 1
                     ? 'Finish Flow'
-                    : 'Next Movement'}
+                    : 'Continue'}
                 </button>
-              )}
 
-              {started && !finished && (
                 <button
-                  className="mobility-secondary-action"
-                  onClick={addTime}
-                >
-                  <Plus size={17} />
-                  15 sec
-                </button>
-              )}
-            </div>
-
-            {finished && (
-              <div className="mobility-finished-actions">
-                <button
+                  className="timed-repeat-button"
                   onClick={() => {
                     setRemaining(duration)
                     setStarted(false)
                     setFinished(false)
+                    setRunning(false)
                   }}
                 >
                   <RotateCcw size={16} />
-                  Repeat
+                  Repeat Movement
                 </button>
-
-                <button onClick={next}>
-                  <ChevronRight size={16} />
-                  Continue
-                </button>
-              </div>
+              </>
             )}
           </>
         ) : (
@@ -524,15 +535,16 @@ export default function MobilityScreen({
           </>
         )}
 
-        {!finished && (
-          <button
-            className="skip-movement"
-            onClick={next}
-          >
-            <SkipForward size={15} />
-            Skip movement
-          </button>
-        )}
+        {movement.type !== 'timed' &&
+          !finished && (
+            <button
+              className="skip-movement"
+              onClick={next}
+            >
+              <SkipForward size={15} />
+              Skip movement
+            </button>
+          )}
       </article>
     </section>
   )
