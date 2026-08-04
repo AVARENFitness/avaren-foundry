@@ -7,7 +7,7 @@ import {
   RotateCcw,
   Trash2,
 } from 'lucide-react'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Stepper from './Stepper'
 
 const SET_TYPES = [
@@ -56,8 +56,35 @@ export default function FocusExercise({
   onRemoveSet,
   onUndoSkip,
   navigationDirection,
+  liveSnapshot,
+  comparison,
 }) {
   const [showPrevious, setShowPrevious] = useState(false)
+  const [completedFlash, setCompletedFlash] = useState(null)
+  const previousDoneCount = useRef(
+    exercise.sets.filter((set) => set.done).length,
+  )
+
+  useEffect(() => {
+    const doneCount = exercise.sets.filter(
+      (set) => set.done,
+    ).length
+
+    if (doneCount > previousDoneCount.current) {
+      setCompletedFlash(doneCount)
+      if (navigator.vibrate) navigator.vibrate(16)
+
+      const timer = window.setTimeout(
+        () => setCompletedFlash(null),
+        650,
+      )
+      previousDoneCount.current = doneCount
+      return () => window.clearTimeout(timer)
+    }
+
+    previousDoneCount.current = doneCount
+  }, [exercise.sets])
+
   const touchStart = useRef(null)
 
   const onTouchStart = (event) => {
@@ -94,6 +121,30 @@ export default function FocusExercise({
 
         <span className="muscle-pill">{exercise.muscle}</span>
         <h1>{exercise.name}</h1>
+        <div className="living-exercise-summary">
+          <article>
+            <span>Session volume</span>
+            <strong>
+              {Math.round(
+                liveSnapshot?.volume ?? 0,
+              ).toLocaleString()} lb
+            </strong>
+          </article>
+          <article>
+            <span>Completed sets</span>
+            <strong>
+              {liveSnapshot?.completedSets ?? 0}
+            </strong>
+          </article>
+        </div>
+
+        {comparison?.previous && (
+          <div className="living-exercise-insight">
+            <span>Compared with last {comparison.previous.name}</span>
+            <strong>{comparison.message}</strong>
+          </div>
+        )}
+
 
         <button
           className={`previous-session-toggle ${showPrevious ? 'open' : ''}`}
@@ -143,7 +194,16 @@ export default function FocusExercise({
 
       <div className="focus-set-list">
         {exercise.sets.map((set, setIndex) => (
-          <section className={`focus-set-card ${set.done ? 'done' : ''}`} key={set.id}>
+          <section
+            className={`focus-set-card ${
+              set.done ? 'done' : ''
+            } ${
+              completedFlash === setIndex + 1
+                ? 'just-completed'
+                : ''
+            }`}
+            key={set.id}
+          >
             <div className="focus-set-topline">
               <span>SET {String(setIndex + 1).padStart(2, '0')}</span>
               <select
@@ -211,9 +271,20 @@ export default function FocusExercise({
               <input
                 type="checkbox"
                 checked={set.done}
-                onChange={(event) =>
-                  onSetChange(setIndex, 'done', event.target.checked)
-                }
+                onChange={(event) => {
+                  onSetChange(
+                    setIndex,
+                    'done',
+                    event.target.checked,
+                  )
+
+                  if (
+                    event.target.checked &&
+                    navigator.vibrate
+                  ) {
+                    navigator.vibrate([12, 18, 12])
+                  }
+                }}
               />
               <span>
                 <Check size={19} />

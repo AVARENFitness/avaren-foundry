@@ -182,3 +182,163 @@ export const prsThisMonth = (history) => {
   const month = new Date().toISOString().slice(0, 7)
   return recentPRs(history, 1000).filter((pr) => pr.date.startsWith(month)).length
 }
+
+
+export const activeWorkoutSnapshot = (workout) => {
+  if (!workout) {
+    return {
+      completedSets: 0,
+      enteredSets: 0,
+      totalSets: 0,
+      completedExercises: 0,
+      totalExercises: 0,
+      volume: 0,
+      elapsedSeconds: 0,
+      intensity: '—',
+    }
+  }
+
+  const sets = workout.exercises.flatMap((exercise) =>
+    exercise.sets.map((set) => ({
+      ...set,
+      exercise: exercise.name,
+      muscle: exercise.muscle,
+    })),
+  )
+
+  const entered = sets.filter(
+    (set) => set.weight !== '' && set.reps !== '',
+  )
+  const completed = entered.filter((set) => set.done)
+  const completedExercises = workout.exercises.filter((exercise) => {
+    const exerciseSets = exercise.sets.filter(
+      (set) => set.weight !== '' && set.reps !== '',
+    )
+    return (
+      exerciseSets.length > 0 &&
+      exerciseSets.every((set) => set.done)
+    )
+  }).length
+
+  const volume = completed.reduce(
+    (sum, set) =>
+      sum +
+      Number(set.weight || 0) *
+        Number(set.reps || 0),
+    0,
+  )
+
+  const elapsedSeconds = workout.startedAt
+    ? Math.max(
+        0,
+        Math.floor(
+          (Date.now() -
+            new Date(workout.startedAt).getTime()) /
+            1000,
+        ),
+      )
+    : 0
+
+  const averageLoad =
+    completed.length > 0
+      ? completed.reduce(
+          (sum, set) =>
+            sum + Number(set.weight || 0),
+          0,
+        ) / completed.length
+      : 0
+
+  const intensity =
+    completed.length === 0
+      ? 'Building'
+      : averageLoad >= 185
+      ? 'High'
+      : averageLoad >= 95
+      ? 'Moderate'
+      : 'Controlled'
+
+  return {
+    completedSets: completed.length,
+    enteredSets: entered.length,
+    totalSets: sets.length,
+    completedExercises,
+    totalExercises: workout.exercises.length,
+    volume,
+    elapsedSeconds,
+    intensity,
+  }
+}
+
+export const previousComparableSession = (
+  history,
+  workoutName,
+) =>
+  [...history]
+    .reverse()
+    .find((session) => session.name === workoutName) ??
+  null
+
+export const compareActiveWorkout = (
+  workout,
+  history,
+) => {
+  const current = activeWorkoutSnapshot(workout)
+  const previous = previousComparableSession(
+    history,
+    workout?.name,
+  )
+
+  if (!previous) {
+    return {
+      previous: null,
+      volumeChangePercent: null,
+      setDifference: null,
+      message:
+        'This session will become the comparison baseline.',
+    }
+  }
+
+  const previousVolume = sessionVolume(previous)
+  const previousSets = previous.sets.length
+  const volumeChangePercent =
+    previousVolume > 0
+      ? Math.round(
+          ((current.volume - previousVolume) /
+            previousVolume) *
+            100,
+        )
+      : null
+
+  const setDifference =
+    current.completedSets - previousSets
+
+  let message = 'Building toward the previous session.'
+
+  if (
+    previousVolume > 0 &&
+    current.volume >= previousVolume
+  ) {
+    message =
+      current.volume === previousVolume
+        ? 'Matched the previous session’s volume.'
+        : `Volume is ${Math.max(
+            1,
+            volumeChangePercent,
+          )}% above the previous session.`
+  } else if (
+    previousSets > 0 &&
+    current.completedSets >= previousSets
+  ) {
+    message =
+      'Matched the previous session’s completed sets.'
+  }
+
+  return {
+    previous,
+    previousVolume,
+    previousSets,
+    volumeChangePercent,
+    setDifference,
+    message,
+  }
+}

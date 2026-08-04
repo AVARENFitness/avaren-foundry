@@ -67,6 +67,9 @@ export default function CompletionScreen({
   if (!session) return null
 
   const volume = sessionVolume(session)
+  const exerciseCount = new Set(
+    session.sets.map((set) => set.exercise),
+  ).size
   const bestSet = session.sets.reduce(
     (best, set) =>
       set.weight > (best?.weight ?? -1) ? set : best,
@@ -81,6 +84,18 @@ export default function CompletionScreen({
     ),
   ]
 
+  const durationSeconds =
+    session.startedAt && session.finishedAt
+      ? Math.max(
+          1,
+          Math.round(
+            (new Date(session.finishedAt) -
+              new Date(session.startedAt)) /
+              1000,
+          ),
+        )
+      : null
+
   const duration =
     session.startedAt && session.finishedAt
       ? Math.max(
@@ -91,6 +106,13 @@ export default function CompletionScreen({
               60000,
           ),
         )
+      : null
+
+  const density =
+    durationSeconds && durationSeconds > 0
+      ? Math.round(
+          (volume / (durationSeconds / 60)) * 10,
+        ) / 10
       : null
 
   return (
@@ -196,8 +218,24 @@ export default function CompletionScreen({
             <strong>{duration ? `${duration} min` : '—'}</strong>
           </div>
           <div>
+            <span>Exercises</span>
+            <strong>{exerciseCount || '—'}</strong>
+          </div>
+          <div>
             <span>Muscles</span>
             <strong>{muscles.length || '—'}</strong>
+          </div>
+          <div>
+            <span>PRs</span>
+            <strong>{recentPrs.length}</strong>
+          </div>
+          <div>
+            <span>Density</span>
+            <strong>
+              {density
+                ? `${density.toLocaleString()} lb/min`
+                : '—'}
+            </strong>
           </div>
         </div>
 
