@@ -1,0 +1,190 @@
+{
+  "version": "1.0.0",
+  "character": {
+    "id": "avaren-master-v1",
+    "name": "AVAREN Master Athlete",
+    "style": "premium-charcoal-gold",
+    "usage": [
+      "mobility",
+      "stretching",
+      "morning-mobility",
+      "daily-reset",
+      "recovery-flow"
+    ]
+  },
+  "movements": {
+    "neck-cars": {
+      "title": "Neck CARs",
+      "folder": "neck-cars",
+      "status": "in_production",
+      "frames": 5,
+      "view": "front",
+      "phaseLabels": [
+        "Neutral",
+        "Left",
+        "Chin down",
+        "Right",
+        "Look up"
+      ],
+      "muscles": [
+        "neck",
+        "upper traps"
+      ],
+      "category": "mobility"
+    },
+    "cat-cow": {
+      "title": "Cat-Cow",
+      "folder": "cat-cow",
+      "status": "in_production",
+      "frames": 3,
+      "view": "side",
+      "phaseLabels": [
+        "Neutral",
+        "Round",
+        "Extend"
+      ],
+      "muscles": [
+        "spine",
+        "core"
+      ],
+      "category": "mobility"
+    },
+    "thread-needle": {
+      "title": "Thread the Needle",
+      "folder": "thread-the-needle",
+      "status": "in_production",
+      "frames": 3,
+      "view": "three-quarter",
+      "phaseLabels": [
+        "All fours",
+        "Reach under",
+        "Rotate open"
+      ],
+      "muscles": [
+        "upper back",
+        "rear shoulder"
+      ],
+      "category": "mobility"
+    },
+    "worlds-greatest-stretch": {
+      "title": "World's Greatest Stretch",
+      "folder": "worlds-greatest-stretch",
+      "status": "in_production",
+      "frames": 4,
+      "view": "three-quarter",
+      "phaseLabels": [
+        "Lunge",
+        "Plant hand",
+        "Rotate",
+        "Reach"
+      ],
+      "muscles": [
+        "hip flexor",
+        "upper back"
+      ],
+      "category": "mobility"
+    },
+    "figure-four": {
+      "title": "Figure-Four Stretch",
+      "folder": "figure-four",
+      "status": "in_production",
+      "frames": 3,
+      "view": "front",
+      "phaseLabels": [
+        "Stand",
+        "Cross ankle",
+        "Sit back"
+      ],
+      "muscles": [
+        "glute",
+        "hip"
+      ],
+      "category": "stretching"
+    },
+    "couch-stretch": {
+      "title": "Couch Stretch",
+      "folder": "couch-stretch",
+      "status": "in_production",
+      "frames": 3,
+      "view": "side",
+      "phaseLabels": [
+        "Set up",
+        "Tuck pelvis",
+        "Hold"
+      ],
+      "muscles": [
+        "quad",
+        "hip flexor"
+      ],
+      "category": "stretching"
+    },
+    "wall-angels": {
+      "title": "Wall Angels",
+      "folder": "wall-angels",
+      "status": "in_production",
+      "frames": 3,
+      "view": "front",
+      "phaseLabels": [
+        "Set position",
+        "Slide upward",
+        "Return"
+      ],
+      "muscles": [
+        "shoulders",
+        "upper back"
+      ],
+      "category": "mobility"
+    },
+    "child-pose": {
+      "title": "Child's Pose",
+      "folder": "child-pose",
+      "status": "in_production",
+      "frames": 3,
+      "view": "three-quarter",
+      "phaseLabels": [
+        "Kneel",
+        "Sit back",
+        "Reach"
+      ],
+      "muscles": [
+        "back",
+        "hips"
+      ],
+      "category": "stretching"
+    },
+    "ninety-ninety": {
+      "title": "90/90 Hip Switches",
+      "folder": "ninety-ninety",
+      "status": "in_production",
+      "frames": 3,
+      "view": "front",
+      "phaseLabels": [
+        "Left",
+        "Center",
+        "Right"
+      ],
+      "muscles": [
+        "hips",
+        "glutes"
+      ],
+      "category": "mobility"
+    },
+    "hip-flexor": {
+      "title": "Half-Kneeling Hip Flexor",
+      "folder": "hip-flexor",
+      "status": "in_production",
+      "frames": 3,
+      "view": "side",
+      "phaseLabels": [
+        "Neutral",
+        "Tuck pelvis",
+        "Shift"
+      ],
+      "muscles": [
+        "hip flexor",
+        "quad"
+      ],
+      "category": "stretching"
+    }
+  }
+}

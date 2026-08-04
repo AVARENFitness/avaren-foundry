@@ -9284,3 +9284,166 @@ select:focus-visible {
 .mobility-completion-screen{display:grid;align-content:center;justify-items:center;text-align:center}.mobility-completion-emblem{display:grid;place-items:center;width:78px;height:78px;margin-bottom:20px;border:1px solid rgba(223,195,125,.34);border-radius:50%;color:var(--gold-bright)}.mobility-completion-screen h1{margin:10px 0 8px;font-size:clamp(39px,11vw,60px)}.mobility-completion-screen>p{color:#8d867d}.mobility-completion-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:100%;margin-top:22px}.mobility-completion-grid article{padding:14px 8px;border:1px solid rgba(248,243,230,.055);border-radius:13px}.mobility-completion-grid strong,.mobility-completion-grid span{display:block}.mobility-completion-grid strong{color:var(--gold-bright);font-size:20px}.mobility-completion-grid span{font-size:7px;text-transform:uppercase}
 .asset-motion-close{position:absolute;top:14px;right:14px;width:38px;height:38px;border-radius:12px}.asset-motion-expanded>section{position:relative;max-height:calc(100dvh - 30px);overflow:auto}.asset-motion-expanded .asset-motion-image-shell,.asset-motion-expanded .asset-motion-image-shell img{height:500px}
 @media(max-width:390px){.mobility-cue-grid{grid-template-columns:1fr}.asset-motion-image-shell,.asset-motion-image-shell img{height:250px;min-height:250px}}
+
+
+/* ===== SPRINT 3.1B · AVAREN MOTION LIBRARY V1 ===== */
+
+.motion-library-loading {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  min-height: 220px;
+  padding: 44px 18px;
+  color: #817a71;
+}
+
+.motion-library-spinner {
+  width: 28px;
+  height: 28px;
+  border: 2px solid rgba(248,243,230,.08);
+  border-top-color: var(--gold-bright);
+  border-radius: 50%;
+  animation: motionLibrarySpin .8s linear infinite;
+}
+
+@keyframes motionLibrarySpin {
+  to { transform: rotate(360deg); }
+}
+
+.motion-library-status {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 14px;
+}
+
+.motion-library-status strong {
+  color: #8c847a;
+  font-size: 8px;
+  text-transform: uppercase;
+}
+
+.motion-library-status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #8b6734;
+  box-shadow: 0 0 10px rgba(184,149,78,.28);
+}
+
+.motion-library-status-dot.incomplete {
+  background: #b55a52;
+  box-shadow: 0 0 10px rgba(181,90,82,.28);
+}
+
+.motion-library-spec {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 7px;
+  margin-top: 14px;
+}
+
+.motion-library-spec article {
+  padding: 10px;
+  border: 1px solid rgba(248,243,230,.05);
+  border-radius: 11px;
+  background: rgba(255,255,255,.012);
+}
+
+.motion-library-spec span,
+.motion-library-spec strong {
+  display: block;
+}
+
+.motion-library-spec span {
+  color: #625d57;
+  font-size: 7px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.motion-library-spec strong {
+  margin-top: 4px;
+  color: #998f84;
+  font-size: 8px;
+  line-height: 1.4;
+}
+
+.motion-library-preloader {
+  display: grid;
+  justify-items: center;
+  padding: 28px 20px;
+  border: 1px solid rgba(223,195,125,.15);
+  border-radius: 22px;
+  background:
+    radial-gradient(
+      circle at 50% 15%,
+      rgba(223,195,125,.11),
+      transparent 38%
+    ),
+    linear-gradient(
+      145deg,
+      rgba(20,22,22,.995),
+      rgba(8,9,10,.999)
+    );
+  text-align: center;
+}
+
+.motion-library-preloader-icon {
+  display: grid;
+  place-items: center;
+  width: 58px;
+  height: 58px;
+  margin-bottom: 16px;
+  border: 1px solid rgba(223,195,125,.25);
+  border-radius: 50%;
+  color: var(--gold-bright);
+}
+
+.motion-library-preloader h2 {
+  margin: 8px 0 5px;
+  font-size: 22px;
+}
+
+.motion-library-preloader p {
+  margin: 0;
+  color: #777169;
+  font-size: 9px;
+}
+
+.motion-library-preloader-track {
+  width: 100%;
+  height: 4px;
+  margin-top: 18px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(248,243,230,.07);
+}
+
+.motion-library-preloader-track div {
+  height: 100%;
+  border-radius: inherit;
+  background:
+    linear-gradient(
+      90deg,
+      var(--gold-deep),
+      var(--gold-bright)
+    );
+  transition: width .2s ease;
+}
+
+.motion-library-preloader > strong {
+  margin-top: 9px;
+  color: var(--gold-bright);
+  font-size: 10px;
+}
+
+.spin {
+  animation: motionLibrarySpin .8s linear infinite;
+}
+
+@media (max-width: 390px) {
+  .motion-library-spec {
+    grid-template-columns: 1fr;
+  }
+}
