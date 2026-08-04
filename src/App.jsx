@@ -313,6 +313,40 @@ function App() {
 
   const readiness = calculateReadiness(state)
 
+  useEffect(() => {
+    if (
+      !session?.user?.id ||
+      !cloudReady ||
+      screen !== 'home' ||
+      readiness.completed ||
+      showReadinessCheckIn
+    ) {
+      return
+    }
+
+    const now = new Date()
+    const today = now.toISOString().slice(0, 10)
+    const isMorning = now.getHours() < 12
+    const alreadyPrompted =
+      state.readiness?.lastPromptedDate === today
+
+    if (!isMorning || alreadyPrompted) return
+
+    const timer = window.setTimeout(
+      () => setShowReadinessCheckIn(true),
+      500,
+    )
+
+    return () => window.clearTimeout(timer)
+  }, [
+    session?.user?.id,
+    cloudReady,
+    screen,
+    readiness.completed,
+    showReadinessCheckIn,
+    state.readiness?.lastPromptedDate,
+  ])
+
   const adaptiveDailyReset = buildAdaptiveDailyReset({
     history: state.history,
     plannedWorkout,
