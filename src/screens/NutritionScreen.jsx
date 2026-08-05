@@ -2,6 +2,10 @@ import {
   Bookmark,
   BookmarkCheck,
   BookmarkPlus,
+  ChefHat,
+  Copy,
+  PackageCheck,
+  RotateCcw,
   ChevronLeft,
   ChevronRight,
   Droplets,
@@ -46,7 +50,10 @@ export default function NutritionScreen({ nutrition, onChange }) {
   const [selectedFood, setSelectedFood] = useState(null)
   const [selectedMultiplier, setSelectedMultiplier] = useState(1)
   const [foodCategory, setFoodCategory] = useState('All')
-  const [recipeDraft, setRecipeDraft] = useState({ name: '', servings: 4, calories: '', protein: '', carbs: '', fat: '', fiber: '' })
+  const [recipeDraft, setRecipeDraft] = useState({ name: '', servings: 4, ingredients: [] })
+  const [recipeSearch, setRecipeSearch] = useState('')
+  const [recipeLogTarget, setRecipeLogTarget] = useState(null)
+  const [recipeLogAmount, setRecipeLogAmount] = useState(1)
   const [notice, setNotice] = useState('')
 
   const goals = { ...DEFAULT_NUTRITION_GOALS, ...(nutrition?.goals ?? {}) }
@@ -144,6 +151,143 @@ export default function NutritionScreen({ nutrition, onChange }) {
   const openFood = (food) => {
     setSelectedFood(food)
     setSelectedMultiplier(1)
+  }
+
+  const recipeFoodMatches = useMemo(() => {
+    const query = recipeSearch.trim().toLowerCase()
+    if (!query) return []
+    const saved = (nutrition.savedFoods ?? []).map((food) => ({ ...food, sourceLabel: 'Saved' }))
+    return [...saved, ...COMMON_FOODS]
+      .filter((food) => `${food.name} ${food.brand ?? ''} ${food.keywords ?? ''}`.toLowerCase().includes(query))
+      .slice(0, 12)
+  }, [recipeSearch, nutrition.savedFoods])
+
+  const recipeDraftTotals = useMemo(
+    () => (recipeDraft.ingredients ?? []).reduce(
+      (totals, ingredient) => ({
+        calories: totals.calories + Number(ingredient.calories || 0) * Number(ingredient.multiplier || 1),
+        protein: totals.protein + Number(ingredient.protein || 0) * Number(ingredient.multiplier || 1),
+        carbs: totals.carbs + Number(ingredient.carbs || 0) * Number(ingredient.multiplier || 1),
+        fat: totals.fat + Number(ingredient.fat || 0) * Number(ingredient.multiplier || 1),
+        fiber: totals.fiber + Number(ingredient.fiber || 0) * Number(ingredient.multiplier || 1),
+      }),
+      { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 },
+    ),
+    [recipeDraft.ingredients],
+  )
+  const hasRecipeIngredients = (recipeDraft.ingredients ?? []).length > 0
+  const canSaveRecipe = Boolean(recipeDraft.name.trim()) && hasRecipeIngredients && Number(recipeDraft.servings || 0) > 0
+
+  const addRecipeIngredient = (food) => {
+    setRecipeDraft((current) => ({
+      ...current,
+      ingredients: [
+        ...(current.ingredients ?? []),
+        {
+          id: crypto.randomUUID(),
+          foodId: food.id ?? null,
+          name: food.name,
+          serving: food.serving ?? '1 serving',
+          multiplier: 1,
+          calories: Number(food.calories || 0),
+          protein: Number(food.protein || 0),
+          carbs: Number(food.carbs || 0),
+          fat: Number(food.fat || 0),
+          fiber: Number(food.fiber || 0),
+        },
+      ],
+    }))
+    setRecipeSearch('')
+    setNotice(`${food.name} added to recipe.`)
+  }
+
+  const updateRecipeIngredient = (id, multiplier) => setRecipeDraft((current) => ({
+    ...current,
+    ingredients: current.ingredients.map((ingredient) =>
+      ingredient.id === id ? { ...ingredient, multiplier: Math.max(0, Number(multiplier || 0)) } : ingredient,
+    ),
+  }))
+
+  const saveRecipe = () => {
+    const name = recipeDraft.name.trim()
+    const servings = Math.max(1, Number(recipeDraft.servings || 1))
+    if (!name) return setNotice('Name the recipe first.')
+    if (!(recipeDraft.ingredients ?? []).length) return setNotice('Add at least one ingredient.')
+    const recipe = {
+      id: crypto.randomUUID(),
+      name,
+      servings,
+      remainingServings: servings,
+      ingredients: recipeDraft.ingredients,
+      totals: Object.fromEntries(Object.entries(recipeDraftTotals).map(([key, value]) => [key, round(value)])),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }
+    patch((current) => ({ ...current, recipes: [recipe, ...(current.recipes ?? [])] }))
+    setRecipeDraft({ name: '', servings: 4, ingredients: [] })
+    setNotice(`${name} saved as a ${servings}-serving batch.`)
+  }
+
+  const duplicateRecipe = (recipe) => patch((current) => ({
+    ...current,
+    recipes: [
+      {
+        ...recipe,
+        id: crypto.randomUUID(),
+        name: `${recipe.name} Copy`,
+        remainingServings: recipe.servings,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+      ...(current.recipes ?? []),
+    ],
+  }))
+
+  const resetRecipeBatch = (recipe) => patch((current) => ({
+    ...current,
+    recipes: (current.recipes ?? []).map((item) =>
+      item.id === recipe.id ? { ...item, remainingServings: Number(item.servings || 1), updatedAt: new Date().toISOString() } : item,
+    ),
+  }))
+
+  const deleteRecipe = (recipe) => {
+    if (!confirm(`Delete ${recipe.name}?`)) return
+    patch((current) => ({ ...current, recipes: (current.recipes ?? []).filter((item) => item.id !== recipe.id) }))
+  }
+
+  const logRecipe = (recipe, amount) => {
+    const servings = Math.max(1, Number(recipe.servings || 1))
+    const multiplier = Math.max(0.01, Number(amount || 1))
+    const totals = recipe.totals ?? (recipe.ingredients ?? []).reduce(
+      (sum, item) => ({
+        calories: sum.calories + Number(item.calories || 0) * Number(item.multiplier || 1),
+        protein: sum.protein + Number(item.protein || 0) * Number(item.multiplier || 1),
+        carbs: sum.carbs + Number(item.carbs || 0) * Number(item.multiplier || 1),
+        fat: sum.fat + Number(item.fat || 0) * Number(item.multiplier || 1),
+        fiber: sum.fiber + Number(item.fiber || 0) * Number(item.multiplier || 1),
+      }),
+      { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 },
+    )
+    addFood({
+      id: recipe.id,
+      name: recipe.name,
+      calories: Number(totals.calories || 0) / servings,
+      protein: Number(totals.protein || 0) / servings,
+      carbs: Number(totals.carbs || 0) / servings,
+      fat: Number(totals.fat || 0) / servings,
+      fiber: Number(totals.fiber || 0) / servings,
+      servings: multiplier,
+    }, 'recipe')
+    patch((current) => ({
+      ...current,
+      recipes: (current.recipes ?? []).map((item) =>
+        item.id === recipe.id
+          ? { ...item, remainingServings: Math.max(0, round(Number(item.remainingServings ?? item.servings ?? 0) - multiplier)), updatedAt: new Date().toISOString() }
+          : item,
+      ),
+    }))
+    setRecipeLogTarget(null)
+    setRecipeLogAmount(1)
   }
 
   const addWater = (ounces) => patchDay((current) => ({ ...current, waterOz: round(Number(current.waterOz || 0) + ounces) }))
@@ -277,14 +421,74 @@ export default function NutritionScreen({ nutrition, onChange }) {
         <p className="nutrition-estimate-note">Common-food values are practical estimates. Brand labels and exact packaging can differ, so use Custom Food when precision matters.</p>
       </section>}
 
-      {tab === 'Recipes' && <section className="nutrition-panel">
-        <header><div><span className="eyebrow">RECIPES & BATCHES</span><h2>Save meals once. Log portions later.</h2></div></header>
-        <div className="nutrition-food-form">
-          <label className="wide"><span>Recipe name</span><input value={recipeDraft.name} onChange={(e)=>setRecipeDraft({...recipeDraft,name:e.target.value})}/></label>
-          {['servings','calories','protein','carbs','fat','fiber'].map((field)=><label key={field}><span>{field}</span><input type="number" value={recipeDraft[field]} onChange={(e)=>setRecipeDraft({...recipeDraft,[field]:e.target.value})}/></label>)}
-        </div>
-        <button className="gold-button machined" onClick={()=>{ if(!recipeDraft.name.trim()) return; const recipe={...recipeDraft,id:crypto.randomUUID()}; patch((current)=>({...current,recipes:[recipe,...(current.recipes??[])]})); setRecipeDraft({name:'',servings:4,calories:'',protein:'',carbs:'',fat:'',fiber:''}) }}><Save/>Save Recipe</button>
-        <div className="nutrition-recipe-list">{(nutrition.recipes??[]).map((recipe)=><article key={recipe.id}><div><strong>{recipe.name}</strong><span>{recipe.servings} servings · {recipe.calories} calories total</span></div><button onClick={()=>addFood({name:recipe.name,calories:Number(recipe.calories)/Number(recipe.servings||1),protein:Number(recipe.protein)/Number(recipe.servings||1),carbs:Number(recipe.carbs)/Number(recipe.servings||1),fat:Number(recipe.fat)/Number(recipe.servings||1),fiber:Number(recipe.fiber)/Number(recipe.servings||1),servings:1},'recipe')}>Log serving</button></article>)}</div>
+      {tab === 'Recipes' && <section className="nutrition-panel nutrition-recipes-panel">
+        <header><div><span className="eyebrow">RECIPES & MEAL PREP</span><h2>Cook once. Log in seconds.</h2><p>Add ingredients from the food catalog, choose the batch yield, and AVAREN calculates every serving.</p></div></header>
+
+        <section className="nutrition-recipe-builder">
+          <header><div><ChefHat size={20}/><span><strong>Create recipe</strong><small>Macros calculate automatically from ingredients.</small></span></div></header>
+          <div className="nutrition-recipe-basics">
+            <label><span>Recipe name</span><input value={recipeDraft.name} onChange={(event) => setRecipeDraft({ ...recipeDraft, name: event.target.value })} placeholder="Chicken and rice bowls"/></label>
+            <label><span>Batch servings</span><input type="number" min="1" step="1" value={recipeDraft.servings} onChange={(event) => setRecipeDraft({ ...recipeDraft, servings: event.target.value })}/></label>
+          </div>
+
+          <div className="nutrition-recipe-search">
+            <Search size={18}/>
+            <input value={recipeSearch} onChange={(event) => setRecipeSearch(event.target.value)} placeholder="Search ingredients..."/>
+          </div>
+          {recipeFoodMatches.length > 0 && <div className="nutrition-recipe-search-results">
+            {recipeFoodMatches.map((food) => <button key={`recipe-${food.id ?? food.name}`} onClick={() => addRecipeIngredient(food)}><span><strong>{food.name}</strong><small>{food.serving ?? '1 serving'} · {food.calories} cal</small></span><Plus size={16}/></button>)}
+          </div>}
+
+          <div className="nutrition-recipe-ingredients">
+            {(recipeDraft.ingredients ?? []).length ? recipeDraft.ingredients.map((ingredient) => <article key={ingredient.id}>
+              <div><strong>{ingredient.name}</strong><span>{ingredient.serving} · {Math.round(Number(ingredient.calories || 0) * Number(ingredient.multiplier || 1))} cal</span></div>
+              <label><span>Qty</span><input type="number" min="0" step="0.25" value={ingredient.multiplier} onChange={(event) => updateRecipeIngredient(ingredient.id, event.target.value)}/></label>
+              <button onClick={() => setRecipeDraft((current) => ({ ...current, ingredients: current.ingredients.filter((item) => item.id !== ingredient.id) }))}><Trash2 size={16}/></button>
+            </article>) : <div className="nutrition-empty compact"><Utensils/><p>Search above to add the first ingredient.</p></div>}
+          </div>
+
+          {hasRecipeIngredients ? <section className="nutrition-recipe-summary">
+            <div><span>Total batch</span><strong>{Math.round(recipeDraftTotals.calories)} calories</strong><small>{round(recipeDraftTotals.protein)}g Protein · {round(recipeDraftTotals.carbs)}g Carbs · {round(recipeDraftTotals.fat)}g Fat</small></div>
+            <div><span>Per serving</span><strong>{Math.round(recipeDraftTotals.calories / Math.max(1, Number(recipeDraft.servings || 1)))} calories</strong><small>{round(recipeDraftTotals.protein / Math.max(1, Number(recipeDraft.servings || 1)))}g Protein · {round(recipeDraftTotals.carbs / Math.max(1, Number(recipeDraft.servings || 1)))}g Carbs · {round(recipeDraftTotals.fat / Math.max(1, Number(recipeDraft.servings || 1)))}g Fat</small></div>
+          </section> : <section className="nutrition-recipe-guidance">
+            <Utensils size={22}/>
+            <div><strong>Build your recipe</strong><p>Search above and add at least one ingredient. AVAREN will calculate the total batch and each serving automatically.</p></div>
+          </section>}
+          <button className="gold-button machined nutrition-save-recipe" onClick={saveRecipe} disabled={!canSaveRecipe}><Save/>Save Recipe & Batch</button>
+          {!canSaveRecipe && <p className="nutrition-recipe-requirements">Add a recipe name and at least one ingredient to save.</p>}
+        </section>
+
+        <section className="nutrition-saved-recipes">
+          <header><div><span className="eyebrow">YOUR RECIPES</span><h2>{(nutrition.recipes ?? []).length ? `${nutrition.recipes.length} saved` : 'No recipes yet'}</h2></div></header>
+          <div className="nutrition-recipe-list">
+            {(nutrition.recipes ?? []).map((recipe) => {
+              const servings = Math.max(1, Number(recipe.servings || 1))
+              const totals = recipe.totals ?? { calories: recipe.calories, protein: recipe.protein, carbs: recipe.carbs, fat: recipe.fat, fiber: recipe.fiber }
+              const remainingServings = Number(recipe.remainingServings ?? recipe.servings ?? 0)
+              return <article key={recipe.id} className="nutrition-recipe-card">
+                <header><div><strong>{recipe.name}</strong><span>{servings} serving batch · {Math.round(Number(totals.calories || 0) / servings)} cal per serving</span></div><PackageCheck size={19}/></header>
+                <div className="nutrition-recipe-inventory"><span>Remaining</span><strong>{round(remainingServings)} <small>of {servings}</small></strong><ProgressBar value={remainingServings} goal={servings}/></div>
+                <div className="nutrition-recipe-card-actions">
+                  <button onClick={() => { setRecipeLogTarget(recipe); setRecipeLogAmount(1) }}><Plus size={15}/>Log Portion</button>
+                  <button onClick={() => duplicateRecipe(recipe)}><Copy size={15}/>Duplicate</button>
+                  <button onClick={() => resetRecipeBatch(recipe)}><RotateCcw size={15}/>New Batch</button>
+                  <button className="danger" onClick={() => deleteRecipe(recipe)}><Trash2 size={15}/>Delete</button>
+                </div>
+              </article>
+            })}
+          </div>
+        </section>
+
+        {recipeLogTarget && <div className="nutrition-food-sheet-backdrop" onClick={() => setRecipeLogTarget(null)}>
+          <section className="nutrition-food-sheet nutrition-recipe-log-sheet" onClick={(event) => event.stopPropagation()}>
+            <header><div><span className="eyebrow">LOG RECIPE</span><h2>{recipeLogTarget.name}</h2><p>Choose a serving or fraction of the prepared batch.</p></div><button onClick={() => setRecipeLogTarget(null)}><X size={18}/></button></header>
+            <div className="nutrition-serving-picker"><span>Amount</span><div>{[
+              ['¼ serving', .25], ['⅓ serving', 1/3], ['½ serving', .5], ['1 serving', 1], ['1½ servings', 1.5], ['2 servings', 2],
+            ].map(([label, value]) => <button key={label} className={Math.abs(recipeLogAmount - value) < .001 ? 'active' : ''} onClick={() => setRecipeLogAmount(value)}>{label}</button>)}</div></div>
+            <label className="nutrition-custom-portion"><span>Custom servings</span><input type="number" min="0.01" step="0.05" value={round(recipeLogAmount)} onChange={(event) => setRecipeLogAmount(Number(event.target.value || 0))}/></label>
+            <button className="gold-button machined" onClick={() => logRecipe(recipeLogTarget, recipeLogAmount)}><Plus/>Add to Today</button>
+          </section>
+        </div>}
       </section>}
 
       {tab === 'History' && <section className="nutrition-panel">

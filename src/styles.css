@@ -14451,3 +14451,167 @@ input, textarea, select {
 .nutrition-save-result.active{border-color:rgba(216,184,109,.32);background:rgba(216,184,109,.1);color:#ead48f}
 .nutrition-food-sheet-backdrop{position:fixed;inset:0;z-index:90;display:grid;align-items:end;background:rgba(0,0,0,.66);backdrop-filter:blur(8px);padding:18px}.nutrition-food-sheet{width:min(620px,100%);margin:0 auto;padding:20px;border:1px solid rgba(255,255,255,.1);border-radius:22px;background:#171b1f;box-shadow:0 -24px 80px rgba(0,0,0,.45);animation:foundationScreenEnter .22s ease both}.nutrition-food-sheet>header{display:flex;align-items:flex-start;justify-content:space-between;gap:15px;margin-bottom:16px}.nutrition-food-sheet h2{margin:5px 0 4px;font-size:26px!important}.nutrition-food-sheet p{margin:0;color:#9f978e}.nutrition-food-sheet>header>button{display:grid;place-items:center;width:38px;height:38px;border:0;border-radius:11px;background:rgba(255,255,255,.05);color:#aaa39a}.nutrition-sheet-macros{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.nutrition-sheet-macros article{padding:12px;border:1px solid rgba(255,255,255,.07);border-radius:13px;background:#111519}.nutrition-sheet-macros span,.nutrition-sheet-macros strong{display:block}.nutrition-sheet-macros span{color:#9d968e;font-size:11px!important}.nutrition-sheet-macros strong{margin-top:6px;font-size:18px!important}.nutrition-serving-picker{display:grid;gap:9px;margin-top:16px}.nutrition-serving-picker>span{font-size:12px!important;font-weight:850;color:#bdb4aa}.nutrition-serving-picker>div{display:flex;flex-wrap:wrap;gap:8px}.nutrition-serving-picker button{min-height:40px;padding:0 12px;border:1px solid rgba(255,255,255,.08);border-radius:10px;background:#111519;color:#aaa39a;font-weight:800}.nutrition-serving-picker button.active{border-color:rgba(216,184,109,.35);background:rgba(216,184,109,.1);color:#ead48f}.nutrition-sheet-actions{display:grid;grid-template-columns:minmax(130px,.4fr) minmax(190px,1fr);gap:10px;margin-top:18px}.nutrition-sheet-actions button{justify-content:center}.nutrition-fab{position:fixed;right:max(18px,calc((100vw - 920px)/2 + 18px));bottom:calc(86px + env(safe-area-inset-bottom));z-index:32;display:flex;align-items:center;gap:8px;min-height:52px;padding:0 17px;border:1px solid rgba(239,212,139,.35);border-radius:999px;background:linear-gradient(135deg,#d6b85f,#a7823c);color:#111316;font-weight:900;box-shadow:0 12px 30px rgba(0,0,0,.35)}
 @media(max-width:620px){.nutrition-food-sheet-backdrop{padding:8px}.nutrition-food-sheet{border-radius:20px 20px 14px 14px}.nutrition-sheet-macros{grid-template-columns:repeat(2,1fr)}.nutrition-sheet-actions{grid-template-columns:1fr}.nutrition-fab{right:14px;bottom:calc(82px + env(safe-area-inset-bottom))}.nutrition-fab span{display:none}}
+
+
+/* ===== SPRINT 6.7.4 · RECIPES, BATCHES & MEAL PREP ===== */
+
+.nutrition-recipes-panel { display: grid; gap: 18px; }
+.nutrition-recipe-builder,
+.nutrition-saved-recipes { display: grid; gap: 14px; padding: 17px; border: 1px solid rgba(246,242,233,.08); border-radius: 18px; background: rgba(255,255,255,.025); }
+.nutrition-recipe-builder > header > div { display: flex; align-items: center; gap: 10px; }
+.nutrition-recipe-builder > header span { display: grid; gap: 3px; }
+.nutrition-recipe-builder > header small { color: #9f9990; }
+.nutrition-recipe-basics { display: grid; grid-template-columns: 2fr 1fr; gap: 10px; }
+.nutrition-recipe-basics label,
+.nutrition-custom-portion { display: grid; gap: 7px; }
+.nutrition-recipe-basics span,
+.nutrition-custom-portion span { font-size: 11px; font-weight: 850; color: #aba49b; }
+.nutrition-recipe-basics input,
+.nutrition-recipe-search input,
+.nutrition-recipe-ingredients input,
+.nutrition-custom-portion input { width: 100%; box-sizing: border-box; min-height: 44px; padding: 0 12px; border: 1px solid rgba(246,242,233,.1); border-radius: 11px; background: rgba(6,8,10,.5); color: #eee7db; }
+.nutrition-recipe-search { display: flex; align-items: center; gap: 9px; padding: 0 12px; border: 1px solid rgba(216,184,109,.14); border-radius: 12px; background: rgba(216,184,109,.035); }
+.nutrition-recipe-search input { padding: 0; border: 0; background: transparent; }
+.nutrition-recipe-search-results { display: grid; gap: 7px; max-height: 240px; overflow: auto; }
+.nutrition-recipe-search-results button { display: flex; align-items: center; justify-content: space-between; min-height: 50px; padding: 9px 11px; border: 1px solid rgba(246,242,233,.07); border-radius: 11px; background: rgba(255,255,255,.02); color: #eae3d8; text-align: left; }
+.nutrition-recipe-search-results span { display: grid; gap: 3px; }
+.nutrition-recipe-search-results small { color: #9f9990; }
+.nutrition-recipe-ingredients { display: grid; gap: 8px; }
+.nutrition-recipe-ingredients article { display: grid; grid-template-columns: minmax(0,1fr) 80px 38px; align-items: end; gap: 8px; padding: 10px; border: 1px solid rgba(246,242,233,.06); border-radius: 12px; background: rgba(7,9,11,.35); }
+.nutrition-recipe-ingredients article > div { display: grid; gap: 3px; }
+.nutrition-recipe-ingredients article span { color: #9e978e; font-size: 11px; }
+.nutrition-recipe-ingredients label { display: grid; gap: 4px; }
+.nutrition-recipe-ingredients label span { font-size: 9px; font-weight: 850; text-transform: uppercase; }
+.nutrition-recipe-ingredients article > button { min-height: 44px; border: 1px solid rgba(210,105,94,.2); border-radius: 10px; background: rgba(210,105,94,.06); color: #df9189; }
+.nutrition-recipe-summary { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; }
+.nutrition-recipe-summary > div { display: grid; gap: 4px; padding: 12px; border: 1px solid rgba(216,184,109,.1); border-radius: 12px; background: rgba(216,184,109,.035); }
+.nutrition-recipe-summary span { color: #a79f95; font-size: 10px; font-weight: 850; text-transform: uppercase; }
+.nutrition-recipe-summary strong { font-size: 20px; }
+.nutrition-recipe-summary small { color: #a59e95; }
+.nutrition-save-recipe { width: 100%; justify-content: center; }
+.nutrition-recipe-list { display: grid; gap: 10px; }
+.nutrition-recipe-card { display: grid; gap: 12px; padding: 14px; border: 1px solid rgba(246,242,233,.075); border-radius: 15px; background: rgba(7,9,11,.38); }
+.nutrition-recipe-card > header { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.nutrition-recipe-card > header > div { display: grid; gap: 4px; }
+.nutrition-recipe-card > header span { color: #9f9990; font-size: 11px; }
+.nutrition-recipe-inventory { display: grid; grid-template-columns: 1fr auto; gap: 5px 12px; align-items: end; }
+.nutrition-recipe-inventory > span { color: #aaa298; font-size: 10px; font-weight: 850; text-transform: uppercase; }
+.nutrition-recipe-inventory strong { font-size: 18px; }
+.nutrition-recipe-inventory strong small { color: #999289; font-size: 11px; }
+.nutrition-recipe-inventory .nutrition-progress { grid-column: 1 / -1; }
+.nutrition-recipe-card-actions { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 7px; }
+.nutrition-recipe-card-actions button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 39px; padding: 0 9px; border: 1px solid rgba(216,184,109,.14); border-radius: 9px; background: rgba(216,184,109,.04); color: #d6bf7a; font-size: 11px; font-weight: 850; }
+.nutrition-recipe-card-actions button.danger { border-color: rgba(210,105,94,.22); background: rgba(210,105,94,.06); color: #df9189; }
+.nutrition-recipe-log-sheet { gap: 16px; }
+.nutrition-recipe-log-sheet > .gold-button { width: 100%; justify-content: center; }
+@media (max-width: 560px) {
+  .nutrition-recipe-basics,
+  .nutrition-recipe-summary { grid-template-columns: 1fr; }
+  .nutrition-recipe-ingredients article { grid-template-columns: minmax(0,1fr) 72px 38px; }
+}
+
+/* ===== SPRINT 6.7.4.1 · RECIPE BUILDER CLARITY ===== */
+.nutrition-recipe-guidance {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  border: 1px dashed rgba(216,184,109,.18);
+  border-radius: 14px;
+  background: rgba(216,184,109,.025);
+  color: #d5c17d;
+}
+.nutrition-recipe-guidance strong { display: block; color: #eee7dc; font-size: 15px; }
+.nutrition-recipe-guidance p { margin: 5px 0 0; color: #aaa39a; line-height: 1.5; }
+.nutrition-save-recipe:disabled {
+  cursor: not-allowed;
+  opacity: .42;
+  filter: saturate(.4);
+  box-shadow: none;
+}
+.nutrition-recipe-requirements {
+  margin: -2px 0 0;
+  color: #938c84;
+  font-size: 12px;
+  text-align: center;
+}
+.nutrition-recipe-summary small { line-height: 1.45; }
+
+/* ===== SPRINT 6.7.4.2 · RECIPE SEARCH & QUICK ACTION POLISH ===== */
+
+.nutrition-recipe-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 0 14px;
+  border: 1px solid rgba(246, 242, 233, .10);
+  border-radius: 13px;
+  background: rgba(8, 11, 14, .72);
+  transition: border-color .18s ease, box-shadow .18s ease, background .18s ease;
+}
+
+.nutrition-recipe-search:focus-within {
+  border-color: rgba(216, 184, 109, .42);
+  background: rgba(12, 15, 18, .94);
+  box-shadow: 0 0 0 3px rgba(216, 184, 109, .08);
+}
+
+.nutrition-recipe-search > svg {
+  flex: 0 0 auto;
+  color: #b7aea3;
+}
+
+.nutrition-recipe-search input {
+  min-width: 0;
+  min-height: 46px;
+  padding: 0;
+  border: 0 !important;
+  outline: 0;
+  border-radius: 0;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: #eee7db;
+}
+
+.nutrition-recipe-search input::placeholder {
+  color: #77736d;
+}
+
+.nutrition-fab {
+  right: max(14px, calc((100vw - 920px) / 2 + 14px));
+  bottom: calc(82px + env(safe-area-inset-bottom));
+  min-width: 0;
+  min-height: 44px;
+  padding: 0 13px;
+  gap: 6px;
+  border-radius: 14px;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, .32);
+}
+
+.nutrition-fab span {
+  font-size: 11px;
+  line-height: 1;
+}
+
+.nutrition-fab svg {
+  width: 17px;
+  height: 17px;
+}
+
+@media (max-width: 700px) {
+  .nutrition-fab {
+    right: 12px;
+    bottom: calc(79px + env(safe-area-inset-bottom));
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    justify-content: center;
+    border-radius: 14px;
+  }
+
+  .nutrition-fab span {
+    display: none;
+  }
+}

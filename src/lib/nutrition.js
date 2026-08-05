@@ -12,6 +12,7 @@ export const DEFAULT_NUTRITION_GOALS = {
 }
 
 export const createNutritionState = () => ({
+  schemaVersion: 2,
   goals: DEFAULT_NUTRITION_GOALS,
   days: {},
   savedFoods: [],
