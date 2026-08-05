@@ -17,6 +17,7 @@ export const createNutritionState = () => ({
   savedFoods: [],
   recipes: [],
   recentFoodIds: [],
+  favoriteFoodIds: [],
 })
 
 export const nutritionDateKey = (date = new Date()) => {

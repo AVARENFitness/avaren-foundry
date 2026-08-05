@@ -1,5 +1,6 @@
 import {
   Bookmark,
+  BookmarkCheck,
   BookmarkPlus,
   ChevronLeft,
   ChevronRight,
@@ -14,6 +15,7 @@ import {
   Settings2,
   Trash2,
   Utensils,
+  Star,
 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import {
@@ -23,7 +25,7 @@ import {
   nutritionTotals,
   remainingNutrition,
 } from '../lib/nutrition'
-import { COMMON_FOODS } from '../data/commonFoods'
+import { COMMON_FOODS, FOOD_CATEGORIES } from '../data/commonFoods'
 
 const tabs = ['Today', 'Foods', 'Recipes', 'History', 'Goals']
 const blankFood = { name: '', calories: '', protein: '', carbs: '', fat: '', fiber: '', servings: 1 }
@@ -41,6 +43,9 @@ export default function NutritionScreen({ nutrition, onChange }) {
   const [foodDraft, setFoodDraft] = useState(blankFood)
   const [foodSearch, setFoodSearch] = useState('')
   const [showCustomFood, setShowCustomFood] = useState(false)
+  const [selectedFood, setSelectedFood] = useState(null)
+  const [selectedMultiplier, setSelectedMultiplier] = useState(1)
+  const [foodCategory, setFoodCategory] = useState('All')
   const [recipeDraft, setRecipeDraft] = useState({ name: '', servings: 4, calories: '', protein: '', carbs: '', fat: '', fiber: '' })
   const [notice, setNotice] = useState('')
 
@@ -48,17 +53,33 @@ export default function NutritionScreen({ nutrition, onChange }) {
   const day = nutrition?.days?.[date] ?? emptyNutritionDay(date)
   const totals = useMemo(() => nutritionTotals(day), [day])
   const remaining = useMemo(() => remainingNutrition(goals, totals, day), [goals, totals, day])
+  const favoriteIds = nutrition?.favoriteFoodIds ?? []
+  const recentIds = nutrition?.recentFoodIds ?? []
   const foodMatches = useMemo(() => {
     const query = foodSearch.trim().toLowerCase()
-    const saved = (nutrition.savedFoods ?? []).map((food) => ({ ...food, sourceLabel: 'Saved' }))
+    const saved = (nutrition.savedFoods ?? []).map((food) => ({ ...food, sourceLabel: 'Saved', category: food.category ?? 'Saved' }))
     const common = COMMON_FOODS.map((food) => ({ ...food, sourceLabel: food.brand }))
     const combined = [...saved, ...common]
-    if (!query) return combined.slice(0, 12)
-    return combined.filter((food) => `${food.name} ${food.brand ?? ''} ${food.keywords ?? ''}`.toLowerCase().includes(query)).slice(0, 20)
-  }, [foodSearch, nutrition.savedFoods])
+    return combined
+      .filter((food) => foodCategory === 'All' || food.category === foodCategory || (foodCategory === 'Favorites' && favoriteIds.includes(food.id)))
+      .filter((food) => !query || `${food.name} ${food.brand ?? ''} ${food.category ?? ''} ${food.keywords ?? ''}`.toLowerCase().includes(query))
+      .sort((a, b) => {
+        const favoriteDelta = Number(favoriteIds.includes(b.id)) - Number(favoriteIds.includes(a.id))
+        if (favoriteDelta) return favoriteDelta
+        const recentA = recentIds.indexOf(a.id)
+        const recentB = recentIds.indexOf(b.id)
+        if (recentA !== -1 || recentB !== -1) {
+          if (recentA === -1) return 1
+          if (recentB === -1) return -1
+          return recentA - recentB
+        }
+        return a.name.localeCompare(b.name)
+      })
+      .slice(0, 28)
+  }, [foodSearch, foodCategory, favoriteIds, recentIds, nutrition.savedFoods])
 
   const patch = (updater) => onChange((current) => {
-    const base = current ?? { goals: DEFAULT_NUTRITION_GOALS, days: {}, savedFoods: [], recipes: [], recentFoodIds: [] }
+    const base = current ?? { goals: DEFAULT_NUTRITION_GOALS, days: {}, savedFoods: [], recipes: [], recentFoodIds: [], favoriteFoodIds: [] }
     return typeof updater === 'function' ? updater(base) : updater
   })
 
@@ -83,9 +104,22 @@ export default function NutritionScreen({ nutrition, onChange }) {
       fiber: round(Number(food.fiber || 0) * servings),
       loggedAt: new Date().toISOString(),
     }
-    patchDay((current) => ({ ...current, foods: [...(current.foods ?? []), entry] }))
+    patch((current) => {
+      const currentDay = current.days?.[date] ?? emptyNutritionDay(date)
+      const foodId = food.id ?? `${source}:${food.name}`
+      return {
+        ...current,
+        recentFoodIds: [foodId, ...(current.recentFoodIds ?? []).filter((id) => id !== foodId)].slice(0, 30),
+        days: {
+          ...(current.days ?? {}),
+          [date]: { ...currentDay, foods: [...(currentDay.foods ?? []), entry] },
+        },
+      }
+    })
     setFoodDraft(blankFood)
     setFoodSearch('')
+    setSelectedFood(null)
+    setSelectedMultiplier(1)
     setNotice(`${entry.name} added to today.`)
     setTab('Today')
   }
@@ -95,6 +129,21 @@ export default function NutritionScreen({ nutrition, onChange }) {
     const saved = { ...foodDraft, id: crypto.randomUUID(), servings: 1 }
     patch((current) => ({ ...current, savedFoods: [saved, ...(current.savedFoods ?? [])] }))
     setNotice(`${saved.name} saved.`)
+  }
+
+  const toggleFavorite = (food) => patch((current) => {
+    const ids = current.favoriteFoodIds ?? []
+    return {
+      ...current,
+      favoriteFoodIds: ids.includes(food.id)
+        ? ids.filter((id) => id !== food.id)
+        : [food.id, ...ids],
+    }
+  })
+
+  const openFood = (food) => {
+    setSelectedFood(food)
+    setSelectedMultiplier(1)
   }
 
   const addWater = (ounces) => patchDay((current) => ({ ...current, waterOz: round(Number(current.waterOz || 0) + ounces) }))
@@ -164,23 +213,53 @@ export default function NutritionScreen({ nutrition, onChange }) {
           <button onClick={() => setShowCustomFood((value) => !value)}>{showCustomFood ? 'Hide custom food' : '+ Create Custom Food'}</button>
         </div>
 
-        {!showCustomFood && <div className="nutrition-food-results">
-          {foodMatches.length ? foodMatches.map((food) => (
-            <article key={`${food.sourceLabel}-${food.id ?? food.name}`}>
-              <button className="nutrition-food-result-main" onClick={() => addFood({ ...food, servings: 1 }, food.sourceLabel === 'Saved' ? 'saved' : 'catalog')}>
-                <span className="nutrition-food-result-copy">
-                  <strong>{food.name}</strong>
-                  <small>{food.serving ?? '1 serving'} · {food.sourceLabel}</small>
-                </span>
-                <span className="nutrition-food-result-macros">
-                  <strong>{Math.round(Number(food.calories || 0))} cal</strong>
-                  <small>P {round(food.protein)} · C {round(food.carbs)} · F {round(food.fat)}</small>
-                </span>
-                <Plus size={18}/>
-              </button>
-              {food.sourceLabel !== 'Saved' && <button className="nutrition-save-result" title="Save food" onClick={() => { const saved={...food,id:crypto.randomUUID(),servings:1}; patch((current)=>({...current,savedFoods:[saved,...(current.savedFoods??[])]})); setNotice(`${food.name} saved.`) }}><Bookmark size={16}/></button>}
-            </article>
-          )) : <div className="nutrition-no-results"><Utensils/><strong>No match yet</strong><span>Create a custom food for this item. Later, barcode and AI search will make this even faster.</span><button onClick={() => { setFoodDraft({...blankFood,name:foodSearch}); setShowCustomFood(true) }}>Create “{foodSearch}”</button></div>}
+        {!showCustomFood && <>
+          <div className="nutrition-category-strip">
+            {['All', 'Favorites', ...FOOD_CATEGORIES].map((category) => (
+              <button key={category} className={foodCategory === category ? 'active' : ''} onClick={() => setFoodCategory(category)}>{category}</button>
+            ))}
+          </div>
+          <div className="nutrition-food-results">
+            {foodMatches.length ? foodMatches.map((food) => (
+              <article key={`${food.sourceLabel}-${food.id ?? food.name}`}>
+                <button className="nutrition-food-result-main" onClick={() => openFood(food)}>
+                  <span className="nutrition-food-result-copy">
+                    <strong>{food.name}</strong>
+                    <small>{food.serving ?? '1 serving'} · {food.category ?? food.sourceLabel}</small>
+                  </span>
+                  <span className="nutrition-food-result-macros">
+                    <strong>{Math.round(Number(food.calories || 0))} cal</strong>
+                    <small>P {round(food.protein)} · C {round(food.carbs)} · F {round(food.fat)}</small>
+                  </span>
+                  <ChevronRight size={18}/>
+                </button>
+                <button className={`nutrition-save-result ${favoriteIds.includes(food.id) ? 'active' : ''}`} title="Favorite food" onClick={() => toggleFavorite(food)}>{favoriteIds.includes(food.id) ? <BookmarkCheck size={16}/> : <Bookmark size={16}/>}</button>
+              </article>
+            )) : <div className="nutrition-no-results"><Utensils/><strong>No match yet</strong><span>Create a custom food for this item. Later, barcode and AI search will make this even faster.</span><button onClick={() => { setFoodDraft({...blankFood,name:foodSearch}); setShowCustomFood(true) }}>Create “{foodSearch}”</button></div>}
+          </div>
+        </>}
+
+        {selectedFood && <div className="nutrition-food-sheet-backdrop" onClick={() => setSelectedFood(null)}>
+          <section className="nutrition-food-sheet" onClick={(event) => event.stopPropagation()}>
+            <header>
+              <div><span className="eyebrow">FOOD DETAIL</span><h2>{selectedFood.name}</h2><p>{selectedFood.brand} · values are per listed serving</p></div>
+              <button onClick={() => setSelectedFood(null)}><X size={18}/></button>
+            </header>
+            <div className="nutrition-sheet-macros">
+              <article><span>Calories</span><strong>{Math.round(Number(selectedFood.calories || 0) * selectedMultiplier)}</strong></article>
+              <article><span>Protein</span><strong>{round(Number(selectedFood.protein || 0) * selectedMultiplier)}g</strong></article>
+              <article><span>Carbs</span><strong>{round(Number(selectedFood.carbs || 0) * selectedMultiplier)}g</strong></article>
+              <article><span>Fat</span><strong>{round(Number(selectedFood.fat || 0) * selectedMultiplier)}g</strong></article>
+            </div>
+            <div className="nutrition-serving-picker">
+              <span>Serving</span>
+              <div>{(selectedFood.servingOptions ?? [{label:selectedFood.serving ?? '1 serving',multiplier:1}]).map((option) => <button key={`${option.label}-${option.multiplier}`} className={selectedMultiplier === option.multiplier ? 'active' : ''} onClick={() => setSelectedMultiplier(option.multiplier)}>{option.label}</button>)}</div>
+            </div>
+            <div className="nutrition-sheet-actions">
+              <button className="nutrition-secondary-button" onClick={() => toggleFavorite(selectedFood)}>{favoriteIds.includes(selectedFood.id) ? <BookmarkCheck/> : <BookmarkPlus/>}{favoriteIds.includes(selectedFood.id) ? 'Favorited' : 'Favorite'}</button>
+              <button className="gold-button machined" onClick={() => addFood({ ...selectedFood, servings: selectedMultiplier }, selectedFood.sourceLabel === 'Saved' ? 'saved' : 'catalog')}><Plus/>Add to Today</button>
+            </div>
+          </section>
         </div>}
 
         {showCustomFood && <div className="nutrition-custom-food-card">
@@ -222,6 +301,7 @@ export default function NutritionScreen({ nutrition, onChange }) {
           <label><span>Workout calories</span><input type="number" value={day.workoutCalories} onChange={(e)=>patchDay((current)=>({...current,workoutCalories:e.target.value}))}/></label>
         </div>
       </section>}
+      {tab !== 'Foods' && <button className="nutrition-fab" onClick={() => setTab('Foods')}><Plus size={20}/><span>Log Food</span></button>}
     </div>
   )
 }
