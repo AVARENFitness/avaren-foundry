@@ -117,11 +117,12 @@ export default function CoachScreen({
           </div>
 
           <button
-            className="gold-button machined"
+            className="gold-button machined coach-coming-soon-button"
             disabled
+            title="Workout assignment is added in Sprint 6.0C."
           >
             <ClipboardList size={17} />
-            New Assignment
+            Coming Next
           </button>
         </header>
 

@@ -99,6 +99,7 @@ export default function MoreScreen({
   onOpenReset,
   onReplayTour,
   coachRole = 'athlete',
+  coachAccessEnabled = false,
   onEnterCoachMode,
   mobilityTitle = 'Morning Movement',
   mobilityMinutes = 5,
@@ -213,20 +214,22 @@ export default function MoreScreen({
             onClick={onOpenBuilder}
           />
 
-          <MoreItem
-            icon={BriefcaseBusiness}
-            title="Coach Mode"
-            description="Manage clients and assignments"
-            detail={
-              coachRole === 'coach'
-                ? 'Enabled'
-                : 'Set up'
-            }
-            onClick={
-              onEnterCoachMode ??
-              onOpenCoach
-            }
-          />
+          {coachAccessEnabled && (
+            <MoreItem
+              icon={BriefcaseBusiness}
+              title="Coach Mode"
+              description="Manage clients and assignments"
+              detail={
+                coachRole === 'coach'
+                  ? 'Enabled'
+                  : 'Open'
+              }
+              onClick={
+                onEnterCoachMode ??
+                onOpenCoach
+              }
+            />
+          )}
 
           <MoreItem
             icon={Hammer}

@@ -12869,3 +12869,204 @@ button {
     padding-top: 6px;
   }
 }
+
+
+/* ===== SPRINT 6.0C · GLOBAL READABILITY & OWNER-ONLY COACH ACCESS ===== */
+
+:root {
+  --avaren-body-size: 15px;
+  --avaren-supporting-size: 13px;
+  --avaren-label-size: 12px;
+  --avaren-control-size: 14px;
+}
+
+html {
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  font-size: var(--avaren-body-size);
+  line-height: 1.5;
+}
+
+/* General body and descriptive text */
+p,
+li,
+.description,
+.subtitle,
+.helper-text,
+.supporting-text,
+.card-description,
+.screen-description,
+.more-hero p,
+.more-primary-copy p,
+.coach-hub-page-header p,
+.onboarding-copy,
+.movement-flow-complete > p,
+.session-context-card p {
+  font-size: 14px !important;
+  line-height: 1.6 !important;
+}
+
+/* Secondary text should remain readable, never microscopic. */
+small,
+.eyebrow,
+.more-section-heading small,
+.more-destination-copy small,
+.more-destination-detail,
+.more-version,
+.coach-hub-count span,
+.coach-invite-card span,
+.coach-hub-notice,
+.coach-client-copy span,
+.coach-client-status span,
+.coach-empty-state p,
+.coach-pending-list small,
+.coach-settings-card span,
+.onboarding-note,
+.onboarding-points p,
+.mobility-flow-preferences p,
+.mobility-flow-preferences small,
+.mobility-length-options span,
+.lift-session-notes-toggle small,
+.lift-session-notes-fields label > span,
+.session-context-card span,
+.sprint5-summary-grid span,
+.sprint5-exercise-breakdown span,
+.sprint5-highlight-grid span,
+.sprint5-hero-stats span,
+.movement-flow-complete-stats span,
+.movement-flow-complete-regions span,
+.focus-set-topline span,
+.focus-control label,
+.previous-session-panel span,
+.previous-session-toggle small {
+  font-size: 12px !important;
+  line-height: 1.45 !important;
+  letter-spacing: normal;
+}
+
+/* Section labels remain styled but readable. */
+.eyebrow {
+  font-size: 11px !important;
+  font-weight: 850;
+  letter-spacing: .07em;
+}
+
+/* Card and row titles */
+.more-destination-copy strong,
+.more-account-card strong,
+.coach-client-copy strong,
+.coach-invite-card strong,
+.coach-settings-card strong,
+.lift-session-notes-toggle strong,
+.sprint5-exercise-breakdown strong,
+.sprint5-highlight-grid strong,
+.onboarding-points strong,
+.setting-row,
+.history-card strong,
+.notification-card strong,
+.workout-card strong,
+.exercise-card strong {
+  font-size: 15px !important;
+  line-height: 1.35 !important;
+}
+
+/* Controls */
+button,
+input,
+textarea,
+select {
+  font-size: 14px !important;
+}
+
+button,
+.gold-button,
+.more-destination,
+.setting-row,
+.coach-shell-nav button,
+.coach-invite-form button,
+.avoid-movement-button,
+.finish-early-button,
+.timed-repeat-button,
+.session-reflection-save,
+.lift-rest-actions button {
+  min-height: 46px;
+}
+
+input,
+textarea,
+select {
+  min-height: 44px;
+}
+
+textarea {
+  line-height: 1.55;
+}
+
+/* Primary navigation */
+.bottom-nav button span,
+.coach-shell-nav button span,
+.app-nav button span {
+  font-size: 12px !important;
+}
+
+.coach-shell-nav button {
+  gap: 6px;
+}
+
+/* More/Profile rows need room for multiline descriptions. */
+.more-destination {
+  min-height: 72px;
+  padding-top: 14px;
+  padding-bottom: 14px;
+}
+
+.more-destination-copy small {
+  margin-top: 5px;
+  overflow: visible;
+  white-space: normal;
+  text-overflow: clip;
+}
+
+/* Movement and workout metadata */
+.muscle-pill,
+.focus-index,
+.lift-current-label,
+.lift-pr-preview,
+.session-pr-list span,
+.session-pr-list strong {
+  font-size: 12px !important;
+}
+
+/* Improve secondary contrast. */
+.more-destination-copy small,
+.coach-client-copy span,
+.coach-hub-page-header p,
+.onboarding-copy,
+.mobility-flow-preferences p,
+.session-context-card p,
+.sprint5-exercise-breakdown span {
+  color: #928b82 !important;
+}
+
+.coach-coming-soon-button {
+  opacity: .65;
+  cursor: not-allowed;
+}
+
+@media (max-width: 520px) {
+  body {
+    font-size: 15px;
+  }
+
+  .more-section-heading {
+    align-items: center;
+  }
+
+  .more-section-heading small {
+    display: block;
+    text-align: right;
+  }
+}

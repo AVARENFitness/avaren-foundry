@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import AppShell from './components/AppShell'
 import CoachShell from './components/CoachShell'
+import { isCoachAccount } from './config/coachAccess'
 import HomeScreen from './screens/HomeScreen'
 import GymScreen from './screens/GymScreen'
 import ProgressScreen from './screens/ProgressScreen'
@@ -1243,6 +1244,10 @@ function App() {
   }
 
   const enterCoachMode = () => {
+    if (!isCoachAccount(session)) {
+      return
+    }
+
     setCoachWorkspace((current) => ({
       ...current,
       role: 'coach',
@@ -1477,7 +1482,10 @@ function App() {
       )
     }
 
-    if (screen === 'coach-hub') {
+    if (
+      screen === 'coach-hub' &&
+      isCoachAccount(session)
+    ) {
       return (
         <CoachScreen
           workspace={
@@ -1573,6 +1581,9 @@ function App() {
           coachRole={
             state.coachWorkspace?.role ??
             'athlete'
+          }
+          coachAccessEnabled={
+            isCoachAccount(session)
           }
           onEnterCoachMode={enterCoachMode}
         />
@@ -1703,7 +1714,10 @@ function App() {
     )
   }
 
-  if (screen === 'coach-hub') {
+  if (
+    screen === 'coach-hub' &&
+    isCoachAccount(session)
+  ) {
     return (
       <CoachShell
         screen={coachScreen}
