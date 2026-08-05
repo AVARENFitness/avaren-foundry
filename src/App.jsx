@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import AppShell from './components/AppShell'
+import CoachShell from './components/CoachShell'
 import HomeScreen from './screens/HomeScreen'
 import GymScreen from './screens/GymScreen'
 import ProgressScreen from './screens/ProgressScreen'
@@ -84,6 +85,13 @@ const createInitialState = () => ({
     history: [],
     lastShownInsight: null,
   },
+  coachWorkspace: {
+    role: 'athlete',
+    modeEnabled: false,
+    clients: [],
+    invitations: [],
+    assignments: [],
+  },
   readiness: {
     entries: [],
     lastPromptedDate: null,
@@ -110,6 +118,8 @@ const makeSet = (number, type = 'Working') => ({
 
 function App() {
   const [screen, setScreen] = useState('home')
+  const [coachScreen, setCoachScreen] =
+    useState('clients')
   const [state, setState] = useState(() => createInitialState())
   const [activeExercise, setActiveExerciseState] = useState(
     state.activeWorkout?.activeExerciseIndex ?? 0,
@@ -1212,6 +1222,52 @@ function App() {
     })
   }
 
+  const setCoachWorkspace = (
+    updater,
+  ) => {
+    setState((current) => ({
+      ...current,
+      coachWorkspace:
+        typeof updater === 'function'
+          ? updater(
+              current.coachWorkspace ?? {
+                role: 'athlete',
+                modeEnabled: false,
+                clients: [],
+                invitations: [],
+                assignments: [],
+              },
+            )
+          : updater,
+    }))
+  }
+
+  const enterCoachMode = () => {
+    setCoachWorkspace((current) => ({
+      ...current,
+      role: 'coach',
+      modeEnabled: true,
+    }))
+    setCoachScreen('clients')
+    setScreen('coach-hub')
+    window.scrollTo({
+      top: 0,
+      behavior: 'auto',
+    })
+  }
+
+  const exitCoachMode = () => {
+    setCoachWorkspace((current) => ({
+      ...current,
+      modeEnabled: false,
+    }))
+    setScreen('more')
+    window.scrollTo({
+      top: 0,
+      behavior: 'auto',
+    })
+  }
+
   const replayOnboarding = () => {
     setIsReplayingOnboarding(true)
     setShowOnboarding(true)
@@ -1421,12 +1477,20 @@ function App() {
       )
     }
 
-    if (screen === 'coach') {
+    if (screen === 'coach-hub') {
       return (
         <CoachScreen
-          state={state}
-          onClose={() => navigate('more')}
-          onAction={handleCoachAction}
+          workspace={
+            state.coachWorkspace ?? {
+              role: 'coach',
+              modeEnabled: true,
+              clients: [],
+              invitations: [],
+              assignments: [],
+            }
+          }
+          setWorkspace={setCoachWorkspace}
+          screen={coachScreen}
         />
       )
     }
@@ -1477,7 +1541,7 @@ function App() {
           onOpenPlanner={() => navigate('planner')}
           onOpenHistory={() => navigate('history')}
           onOpenForge={() => navigate('forge')}
-          onOpenCoach={() => navigate('coach')}
+          onOpenCoach={enterCoachMode}
           onOpenNotifications={() =>
             navigate('notifications')
           }
@@ -1506,6 +1570,11 @@ function App() {
           }
           onReplayTour={replayOnboarding}
           session={session}
+          coachRole={
+            state.coachWorkspace?.role ??
+            'athlete'
+          }
+          onEnterCoachMode={enterCoachMode}
         />
       )
     }
@@ -1622,6 +1691,25 @@ function App() {
           setIsReplayingOnboarding(false)
         }}
       />
+    )
+  }
+
+  if (screen === 'coach-hub') {
+    return (
+      <CoachShell
+        screen={coachScreen}
+        setScreen={setCoachScreen}
+        coachName={
+          session?.user?.user_metadata
+            ?.display_name ||
+          session?.user?.email
+            ?.split('@')[0] ||
+          'Coach'
+        }
+        onExit={exitCoachMode}
+      >
+        {activeScreen}
+      </CoachShell>
     )
   }
 

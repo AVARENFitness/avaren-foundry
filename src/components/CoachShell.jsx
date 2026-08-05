@@ -1,0 +1,73 @@
+import {
+  ClipboardList,
+  LogOut,
+  Settings2,
+  Users,
+} from 'lucide-react'
+
+const tabs = [
+  {
+    id: 'clients',
+    label: 'Clients',
+    Icon: Users,
+  },
+  {
+    id: 'assignments',
+    label: 'Assignments',
+    Icon: ClipboardList,
+  },
+  {
+    id: 'settings',
+    label: 'Coach',
+    Icon: Settings2,
+  },
+]
+
+export default function CoachShell({
+  screen,
+  setScreen,
+  children,
+  coachName,
+  onExit,
+}) {
+  return (
+    <div className="coach-shell">
+      <header className="coach-shell-header">
+        <div>
+          <span className="eyebrow">
+            AVAREN COACH
+          </span>
+          <strong>{coachName}</strong>
+        </div>
+
+        <button onClick={onExit}>
+          <LogOut size={16} />
+          Athlete App
+        </button>
+      </header>
+
+      <main className="coach-shell-main">
+        {children}
+      </main>
+
+      <nav className="coach-shell-nav">
+        {tabs.map(
+          ({ id, label, Icon }) => (
+            <button
+              key={id}
+              className={
+                screen === id
+                  ? 'active'
+                  : ''
+              }
+              onClick={() => setScreen(id)}
+            >
+              <Icon size={20} />
+              <span>{label}</span>
+            </button>
+          ),
+        )}
+      </nav>
+    </div>
+  )
+}

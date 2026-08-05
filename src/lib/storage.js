@@ -40,6 +40,22 @@ const normalizeState = (value, fallback) => ({
     ...(fallback.onboarding ?? {}),
     ...(value?.onboarding ?? {}),
   },
+  coachWorkspace: {
+    ...(fallback.coachWorkspace ?? {}),
+    ...(value?.coachWorkspace ?? {}),
+    clients:
+      value?.coachWorkspace?.clients ??
+      fallback.coachWorkspace?.clients ??
+      [],
+    invitations:
+      value?.coachWorkspace?.invitations ??
+      fallback.coachWorkspace?.invitations ??
+      [],
+    assignments:
+      value?.coachWorkspace?.assignments ??
+      fallback.coachWorkspace?.assignments ??
+      [],
+  },
   lastSavedAt: value?.lastSavedAt ?? null,
 })
 

@@ -12343,3 +12343,413 @@ button:active {
     padding: 46px 0;
   }
 }
+
+
+/* ===== SPRINT 6.0B · COACH-FIRST HUB FOUNDATION ===== */
+
+.coach-shell {
+  min-height: 100dvh;
+  background:
+    radial-gradient(
+      circle at 50% -10%,
+      rgba(160,120,69,.12),
+      transparent 28%
+    ),
+    #080a0d;
+  color: #f0e8d9;
+}
+
+.coach-shell-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding:
+    max(16px,env(safe-area-inset-top))
+    16px
+    13px;
+  border-bottom: 1px solid rgba(216,184,109,.1);
+  background: rgba(8,10,13,.94);
+  backdrop-filter: blur(18px);
+}
+
+.coach-shell-header strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+}
+
+.coach-shell-header button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 11px;
+  border: 1px solid rgba(216,184,109,.12);
+  border-radius: 10px;
+  background: rgba(216,184,109,.025);
+  color: #bda96e;
+  font-size: 8px;
+  font-weight: 850;
+}
+
+.coach-shell-main {
+  width: min(760px,100%);
+  margin: 0 auto;
+  padding: 18px 16px 110px;
+}
+
+.coach-shell-nav {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 30;
+  display: grid;
+  grid-template-columns: repeat(3,1fr);
+  padding:
+    8px
+    14px
+    max(9px,env(safe-area-inset-bottom));
+  border-top: 1px solid rgba(216,184,109,.1);
+  background: rgba(8,10,13,.97);
+  backdrop-filter: blur(18px);
+}
+
+.coach-shell-nav button {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  padding: 8px;
+  border: 0;
+  background: transparent;
+  color: #66615b;
+  font-size: 7px;
+  font-weight: 850;
+}
+
+.coach-shell-nav button.active {
+  color: #ddc57f;
+}
+
+.coach-hub-screen {
+  display: grid;
+  gap: 14px;
+}
+
+.coach-hub-page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.coach-hub-page-header h1 {
+  margin: 7px 0 8px;
+  font-size: clamp(38px,10vw,58px);
+  letter-spacing: -.06em;
+}
+
+.coach-hub-page-header p {
+  max-width: 470px;
+  margin: 0;
+  color: #777068;
+  font-size: 10px;
+  line-height: 1.55;
+}
+
+.coach-hub-count {
+  display: grid;
+  justify-items: center;
+  gap: 3px;
+  min-width: 78px;
+  padding: 13px;
+  border: 1px solid rgba(216,184,109,.13);
+  border-radius: 15px;
+  background: rgba(216,184,109,.025);
+  color: #d6be78;
+}
+
+.coach-hub-count strong {
+  font-size: 22px;
+}
+
+.coach-hub-count span {
+  color: #6e675f;
+  font-size: 7px;
+  text-transform: uppercase;
+}
+
+.coach-invite-card,
+.coach-roster-section,
+.coach-pending-section,
+.coach-settings-card,
+.coach-empty-state {
+  padding: 15px;
+  border: 1px solid rgba(246,242,233,.055);
+  border-radius: 17px;
+  background: rgba(255,255,255,.009);
+}
+
+.coach-invite-card > div:first-child {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.coach-invite-card strong,
+.coach-invite-card span {
+  display: block;
+}
+
+.coach-invite-card strong {
+  font-size: 10px;
+}
+
+.coach-invite-card span {
+  margin-top: 3px;
+  color: #706a63;
+  font-size: 8px;
+}
+
+.coach-invite-form {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  margin-top: 13px;
+}
+
+.coach-invite-form label,
+.coach-client-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 11px;
+  border: 1px solid rgba(246,242,233,.06);
+  border-radius: 11px;
+  background: rgba(5,7,9,.35);
+  color: #777069;
+}
+
+.coach-invite-form input,
+.coach-client-search input {
+  width: 100%;
+  min-height: 40px;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #e6ded1;
+  font: inherit;
+  font-size: 9px;
+}
+
+.coach-invite-form button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 14px;
+  border: 1px solid rgba(216,184,109,.18);
+  border-radius: 11px;
+  background: rgba(216,184,109,.06);
+  color: #dfc67f;
+  font-size: 8px;
+  font-weight: 850;
+}
+
+.coach-hub-notice {
+  margin: 10px 0 0;
+  color: #8eaa94;
+  font-size: 8px;
+  line-height: 1.45;
+}
+
+.coach-roster-section > header,
+.coach-pending-section > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.coach-roster-section h2,
+.coach-pending-section h2 {
+  margin: 5px 0 0;
+  font-size: 21px;
+}
+
+.coach-client-search {
+  max-width: 210px;
+}
+
+.coach-client-list,
+.coach-pending-list,
+.coach-assignment-list {
+  display: grid;
+  gap: 7px;
+}
+
+.coach-client-list article,
+.coach-pending-list article,
+.coach-assignment-list article {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 11px;
+  padding: 11px;
+  border: 1px solid rgba(246,242,233,.045);
+  border-radius: 12px;
+  background: rgba(5,7,9,.27);
+}
+
+.coach-client-avatar {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  background: rgba(216,184,109,.07);
+  color: #dec67f;
+  font-weight: 900;
+}
+
+.coach-client-copy strong,
+.coach-client-copy span {
+  display: block;
+}
+
+.coach-client-copy strong {
+  font-size: 10px;
+}
+
+.coach-client-copy span {
+  margin-top: 3px;
+  color: #6c665f;
+  font-size: 8px;
+}
+
+.coach-client-status {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #605b55;
+}
+
+.coach-client-status span {
+  padding: 5px 7px;
+  border-radius: 999px;
+  background: rgba(93,155,112,.07);
+  color: #8eaf98;
+  font-size: 7px;
+  font-weight: 850;
+}
+
+.coach-empty-state {
+  display: grid;
+  justify-items: center;
+  text-align: center;
+  color: #847c70;
+}
+
+.coach-empty-state h2 {
+  margin: 10px 0 5px;
+  font-size: 18px;
+}
+
+.coach-empty-state p {
+  max-width: 320px;
+  margin: 0;
+  font-size: 9px;
+  line-height: 1.5;
+}
+
+.coach-empty-state.compact {
+  padding: 24px 14px;
+}
+
+.coach-pending-list article {
+  grid-template-columns: 1fr auto;
+}
+
+.coach-pending-list article > div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.coach-pending-list span {
+  color: #b8afa2;
+  font-size: 9px;
+}
+
+.coach-pending-list small {
+  color: #80786e;
+  font-size: 7px;
+}
+
+.coach-pending-list button {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 0;
+  background: transparent;
+  color: #8d6f69;
+}
+
+.coach-settings-card {
+  display: grid;
+  gap: 8px;
+}
+
+.coach-settings-card article {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 11px;
+  border: 1px solid rgba(246,242,233,.045);
+  border-radius: 11px;
+}
+
+.coach-settings-card span {
+  color: #777068;
+  font-size: 8px;
+}
+
+.coach-settings-card strong {
+  color: #dbc580;
+  font-size: 10px;
+}
+
+@media (max-width: 560px) {
+  .coach-hub-page-header {
+    display: grid;
+  }
+
+  .coach-hub-count {
+    grid-template-columns: auto auto auto;
+    justify-content: start;
+    width: max-content;
+  }
+
+  .coach-invite-form {
+    grid-template-columns: 1fr;
+  }
+
+  .coach-invite-form button {
+    justify-content: center;
+    min-height: 42px;
+  }
+
+  .coach-roster-section > header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .coach-client-search {
+    max-width: none;
+  }
+}

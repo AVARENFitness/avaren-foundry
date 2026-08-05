@@ -1,229 +1,423 @@
 import {
-  ArrowLeft,
-  ArrowRight,
-  BrainCircuit,
-  Dumbbell,
-  Flame,
-  LineChart,
-  Route,
-  Sparkles,
-  Sunrise,
-  Wind,
+  CalendarClock,
+  Check,
+  ChevronRight,
+  ClipboardList,
+  Mail,
+  MoreHorizontal,
+  Search,
+  Send,
+  UserPlus,
+  Users,
+  X,
 } from 'lucide-react'
 import { useMemo, useState } from 'react'
-import {
-  COACH_ACTIONS,
-  COACH_CATEGORIES,
-  coachSnapshot,
-} from '../lib/coach'
 
-const FILTERS = [
-  ['all', 'All'],
-  [COACH_CATEGORIES.RECOVERY, 'Recovery'],
-  [COACH_CATEGORIES.CONSISTENCY, 'Consistency'],
-  [COACH_CATEGORIES.STRENGTH, 'Strength'],
-  [COACH_CATEGORIES.PROGRAMMING, 'Programming'],
-  [COACH_CATEGORIES.MILESTONE, 'Milestones'],
-  [COACH_CATEGORIES.MOMENTUM, 'Momentum'],
-]
-
-const CATEGORY_META = {
-  [COACH_CATEGORIES.RECOVERY]: {
-    label: 'Recovery',
-    icon: Wind,
-    className: 'recovery',
-  },
-  [COACH_CATEGORIES.CONSISTENCY]: {
-    label: 'Consistency',
-    icon: Flame,
-    className: 'consistency',
-  },
-  [COACH_CATEGORIES.STRENGTH]: {
-    label: 'Strength',
-    icon: LineChart,
-    className: 'strength',
-  },
-  [COACH_CATEGORIES.PROGRAMMING]: {
-    label: 'Programming',
-    icon: Route,
-    className: 'programming',
-  },
-  [COACH_CATEGORIES.MILESTONE]: {
-    label: 'Milestone',
-    icon: Sparkles,
-    className: 'milestone',
-  },
-  [COACH_CATEGORIES.MOMENTUM]: {
-    label: 'Momentum',
-    icon: Dumbbell,
-    className: 'momentum',
-  },
-}
-
-const ACTION_ICONS = {
-  [COACH_ACTIONS.START_RESET]: Sunrise,
-  [COACH_ACTIONS.START_RECOVERY]: Wind,
-  [COACH_ACTIONS.START_WORKOUT]: Dumbbell,
-  [COACH_ACTIONS.OPEN_PROGRESS]: LineChart,
-  [COACH_ACTIONS.OPEN_JOURNEY]: Route,
-}
-
-function CoachInsightCard({ insight, onAction }) {
-  const meta =
-    CATEGORY_META[insight.category] ??
-    CATEGORY_META[COACH_CATEGORIES.MOMENTUM]
-  const Icon = meta.icon
-  const ActionIcon =
-    ACTION_ICONS[insight.action] ?? ArrowRight
-
-  return (
-    <article className={`coach-center-card ${meta.className}`}>
-      <header>
-        <div className="coach-center-icon">
-          <Icon size={20} />
-        </div>
-        <div>
-          <span>{meta.label}</span>
-          <small>Priority {Math.round(insight.priority)}</small>
-        </div>
-      </header>
-
-      <h3>{insight.title}</h3>
-      <p>{insight.description}</p>
-
-      {insight.evidence?.length > 0 && (
-        <div className="coach-center-evidence">
-          {insight.evidence.slice(0, 4).map((item) => (
-            <span key={item}>{item}</span>
-          ))}
-        </div>
-      )}
-
-      {insight.action !== COACH_ACTIONS.NONE &&
-        insight.actionLabel && (
-          <button onClick={() => onAction?.(insight.action)}>
-            <ActionIcon size={16} />
-            {insight.actionLabel}
-            <ArrowRight size={16} />
-          </button>
-        )}
-    </article>
-  )
-}
+const statusLabel = (status) =>
+  status === 'accepted'
+    ? 'Active'
+    : status === 'declined'
+    ? 'Declined'
+    : 'Pending'
 
 export default function CoachScreen({
-  state,
-  onClose,
-  onAction,
+  workspace,
+  setWorkspace,
+  screen = 'clients',
 }) {
-  const [filter, setFilter] = useState('all')
+  const [query, setQuery] =
+    useState('')
+  const [inviteEmail, setInviteEmail] =
+    useState('')
+  const [notice, setNotice] =
+    useState('')
 
-  const snapshot = useMemo(
-    () =>
-      coachSnapshot(state, {
-        limit: 20,
-        cooldownDays: 0,
-      }),
-    [state],
-  )
+  const clients =
+    workspace?.clients ?? []
+  const invitations =
+    workspace?.invitations ?? []
+  const assignments =
+    workspace?.assignments ?? []
 
-  const visible = useMemo(
+  const visibleClients = useMemo(
     () =>
-      filter === 'all'
-        ? snapshot.all
-        : snapshot.all.filter(
-            (insight) => insight.category === filter,
+      clients.filter((client) =>
+        `${client.name} ${client.email}`
+          .toLowerCase()
+          .includes(
+            query.trim().toLowerCase(),
           ),
-    [snapshot.all, filter],
+      ),
+    [clients, query],
   )
 
-  const categoryCount = (category) =>
-    snapshot.all.filter(
-      (insight) => insight.category === category,
-    ).length
+  const invite = () => {
+    const email =
+      inviteEmail.trim().toLowerCase()
+
+    if (
+      !email ||
+      !email.includes('@')
+    ) {
+      setNotice(
+        'Enter a valid email address.',
+      )
+      return
+    }
+
+    if (
+      invitations.some(
+        (item) =>
+          item.email === email &&
+          item.status === 'pending',
+      )
+    ) {
+      setNotice(
+        'That invitation is already pending.',
+      )
+      return
+    }
+
+    const invitation = {
+      id: crypto.randomUUID(),
+      email,
+      status: 'pending',
+      createdAt:
+        new Date().toISOString(),
+    }
+
+    setWorkspace((current) => ({
+      ...current,
+      invitations: [
+        invitation,
+        ...(current.invitations ?? []),
+      ],
+    }))
+
+    setInviteEmail('')
+    setNotice(
+      'Invitation saved. Email delivery and athlete acceptance are enabled in the next Coach Hub sprint.',
+    )
+  }
+
+  if (screen === 'assignments') {
+    return (
+      <section className="coach-hub-screen">
+        <header className="coach-hub-page-header">
+          <div>
+            <span className="eyebrow">
+              PROGRAM DELIVERY
+            </span>
+            <h1>Assignments</h1>
+            <p>
+              Workouts and weekly plans
+              assigned to connected clients
+              will live here.
+            </p>
+          </div>
+
+          <button
+            className="gold-button machined"
+            disabled
+          >
+            <ClipboardList size={17} />
+            New Assignment
+          </button>
+        </header>
+
+        {assignments.length ? (
+          <div className="coach-assignment-list">
+            {assignments.map(
+              (assignment) => (
+                <article
+                  key={assignment.id}
+                >
+                  <div>
+                    <strong>
+                      {assignment.title}
+                    </strong>
+                    <span>
+                      {assignment.clientName}
+                    </span>
+                  </div>
+
+                  <small>
+                    {assignment.status}
+                  </small>
+                </article>
+              ),
+            )}
+          </div>
+        ) : (
+          <section className="coach-empty-state">
+            <ClipboardList size={28} />
+            <h2>No assignments yet.</h2>
+            <p>
+              Workout and weekly-plan
+              assignment is the next phase.
+            </p>
+          </section>
+        )}
+      </section>
+    )
+  }
+
+  if (screen === 'settings') {
+    return (
+      <section className="coach-hub-screen">
+        <header className="coach-hub-page-header">
+          <div>
+            <span className="eyebrow">
+              COACH WORKSPACE
+            </span>
+            <h1>Coach settings</h1>
+            <p>
+              This mode is intentionally
+              focused on coaching only.
+            </p>
+          </div>
+        </header>
+
+        <section className="coach-settings-card">
+          <article>
+            <span>Workspace status</span>
+            <strong>Coach Mode active</strong>
+          </article>
+
+          <article>
+            <span>Connected clients</span>
+            <strong>
+              {clients.length}
+            </strong>
+          </article>
+
+          <article>
+            <span>Pending invitations</span>
+            <strong>
+              {
+                invitations.filter(
+                  (item) =>
+                    item.status ===
+                    'pending',
+                ).length
+              }
+            </strong>
+          </article>
+        </section>
+      </section>
+    )
+  }
 
   return (
-    <section className="coach-center-screen">
-      <header className="builder-header">
-        <button className="builder-back" onClick={onClose}>
-          <ArrowLeft size={18} /> Back
-        </button>
+    <section className="coach-hub-screen">
+      <header className="coach-hub-page-header">
         <div>
-          <span className="eyebrow">TRAINING INTELLIGENCE</span>
-          <h1>AVAREN Coach</h1>
-        </div>
-      </header>
-
-      <section className="coach-center-hero">
-        <div className="coach-center-hero-icon">
-          <BrainCircuit size={28} />
-        </div>
-        <div>
-          <span className="eyebrow">QUIET GUIDANCE</span>
-          <h2>
-            {snapshot.all.length
-              ? `${snapshot.all.length} current insight${
-                  snapshot.all.length === 1 ? '' : 's'
-                }.`
-              : 'Your coach is learning.'}
-          </h2>
+          <span className="eyebrow">
+            CLIENT MANAGEMENT
+          </span>
+          <h1>Coach Hub</h1>
           <p>
-            Guidance is ranked from your workouts, recovery,
-            consistency, strength trends, and milestones.
+            Invite athletes, manage your
+            roster, and prepare assignments
+            from one focused workspace.
           </p>
         </div>
 
-        {snapshot.primary && (
-          <div className="coach-center-primary">
-            <span>Highest priority today</span>
-            <strong>{snapshot.primary.title}</strong>
-            <small>
-              {CATEGORY_META[snapshot.primary.category]?.label ??
-                'Coach'}
-            </small>
+        <div className="coach-hub-count">
+          <Users size={18} />
+          <strong>
+            {clients.length}
+          </strong>
+          <span>clients</span>
+        </div>
+      </header>
+
+      <section className="coach-invite-card">
+        <div>
+          <UserPlus size={20} />
+          <div>
+            <strong>
+              Invite an athlete
+            </strong>
+            <span>
+              Use the email on their
+              AVAREN account.
+            </span>
           </div>
+        </div>
+
+        <div className="coach-invite-form">
+          <label>
+            <Mail size={15} />
+            <input
+              type="email"
+              value={inviteEmail}
+              onChange={(event) =>
+                setInviteEmail(
+                  event.target.value,
+                )
+              }
+              placeholder="athlete@email.com"
+              onKeyDown={(event) => {
+                if (
+                  event.key === 'Enter'
+                ) {
+                  invite()
+                }
+              }}
+            />
+          </label>
+
+          <button onClick={invite}>
+            <Send size={16} />
+            Invite
+          </button>
+        </div>
+
+        {notice && (
+          <p className="coach-hub-notice">
+            {notice}
+          </p>
         )}
       </section>
 
-      <div className="coach-center-filters">
-        {FILTERS.map(([id, label]) => {
-          const count =
-            id === 'all'
-              ? snapshot.all.length
-              : categoryCount(id)
+      <section className="coach-roster-section">
+        <header>
+          <div>
+            <span className="eyebrow">
+              YOUR ROSTER
+            </span>
+            <h2>Clients</h2>
+          </div>
 
-          return (
-            <button
-              key={id}
-              className={filter === id ? 'active' : ''}
-              onClick={() => setFilter(id)}
-            >
-              {label}
-              <span>{count}</span>
-            </button>
-          )
-        })}
-      </div>
+          <label className="coach-client-search">
+            <Search size={15} />
+            <input
+              value={query}
+              onChange={(event) =>
+                setQuery(
+                  event.target.value,
+                )
+              }
+              placeholder="Search clients"
+            />
+          </label>
+        </header>
 
-      {!visible.length && (
-        <section className="empty-state">
-          <h2>No current insights in this category.</h2>
-          <p>
-            Continue training and recovering to give AVAREN
-            more useful context.
-          </p>
+        {visibleClients.length ? (
+          <div className="coach-client-list">
+            {visibleClients.map(
+              (client) => (
+                <article
+                  key={client.id}
+                >
+                  <div className="coach-client-avatar">
+                    {client.name
+                      .slice(0, 1)
+                      .toUpperCase()}
+                  </div>
+
+                  <div className="coach-client-copy">
+                    <strong>
+                      {client.name}
+                    </strong>
+                    <span>
+                      {client.email}
+                    </span>
+                  </div>
+
+                  <div className="coach-client-status">
+                    <span
+                      className={
+                        client.status
+                      }
+                    >
+                      {statusLabel(
+                        client.status,
+                      )}
+                    </span>
+                    <ChevronRight
+                      size={16}
+                    />
+                  </div>
+                </article>
+              ),
+            )}
+          </div>
+        ) : (
+          <section className="coach-empty-state compact">
+            <Users size={25} />
+            <h2>
+              No connected clients yet.
+            </h2>
+            <p>
+              Invite an athlete above. Once
+              accepted, they will appear
+              here.
+            </p>
+          </section>
+        )}
+      </section>
+
+      {invitations.length > 0 && (
+        <section className="coach-pending-section">
+          <header>
+            <div>
+              <span className="eyebrow">
+                INVITATIONS
+              </span>
+              <h2>Pending</h2>
+            </div>
+          </header>
+
+          <div className="coach-pending-list">
+            {invitations.map(
+              (inviteItem) => (
+                <article
+                  key={inviteItem.id}
+                >
+                  <div>
+                    <Mail size={16} />
+                    <span>
+                      {inviteItem.email}
+                    </span>
+                  </div>
+
+                  <div>
+                    <small>
+                      {statusLabel(
+                        inviteItem.status,
+                      )}
+                    </small>
+
+                    {inviteItem.status ===
+                      'pending' && (
+                      <button
+                        onClick={() =>
+                          setWorkspace(
+                            (current) => ({
+                              ...current,
+                              invitations:
+                                current.invitations.filter(
+                                  (item) =>
+                                    item.id !==
+                                    inviteItem.id,
+                                ),
+                            }),
+                          )
+                        }
+                        aria-label="Cancel invitation"
+                      >
+                        <X size={15} />
+                      </button>
+                    )}
+                  </div>
+                </article>
+              ),
+            )}
+          </div>
         </section>
       )}
-
-      <div className="coach-center-grid">
-        {visible.map((insight) => (
-          <CoachInsightCard
-            key={insight.fingerprint}
-            insight={insight}
-            onAction={onAction}
-          />
-        ))}
-      </div>
     </section>
   )
 }

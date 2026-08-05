@@ -1,5 +1,6 @@
 import {
   Bell,
+  BriefcaseBusiness,
   BrainCircuit,
   CalendarDays,
   ChevronRight,
@@ -97,6 +98,8 @@ export default function MoreScreen({
   onOpenMobility,
   onOpenReset,
   onReplayTour,
+  coachRole = 'athlete',
+  onEnterCoachMode,
   mobilityTitle = 'Morning Movement',
   mobilityMinutes = 5,
   notificationCount = 0,
@@ -211,10 +214,18 @@ export default function MoreScreen({
           />
 
           <MoreItem
-            icon={BrainCircuit}
-            title="AVAREN Coach"
-            description="Training guidance from your data"
-            onClick={onOpenCoach}
+            icon={BriefcaseBusiness}
+            title="Coach Mode"
+            description="Manage clients and assignments"
+            detail={
+              coachRole === 'coach'
+                ? 'Enabled'
+                : 'Set up'
+            }
+            onClick={
+              onEnterCoachMode ??
+              onOpenCoach
+            }
           />
 
           <MoreItem
