@@ -1,370 +1,55 @@
-import {
-  CalendarDays,
-  ClipboardList,
-  Mail,
-  Search,
-  Send,
-  UserPlus,
-  Users,
-  X,
-} from 'lucide-react'
+import { Activity, CalendarDays, CheckCircle2, ChevronRight, ClipboardList, Mail, Search, Send, TrendingUp, UserPlus, Users, X } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { coachBackend } from '../lib/coachBackend'
+import SectionHeader from '../components/ui/SectionHeader'
+import StatCard from '../components/ui/StatCard'
+import EmptyState from '../components/ui/EmptyState'
 
-export default function CoachScreen({
-  workspace,
-  setWorkspace,
-  screen = 'clients',
-  program,
-}) {
-  const [clients, setClients] = useState([])
-  const [invitations, setInvitations] = useState([])
-  const [assignments, setAssignments] = useState([])
-  const [query, setQuery] = useState('')
-  const [inviteEmail, setInviteEmail] = useState('')
-  const [notice, setNotice] = useState('')
-  const [loading, setLoading] = useState(true)
-  const [showAssignment, setShowAssignment] = useState(false)
-  const [assignment, setAssignment] = useState({
-    athleteId: '',
-    workoutName: program?.rotation?.[0] ?? '',
-    dueDate: '',
-    coachNotes: '',
-  })
+const today = () => new Date().toISOString().slice(0,10)
+const formatDate = (value) => value ? new Date(`${value}T12:00:00`).toLocaleDateString([], { month:'short', day:'numeric' }) : 'No due date'
+const initials = (email='A') => email.slice(0,1).toUpperCase()
 
-  const load = async () => {
-    setLoading(true)
+export default function CoachScreen({ workspace, setWorkspace, screen='clients', program }) {
+  const [clients,setClients]=useState([]), [invitations,setInvitations]=useState([]), [assignments,setAssignments]=useState([])
+  const [query,setQuery]=useState(''), [inviteEmail,setInviteEmail]=useState(''), [notice,setNotice]=useState(''), [loading,setLoading]=useState(true)
+  const [showAssignment,setShowAssignment]=useState(false), [selectedClient,setSelectedClient]=useState(null), [clientNotes,setClientNotes]=useState('')
+  const [assignment,setAssignment]=useState({athleteId:'',workoutName:program?.rotation?.[0]??'',dueDate:'',coachNotes:'',priority:'normal'})
+  const load=async()=>{setLoading(true);try{const [c,i,a]=await Promise.all([coachBackend.listClients(),coachBackend.listCoachInvitations(),coachBackend.listCoachAssignments()]);setClients(c);setInvitations(i);setAssignments(a);setWorkspace((w)=>({...w,clients:c,invitations:i,assignments:a}));setNotice('')}catch(e){setNotice(e.message)}finally{setLoading(false)}}
+  useEffect(()=>{load()},[])
+  const visibleClients=useMemo(()=>clients.filter(c=>c.athlete_email.toLowerCase().includes(query.trim().toLowerCase())),[clients,query])
+  const pending=invitations.filter(i=>i.status==='pending').length
+  const dueToday=assignments.filter(a=>a.due_date===today() && ['assigned','started'].includes(a.status)).length
+  const completed=assignments.filter(a=>a.status==='completed').length
+  const adherence=assignments.length ? Math.round(completed/assignments.length*100) : 0
+  const recentActivity=[...assignments].filter(a=>a.status==='completed').sort((a,b)=>new Date(b.completed_at)-new Date(a.completed_at)).slice(0,5)
+  const invite=async()=>{const email=inviteEmail.trim().toLowerCase();if(!email.includes('@'))return setNotice('Enter a valid athlete email.');try{await coachBackend.inviteAthlete(email);setInviteEmail('');setNotice('Invitation sent.');await load()}catch(e){setNotice(e.message)}}
+  const createAssignment=async()=>{const workout=program?.workouts?.[assignment.workoutName];if(!assignment.athleteId||!workout)return setNotice('Select a connected client and workout.');try{await coachBackend.createAssignment({athleteId:assignment.athleteId,title:assignment.workoutName,workout:{name:assignment.workoutName,exercises:workout},coachNotes:assignment.coachNotes,dueDate:assignment.dueDate,priority:assignment.priority});setShowAssignment(false);setNotice('Workout assigned.');await load()}catch(e){setNotice(e.message)}}
+  const openClient=async(client)=>{setSelectedClient(client);try{const note=await coachBackend.getClientNotes(client.athlete_id);setClientNotes(note?.notes??'')}catch{setClientNotes('')}}
+  const clientAssignments=selectedClient?assignments.filter(a=>a.athlete_id===selectedClient.athlete_id):[]
 
-    try {
-      const [nextClients, nextInvitations, nextAssignments] =
-        await Promise.all([
-          coachBackend.listClients(),
-          coachBackend.listCoachInvitations(),
-          coachBackend.listCoachAssignments(),
-        ])
+  if(selectedClient){return <section className="coach-hub-screen"><button className="coach-back-link" onClick={()=>setSelectedClient(null)}>← Back to clients</button>
+    <header className="coach-client-profile-hero"><div className="coach-client-avatar large">{initials(selectedClient.athlete_email)}</div><div><span className="eyebrow">CLIENT PROFILE</span><h1>{selectedClient.athlete_email}</h1><p>Connected since {new Date(selectedClient.created_at).toLocaleDateString()}</p></div></header>
+    <div className="coach-dashboard-grid"><StatCard icon={ClipboardList} label="Assignments" value={clientAssignments.length}/><StatCard icon={CheckCircle2} label="Completed" value={clientAssignments.filter(a=>a.status==='completed').length}/><StatCard icon={TrendingUp} label="Adherence" value={`${clientAssignments.length?Math.round(clientAssignments.filter(a=>a.status==='completed').length/clientAssignments.length*100):0}%`}/></div>
+    <section className="coach-profile-panel"><SectionHeader eyebrow="COACH NOTES" title="Private observations" description="Visible only in your Coach Hub."/><textarea rows={5} value={clientNotes} onChange={e=>setClientNotes(e.target.value)} placeholder="Goals, limitations, check-in notes, programming context…"/><button className="gold-button machined" onClick={async()=>{await coachBackend.saveClientNotes(selectedClient.athlete_id,clientNotes);setNotice('Client notes saved.')}}>Save Notes</button></section>
+    <section className="coach-profile-panel"><SectionHeader eyebrow="ASSIGNMENTS" title="Client activity"/>{clientAssignments.length?clientAssignments.map(a=><article className="coach-review-card" key={a.id}><div><strong>{a.title}</strong><span>{a.status} · {formatDate(a.due_date)}</span></div>{a.completion_summary&&<div className="coach-review-metrics"><span>{a.completion_summary.durationMinutes??'—'} min</span><span>{Number(a.completion_summary.volume??0).toLocaleString()} lb</span><span>{a.completion_summary.sets??0} sets</span></div>}</article>):<EmptyState icon={ClipboardList} title="No assignments" description="Assign this client a workout from the Assignments tab."/>}</section>
+    {notice&&<p className="coach-hub-notice">{notice}</p>}</section>}
 
-      setClients(nextClients)
-      setInvitations(nextInvitations)
-      setAssignments(nextAssignments)
-      setWorkspace((current) => ({
-        ...current,
-        clients: nextClients,
-        invitations: nextInvitations,
-        assignments: nextAssignments,
-      }))
-      setNotice('')
-    } catch (error) {
-      setNotice(error.message)
-    } finally {
-      setLoading(false)
-    }
-  }
+  if(screen==='assignments') return <section className="coach-hub-screen"><SectionHeader eyebrow="PROGRAM DELIVERY" title="Assignments" description="Create, track, and review client workouts." action={<button className="gold-button machined" disabled={!clients.length} onClick={()=>setShowAssignment(true)}><ClipboardList size={17}/>New Assignment</button>}/>
+    {!clients.length&&<p className="coach-hub-notice">Connect a client before creating an assignment.</p>}
+    {showAssignment&&<section className="coach-assignment-composer"><header><div><span className="eyebrow">NEW ASSIGNMENT</span><h2>Assign a workout</h2></div><button onClick={()=>setShowAssignment(false)}><X size={18}/></button></header>
+      <label><span>Client</span><select value={assignment.athleteId} onChange={e=>setAssignment(v=>({...v,athleteId:e.target.value}))}><option value="">Select client</option>{clients.map(c=><option key={c.id} value={c.athlete_id}>{c.athlete_email}</option>)}</select></label>
+      <label><span>Workout</span><select value={assignment.workoutName} onChange={e=>setAssignment(v=>({...v,workoutName:e.target.value}))}>{(program?.rotation??[]).map(n=><option key={n}>{n}</option>)}</select></label>
+      <div className="coach-composer-grid"><label><span>Due date</span><input type="date" value={assignment.dueDate} onChange={e=>setAssignment(v=>({...v,dueDate:e.target.value}))}/></label><label><span>Priority</span><select value={assignment.priority} onChange={e=>setAssignment(v=>({...v,priority:e.target.value}))}><option value="normal">Normal</option><option value="high">High</option><option value="optional">Optional</option></select></label></div>
+      <label><span>Coach notes</span><textarea rows={4} value={assignment.coachNotes} onChange={e=>setAssignment(v=>({...v,coachNotes:e.target.value}))} placeholder="Technique cues, effort target, substitutions, or anything the athlete should know."/></label><button className="gold-button machined" onClick={createAssignment}><Send size={17}/>Assign Workout</button></section>}
+    {notice&&<p className="coach-hub-notice">{notice}</p>}
+    {assignments.length?<div className="coach-assignment-list">{assignments.map(a=><article className={`priority-${a.priority??'normal'}`} key={a.id}><div><strong>{a.title}</strong><span>{clients.find(c=>c.athlete_id===a.athlete_id)?.athlete_email??a.athlete_id} · {formatDate(a.due_date)}</span></div><small>{a.status}</small></article>)}</div>:<EmptyState icon={ClipboardList} title="No assignments yet" description="Accepted clients will be available for assignment here."/>}</section>
 
-  useEffect(() => {
-    load()
-  }, [])
+  if(screen==='settings') return <section className="coach-hub-screen"><SectionHeader eyebrow="COACH WORKSPACE" title="Coach settings" description="Database-backed access and private client relationships are active."/><section className="coach-settings-card"><article><span>Connected clients</span><strong>{clients.length}</strong></article><article><span>Pending invitations</span><strong>{pending}</strong></article><article><span>Assignments</span><strong>{assignments.length}</strong></article></section>{notice&&<p className="coach-hub-notice">{notice}</p>}</section>
 
-  const visibleClients = useMemo(
-    () =>
-      clients.filter((client) =>
-        client.athlete_email
-          .toLowerCase()
-          .includes(query.trim().toLowerCase()),
-      ),
-    [clients, query],
-  )
-
-  const invite = async () => {
-    const email = inviteEmail.trim().toLowerCase()
-
-    if (!email.includes('@')) {
-      setNotice('Enter a valid athlete email.')
-      return
-    }
-
-    try {
-      await coachBackend.inviteAthlete(email)
-      setInviteEmail('')
-      setNotice('Invitation sent.')
-      await load()
-    } catch (error) {
-      setNotice(error.message)
-    }
-  }
-
-  const createAssignment = async () => {
-    const workout = program?.workouts?.[assignment.workoutName]
-
-    if (!assignment.athleteId || !workout) {
-      setNotice('Select a connected client and workout.')
-      return
-    }
-
-    try {
-      await coachBackend.createAssignment({
-        athleteId: assignment.athleteId,
-        title: assignment.workoutName,
-        workout: {
-          name: assignment.workoutName,
-          exercises: workout,
-        },
-        coachNotes: assignment.coachNotes,
-        dueDate: assignment.dueDate,
-      })
-
-      setShowAssignment(false)
-      setNotice('Workout assigned.')
-      await load()
-    } catch (error) {
-      setNotice(error.message)
-    }
-  }
-
-  if (screen === 'assignments') {
-    return (
-      <section className="coach-hub-screen">
-        <header className="coach-hub-page-header">
-          <div>
-            <span className="eyebrow">PROGRAM DELIVERY</span>
-            <h1>Assignments</h1>
-            <p>Send an existing AVAREN workout to any connected client.</p>
-          </div>
-
-          <button
-            className="gold-button machined"
-            disabled={clients.length === 0}
-            onClick={() => setShowAssignment(true)}
-          >
-            <ClipboardList size={17} />
-            New Assignment
-          </button>
-        </header>
-
-        {clients.length === 0 && (
-          <p className="coach-hub-notice">
-            Connect a client before creating an assignment.
-          </p>
-        )}
-
-        {showAssignment && (
-          <section className="coach-assignment-composer">
-            <header>
-              <div>
-                <span className="eyebrow">NEW ASSIGNMENT</span>
-                <h2>Assign a workout</h2>
-              </div>
-              <button onClick={() => setShowAssignment(false)}>
-                <X size={18} />
-              </button>
-            </header>
-
-            <label>
-              <span>Client</span>
-              <select
-                value={assignment.athleteId}
-                onChange={(event) =>
-                  setAssignment((current) => ({
-                    ...current,
-                    athleteId: event.target.value,
-                  }))
-                }
-              >
-                <option value="">Select client</option>
-                {clients.map((client) => (
-                  <option key={client.id} value={client.athlete_id}>
-                    {client.athlete_email}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label>
-              <span>Workout</span>
-              <select
-                value={assignment.workoutName}
-                onChange={(event) =>
-                  setAssignment((current) => ({
-                    ...current,
-                    workoutName: event.target.value,
-                  }))
-                }
-              >
-                {(program?.rotation ?? []).map((name) => (
-                  <option key={name}>{name}</option>
-                ))}
-              </select>
-            </label>
-
-            <label>
-              <span>Due date</span>
-              <input
-                type="date"
-                value={assignment.dueDate}
-                onChange={(event) =>
-                  setAssignment((current) => ({
-                    ...current,
-                    dueDate: event.target.value,
-                  }))
-                }
-              />
-            </label>
-
-            <label>
-              <span>Coach notes</span>
-              <textarea
-                rows={4}
-                value={assignment.coachNotes}
-                onChange={(event) =>
-                  setAssignment((current) => ({
-                    ...current,
-                    coachNotes: event.target.value,
-                  }))
-                }
-                placeholder="Technique cues, effort target, substitutions, or anything the athlete should know."
-              />
-            </label>
-
-            <button className="gold-button machined" onClick={createAssignment}>
-              <Send size={17} />
-              Assign Workout
-            </button>
-          </section>
-        )}
-
-        {notice && <p className="coach-hub-notice">{notice}</p>}
-
-        {assignments.length ? (
-          <div className="coach-assignment-list">
-            {assignments.map((item) => (
-              <article key={item.id}>
-                <div>
-                  <strong>{item.title}</strong>
-                  <span>{item.athlete_id}</span>
-                </div>
-                <small>{item.status}</small>
-              </article>
-            ))}
-          </div>
-        ) : (
-          <section className="coach-empty-state">
-            <ClipboardList size={28} />
-            <h2>No assignments yet.</h2>
-            <p>Accepted clients will be available for assignment here.</p>
-          </section>
-        )}
-      </section>
-    )
-  }
-
-  if (screen === 'settings') {
-    return (
-      <section className="coach-hub-screen">
-        <header className="coach-hub-page-header">
-          <div>
-            <span className="eyebrow">COACH WORKSPACE</span>
-            <h1>Coach settings</h1>
-            <p>Database-backed coach access and private client relationships are active.</p>
-          </div>
-        </header>
-
-        <section className="coach-settings-card">
-          <article><span>Connected clients</span><strong>{clients.length}</strong></article>
-          <article><span>Pending invitations</span><strong>{invitations.filter((item) => item.status === 'pending').length}</strong></article>
-          <article><span>Assignments</span><strong>{assignments.length}</strong></article>
-        </section>
-
-        {notice && <p className="coach-hub-notice">{notice}</p>}
-      </section>
-    )
-  }
-
-  return (
-    <section className="coach-hub-screen">
-      <header className="coach-hub-page-header">
-        <div>
-          <span className="eyebrow">CLIENT MANAGEMENT</span>
-          <h1>Coach Hub</h1>
-          <p>Invite athletes using the email on their AVAREN account.</p>
-        </div>
-
-        <div className="coach-hub-count">
-          <Users size={18} />
-          <strong>{clients.length}</strong>
-          <span>clients</span>
-        </div>
-      </header>
-
-      <section className="coach-invite-card">
-        <div>
-          <UserPlus size={20} />
-          <div>
-            <strong>Invite an athlete</strong>
-            <span>They can accept from Profile.</span>
-          </div>
-        </div>
-
-        <div className="coach-invite-form">
-          <label>
-            <Mail size={15} />
-            <input
-              type="email"
-              value={inviteEmail}
-              onChange={(event) => setInviteEmail(event.target.value)}
-              placeholder="athlete@email.com"
-            />
-          </label>
-          <button onClick={invite}><Send size={16} />Invite</button>
-        </div>
-
-        {notice && <p className="coach-hub-notice">{notice}</p>}
-      </section>
-
-      <section className="coach-roster-section">
-        <header>
-          <div><span className="eyebrow">YOUR ROSTER</span><h2>Clients</h2></div>
-          <label className="coach-client-search">
-            <Search size={15} />
-            <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search clients" />
-          </label>
-        </header>
-
-        {loading ? (
-          <p>Loading clients…</p>
-        ) : visibleClients.length ? (
-          <div className="coach-client-list">
-            {visibleClients.map((client) => (
-              <article key={client.id}>
-                <div className="coach-client-avatar">{client.athlete_email.slice(0,1).toUpperCase()}</div>
-                <div className="coach-client-copy"><strong>{client.athlete_email}</strong><span>Connected athlete</span></div>
-                <CalendarDays size={16} />
-              </article>
-            ))}
-          </div>
-        ) : (
-          <section className="coach-empty-state compact">
-            <Users size={25} /><h2>No connected clients yet.</h2><p>Send an invitation and have the athlete accept it.</p>
-          </section>
-        )}
-      </section>
-
-      {invitations.length > 0 && (
-        <section className="coach-pending-section">
-          <header><div><span className="eyebrow">INVITATIONS</span><h2>Recent</h2></div></header>
-          <div className="coach-pending-list">
-            {invitations.map((item) => (
-              <article key={item.id}>
-                <div><Mail size={16} /><span>{item.athlete_email}</span></div>
-                <div>
-                  <small>{item.status}</small>
-                  {item.status === 'pending' && (
-                    <button onClick={async () => { await coachBackend.cancelInvitation(item.id); await load() }}><X size={15} /></button>
-                  )}
-                </div>
-              </article>
-            ))}
-          </div>
-        </section>
-      )}
-    </section>
-  )
+  return <section className="coach-hub-screen"><header className="coach-hub-page-header"><div><span className="eyebrow">COACH DASHBOARD</span><h1>Coach Hub</h1><p>Your clients, assignments, and recent results in one focused workspace.</p></div></header>
+    <div className="coach-dashboard-grid"><StatCard icon={Users} label="Active clients" value={clients.length}/><StatCard icon={CalendarDays} label="Due today" value={dueToday}/><StatCard icon={Mail} label="Pending invites" value={pending}/><StatCard icon={TrendingUp} label="Adherence" value={`${adherence}%`}/></div>
+    <section className="coach-invite-card"><div><UserPlus size={20}/><div><strong>Invite an athlete</strong><span>Use the email on their AVAREN account.</span></div></div><div className="coach-invite-form"><label><Mail size={15}/><input type="email" value={inviteEmail} onChange={e=>setInviteEmail(e.target.value)} placeholder="athlete@email.com"/></label><button onClick={invite}><Send size={16}/>Invite</button></div>{notice&&<p className="coach-hub-notice">{notice}</p>}</section>
+    <section className="coach-roster-section"><header><div><span className="eyebrow">YOUR ROSTER</span><h2>Clients</h2></div><label className="coach-client-search"><Search size={15}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search clients"/></label></header>{loading?<p>Loading clients…</p>:visibleClients.length?<div className="coach-client-list">{visibleClients.map(c=><button className="coach-client-row" key={c.id} onClick={()=>openClient(c)}><div className="coach-client-avatar">{initials(c.athlete_email)}</div><div className="coach-client-copy"><strong>{c.athlete_email}</strong><span>{assignments.filter(a=>a.athlete_id===c.athlete_id&&['assigned','started'].includes(a.status)).length} active assignments</span></div><ChevronRight size={17}/></button>)}</div>:<EmptyState icon={Users} title="No connected clients yet" description="Send an invitation and have the athlete accept it."/>}</section>
+    <section className="coach-profile-panel"><SectionHeader eyebrow="RECENT ACTIVITY" title="Completed workouts"/>{recentActivity.length?recentActivity.map(a=><article className="coach-review-card" key={a.id}><Activity size={18}/><div><strong>{a.title}</strong><span>{clients.find(c=>c.athlete_id===a.athlete_id)?.athlete_email??'Athlete'} completed {new Date(a.completed_at).toLocaleDateString()}</span></div></article>):<EmptyState icon={Activity} title="No completed workouts yet" description="Completed assignments will appear here for review."/>}</section>
+    {invitations.length>0&&<section className="coach-pending-section"><header><div><span className="eyebrow">INVITATIONS</span><h2>Recent</h2></div></header><div className="coach-pending-list">{invitations.map(i=><article key={i.id}><div><Mail size={16}/><span>{i.athlete_email}</span></div><div><small>{i.status}</small>{i.status==='pending'&&<button onClick={async()=>{await coachBackend.cancelInvitation(i.id);await load()}}><X size={15}/></button>}</div></article>)}</div></section>}</section>
 }

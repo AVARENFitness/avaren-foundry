@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import WorkoutSelector from '../components/WorkoutSelector'
+import AthleteAssignmentHome from '../components/AthleteAssignmentHome'
 import { recentPRs, sessionVolume } from '../lib/metrics'
 
 const DAY_MS = 86400000
@@ -71,6 +72,7 @@ export default function HomeScreen({
   onOpenReset,
   mobilityTitle = 'Morning Movement',
   mobilityMinutes = 7,
+  onStartCoachAssignment,
 }) {
   const [showSelector, setShowSelector] = useState(false)
 
@@ -188,6 +190,11 @@ export default function HomeScreen({
           {readiness?.completed ? 'Review' : 'Complete Check-In'} <ArrowRight size={16} />
         </button>
       </section>
+
+
+      <AthleteAssignmentHome
+        onStartAssignment={onStartCoachAssignment}
+      />
 
       <section className="home-v2-hero">
         <div className="home-v2-orbit one" />

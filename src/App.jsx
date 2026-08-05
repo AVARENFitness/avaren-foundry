@@ -1203,6 +1203,33 @@ function App() {
         .markAssignmentCompleted(
           workout.assignmentId,
           completedSession.id,
+          {
+            durationMinutes: Math.max(
+              1,
+              Math.round(
+                (new Date(completedSession.finishedAt) -
+                  new Date(completedSession.startedAt)) /
+                  60000,
+              ),
+            ),
+            volume: completedSession.sets.reduce(
+              (total, set) =>
+                total +
+                Number(set.weight || 0) *
+                  Number(set.reps || 0),
+              0,
+            ),
+            sets: completedSession.sets.length,
+            exercises: [
+              ...new Set(
+                completedSession.sets.map(
+                  (set) => set.exercise,
+                ),
+              ),
+            ].length,
+            reflection: completedSession.reflection ?? '',
+            notes: completedSession.notes ?? '',
+          },
         )
         .catch((error) => {
           console.error(
@@ -1699,6 +1726,9 @@ function App() {
           onRecommendationRecovery={openDailyReset}
           onOpenMobility={openDailyReset}
           onOpenReset={openHomeReset}
+          onStartCoachAssignment={
+            startCoachAssignment
+          }
           mobilityTitle={adaptiveDailyReset.title}
           mobilityMinutes={Math.max(
             1,

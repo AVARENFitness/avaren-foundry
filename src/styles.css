@@ -13728,3 +13728,88 @@ textarea::placeholder {
 .athlete-assignment-card h3{margin:5px 0}.athlete-assignment-card small{display:inline-flex;align-items:center;gap:6px}
 .coach-assignment-composer label{display:grid;gap:7px}.coach-assignment-composer label>span{font-size:12px;font-weight:850}
 .coach-assignment-composer select,.coach-assignment-composer input,.coach-assignment-composer textarea{width:100%;box-sizing:border-box;padding:12px;border:1px solid rgba(246,242,233,.07);border-radius:12px;background:rgba(5,7,9,.5);color:#e6ded1}
+
+
+/* ===== SPRINT 6.3 · COACH PLATFORM & SHARED UI ===== */
+.ui-section-header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}.ui-section-header h2{margin:6px 0 5px}.ui-section-header p{margin:0;color:#918980;max-width:520px}.ui-stat-card{display:grid;grid-template-columns:auto 1fr;align-items:center;gap:12px;padding:16px;border:1px solid rgba(246,242,233,.07);border-radius:16px;background:rgba(255,255,255,.012)}.ui-stat-icon{display:grid;place-items:center;width:40px;height:40px;border-radius:12px;background:rgba(216,184,109,.06);color:#d8bf79}.ui-stat-card strong,.ui-stat-card span,.ui-stat-card small{display:block}.ui-stat-card strong{font-size:24px;color:#eee4d2}.ui-stat-card span{font-size:12px;color:#8c847a}.ui-empty-state{display:grid;justify-items:center;padding:28px 18px;text-align:center;border:1px dashed rgba(246,242,233,.08);border-radius:16px;color:#8c847a}.ui-empty-state h3{margin:10px 0 5px}.ui-empty-state p{margin:0;max-width:360px}.coach-dashboard-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:9px}.coach-client-row{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:12px;width:100%;padding:12px;border:1px solid rgba(246,242,233,.05);border-radius:13px;background:rgba(5,7,9,.28);color:inherit;text-align:left}.coach-client-avatar.large{width:62px;height:62px;font-size:22px}.coach-client-profile-hero{display:flex;align-items:center;gap:16px;padding:18px;border:1px solid rgba(216,184,109,.12);border-radius:18px;background:rgba(216,184,109,.025)}.coach-client-profile-hero h1{margin:6px 0 4px}.coach-client-profile-hero p{margin:0;color:#8e867d}.coach-back-link{justify-self:start;border:0;background:transparent;color:#c8b477}.coach-profile-panel{display:grid;gap:13px;padding:17px;border:1px solid rgba(246,242,233,.06);border-radius:17px;background:rgba(255,255,255,.009)}.coach-profile-panel textarea{width:100%;box-sizing:border-box;padding:13px;border:1px solid rgba(246,242,233,.07);border-radius:12px;background:#090c0f;color:#eee4d2}.coach-review-card{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px;border:1px solid rgba(246,242,233,.05);border-radius:12px;background:rgba(5,7,9,.27)}.coach-review-card strong,.coach-review-card span{display:block}.coach-review-card span{margin-top:4px;color:#8e867d}.coach-review-metrics{display:flex;gap:8px;flex-wrap:wrap}.coach-review-metrics span{padding:6px 8px;border-radius:999px;background:rgba(216,184,109,.05);color:#cdb879}.coach-composer-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.home-assignment-feature{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:14px;padding:17px;border:1px solid rgba(216,184,109,.18);border-radius:18px;background:radial-gradient(circle at 100% 0%,rgba(216,184,109,.12),transparent 38%),rgba(255,255,255,.012);box-shadow:0 18px 50px rgba(0,0,0,.25)}.home-assignment-icon{display:grid;place-items:center;width:46px;height:46px;border-radius:14px;background:rgba(216,184,109,.08);color:#e1c77f}.home-assignment-copy h2{margin:5px 0}.home-assignment-copy p{margin:0 0 7px}.home-assignment-copy small{display:inline-flex;align-items:center;gap:6px;color:#b7a775}.coach-assignment-list article.priority-high{border-color:rgba(192,108,91,.25)}.athlete-assignment-card.status-completed{opacity:.78}
+@media(max-width:680px){.coach-dashboard-grid{grid-template-columns:repeat(2,1fr)}.coach-composer-grid{grid-template-columns:1fr}.home-assignment-feature{grid-template-columns:auto 1fr}.home-assignment-feature>.gold-button{grid-column:1/-1;width:100%}.ui-section-header{display:grid}}
+
+
+/* ===== SPRINT 6.3.1 · COACH HUB SCROLL FIX ===== */
+
+/*
+  Coach Mode now owns the viewport:
+  header stays visible, the middle area scrolls,
+  and the fixed navigation can never cover the
+  end of the page.
+*/
+.coach-shell {
+  width: min(920px, 100%);
+  height: 100dvh;
+  min-height: 0;
+  margin: 0 auto;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  overflow: hidden;
+}
+
+.coach-shell-header {
+  position: relative;
+  top: auto;
+  flex: 0 0 auto;
+}
+
+.coach-shell-main {
+  width: 100%;
+  min-height: 0;
+  height: 100%;
+  margin: 0;
+  padding:
+    20px
+    18px
+    calc(118px + env(safe-area-inset-bottom));
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  scroll-behavior: smooth;
+  scroll-padding-bottom:
+    calc(118px + env(safe-area-inset-bottom));
+  -webkit-overflow-scrolling: touch;
+}
+
+.coach-hub-screen {
+  min-height: min-content;
+  padding-bottom: 28px;
+}
+
+.coach-hub-screen > :last-child {
+  margin-bottom: 24px;
+}
+
+.coach-shell-nav {
+  width: min(920px, 100%);
+  left: 50%;
+  right: auto;
+  transform: translateX(-50%);
+}
+
+/* Visible breathing room at the end confirms
+   the user has reached the true page bottom. */
+.coach-hub-screen::after {
+  content: '';
+  display: block;
+  height: 24px;
+}
+
+@media (max-width: 560px) {
+  .coach-shell-main {
+    padding:
+      16px
+      14px
+      calc(112px + env(safe-area-inset-bottom));
+  }
+
+  .coach-hub-screen {
+    padding-bottom: 20px;
+  }
+}
