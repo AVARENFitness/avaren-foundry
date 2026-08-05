@@ -12,6 +12,7 @@ import {
   X,
 } from 'lucide-react'
 import { useState } from 'react'
+import PushNotificationSettings from '../components/PushNotificationSettings'
 
 const ICONS = {
   readiness: HeartPulse,
@@ -91,6 +92,8 @@ export default function NotificationScreen({
           <h1>Notifications</h1>
         </div>
       </header>
+
+      <PushNotificationSettings />
 
       <section className="notification-hero">
         <Bell size={26} />

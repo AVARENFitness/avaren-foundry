@@ -13822,3 +13822,17 @@ textarea::placeholder {
 .notification-item.unread{border-color:rgba(216,184,109,.2);background:linear-gradient(135deg,rgba(216,184,109,.055),rgba(255,255,255,.012))}
 .notification-item.unread .notification-item-icon{color:#e3ca83}
 .coach-assignment-list article small{text-transform:capitalize}
+
+
+/* ===== SPRINT 6.4 · PHONE PUSH NOTIFICATIONS ===== */
+.push-settings-card{display:grid;gap:14px;margin-bottom:16px;padding:18px;border:1px solid rgba(216,184,109,.13);border-radius:18px;background:radial-gradient(circle at 100% 0%,rgba(216,184,109,.075),transparent 38%),rgba(255,255,255,.01)}
+.push-settings-card>header{display:grid;grid-template-columns:auto 1fr;align-items:start;gap:12px}
+.push-settings-icon{display:grid;place-items:center;width:42px;height:42px;border:1px solid rgba(216,184,109,.14);border-radius:13px;color:#d8bf78;background:rgba(216,184,109,.03)}
+.push-settings-card h2{margin:5px 0 5px;font-size:20px}
+.push-settings-card p{margin:0;color:#918a81;font-size:13px!important;line-height:1.55!important}
+.push-settings-toggle{display:inline-flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:48px;border:1px solid rgba(216,184,109,.17);border-radius:12px;background:rgba(216,184,109,.045);color:#ddc57f;font-weight:850}
+.push-settings-toggle.enabled{border-color:rgba(91,163,112,.2);background:rgba(91,163,112,.045);color:#9fc2a8}
+.push-settings-toggle:disabled{opacity:.55;cursor:not-allowed}
+.push-settings-state,.push-settings-message{display:flex;align-items:flex-start;gap:8px;padding:11px 12px;border:1px solid rgba(216,184,109,.1);border-radius:11px;color:#a79d8d;font-size:12px;line-height:1.5}
+.push-settings-state.warning{border-color:rgba(190,145,90,.16);background:rgba(190,145,90,.025);color:#bfa67f}
+.push-settings-message{border-color:rgba(91,163,112,.14);background:rgba(91,163,112,.025);color:#96b49e}

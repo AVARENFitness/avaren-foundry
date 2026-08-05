@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import AppShell from './components/AppShell'
 import CoachShell from './components/CoachShell'
 import { isCoachAccount } from './config/coachAccess'
+import { registerPushWorker, syncPushSubscription } from './lib/pushNotifications'
 import { coachBackend } from './lib/coachBackend'
 import {
   assignmentNotificationBackend,
@@ -480,6 +481,30 @@ function App() {
       unsubscribe()
     }
   }, [session?.user?.id, cloudReady])
+
+  useEffect(() => {
+    registerPushWorker().catch((error) => {
+      console.warn('Could not register the push worker:', error)
+    })
+  }, [])
+
+  useEffect(() => {
+    if (!session?.user?.id || !cloudReady) return
+
+    syncPushSubscription().catch((error) => {
+      console.warn('Could not sync the push subscription:', error)
+    })
+  }, [session?.user?.id, cloudReady])
+
+  useEffect(() => {
+    if ('setAppBadge' in navigator) {
+      if (notifications.unreadCount > 0) {
+        navigator.setAppBadge(notifications.unreadCount).catch(() => {})
+      } else {
+        navigator.clearAppBadge?.().catch(() => {})
+      }
+    }
+  }, [notifications.unreadCount])
 
 
   const saveReadinessCheckIn = (values) => {
@@ -1112,6 +1137,49 @@ function App() {
       }))
     })
   }
+
+  useEffect(() => {
+    if (!session?.user?.id || !cloudReady) return undefined
+
+    const openPushUrl = async (rawUrl) => {
+      const url = new URL(rawUrl, window.location.origin)
+      const assignmentId = url.searchParams.get('assignment')
+      const openTarget = url.searchParams.get('open')
+
+      if (assignmentId) {
+        try {
+          const assignment =
+            await coachBackend.getAthleteAssignment(assignmentId)
+          await startCoachAssignment(assignment)
+        } catch (error) {
+          alert(error.message)
+        }
+      } else if (openTarget === 'notifications') {
+        navigate('notifications')
+      }
+
+      window.history.replaceState({}, '', window.location.pathname)
+    }
+
+    const currentUrl = window.location.href
+    if (
+      new URL(currentUrl).searchParams.has('assignment') ||
+      new URL(currentUrl).searchParams.has('open')
+    ) {
+      openPushUrl(currentUrl)
+    }
+
+    const onMessage = (event) => {
+      if (event.data?.type === 'AVAREN_PUSH_OPEN') {
+        openPushUrl(event.data.url)
+      }
+    }
+
+    navigator.serviceWorker?.addEventListener('message', onMessage)
+    return () => {
+      navigator.serviceWorker?.removeEventListener('message', onMessage)
+    }
+  }, [session?.user?.id, cloudReady])
 
   const startWorkout = () => {
     if (state.activeWorkout) {

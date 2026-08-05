@@ -39,7 +39,35 @@ export const coachBackend = {
   },
   async createAssignment({ athleteId, title, workout, coachNotes, dueDate, priority = 'normal' }) {
     const user = await currentUser()
-    return unwrap(supabase.from('coach_assignments').insert({ coach_id: user.id, athlete_id: athleteId, title, workout_payload: workout, coach_notes: coachNotes ?? '', due_date: dueDate || null, priority }).select().single())
+    const assignment = await unwrap(
+      supabase
+        .from('coach_assignments')
+        .insert({
+          coach_id: user.id,
+          athlete_id: athleteId,
+          title,
+          workout_payload: workout,
+          coach_notes: coachNotes ?? '',
+          due_date: dueDate || null,
+          priority,
+        })
+        .select()
+        .single(),
+    )
+
+    const { error: pushError } = await supabase.functions.invoke(
+      'send-assignment-push',
+      { body: { assignmentId: assignment.id } },
+    )
+
+    if (pushError) {
+      console.warn(
+        'Assignment saved, but phone push could not be sent:',
+        pushError,
+      )
+    }
+
+    return assignment
   },
   async listCoachAssignments() {
     const user = await currentUser()
