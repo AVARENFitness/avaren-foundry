@@ -13070,3 +13070,650 @@ textarea {
     text-align: right;
   }
 }
+
+/* ===== SPRINT 6.1 · FOUNDATION DESIGN SYSTEM ===== */
+
+:root {
+  --ui-space-1: 6px;
+  --ui-space-2: 10px;
+  --ui-space-3: 14px;
+  --ui-space-4: 18px;
+  --ui-space-5: 24px;
+  --ui-space-6: 32px;
+  --ui-radius-sm: 12px;
+  --ui-radius-md: 16px;
+  --ui-radius-lg: 22px;
+  --ui-radius-xl: 28px;
+  --ui-surface: rgba(255,255,255,.014);
+  --ui-surface-raised: linear-gradient(145deg,rgba(24,28,34,.97),rgba(12,15,19,.98));
+  --ui-border: rgba(246,242,233,.085);
+  --ui-border-strong: rgba(216,184,109,.18);
+  --ui-text: #f3ecdf;
+  --ui-text-secondary: #aaa297;
+  --ui-text-muted: #827b73;
+  --ui-gold: #d7b96d;
+  --ui-gold-bright: #efd58c;
+  --ui-shadow: 0 22px 64px rgba(0,0,0,.34);
+  --ui-control-height: 50px;
+}
+
+body {
+  color: var(--ui-text);
+  background:
+    radial-gradient(circle at 50% -10%,rgba(199,166,92,.09),transparent 30%),
+    #080a0d;
+}
+
+button,
+input,
+textarea,
+select {
+  font-family: inherit;
+}
+
+button {
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    transform .16s ease,
+    border-color .16s ease,
+    background-color .16s ease,
+    color .16s ease,
+    opacity .16s ease;
+}
+
+button:not(:disabled):active {
+  transform: scale(.985);
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+:focus-visible {
+  outline: 2px solid rgba(239,213,140,.72);
+  outline-offset: 3px;
+}
+
+.screen,
+.coach-shell-main {
+  padding: 20px;
+}
+
+.screen-stage {
+  min-height: calc(100dvh - 170px);
+}
+
+/* Header and primary navigation */
+.app-header {
+  padding:
+    calc(18px + env(safe-area-inset-top))
+    20px
+    17px;
+  border-bottom-color: rgba(246,242,233,.075);
+}
+
+.brand-overline {
+  font-size: 11px;
+}
+
+.brand-title {
+  font-size: 21px;
+}
+
+.brand-subtitle {
+  color: #918a80;
+  font-size: 13px !important;
+}
+
+.status-pill {
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 12px;
+  font-size: 11px !important;
+}
+
+.bottom-nav {
+  padding: 9px 10px calc(10px + env(safe-area-inset-bottom));
+}
+
+.bottom-nav button {
+  min-height: 58px;
+  gap: 6px;
+  border-radius: 14px;
+  color: #77716a;
+}
+
+.bottom-nav button.active {
+  background: rgba(216,184,109,.055);
+  color: var(--ui-gold-bright);
+}
+
+.bottom-nav button span {
+  font-size: 12px !important;
+  font-weight: 750;
+}
+
+/* Global typography hierarchy */
+h1,
+h2,
+h3,
+h4 {
+  color: var(--ui-text);
+  text-wrap: balance;
+}
+
+h1 {
+  line-height: .98;
+}
+
+h2 {
+  line-height: 1.08;
+}
+
+p {
+  color: var(--ui-text-secondary);
+}
+
+.eyebrow {
+  color: var(--ui-gold);
+  font-size: 11px !important;
+  line-height: 1.4 !important;
+  letter-spacing: .1em !important;
+}
+
+/* Shared panels and cards */
+.hero-card,
+.workout-header,
+.luxury-panel,
+.menu-card,
+.empty-state,
+.home-readiness-first,
+.home-v2-hero,
+.home-v2-section,
+.more-primary-card,
+.more-section,
+.coach-invite-card,
+.coach-roster-section,
+.coach-pending-section,
+.coach-settings-card,
+.coach-empty-state,
+.sprint5-completion-hero,
+.sprint5-completion-section,
+.sprint5-victories,
+.mobility-flow-preferences,
+.movement-card,
+.history-card,
+.notification-card,
+.planner-card,
+.forge-card,
+.readiness-card,
+.training-overview,
+.metric-card {
+  border-color: var(--ui-border) !important;
+  border-radius: var(--ui-radius-lg) !important;
+  background: var(--ui-surface-raised);
+  box-shadow: var(--ui-shadow);
+}
+
+.hero-card,
+.workout-header,
+.luxury-panel,
+.empty-state,
+.more-primary-card,
+.sprint5-completion-hero,
+.sprint5-completion-section,
+.coach-invite-card,
+.coach-roster-section,
+.coach-pending-section,
+.coach-settings-card,
+.mobility-flow-preferences {
+  padding: 22px !important;
+}
+
+/* Standard controls */
+.gold-button,
+.primary-button,
+.next-exercise-button,
+.focus-done-button span,
+.session-reflection-save,
+.coach-invite-form button,
+.timed-continue-button {
+  min-height: 52px !important;
+  border-radius: 15px !important;
+  font-size: 15px !important;
+  font-weight: 850;
+}
+
+.gold-button {
+  background: linear-gradient(180deg,#e1c271,#b99043);
+  box-shadow:
+    0 14px 36px rgba(199,166,92,.23),
+    inset 0 1px 0 rgba(255,255,255,.22);
+}
+
+input,
+textarea,
+select {
+  min-height: var(--ui-control-height) !important;
+  border-color: rgba(246,242,233,.1) !important;
+  border-radius: 13px !important;
+  background: rgba(5,7,9,.48) !important;
+  color: var(--ui-text) !important;
+  font-size: 15px !important;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #706a63;
+}
+
+/* Home */
+.home-v2 {
+  display: grid;
+  gap: 18px;
+}
+
+.home-readiness-first {
+  gap: 16px;
+  padding: 20px !important;
+}
+
+.home-readiness-first h2 {
+  font-size: clamp(23px,6vw,31px) !important;
+}
+
+.home-readiness-first p,
+.home-v2-hero p,
+.home-v2-status p,
+.home-v2-section p {
+  font-size: 14px !important;
+  line-height: 1.6 !important;
+}
+
+.home-v2-hero {
+  padding: 24px !important;
+}
+
+.home-v2-heading h1 {
+  font-size: clamp(40px,11vw,64px) !important;
+}
+
+.home-v2-workout-select {
+  min-height: 72px;
+  padding: 15px 16px !important;
+  border-radius: 16px !important;
+}
+
+.home-v2-workout-select span {
+  font-size: 12px !important;
+}
+
+.home-v2-workout-select strong {
+  margin-top: 4px;
+  font-size: 18px !important;
+}
+
+/* Gym and workout logging */
+.lift-overview,
+.focus-exercise,
+.focus-set-card,
+.lift-session-notes,
+.lift-rest-dock {
+  border-radius: var(--ui-radius-lg) !important;
+}
+
+.focus-exercise-header h1 {
+  font-size: clamp(34px,9vw,52px) !important;
+}
+
+.focus-index,
+.muscle-pill,
+.focus-set-topline span,
+.lift-current-label,
+.lift-pr-preview,
+.previous-session-toggle small,
+.focus-control label {
+  font-size: 12px !important;
+}
+
+.previous-session-toggle strong,
+.focus-set-topline select,
+.repeat-last-set,
+.remove-set-button,
+.skip-exercise-button,
+.undo-skip-button,
+.focus-add-set {
+  font-size: 14px !important;
+}
+
+.focus-set-card {
+  padding: 16px !important;
+}
+
+.focus-control-grid {
+  gap: 14px;
+}
+
+.stepper {
+  min-height: 50px;
+  border-radius: 13px;
+}
+
+.stepper input {
+  min-height: 48px !important;
+  font-size: 17px !important;
+}
+
+.quick-adjust button {
+  min-height: 40px;
+  font-size: 13px !important;
+}
+
+.exercise-pager {
+  gap: 10px;
+}
+
+.previous-exercise-button,
+.next-exercise-button {
+  min-height: 58px;
+}
+
+/* Progress, history, completion */
+.metric-card {
+  padding: 20px !important;
+}
+
+.metric-card span {
+  font-size: 12px !important;
+}
+
+.metric-card strong {
+  font-size: 29px !important;
+}
+
+.sprint5-summary-grid,
+.sprint5-highlight-grid {
+  gap: 10px;
+}
+
+.sprint5-summary-grid article,
+.sprint5-highlight-grid article,
+.sprint5-exercise-breakdown article,
+.session-context-card {
+  padding: 16px !important;
+  border-radius: 14px !important;
+}
+
+.sprint5-summary-grid span,
+.sprint5-highlight-grid span,
+.sprint5-exercise-breakdown span,
+.session-context-card span {
+  font-size: 12px !important;
+}
+
+.sprint5-summary-grid strong,
+.sprint5-exercise-breakdown strong,
+.sprint5-highlight-grid strong {
+  font-size: 15px !important;
+}
+
+/* Profile */
+.more-screen-redesign {
+  gap: 18px;
+}
+
+.more-hero h1 {
+  font-size: clamp(39px,10vw,56px) !important;
+}
+
+.more-hero p,
+.more-primary-copy p {
+  font-size: 14px !important;
+}
+
+.more-primary-card {
+  gap: 20px;
+}
+
+.more-primary-copy h2 {
+  font-size: 27px !important;
+}
+
+.more-section-heading {
+  padding: 15px 16px 12px;
+}
+
+.more-section-heading span {
+  font-size: 12px !important;
+}
+
+.more-section-heading small {
+  font-size: 12px !important;
+}
+
+.more-destination {
+  min-height: 78px;
+  gap: 14px;
+  padding: 15px 16px;
+}
+
+.more-destination-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 13px;
+}
+
+.more-destination-copy strong {
+  font-size: 16px !important;
+}
+
+.more-destination-copy small,
+.more-destination-detail {
+  font-size: 13px !important;
+  line-height: 1.45 !important;
+}
+
+/* Movement flows */
+.mobility-screen {
+  gap: 18px;
+}
+
+.mobility-flow-heading h1,
+.mobility-movement-heading h1 {
+  font-size: clamp(34px,9vw,52px) !important;
+}
+
+.mobility-flow-heading p,
+.mobility-movement-heading p,
+.movement-instructions li,
+.coaching-card p,
+.mobility-flow-preferences p,
+.mobility-flow-preferences small {
+  font-size: 14px !important;
+  line-height: 1.6 !important;
+}
+
+.mobility-length-options button {
+  min-height: 62px;
+}
+
+.mobility-length-options strong {
+  font-size: 14px !important;
+}
+
+.mobility-length-options span {
+  font-size: 12px !important;
+}
+
+.avoid-movement-button,
+.finish-early-button,
+.timed-repeat-button,
+.skip-movement {
+  min-height: 48px !important;
+  font-size: 14px !important;
+}
+
+/* Onboarding */
+.onboarding-card {
+  max-width: 620px;
+}
+
+.onboarding-card h1 {
+  font-size: clamp(43px,12vw,72px) !important;
+}
+
+.onboarding-copy {
+  font-size: 15px !important;
+}
+
+.onboarding-points article {
+  padding: 16px;
+}
+
+.onboarding-points strong {
+  font-size: 15px !important;
+}
+
+.onboarding-points p {
+  font-size: 13px !important;
+}
+
+/* Coach */
+.coach-shell-main {
+  width: min(820px,100%);
+}
+
+.coach-shell-header {
+  padding:
+    max(17px,env(safe-area-inset-top))
+    20px
+    15px;
+}
+
+.coach-shell-header strong {
+  font-size: 15px !important;
+}
+
+.coach-shell-nav button {
+  min-height: 61px;
+}
+
+.coach-shell-nav button span {
+  font-size: 12px !important;
+}
+
+.coach-hub-screen {
+  gap: 18px;
+}
+
+.coach-hub-page-header h1 {
+  font-size: clamp(40px,10vw,60px) !important;
+}
+
+.coach-hub-page-header p,
+.coach-empty-state p,
+.coach-hub-notice {
+  font-size: 14px !important;
+  line-height: 1.6 !important;
+}
+
+.coach-invite-card strong,
+.coach-client-copy strong,
+.coach-settings-card strong {
+  font-size: 15px !important;
+}
+
+.coach-invite-card span,
+.coach-client-copy span,
+.coach-settings-card span,
+.coach-client-status span,
+.coach-pending-list small {
+  font-size: 12px !important;
+}
+
+.coach-client-list article,
+.coach-pending-list article,
+.coach-assignment-list article,
+.coach-settings-card article {
+  min-height: 66px;
+  padding: 14px !important;
+}
+
+.coach-coming-soon-button {
+  min-width: 160px;
+  opacity: 1;
+  border: 1px solid rgba(216,184,109,.12) !important;
+  background: rgba(216,184,109,.025) !important;
+  color: #9b8d6d !important;
+  box-shadow: none !important;
+}
+
+.coach-empty-state {
+  min-height: 220px;
+  align-content: center;
+}
+
+.coach-empty-state h2 {
+  font-size: 25px !important;
+}
+
+/* Motion and responsive rhythm */
+.screen > *,
+.coach-shell-main > * {
+  animation-duration: .28s;
+}
+
+@media (max-width: 560px) {
+  .screen,
+  .coach-shell-main {
+    padding: 16px;
+  }
+
+  .app-header {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .hero-card,
+  .workout-header,
+  .luxury-panel,
+  .empty-state,
+  .more-primary-card,
+  .sprint5-completion-hero,
+  .sprint5-completion-section,
+  .coach-invite-card,
+  .coach-roster-section,
+  .coach-pending-section,
+  .coach-settings-card,
+  .mobility-flow-preferences {
+    padding: 18px !important;
+  }
+
+  .metric-grid,
+  .sprint5-summary-grid,
+  .sprint5-highlight-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .more-section-heading small {
+    display: none;
+  }
+
+  .focus-control-grid {
+    gap: 10px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+}
