@@ -1,7 +1,7 @@
 {
-  "name": "AVAREN \u2014 The Foundry",
+  "name": "AVAREN — Workouts, Readiness & Recovery",
   "short_name": "AVAREN",
-  "description": "A premium training journal for workouts, readiness, mobility, and progress.",
+  "description": "A premium training app for workouts, readiness, equipment-free movement, recovery, personal records, and progress.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
@@ -11,7 +11,8 @@
   "categories": [
     "fitness",
     "health",
-    "lifestyle"
+    "lifestyle",
+    "sports"
   ],
   "icons": [
     {
