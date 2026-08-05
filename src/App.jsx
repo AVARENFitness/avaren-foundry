@@ -12,6 +12,8 @@ import HomeScreen from './screens/HomeScreen'
 import GymScreen from './screens/GymScreen'
 import ProgressScreen from './screens/ProgressScreen'
 import MoreScreen from './screens/MoreScreen'
+import TrainHubScreen from './screens/TrainHubScreen'
+import NutritionPreviewScreen from './screens/NutritionPreviewScreen'
 import WeeklyPlannerScreen from './screens/WeeklyPlannerScreen'
 import HistoryScreen from './screens/HistoryScreen'
 import ForgeScreen from './screens/ForgeScreen'
@@ -1716,6 +1718,20 @@ function App() {
           onClose={() => navigate('progress')}
         />
       )
+    }
+
+    if (screen === 'train') {
+      return (
+        <TrainHubScreen
+          state={state}
+          onStart={startWorkout}
+          navigate={navigate}
+        />
+      )
+    }
+
+    if (screen === 'nutrition') {
+      return <NutritionPreviewScreen />
     }
 
     if (screen === 'progress') {
