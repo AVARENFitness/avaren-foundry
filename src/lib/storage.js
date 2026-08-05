@@ -56,6 +56,18 @@ const normalizeState = (value, fallback) => ({
       fallback.coachWorkspace?.assignments ??
       [],
   },
+  nutrition: {
+    ...(fallback.nutrition ?? {}),
+    ...(value?.nutrition ?? {}),
+    goals: {
+      ...(fallback.nutrition?.goals ?? {}),
+      ...(value?.nutrition?.goals ?? {}),
+    },
+    days: value?.nutrition?.days ?? fallback.nutrition?.days ?? {},
+    savedFoods: value?.nutrition?.savedFoods ?? fallback.nutrition?.savedFoods ?? [],
+    recipes: value?.nutrition?.recipes ?? fallback.nutrition?.recipes ?? [],
+    recentFoodIds: value?.nutrition?.recentFoodIds ?? fallback.nutrition?.recentFoodIds ?? [],
+  },
   lastSavedAt: value?.lastSavedAt ?? null,
 })
 

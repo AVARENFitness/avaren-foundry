@@ -13,7 +13,9 @@ import GymScreen from './screens/GymScreen'
 import ProgressScreen from './screens/ProgressScreen'
 import MoreScreen from './screens/MoreScreen'
 import TrainHubScreen from './screens/TrainHubScreen'
-import NutritionPreviewScreen from './screens/NutritionPreviewScreen'
+import NutritionScreen from './screens/NutritionScreen'
+import { createNutritionState, nutritionDateKey, nutritionTotals } from './lib/nutrition'
+import { nutritionBackend } from './lib/nutritionBackend'
 import WeeklyPlannerScreen from './screens/WeeklyPlannerScreen'
 import HistoryScreen from './screens/HistoryScreen'
 import ForgeScreen from './screens/ForgeScreen'
@@ -114,6 +116,7 @@ const createInitialState = () => ({
     completed: false,
     completedAt: null,
   },
+  nutrition: createNutritionState(),
 })
 
 const makeSet = (number, type = 'Working') => ({
@@ -1731,7 +1734,31 @@ function App() {
     }
 
     if (screen === 'nutrition') {
-      return <NutritionPreviewScreen />
+      return (
+        <NutritionScreen
+          nutrition={state.nutrition}
+          onChange={(updater) => {
+            setState((current) => {
+              const nextNutrition =
+                typeof updater === 'function'
+                  ? updater(current.nutrition ?? createNutritionState())
+                  : updater
+
+              const today = nextNutrition.days?.[nutritionDateKey()]
+              nutritionBackend
+                .syncProfile(session?.user?.id, nextNutrition)
+                .catch((error) => console.error('Nutrition profile sync failed:', error))
+              if (today) {
+                nutritionBackend
+                  .syncDay(session?.user?.id, today)
+                  .catch((error) => console.error('Nutrition day sync failed:', error))
+              }
+
+              return { ...current, nutrition: nextNutrition }
+            })
+          }}
+        />
+      )
     }
 
     if (screen === 'progress') {
@@ -1956,6 +1983,17 @@ function App() {
               selectedWorkout: workout,
             }))
           }
+          nutritionSummary={(() => {
+            const day = state.nutrition?.days?.[nutritionDateKey()]
+            const totals = nutritionTotals(day)
+            return {
+              calories: Math.round(totals.calories),
+              goal: Number(state.nutrition?.goals?.calories ?? 2200),
+              protein: Math.round(totals.protein),
+              proteinGoal: Number(state.nutrition?.goals?.protein ?? 170),
+              waterOz: Number(day?.waterOz ?? 0),
+            }
+          })()}
         />
       </>
     )

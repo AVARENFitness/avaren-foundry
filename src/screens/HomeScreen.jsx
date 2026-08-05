@@ -45,6 +45,7 @@ export default function HomeScreen({
   mobilityTitle = 'Morning Movement',
   mobilityMinutes = 7,
   onStartCoachAssignment,
+  nutritionSummary,
 }) {
   const dashboard = useMemo(() => {
     const now = new Date()
@@ -109,8 +110,8 @@ export default function HomeScreen({
 
         <button className="home-3-dashboard-card nutrition" onClick={() => setScreen('nutrition')}>
           <div><Utensils size={20}/><span>Nutrition</span></div>
-          <strong>Set up</strong>
-          <small>Food, macros, water, weight</small>
+          <strong>{nutritionSummary?.calories || 0} / {nutritionSummary?.goal || 2200}</strong>
+          <small>{nutritionSummary?.protein || 0}g protein · {Math.round(nutritionSummary?.waterOz || 0)} oz water</small>
         </button>
 
         <button className={`home-3-dashboard-card ${movementDone ? 'done' : ''}`} onClick={onOpenMobility}>
