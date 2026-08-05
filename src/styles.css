@@ -14079,3 +14079,176 @@ input, textarea, select {
   .athlete-schedule-feature > header { grid-template-columns:1fr; }
   .athlete-upcoming-strip { grid-template-columns:1fr; }
 }
+
+
+/* ===== SPRINT 6.6.1 · ASSIGNMENT LIFECYCLE & PROFILE CLEANUP ===== */
+
+.profile-hub {
+  gap: 14px;
+}
+
+.profile-hub-hero {
+  padding-bottom: 0;
+}
+
+.profile-section-nav {
+  position: sticky;
+  top: 0;
+  z-index: 12;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid rgba(246,242,233,.08);
+  border-radius: 16px;
+  background: rgba(15,18,21,.96);
+  backdrop-filter: blur(18px);
+}
+
+.profile-section-nav button {
+  position: relative;
+  min-height: 42px;
+  padding: 8px 6px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: #8f8981;
+  font-size: 11px !important;
+  font-weight: 850;
+}
+
+.profile-section-nav button.active {
+  background: rgba(216,184,109,.1);
+  color: #ead38f;
+}
+
+.profile-section-nav button > span {
+  position: absolute;
+  top: 3px;
+  right: 4px;
+  display: grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #c4a458;
+  color: #080a0d;
+  font-size: 9px !important;
+}
+
+.profile-section-panel {
+  animation: foundationScreenEnter .22s var(--foundation-ease) both;
+}
+
+.coach-assignment-lifecycle-actions,
+.coach-calendar-item-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 9px;
+}
+
+.coach-cancel-button,
+.coach-delete-button,
+.coach-calendar-item-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 36px;
+  padding: 0 10px;
+  border-radius: 9px;
+  font-size: 11px !important;
+  font-weight: 850;
+}
+
+.coach-cancel-button,
+.coach-calendar-item-actions button {
+  border: 1px solid rgba(216,184,109,.18);
+  background: rgba(216,184,109,.05);
+  color: #d0b978;
+}
+
+.coach-delete-button,
+.coach-calendar-item-actions button.danger {
+  border: 1px solid rgba(210,105,94,.26);
+  background: rgba(210,105,94,.07);
+  color: #e09990;
+}
+
+@media (max-width: 620px) {
+  .profile-section-nav {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .profile-section-nav button:nth-child(4),
+  .profile-section-nav button:nth-child(5) {
+    grid-column: span 1;
+  }
+}
+
+
+/* ===== SPRINT 6.6.2 · ASSIGNMENT HISTORY & BUILDER FEEDBACK ===== */
+
+.coach-assignment-row.status-cancelled,
+.coach-assignment-manage-card.status-cancelled {
+  opacity: .78;
+  border-style: dashed;
+  background: rgba(255,255,255,.018);
+}
+
+.coach-assignment-row.status-cancelled small,
+.coach-assignment-manage-card.status-cancelled span {
+  color: #aaa39a;
+}
+
+.coach-builder-feedback {
+  position: sticky;
+  top: 0;
+  z-index: 8;
+  display: grid;
+  grid-template-columns: auto minmax(0,1fr) auto;
+  align-items: center;
+  gap: 9px;
+  min-height: 44px;
+  padding: 9px 12px;
+  border: 1px solid rgba(126,184,139,.25);
+  border-radius: 12px;
+  background: rgba(19,34,25,.96);
+  box-shadow: 0 12px 30px rgba(0,0,0,.24);
+  color: #b7d9bd;
+  backdrop-filter: blur(15px);
+}
+
+.coach-builder-feedback span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px !important;
+  font-weight: 800;
+}
+
+.coach-builder-feedback strong {
+  color: #e6d7ad;
+  font-size: 10px !important;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+.coach-designed-exercise {
+  scroll-margin: 90px;
+  transition: border-color .25s ease, box-shadow .25s ease, transform .25s ease;
+}
+
+.coach-designed-exercise.just-added {
+  border-color: rgba(216,184,109,.72);
+  box-shadow: 0 0 0 2px rgba(216,184,109,.12), 0 18px 38px rgba(0,0,0,.24);
+  transform: translateY(-2px);
+  animation: coachExerciseAdded 1.4s ease both;
+}
+
+@keyframes coachExerciseAdded {
+  0% { background: rgba(216,184,109,.16); }
+  100% { background: var(--foundation-surface-raised, #171a1e); }
+}

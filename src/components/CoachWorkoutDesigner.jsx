@@ -83,6 +83,7 @@ export default function CoachWorkoutDesigner({
   const [query, setQuery] = useState('')
   const [muscleFilter, setMuscleFilter] = useState('All')
   const [notice, setNotice] = useState('')
+  const [recentlyAddedId, setRecentlyAddedId] = useState('')
 
   const filteredLibrary = library.filter((exercise) => {
     const matchesQuery = `${exercise.name} ${exercise.muscle}`.toLowerCase().includes(query.trim().toLowerCase())
@@ -110,10 +111,24 @@ export default function CoachWorkoutDesigner({
   }
 
   const addFromLibrary = (exercise) => {
+    const added = normalizeExercise(exercise)
     setDraft((current) => ({
       ...current,
-      exercises: [...current.exercises, normalizeExercise(exercise)],
+      exercises: [...current.exercises, added],
     }))
+    setRecentlyAddedId(added.id)
+    setNotice(`${added.name} added to the workout.`)
+
+    window.setTimeout(() => {
+      document.getElementById(`coach-exercise-${added.id}`)?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center',
+      })
+    }, 80)
+
+    window.setTimeout(() => {
+      setRecentlyAddedId((current) => current === added.id ? '' : current)
+    }, 1800)
   }
 
   const removeExercise = (index) => {
@@ -166,6 +181,7 @@ export default function CoachWorkoutDesigner({
           </aside>
 
           <main className="coach-designer-main">
+            {notice && <div className="coach-builder-feedback" role="status"><Check size={16}/><span>{notice}</span><strong>{draft.exercises.length} total</strong></div>}
             <section className="coach-designer-meta">
               <label><span>Workout name</span><input value={draft.name} onChange={(event)=>setDraft((current)=>({...current,name:event.target.value}))}/></label>
               <div className="coach-designer-meta-grid">
@@ -179,7 +195,7 @@ export default function CoachWorkoutDesigner({
             <section className="coach-designer-exercises">
               <header><div><span className="eyebrow">WORKOUT ORDER</span><h2>{draft.exercises.length} exercises</h2></div></header>
               {!draft.exercises.length && <div className="coach-designer-empty"><Dumbbell size={24}/><strong>Start with an exercise.</strong><span>Use the library or add a custom movement.</span></div>}
-              {draft.exercises.map((exercise,index)=><article className="coach-designed-exercise" key={exercise.id}>
+              {draft.exercises.map((exercise,index)=><article id={`coach-exercise-${exercise.id}`} className={`coach-designed-exercise ${recentlyAddedId===exercise.id?'just-added':''}`} key={exercise.id}>
                 <div className="coach-designed-exercise-top"><span>{String(index+1).padStart(2,'0')}</span><div><button disabled={index===0} onClick={()=>moveExercise(index,-1)}><ArrowUp size={16}/></button><button disabled={index===draft.exercises.length-1} onClick={()=>moveExercise(index,1)}><ArrowDown size={16}/></button><button onClick={()=>removeExercise(index)}><Trash2 size={16}/></button></div></div>
                 <div className="coach-designed-grid">
                   <label className="wide"><span>Exercise</span><input value={exercise.name} onChange={(event)=>updateExercise(index,{name:event.target.value})}/></label>
@@ -197,7 +213,6 @@ export default function CoachWorkoutDesigner({
               </article>)}
             </section>
 
-            {notice && <p className="coach-hub-notice">{notice}</p>}
             <footer className="coach-designer-actions">
               <button className="coach-secondary-button" onClick={async()=>{const error=validate();if(error)return setNotice(error);await onSaveTemplate?.({name:draft.name.trim(),workout:workoutPayload()});setNotice('Template saved.')}}><Save size={17}/>Save Template</button>
               <button className="gold-button machined" onClick={async()=>{const error=validate({assigning:true});if(error)return setNotice(error);await onAssign?.({athleteId:draft.athleteId,title:draft.name.trim(),workout:workoutPayload(),dueDate:draft.dueDate,priority:draft.priority,coachNotes:draft.coachNotes});onClose?.();}}><Check size={17}/>Assign Workout</button>

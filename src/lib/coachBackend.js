@@ -145,18 +145,20 @@ export const coachBackend = {
     return unwrap(supabase.from('coach_assignments').update({ status: 'completed', completed_at: new Date().toISOString(), completed_session_id: completedSessionId, completion_summary: completionSummary }).eq('id', id).select().single())
   },
   async cancelAssignment(id) {
-    return unwrap(
-      supabase
-        .from('coach_assignments')
-        .update({
-          status: 'cancelled',
-          completed_at: null,
-        })
-        .eq('id', id)
-        .in('status', ['assigned', 'started'])
-        .select()
-        .single(),
+    await unwrap(
+      supabase.rpc('cancel_coach_assignment', {
+        assignment_id: id,
+      }),
     )
+    return true
+  },
+  async deleteAssignment(id) {
+    await unwrap(
+      supabase.rpc('delete_coach_assignment', {
+        assignment_id: id,
+      }),
+    )
+    return true
   },
   async createScheduledAssignment(payload) {
     const assignment = await this.createAssignment(payload)

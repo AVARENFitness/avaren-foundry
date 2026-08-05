@@ -43,7 +43,15 @@ export default function CoachCalendar({ clients, assignments, templates, program
 
   const days = useMemo(() => weekDays(anchor), [anchor])
   useEffect(() => { reloadSchedule() }, [clientId, anchor])
-  const visible = useMemo(() => assignments.filter((item) => !clientId || item.athlete_id === clientId), [assignments, clientId])
+  const visible = useMemo(
+    () =>
+      assignments.filter(
+        (item) =>
+          ['assigned', 'started'].includes(item.status) &&
+          (!clientId || item.athlete_id === clientId),
+      ),
+    [assignments, clientId],
+  )
   const byDate = useMemo(() => Object.fromEntries(days.map((day) => { const key=dateKey(day); const workouts=visible.filter((item)=>item.due_date===key).map(item=>({...item,kind:'workout'})); const nonWorkouts=scheduleItems.filter(item=>item.scheduled_date===key && item.kind!=='workout'); return [key,[...workouts,...nonWorkouts]] })), [days, visible, scheduleItems])
   const availableWorkouts = useMemo(() => {
     const entries = []
@@ -74,6 +82,22 @@ export default function CoachCalendar({ clients, assignments, templates, program
     await reloadSchedule()
   }
 
+  const cancelItem = async (assignment) => {
+    if (!confirm(`Cancel ${assignment.title}? It will be removed from active schedules.`)) return
+    await coachBackend.cancelAssignment(assignment.id)
+    setNotice('Assignment cancelled.')
+    await onRefresh?.()
+    await reloadSchedule()
+  }
+
+  const deleteItem = async (assignment) => {
+    if (!confirm(`Permanently delete ${assignment.title} everywhere?`)) return
+    await coachBackend.deleteAssignment(assignment.id)
+    setNotice('Assignment deleted everywhere.')
+    await onRefresh?.()
+    await reloadSchedule()
+  }
+
   const duplicateWeek = async () => {
     const sourceStart = dateKey(mondayOf(anchor))
     const sourceEnd = dateKey(addDays(mondayOf(anchor), 6))
@@ -97,7 +121,7 @@ export default function CoachCalendar({ clients, assignments, templates, program
         const key = dateKey(day)
         return <section className="coach-calendar-day" key={key} onDragOver={(event)=>event.preventDefault()} onDrop={(event)=>{const id=event.dataTransfer.getData('assignment-id');if(id)move(id,key)}}>
           <header><strong>{day.toLocaleDateString([], { weekday:'short' })}</strong><span>{day.getDate()}</span></header>
-          <div>{(byDate[key] ?? []).map((assignment) => <article key={`${assignment.id}-${assignment.kind}`} draggable={assignment.kind==='workout'} onDragStart={(event)=>{if(assignment.kind==='workout')event.dataTransfer.setData('assignment-id',assignment.id)}} className={`priority-${assignment.priority??'normal'}`}><strong>{assignment.title}</strong><span>{clients.find((client)=>client.athlete_id===assignment.athlete_id)?.athlete_email ?? 'Athlete'}</span><small>{assignment.kind==='workout'?assignment.status:assignment.kind}</small></article>)}</div>
+          <div>{(byDate[key] ?? []).map((assignment) => <article key={`${assignment.id}-${assignment.kind}`} draggable={assignment.kind==='workout'} onDragStart={(event)=>{if(assignment.kind==='workout')event.dataTransfer.setData('assignment-id',assignment.id)}} className={`priority-${assignment.priority??'normal'}`}><strong>{assignment.title}</strong><span>{clients.find((client)=>client.athlete_id===assignment.athlete_id)?.athlete_email ?? 'Athlete'}</span><small>{assignment.kind==='workout'?assignment.status:assignment.kind}</small>{assignment.kind==='workout'&&<div className="coach-calendar-item-actions"><button onClick={(event)=>{event.stopPropagation();cancelItem(assignment)}}>Cancel</button><button className="danger" onClick={(event)=>{event.stopPropagation();deleteItem(assignment)}}><Trash2 size={13}/>Delete</button></div>}</article>)}</div>
         </section>
       })}
     </div>
