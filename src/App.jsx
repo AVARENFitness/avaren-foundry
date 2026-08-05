@@ -3,6 +3,10 @@ import AppShell from './components/AppShell'
 import CoachShell from './components/CoachShell'
 import { isCoachAccount } from './config/coachAccess'
 import { coachBackend } from './lib/coachBackend'
+import {
+  assignmentNotificationBackend,
+  mapAssignmentNotification,
+} from './lib/assignmentNotifications'
 import HomeScreen from './screens/HomeScreen'
 import GymScreen from './screens/GymScreen'
 import ProgressScreen from './screens/ProgressScreen'
@@ -122,6 +126,8 @@ function App() {
   const [screen, setScreen] = useState('home')
   const [coachScreen, setCoachScreen] =
     useState('clients')
+  const [remoteNotifications, setRemoteNotifications] =
+    useState([])
   const [state, setState] = useState(() => createInitialState())
   const [activeExercise, setActiveExerciseState] = useState(
     state.activeWorkout?.activeExerciseIndex ?? 0,
@@ -414,10 +420,66 @@ function App() {
     cooldownDays: 5,
   })
 
-  const notifications = buildNotificationSnapshot(state)
+  const localNotificationSnapshot =
+    buildNotificationSnapshot(state)
+  const mappedRemoteNotifications =
+    remoteNotifications.map(mapAssignmentNotification)
+  const combinedNotifications = [
+    ...mappedRemoteNotifications,
+    ...localNotificationSnapshot.notifications,
+  ].sort(
+    (first, second) =>
+      Number(second.priority ?? 0) -
+        Number(first.priority ?? 0) ||
+      new Date(second.createdAt).getTime() -
+        new Date(first.createdAt).getTime(),
+  )
+  const notifications = {
+    notifications: combinedNotifications,
+    unread: combinedNotifications.filter(
+      (notification) => !notification.read,
+    ),
+    unreadCount: combinedNotifications.filter(
+      (notification) => !notification.read,
+    ).length,
+    primary:
+      combinedNotifications.find(
+        (notification) => !notification.read,
+      ) ?? combinedNotifications[0] ?? null,
+  }
 
   const trainingRecommendation =
     buildTrainingRecommendation(state, plannedWorkout)
+
+  useEffect(() => {
+    const userId = session?.user?.id
+
+    if (!userId || !cloudReady) {
+      setRemoteNotifications([])
+      return undefined
+    }
+
+    let active = true
+    const loadRemoteNotifications = async () => {
+      try {
+        const rows = await assignmentNotificationBackend.list()
+        if (active) setRemoteNotifications(rows)
+      } catch (error) {
+        console.error('Could not load assignment notifications:', error)
+      }
+    }
+
+    loadRemoteNotifications()
+    const unsubscribe = assignmentNotificationBackend.subscribe(
+      userId,
+      loadRemoteNotifications,
+    )
+
+    return () => {
+      active = false
+      unsubscribe()
+    }
+  }, [session?.user?.id, cloudReady])
 
 
   const saveReadinessCheckIn = (values) => {
@@ -452,19 +514,71 @@ function App() {
     }))
   }
 
-  const handleNotificationRead = (notification) => {
+  const handleNotificationRead = async (notification) => {
+    if (notification.remote) {
+      await assignmentNotificationBackend.markRead(
+        notification.remoteId,
+      )
+      setRemoteNotifications((current) =>
+        current.map((item) =>
+          item.id === notification.remoteId
+            ? {
+                ...item,
+                read_at: item.read_at ?? new Date().toISOString(),
+              }
+            : item,
+        ),
+      )
+      return
+    }
+
     updateNotificationState((current) =>
       markNotificationRead(current, notification),
     )
   }
 
-  const handleNotificationDismiss = (notification) => {
+  const handleNotificationDismiss = async (notification) => {
+    if (notification.remote) {
+      await assignmentNotificationBackend.dismiss(
+        notification.remoteId,
+      )
+      setRemoteNotifications((current) =>
+        current.filter(
+          (item) => item.id !== notification.remoteId,
+        ),
+      )
+      return
+    }
+
     updateNotificationState((current) =>
       dismissNotification(current, notification),
     )
   }
 
-  const handleNotificationAction = (notification) => {
+  const handleNotificationAction = async (notification) => {
+    if (notification.remote) {
+      await handleNotificationRead(notification)
+
+      if (notification.action === 'open-assignment') {
+        try {
+          const assignment =
+            await coachBackend.getAthleteAssignment(
+              notification.assignmentId,
+            )
+          await startCoachAssignment(assignment)
+        } catch (error) {
+          alert(error.message)
+        }
+        return
+      }
+
+      if (notification.action === 'open-coach-assignment') {
+        setCoachScreen('assignments')
+        enterCoachMode()
+        return
+      }
+    }
+
     updateNotificationState((current) =>
       markNotificationActedOn(current, notification),
     )
@@ -1765,6 +1879,7 @@ function App() {
     earnedMilestones,
     earnedForgeAchievements,
     coachScreen,
+    remoteNotifications,
   ])
 
   if (!isSupabaseConfigured) {
@@ -1847,6 +1962,8 @@ function App() {
       setScreen={(next) => navigate(next)}
       activeWorkout={state.activeWorkout}
       transitioning={transitioning}
+      notificationCount={notifications.unreadCount}
+      onOpenNotifications={() => navigate('notifications')}
     >
       <CloudStatus status={cloudStatus} />
       {activeScreen}

@@ -1,4 +1,4 @@
-import { Dumbbell, Home, LineChart, UserRound } from 'lucide-react'
+import { Bell, Dumbbell, Home, LineChart, UserRound } from 'lucide-react'
 
 const tabs = [
   { id: 'home', label: 'Home', Icon: Home },
@@ -13,6 +13,8 @@ export default function AppShell({
   children,
   activeWorkout,
   transitioning,
+  notificationCount = 0,
+  onOpenNotifications,
 }) {
   return (
     <div className={`app-shell ${transitioning ? 'is-transitioning' : ''}`}>
@@ -31,9 +33,22 @@ export default function AppShell({
           </div>
         </div>
 
-        <div className={`status-pill ${activeWorkout ? 'active' : ''}`}>
-          <span />
-          {activeWorkout ? 'ACTIVE' : 'READY'}
+        <div className="app-header-actions">
+          <button
+            className="app-notification-button"
+            onClick={onOpenNotifications}
+            aria-label={`Notifications${notificationCount ? `, ${notificationCount} unread` : ''}`}
+          >
+            <Bell size={19} />
+            {notificationCount > 0 && (
+              <span>{notificationCount > 99 ? '99+' : notificationCount}</span>
+            )}
+          </button>
+
+          <div className={`status-pill ${activeWorkout ? 'active' : ''}`}>
+            <span />
+            {activeWorkout ? 'ACTIVE' : 'READY'}
+          </div>
         </div>
       </header>
 

@@ -45,6 +45,17 @@ export const coachBackend = {
     const user = await currentUser()
     return unwrap(supabase.from('coach_assignments').select('*').eq('coach_id', user.id).order('assigned_at', { ascending: false }))
   },
+  async getAthleteAssignment(id) {
+    const user = await currentUser()
+    return unwrap(
+      supabase
+        .from('coach_assignments')
+        .select('*')
+        .eq('id', id)
+        .eq('athlete_id', user.id)
+        .single(),
+    )
+  },
   async listAthleteAssignments({ activeOnly = true } = {}) {
     const user = await currentUser()
     let query = supabase.from('coach_assignments').select('*').eq('athlete_id', user.id)

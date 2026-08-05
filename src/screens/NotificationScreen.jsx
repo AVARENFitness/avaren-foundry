@@ -16,6 +16,7 @@ import { useState } from 'react'
 const ICONS = {
   readiness: HeartPulse,
   workout: Dumbbell,
+  assignment: CalendarDays,
   recovery: Wind,
   missed: CalendarDays,
   forge: Hammer,

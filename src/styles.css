@@ -13813,3 +13813,12 @@ textarea::placeholder {
     padding-bottom: 20px;
   }
 }
+
+
+/* ===== SPRINT 6.3.2 · ASSIGNMENT NOTIFICATIONS ===== */
+.app-header-actions{display:flex;align-items:center;gap:10px}
+.app-notification-button{position:relative;display:grid;place-items:center;width:44px;height:44px;min-height:44px;padding:0;border:1px solid rgba(216,184,109,.12);border-radius:13px;background:rgba(216,184,109,.025);color:#cdb678}
+.app-notification-button>span{position:absolute;top:-5px;right:-5px;display:grid;place-items:center;min-width:20px;height:20px;padding:0 5px;border:2px solid #080a0d;border-radius:999px;background:#d9bd72;color:#080a0d;font-size:10px!important;font-weight:900}
+.notification-item.unread{border-color:rgba(216,184,109,.2);background:linear-gradient(135deg,rgba(216,184,109,.055),rgba(255,255,255,.012))}
+.notification-item.unread .notification-item-icon{color:#e3ca83}
+.coach-assignment-list article small{text-transform:capitalize}

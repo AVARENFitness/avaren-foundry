@@ -1,6 +1,7 @@
 import { Activity, CalendarDays, CheckCircle2, ChevronRight, ClipboardList, Mail, Search, Send, TrendingUp, UserPlus, Users, X } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { coachBackend } from '../lib/coachBackend'
+import { assignmentNotificationBackend } from '../lib/assignmentNotifications'
 import SectionHeader from '../components/ui/SectionHeader'
 import StatCard from '../components/ui/StatCard'
 import EmptyState from '../components/ui/EmptyState'
@@ -13,8 +14,9 @@ export default function CoachScreen({ workspace, setWorkspace, screen='clients',
   const [clients,setClients]=useState([]), [invitations,setInvitations]=useState([]), [assignments,setAssignments]=useState([])
   const [query,setQuery]=useState(''), [inviteEmail,setInviteEmail]=useState(''), [notice,setNotice]=useState(''), [loading,setLoading]=useState(true)
   const [showAssignment,setShowAssignment]=useState(false), [selectedClient,setSelectedClient]=useState(null), [clientNotes,setClientNotes]=useState('')
+  const [deliveryStatus,setDeliveryStatus]=useState({})
   const [assignment,setAssignment]=useState({athleteId:'',workoutName:program?.rotation?.[0]??'',dueDate:'',coachNotes:'',priority:'normal'})
-  const load=async()=>{setLoading(true);try{const [c,i,a]=await Promise.all([coachBackend.listClients(),coachBackend.listCoachInvitations(),coachBackend.listCoachAssignments()]);setClients(c);setInvitations(i);setAssignments(a);setWorkspace((w)=>({...w,clients:c,invitations:i,assignments:a}));setNotice('')}catch(e){setNotice(e.message)}finally{setLoading(false)}}
+  const load=async()=>{setLoading(true);try{const [c,i,a]=await Promise.all([coachBackend.listClients(),coachBackend.listCoachInvitations(),coachBackend.listCoachAssignments()]);setClients(c);setInvitations(i);setAssignments(a);setWorkspace((w)=>({...w,clients:c,invitations:i,assignments:a}));const deliveryRows=await assignmentNotificationBackend.deliveryForAssignments(a.map(item=>item.id));setDeliveryStatus(Object.fromEntries(deliveryRows.map(row=>[row.assignment_id,row.read_at?'Read':'Delivered'])));setNotice('')}catch(e){setNotice(e.message)}finally{setLoading(false)}}
   useEffect(()=>{load()},[])
   const visibleClients=useMemo(()=>clients.filter(c=>c.athlete_email.toLowerCase().includes(query.trim().toLowerCase())),[clients,query])
   const pending=invitations.filter(i=>i.status==='pending').length
@@ -42,7 +44,7 @@ export default function CoachScreen({ workspace, setWorkspace, screen='clients',
       <div className="coach-composer-grid"><label><span>Due date</span><input type="date" value={assignment.dueDate} onChange={e=>setAssignment(v=>({...v,dueDate:e.target.value}))}/></label><label><span>Priority</span><select value={assignment.priority} onChange={e=>setAssignment(v=>({...v,priority:e.target.value}))}><option value="normal">Normal</option><option value="high">High</option><option value="optional">Optional</option></select></label></div>
       <label><span>Coach notes</span><textarea rows={4} value={assignment.coachNotes} onChange={e=>setAssignment(v=>({...v,coachNotes:e.target.value}))} placeholder="Technique cues, effort target, substitutions, or anything the athlete should know."/></label><button className="gold-button machined" onClick={createAssignment}><Send size={17}/>Assign Workout</button></section>}
     {notice&&<p className="coach-hub-notice">{notice}</p>}
-    {assignments.length?<div className="coach-assignment-list">{assignments.map(a=><article className={`priority-${a.priority??'normal'}`} key={a.id}><div><strong>{a.title}</strong><span>{clients.find(c=>c.athlete_id===a.athlete_id)?.athlete_email??a.athlete_id} · {formatDate(a.due_date)}</span></div><small>{a.status}</small></article>)}</div>:<EmptyState icon={ClipboardList} title="No assignments yet" description="Accepted clients will be available for assignment here."/>}</section>
+    {assignments.length?<div className="coach-assignment-list">{assignments.map(a=><article className={`priority-${a.priority??'normal'}`} key={a.id}><div><strong>{a.title}</strong><span>{clients.find(c=>c.athlete_id===a.athlete_id)?.athlete_email??a.athlete_id} · {formatDate(a.due_date)}</span></div><small>{a.status} · {deliveryStatus[a.id]??'Queued'}</small></article>)}</div>:<EmptyState icon={ClipboardList} title="No assignments yet" description="Accepted clients will be available for assignment here."/>}</section>
 
   if(screen==='settings') return <section className="coach-hub-screen"><SectionHeader eyebrow="COACH WORKSPACE" title="Coach settings" description="Database-backed access and private client relationships are active."/><section className="coach-settings-card"><article><span>Connected clients</span><strong>{clients.length}</strong></article><article><span>Pending invitations</span><strong>{pending}</strong></article><article><span>Assignments</span><strong>{assignments.length}</strong></article></section>{notice&&<p className="coach-hub-notice">{notice}</p>}</section>
 
