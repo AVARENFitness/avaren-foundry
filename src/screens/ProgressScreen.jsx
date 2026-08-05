@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Award, Flame, Layers3, Trophy, HeartPulse, ArrowRight } from 'lucide-react'
-import { BASELINES, MILESTONE_CHAINS } from '../data/defaultProgram'
+import { MILESTONE_CHAINS } from '../data/defaultProgram'
 import StrengthChart from '../components/StrengthChart'
 import ExerciseProfile from '../components/ExerciseProfile'
 import TrainingOverview from '../components/TrainingOverview'
@@ -118,28 +118,36 @@ export default function ProgressScreen({
         </div>
 
         {Object.entries(MILESTONE_CHAINS).map(([exercise, chain]) => {
-          const best = Math.max(
-            BASELINES[exercise],
-            personalBest(state.history, exercise),
-          )
-          const next = chain.find((target) => target > best)
-          const previousTargets = [BASELINES[exercise], ...chain].filter(
-            (target) => target <= best,
-          )
-          const start = previousTargets.at(-1) ?? BASELINES[exercise]
+          const best = personalBest(state.history, exercise)
+          const hasPersonalBest = best > 0
+          const next = hasPersonalBest
+            ? chain.find((target) => target > best)
+            : null
+          const previousTargets = chain.filter((target) => target <= best)
+          const start = previousTargets.at(-1) ?? 0
           const progress = next
             ? Math.max(0, Math.min(100, ((best - start) / (next - start || 1)) * 100))
-            : 100
+            : hasPersonalBest
+              ? 100
+              : 0
 
           return (
             <article className="milestone-card" key={exercise}>
               <div>
                 <strong>{exercise}</strong>
-                <span>Current best · {best} lb</span>
+                <span>
+                  {hasPersonalBest
+                    ? `Current best · ${best} lb`
+                    : 'Complete this lift to establish your baseline'}
+                </span>
               </div>
               <div className="milestone-number">
-                <small>{next ? 'NEXT' : 'COMPLETE'}</small>
-                <strong>{next ? `${next} lb` : '✓'}</strong>
+                <small>
+                  {!hasPersonalBest ? 'BASELINE' : next ? 'NEXT' : 'COMPLETE'}
+                </small>
+                <strong>
+                  {!hasPersonalBest ? '—' : next ? `${next} lb` : '✓'}
+                </strong>
               </div>
               <div className="milestone-progress">
                 <div style={{ width: `${progress}%` }} />

@@ -91,6 +91,7 @@ export default function MoreScreen({
 }) {
   const [activeSection, setActiveSection] = useState('Overview')
   const [shareMessage, setShareMessage] = useState('')
+  const userId = session?.user?.id ?? null
   const email = session?.user?.email ?? ''
   const displayName =
     session?.user?.user_metadata?.display_name ||
@@ -186,13 +187,13 @@ export default function MoreScreen({
           </div>
           <div className="more-destination-list">
             <MoreItem icon={Bell} title="Notifications" description="Reminders and training updates" badge={notificationCount || null} onClick={onOpenNotifications}/>
-            <MoreItem icon={Download} title="Export Backup" description="Download a copy of your data" detail={formatTime(state.lastBackupAt ?? lastBackupAt())} onClick={() => {
-              exportState(state)
+            <MoreItem icon={Download} title="Export Backup" description="Download a copy of your data" detail={formatTime(state.lastBackupAt ?? lastBackupAt(userId))} onClick={() => {
+              exportState(state, userId)
               setState((current) => ({...current,lastBackupAt:new Date().toISOString()}))
             }}/>
             <div className="more-import-row"><ImportBackupButton onImport={async(file)=>{
               try {
-                const restored = await importState(file,fallbackState)
+                const restored = await importState(file,fallbackState,userId)
                 setState(restored)
                 alert('Backup restored successfully.')
               } catch {
@@ -205,7 +206,7 @@ export default function MoreScreen({
             }}/>
             <MoreItem icon={RotateCcw} title="Reset Local Data" description="Erase this device’s local copy" danger onClick={()=>{
               if(confirm('Reset all local Foundry data? Export a backup first. This cannot be undone.')){
-                clearState(); location.reload()
+                clearState(userId); location.reload()
               }
             }}/>
           </div>

@@ -70,7 +70,8 @@ import {
   notificationSnapshot as buildNotificationSnapshot,
 } from './lib/notifications'
 
-const createInitialState = () => ({
+const createInitialState = (ownerUserId = null) => ({
+  ownerUserId,
   program: DEFAULT_PROGRAM,
   activeWorkout: null,
   history: [],
@@ -252,7 +253,7 @@ function App() {
 
     const hydrateAccount = async () => {
       try {
-        const localAccountState = loadState(createInitialState(), userId)
+        const localAccountState = loadState(createInitialState(userId), userId)
         const cloudRecord = await loadCloudState(userId)
         if (cancelled) return
 
@@ -265,8 +266,9 @@ function App() {
           Boolean(decision.state?.activeWorkout)
 
         const hydratedState = {
-          ...createInitialState(),
+          ...createInitialState(userId),
           ...decision.state,
+          ownerUserId: userId,
           activeWorkout:
             decision.state?.activeWorkout ?? null,
           onboarding:
@@ -1875,7 +1877,7 @@ function App() {
         <MoreScreen
           state={state}
           setState={setState}
-          fallbackState={createInitialState()}
+          fallbackState={createInitialState(session?.user?.id)}
           onOpenBuilder={() => navigate('builder')}
           onOpenPlanner={() => navigate('planner')}
           onOpenHistory={() => navigate('history')}

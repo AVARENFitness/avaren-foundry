@@ -1,11 +1,12 @@
 const STORAGE_PREFIX = 'avaren-foundry-user'
 const BACKUP_META_PREFIX = 'avaren-foundry-last-backup'
-const SCHEMA_VERSION = 2
+const SCHEMA_VERSION = 3
 
 const keyFor = (userId) => `${STORAGE_PREFIX}:${String(userId)}`
 const backupKeyFor = (userId) => `${BACKUP_META_PREFIX}:${String(userId)}`
 
-const normalizeState = (value, fallback) => ({
+const normalizeState = (value, fallback, userId = null) => ({
+  ownerUserId: userId ?? value?.ownerUserId ?? null,
   ...fallback,
   ...value,
   schemaVersion: SCHEMA_VERSION,
@@ -72,14 +73,18 @@ const normalizeState = (value, fallback) => ({
 })
 
 export function loadState(fallback, userId) {
-  if (!userId) return normalizeState({}, fallback)
+  if (!userId) return normalizeState({}, fallback, null)
   try {
     const raw = localStorage.getItem(keyFor(userId))
-    return raw
-      ? normalizeState(JSON.parse(raw), fallback)
-      : normalizeState({}, fallback)
+    if (!raw) return normalizeState({}, fallback, userId)
+    const parsed = JSON.parse(raw)
+    if (parsed?.ownerUserId && parsed.ownerUserId !== userId) {
+      console.warn('Ignored AVAREN cache owned by another user.')
+      return normalizeState({}, fallback, userId)
+    }
+    return normalizeState(parsed, fallback, userId)
   } catch {
-    return normalizeState({}, fallback)
+    return normalizeState({}, fallback, userId)
   }
 }
 
@@ -89,6 +94,7 @@ export function saveState(value, userId) {
     keyFor(userId),
     JSON.stringify({
       ...value,
+      ownerUserId: userId,
       schemaVersion: SCHEMA_VERSION,
       lastSavedAt: new Date().toISOString(),
     }),
@@ -101,7 +107,7 @@ export function exportState(value, userId) {
     userId,
     exportedAt: new Date().toISOString(),
     schemaVersion: SCHEMA_VERSION,
-    state: value,
+    state: { ...value, ownerUserId: userId },
   }
   const blob = new Blob([JSON.stringify(payload, null, 2)], {
     type: 'application/json',
@@ -118,7 +124,14 @@ export function exportState(value, userId) {
 export async function importState(file, fallback, userId) {
   const text = await file.text()
   const parsed = JSON.parse(text)
-  const normalized = normalizeState(parsed?.state ?? parsed, fallback)
+  const imported = parsed?.state ?? parsed
+  if (parsed?.userId && parsed.userId !== userId) {
+    throw new Error('This backup belongs to a different AVAREN account.')
+  }
+  if (imported?.ownerUserId && imported.ownerUserId !== userId) {
+    throw new Error('This backup belongs to a different AVAREN account.')
+  }
+  const normalized = normalizeState(imported, fallback, userId)
   localStorage.setItem(keyFor(userId), JSON.stringify(normalized))
   return normalized
 }

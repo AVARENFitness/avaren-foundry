@@ -1,6 +1,6 @@
 import { supabase } from './supabase'
 
-const CLOUD_SCHEMA_VERSION = 1
+const CLOUD_SCHEMA_VERSION = 2
 
 const stateTime = (state) => {
   const value = state?.lastSavedAt
@@ -16,13 +16,17 @@ export async function loadCloudState(userId) {
     .maybeSingle()
 
   if (error) throw error
+  if (data?.state?.ownerUserId && data.state.ownerUserId !== userId) {
+    console.warn('Ignored cloud state owned by another AVAREN user.')
+    return null
+  }
   return data
 }
 
 export async function saveCloudState(userId, state) {
   const payload = {
     user_id: userId,
-    state,
+    state: { ...state, ownerUserId: userId },
     schema_version: CLOUD_SCHEMA_VERSION,
     updated_at: new Date().toISOString(),
   }
