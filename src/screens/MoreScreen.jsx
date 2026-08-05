@@ -22,6 +22,7 @@ import {
 } from 'lucide-react'
 import { useState } from 'react'
 import ImportBackupButton from '../components/ImportBackupButton'
+import AthleteCoachPanel from '../components/AthleteCoachPanel'
 import { supabase } from '../lib/supabase'
 import {
   clearState,
@@ -101,6 +102,7 @@ export default function MoreScreen({
   coachRole = 'athlete',
   coachAccessEnabled = false,
   onEnterCoachMode,
+  onStartCoachAssignment,
   mobilityTitle = 'Morning Movement',
   mobilityMinutes = 5,
   notificationCount = 0,
@@ -342,6 +344,12 @@ export default function MoreScreen({
           </div>
         </div>
       </section>
+
+      <AthleteCoachPanel
+        onStartAssignment={
+          onStartCoachAssignment
+        }
+      />
 
       <section className="more-section">
         <header className="more-section-heading">

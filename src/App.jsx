@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import AppShell from './components/AppShell'
 import CoachShell from './components/CoachShell'
 import { isCoachAccount } from './config/coachAccess'
+import { coachBackend } from './lib/coachBackend'
 import HomeScreen from './screens/HomeScreen'
 import GymScreen from './screens/GymScreen'
 import ProgressScreen from './screens/ProgressScreen'
@@ -940,6 +941,64 @@ function App() {
     startWorkout()
   }
 
+  const startCoachAssignment = async (
+    assignment,
+  ) => {
+    const definition = assignment?.workout_payload
+
+    if (
+      !definition?.name ||
+      !Array.isArray(definition.exercises)
+    ) {
+      alert(
+        'This assignment does not contain a valid workout.',
+      )
+      return
+    }
+
+    const activeWorkout = {
+      id: crypto.randomUUID(),
+      assignmentId: assignment.id,
+      name: definition.name,
+      date: new Date().toISOString().slice(0, 10),
+      startedAt: new Date().toISOString(),
+      activeExerciseIndex: 0,
+      coachNotes: assignment.coach_notes ?? '',
+      exercises: definition.exercises.map(
+        (exercise) => ({
+          id: crypto.randomUUID(),
+          name: exercise.name,
+          muscle: exercise.muscle ?? 'Other',
+          supersetGroup:
+            exercise.supersetGroup ?? '',
+          sets: Array.from(
+            { length: Number(exercise.sets) || 3 },
+            (_, index) =>
+              makeSet(index + 1, 'Working'),
+          ),
+        }),
+      ),
+    }
+
+    try {
+      await coachBackend.markAssignmentStarted(
+        assignment.id,
+      )
+    } catch (error) {
+      alert(error.message)
+      return
+    }
+
+    setActiveExercise(0)
+    navigate('gym', () => {
+      setState((current) => ({
+        ...current,
+        selectedWorkout: definition.name,
+        activeWorkout,
+      }))
+    })
+  }
+
   const startWorkout = () => {
     if (state.activeWorkout) {
       navigate('gym')
@@ -1138,6 +1197,20 @@ function App() {
 
     const completionPayload = { session: completedSession, nextWorkout }
     setCompletedSession(completionPayload)
+
+    if (workout.assignmentId) {
+      coachBackend
+        .markAssignmentCompleted(
+          workout.assignmentId,
+          completedSession.id,
+        )
+        .catch((error) => {
+          console.error(
+            'Could not mark assignment complete:',
+            error,
+          )
+        })
+    }
 
     setState((current) => {
       const nextState = {
@@ -1499,6 +1572,7 @@ function App() {
           }
           setWorkspace={setCoachWorkspace}
           screen={coachScreen}
+          program={state.program}
         />
       )
     }
@@ -1586,6 +1660,7 @@ function App() {
             isCoachAccount(session)
           }
           onEnterCoachMode={enterCoachMode}
+          onStartCoachAssignment={startCoachAssignment}
         />
       )
     }

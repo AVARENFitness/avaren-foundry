@@ -13717,3 +13717,14 @@ textarea::placeholder {
     transition-duration: .01ms !important;
   }
 }
+
+/* ===== SPRINT 6.2 · REAL COACH ATHLETE BACKEND ===== */
+.athlete-coach-panel,.coach-assignment-composer{display:grid;gap:14px;padding:18px;border:1px solid rgba(216,184,109,.13);border-radius:18px;background:radial-gradient(circle at 100% 0%,rgba(216,184,109,.08),transparent 34%),rgba(255,255,255,.01)}
+.athlete-coach-panel>header,.coach-assignment-composer>header{display:flex;align-items:center;justify-content:space-between;gap:14px}
+.athlete-coach-panel h2,.coach-assignment-composer h2{margin:5px 0 0}
+.athlete-coach-invitation,.athlete-assignment-card{display:grid;gap:12px;padding:14px;border:1px solid rgba(246,242,233,.06);border-radius:14px;background:rgba(5,7,9,.3)}
+.athlete-coach-invitation>div:last-child{display:flex;gap:8px;flex-wrap:wrap}
+.athlete-coach-invitation button{display:inline-flex;align-items:center;gap:7px;min-height:42px;padding:0 12px;border:1px solid rgba(216,184,109,.12);border-radius:10px;background:rgba(216,184,109,.03);color:#d6bf7a}
+.athlete-assignment-card h3{margin:5px 0}.athlete-assignment-card small{display:inline-flex;align-items:center;gap:6px}
+.coach-assignment-composer label{display:grid;gap:7px}.coach-assignment-composer label>span{font-size:12px;font-weight:850}
+.coach-assignment-composer select,.coach-assignment-composer input,.coach-assignment-composer textarea{width:100%;box-sizing:border-box;padding:12px;border:1px solid rgba(246,242,233,.07);border-radius:12px;background:rgba(5,7,9,.5);color:#e6ded1}
