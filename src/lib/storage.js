@@ -36,6 +36,10 @@ const normalizeState = (value, fallback) => ({
     ...(fallback.notifications ?? {}),
     ...(value?.notifications ?? {}),
   },
+  onboarding: {
+    ...(fallback.onboarding ?? {}),
+    ...(value?.onboarding ?? {}),
+  },
   lastSavedAt: value?.lastSavedAt ?? null,
 })
 

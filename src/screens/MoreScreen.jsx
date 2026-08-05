@@ -6,6 +6,7 @@ import {
   Download,
   Dumbbell,
   FileClock,
+  GraduationCap,
   Hammer,
   History,
   LogOut,
@@ -95,6 +96,7 @@ export default function MoreScreen({
   onOpenReadinessTrends,
   onOpenMobility,
   onOpenReset,
+  onReplayTour,
   mobilityTitle = 'Morning Movement',
   mobilityMinutes = 5,
   notificationCount = 0,
@@ -334,6 +336,13 @@ export default function MoreScreen({
         </header>
 
         <div className="more-destination-list">
+          <MoreItem
+            icon={GraduationCap}
+            title="Replay App Tour"
+            description="Review how AVAREN works"
+            onClick={onReplayTour}
+          />
+
           <MoreItem
             icon={Share2}
             title="Share AVAREN"

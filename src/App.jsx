@@ -44,6 +44,7 @@ import {
 import ReadinessCheckIn from './components/ReadinessCheckIn'
 import NotificationScreen from './screens/NotificationScreen'
 import ReadinessTrendsScreen from './screens/ReadinessTrendsScreen'
+import OnboardingScreen from './screens/OnboardingScreen'
 import {
   applyRecommendationToWorkout,
   buildTrainingRecommendation,
@@ -92,6 +93,10 @@ const createInitialState = () => ({
     dismissed: [],
     actedOn: [],
   },
+  onboarding: {
+    completed: false,
+    completedAt: null,
+  },
 })
 
 const makeSet = (number, type = 'Working') => ({
@@ -134,6 +139,10 @@ function App() {
   const [mobilityFlow, setMobilityFlow] = useState(null)
   const [showReadinessCheckIn, setShowReadinessCheckIn] =
     useState(false)
+  const [showOnboarding, setShowOnboarding] =
+    useState(false)
+  const [isReplayingOnboarding, setIsReplayingOnboarding] =
+    useState(false)
   const [session, setSession] = useState(null)
   const [authLoading, setAuthLoading] = useState(true)
   const [cloudReady, setCloudReady] = useState(false)
@@ -164,6 +173,8 @@ function App() {
         if (nextSession) {
           setScreen('home')
           setShowReadinessCheckIn(false)
+          setShowOnboarding(false)
+          setIsReplayingOnboarding(false)
           window.scrollTo({ top: 0, behavior: 'auto' })
         }
 
@@ -174,6 +185,8 @@ function App() {
           setActiveExerciseState(0)
           setCompletedSession(null)
           setMobilityFlow(null)
+          setShowOnboarding(false)
+          setIsReplayingOnboarding(false)
           setCloudStatus(navigator.onLine ? 'ready' : 'offline')
         }
       },
@@ -219,11 +232,32 @@ function App() {
 
         const decision = chooseNewestState(localAccountState, cloudRecord)
 
-        setState({
+        const hasExistingUsage =
+          (decision.state?.history?.length ?? 0) > 0 ||
+          (decision.state?.achievements?.length ?? 0) > 0 ||
+          (decision.state?.mobility?.completed?.length ?? 0) > 0 ||
+          Boolean(decision.state?.activeWorkout)
+
+        const hydratedState = {
           ...createInitialState(),
           ...decision.state,
-          activeWorkout: decision.state?.activeWorkout ?? null,
-        })
+          activeWorkout:
+            decision.state?.activeWorkout ?? null,
+          onboarding:
+            decision.state?.onboarding ?? {
+              completed: hasExistingUsage,
+              completedAt:
+                hasExistingUsage
+                  ? new Date().toISOString()
+                  : null,
+            },
+        }
+
+        setState(hydratedState)
+        setShowOnboarding(
+          !hydratedState.onboarding?.completed,
+        )
+        setIsReplayingOnboarding(false)
         setActiveExerciseState(
           decision.state?.activeWorkout?.activeExerciseIndex ?? 0,
         )
@@ -1157,6 +1191,36 @@ function App() {
     }))
   }
 
+  const completeOnboarding = () => {
+    if (!isReplayingOnboarding) {
+      setState((current) => ({
+        ...current,
+        onboarding: {
+          completed: true,
+          completedAt:
+            new Date().toISOString(),
+        },
+      }))
+    }
+
+    setShowOnboarding(false)
+    setIsReplayingOnboarding(false)
+    setScreen('home')
+    window.scrollTo({
+      top: 0,
+      behavior: 'auto',
+    })
+  }
+
+  const replayOnboarding = () => {
+    setIsReplayingOnboarding(true)
+    setShowOnboarding(true)
+    window.scrollTo({
+      top: 0,
+      behavior: 'auto',
+    })
+  }
+
   const activeScreen = useMemo(() => {
     if (screen === 'mobility' && mobilityFlow) {
       return (
@@ -1440,6 +1504,7 @@ function App() {
           notificationCount={
             notifications.unreadCount
           }
+          onReplayTour={replayOnboarding}
           session={session}
         />
       )
@@ -1544,6 +1609,19 @@ function App() {
         <div className="splash-title">THE FOUNDRY</div>
         <div className="splash-line" />
       </div>
+    )
+  }
+
+  if (showOnboarding && cloudReady) {
+    return (
+      <OnboardingScreen
+        isReplay={isReplayingOnboarding}
+        onComplete={completeOnboarding}
+        onClose={() => {
+          setShowOnboarding(false)
+          setIsReplayingOnboarding(false)
+        }}
+      />
     )
   }
 
