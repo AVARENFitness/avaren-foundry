@@ -1640,7 +1640,16 @@ function App() {
         />
       </>
     )
-  }, [screen, state, activeExercise, completedSession, mobilityFlow, earnedMilestones, earnedForgeAchievements])
+  }, [
+    screen,
+    state,
+    activeExercise,
+    completedSession,
+    mobilityFlow,
+    earnedMilestones,
+    earnedForgeAchievements,
+    coachScreen,
+  ])
 
   if (!isSupabaseConfigured) {
     return (

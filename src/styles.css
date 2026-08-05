@@ -12753,3 +12753,119 @@ button:active {
     max-width: none;
   }
 }
+
+
+/* ===== SPRINT 6.0B.1 · COACH NAVIGATION & READABILITY ===== */
+
+/*
+  AVAREN previously used many 7–8px labels.
+  These accessibility overrides raise the smallest
+  recurring text without changing primary headings.
+*/
+
+.eyebrow {
+  font-size: 9px !important;
+  line-height: 1.35;
+}
+
+small,
+.more-section-heading small,
+.more-destination-copy small,
+.more-destination-detail,
+.more-version,
+.coach-shell-nav button,
+.coach-hub-count span,
+.coach-hub-page-header p,
+.coach-invite-card span,
+.coach-hub-notice,
+.coach-client-copy span,
+.coach-client-status span,
+.coach-empty-state p,
+.coach-pending-list small,
+.coach-settings-card span,
+.onboarding-note,
+.onboarding-points p,
+.mobility-flow-preferences p,
+.mobility-flow-preferences small,
+.mobility-length-options span,
+.lift-session-notes-toggle small,
+.lift-session-notes-fields label > span,
+.session-context-card span,
+.sprint5-summary-grid span,
+.sprint5-exercise-breakdown span,
+.sprint5-highlight-grid span,
+.sprint5-hero-stats span,
+.movement-flow-complete-stats span,
+.movement-flow-complete-regions span {
+  font-size: 10px !important;
+  line-height: 1.45;
+}
+
+.more-destination-copy strong,
+.more-account-card strong,
+.coach-client-copy strong,
+.coach-invite-card strong,
+.coach-settings-card strong,
+.lift-session-notes-toggle strong,
+.session-context-card p,
+.sprint5-exercise-breakdown strong,
+.sprint5-highlight-grid strong,
+.onboarding-points strong {
+  font-size: 12px !important;
+  line-height: 1.35;
+}
+
+.more-destination,
+.coach-shell-nav button,
+.coach-invite-form button,
+.avoid-movement-button,
+.finish-early-button,
+.timed-repeat-button,
+.session-reflection-save,
+.lift-rest-actions button {
+  min-height: 44px;
+}
+
+.coach-shell-nav button span {
+  font-size: 10px !important;
+}
+
+.more-destination-detail,
+.more-destination-badge,
+.coach-client-status span {
+  font-weight: 850;
+}
+
+input,
+textarea,
+select,
+button {
+  font-size: max(11px, 0.6875rem);
+}
+
+.coach-invite-form input,
+.coach-client-search input,
+.lift-session-notes-fields input,
+.lift-session-notes-fields textarea,
+.session-reflection-section textarea {
+  font-size: 12px !important;
+}
+
+.coach-hub-page-header p,
+.more-hero p,
+.more-primary-copy p,
+.onboarding-copy,
+.movement-flow-complete > p {
+  font-size: 12px !important;
+  line-height: 1.6;
+}
+
+@media (max-width: 520px) {
+  .more-destination-copy small {
+    white-space: normal;
+  }
+
+  .coach-shell-nav {
+    padding-top: 6px;
+  }
+}
