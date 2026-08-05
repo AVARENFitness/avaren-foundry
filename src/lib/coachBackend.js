@@ -69,6 +69,54 @@ export const coachBackend = {
 
     return assignment
   },
+
+  async listWorkoutTemplates() {
+    const user = await currentUser()
+    return unwrap(
+      supabase
+        .from('coach_workout_templates')
+        .select('*')
+        .eq('coach_id', user.id)
+        .order('updated_at', { ascending: false }),
+    )
+  },
+  async saveWorkoutTemplate({ id, name, workout }) {
+    const user = await currentUser()
+    const payload = {
+      coach_id: user.id,
+      name,
+      workout_payload: workout,
+      updated_at: new Date().toISOString(),
+    }
+    if (id) payload.id = id
+    return unwrap(
+      supabase
+        .from('coach_workout_templates')
+        .upsert(payload)
+        .select()
+        .single(),
+    )
+  },
+  async deleteWorkoutTemplate(id) {
+    return unwrap(
+      supabase
+        .from('coach_workout_templates')
+        .delete()
+        .eq('id', id)
+        .select(),
+    )
+  },
+  async updateAssignment(id, patch) {
+    return unwrap(
+      supabase
+        .from('coach_assignments')
+        .update(patch)
+        .eq('id', id)
+        .in('status', ['assigned'])
+        .select()
+        .single(),
+    )
+  },
   async listCoachAssignments() {
     const user = await currentUser()
     return unwrap(supabase.from('coach_assignments').select('*').eq('coach_id', user.id).order('assigned_at', { ascending: false }))
@@ -97,7 +145,18 @@ export const coachBackend = {
     return unwrap(supabase.from('coach_assignments').update({ status: 'completed', completed_at: new Date().toISOString(), completed_session_id: completedSessionId, completion_summary: completionSummary }).eq('id', id).select().single())
   },
   async cancelAssignment(id) {
-    return unwrap(supabase.from('coach_assignments').update({ status: 'cancelled' }).eq('id', id).select().single())
+    return unwrap(
+      supabase
+        .from('coach_assignments')
+        .update({
+          status: 'cancelled',
+          completed_at: null,
+        })
+        .eq('id', id)
+        .in('status', ['assigned', 'started'])
+        .select()
+        .single(),
+    )
   },
   async getClientNotes(athleteId) {
     const user = await currentUser()

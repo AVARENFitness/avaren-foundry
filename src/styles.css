@@ -13836,3 +13836,146 @@ textarea::placeholder {
 .push-settings-state,.push-settings-message{display:flex;align-items:flex-start;gap:8px;padding:11px 12px;border:1px solid rgba(216,184,109,.1);border-radius:11px;color:#a79d8d;font-size:12px;line-height:1.5}
 .push-settings-state.warning{border-color:rgba(190,145,90,.16);background:rgba(190,145,90,.025);color:#bfa67f}
 .push-settings-message{border-color:rgba(91,163,112,.14);background:rgba(91,163,112,.025);color:#96b49e}
+
+
+/* ===== SPRINT 6.4.1 + 6.5 · COACH NAVIGATION, WORKOUT DESIGNER & GYM VISIBILITY ===== */
+
+/* Slightly brighter foundation for strong overhead gym lighting. */
+:root {
+  --black: #0d1116;
+  --panel: #151a20;
+  --panel-soft: #11161b;
+}
+body {
+  background:
+    radial-gradient(circle at top, #252b32, #0d1116 55%) !important;
+  color: #f4ecdf;
+}
+.app-shell,
+.coach-shell,
+.onboarding-screen,
+.foundation-auth,
+.splash-screen {
+  background-color: #0d1116 !important;
+}
+.luxury-panel,
+.more-section,
+.coach-profile-panel,
+.coach-invite-card,
+.coach-roster-section,
+.coach-pending-section,
+.coach-settings-card,
+.ui-stat-card,
+.session-context-card,
+.focus-set-card,
+.history-card,
+.notification-item,
+.athlete-assignment-card {
+  background-color: rgba(25,31,38,.78) !important;
+  border-color: rgba(246,242,233,.105) !important;
+}
+p, small, .more-destination-copy small, .coach-client-copy span,
+.coach-review-card span, .ui-section-header p {
+  color: #aba298 !important;
+}
+input, textarea, select {
+  background: #11171d !important;
+  border-color: rgba(246,242,233,.13) !important;
+  color: #f5ede0 !important;
+}
+
+.coach-profile-assign { margin-left:auto; }
+.coach-assignment-manage-card { align-items:flex-start; }
+.coach-assignment-row { display:grid !important;grid-template-columns:1fr auto !important; }
+.coach-assignment-row-actions { display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end; }
+.coach-unassign-button,.coach-secondary-button {
+  display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:42px;
+  padding:0 12px;border:1px solid rgba(216,184,109,.14);border-radius:11px;
+  background:rgba(216,184,109,.035);color:#d9c27f;font-weight:850;
+}
+.coach-unassign-button { border-color:rgba(191,103,92,.22);background:rgba(191,103,92,.045);color:#d79a90; }
+.coach-template-grid { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px; }
+.coach-template-grid article { display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px;border:1px solid rgba(246,242,233,.08);border-radius:13px;background:rgba(17,22,28,.75); }
+.coach-template-grid strong,.coach-template-grid span { display:block; }
+.coach-template-grid span { margin-top:4px;color:#9f978e; }
+.coach-template-grid article>div:last-child { display:flex;gap:6px; }
+.coach-template-grid button { display:grid;place-items:center;min-width:42px;height:42px;border:1px solid rgba(216,184,109,.12);border-radius:10px;background:rgba(216,184,109,.035);color:#d6bf78; }
+
+.coach-designer-overlay { position:fixed;inset:0;z-index:100;overflow:auto;padding:max(16px,env(safe-area-inset-top)) 16px max(24px,env(safe-area-inset-bottom));background:rgba(5,8,11,.84);backdrop-filter:blur(18px); }
+.coach-designer-shell { width:min(1180px,100%);margin:0 auto;border:1px solid rgba(216,184,109,.16);border-radius:22px;background:linear-gradient(180deg,#171d23,#0f1419);box-shadow:0 34px 90px rgba(0,0,0,.52);overflow:hidden; }
+.coach-designer-header { display:flex;align-items:flex-start;justify-content:space-between;gap:20px;padding:22px;border-bottom:1px solid rgba(246,242,233,.08); }
+.coach-designer-header h1 { margin:7px 0 8px; }
+.coach-designer-header p { margin:0; }
+.coach-designer-close { display:grid;place-items:center;width:46px;height:46px;border:1px solid rgba(246,242,233,.1);border-radius:13px;background:#11171d;color:#d8cfc2; }
+.coach-designer-layout { display:grid;grid-template-columns:300px minmax(0,1fr);min-height:680px; }
+.coach-exercise-library { display:grid;align-content:start;gap:11px;padding:18px;border-right:1px solid rgba(246,242,233,.08);background:rgba(8,12,16,.44); }
+.coach-library-heading { display:flex;align-items:center;gap:10px; }
+.coach-library-heading strong,.coach-library-heading span { display:block; }
+.coach-library-heading span { margin-top:3px;color:#9e968d;font-size:12px; }
+.coach-library-search { display:flex;align-items:center;gap:8px;padding:0 11px;border:1px solid rgba(246,242,233,.1);border-radius:11px;background:#11171d; }
+.coach-library-search input { border:0!important;background:transparent!important;padding:0!important; }
+.coach-new-exercise { display:flex;align-items:center;justify-content:center;gap:7px;min-height:44px;border:1px solid rgba(216,184,109,.15);border-radius:11px;background:rgba(216,184,109,.045);color:#ddc67f; }
+.coach-library-results { display:grid;gap:6px;max-height:490px;overflow:auto; }
+.coach-library-results button { display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;padding:10px;border:1px solid rgba(246,242,233,.07);border-radius:11px;background:#12181e;color:#eee6da;text-align:left; }
+.coach-library-results strong,.coach-library-results span { display:block; }
+.coach-library-results span { margin-top:3px;color:#9d958b;font-size:12px; }
+.coach-designer-main { display:grid;align-content:start;gap:16px;padding:20px; }
+.coach-designer-meta { display:grid;gap:12px;padding:16px;border:1px solid rgba(246,242,233,.09);border-radius:16px;background:rgba(24,30,37,.72); }
+.coach-designer-meta label,.coach-designed-grid label { display:grid;gap:6px; }
+.coach-designer-meta label>span,.coach-designed-grid label>span { font-size:12px;font-weight:850;color:#bdb3a6; }
+.coach-designer-meta-grid { display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:10px; }
+.coach-designer-exercises { display:grid;gap:10px; }
+.coach-designed-exercise { display:grid;gap:12px;padding:15px;border:1px solid rgba(246,242,233,.09);border-radius:15px;background:rgba(22,28,35,.8); }
+.coach-designed-exercise-top { display:flex;align-items:center;justify-content:space-between; }
+.coach-designed-exercise-top>span { color:#d9c27e;font-weight:900; }
+.coach-designed-exercise-top>div { display:flex;gap:5px; }
+.coach-designed-exercise-top button { display:grid;place-items:center;width:38px;height:38px;min-height:38px;border:1px solid rgba(246,242,233,.08);border-radius:9px;background:#11171d;color:#c9bfae; }
+.coach-designed-grid { display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px; }
+.coach-designed-grid .wide { grid-column:span 2; }
+.coach-designer-empty { display:grid;justify-items:center;gap:7px;padding:30px;border:1px dashed rgba(246,242,233,.12);border-radius:15px;color:#9f978e;text-align:center; }
+.coach-designer-actions { position:sticky;bottom:0;display:flex;justify-content:flex-end;gap:10px;padding:14px;border:1px solid rgba(246,242,233,.08);border-radius:15px;background:rgba(14,19,24,.94);backdrop-filter:blur(14px); }
+
+@media(max-width:860px){
+  .coach-designer-layout{grid-template-columns:1fr}.coach-exercise-library{border-right:0;border-bottom:1px solid rgba(246,242,233,.08)}.coach-library-results{max-height:230px}.coach-designed-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:560px){
+  .coach-profile-assign{width:100%;margin:10px 0 0}.coach-client-profile-hero{display:grid}.coach-template-grid{grid-template-columns:1fr}.coach-assignment-row{grid-template-columns:1fr!important}.coach-assignment-row-actions{justify-content:flex-start}.coach-designer-overlay{padding:0}.coach-designer-shell{min-height:100dvh;border-radius:0}.coach-designer-header{padding:16px}.coach-designer-layout{min-height:auto}.coach-designer-main,.coach-exercise-library{padding:14px}.coach-designer-meta-grid,.coach-designed-grid{grid-template-columns:1fr}.coach-designed-grid .wide{grid-column:auto}.coach-designer-actions{display:grid;grid-template-columns:1fr 1fr}.coach-designer-actions button{width:100%}
+}
+
+
+/* ===== SPRINT 6.5.1 · COMPLETE COACH WORKOUT LIBRARY ===== */
+
+.coach-library-heading span {
+  max-width: 260px;
+  line-height: 1.45;
+}
+
+.coach-library-results {
+  scrollbar-gutter: stable;
+}
+
+.coach-library-results button span {
+  display: block;
+  margin-top: 4px;
+  color: #aaa298;
+  font-size: 11px !important;
+}
+
+.coach-unassign-button {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 40px;
+  padding: 0 11px;
+  border: 1px solid rgba(205,112,101,.3);
+  border-radius: 10px;
+  background: rgba(205,112,101,.08);
+  color: #e29b91;
+  font-weight: 850;
+}
+
+.coach-assignment-row-actions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}

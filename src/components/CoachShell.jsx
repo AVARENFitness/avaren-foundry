@@ -26,6 +26,7 @@ const tabs = [
 export default function CoachShell({
   screen,
   setScreen,
+  onNavigate,
   children,
   coachName,
   onExit,
@@ -60,7 +61,10 @@ export default function CoachShell({
                   ? 'active'
                   : ''
               }
-              onClick={() => setScreen(id)}
+              onClick={() => {
+                onNavigate?.(id)
+                setScreen(id)
+              }}
             >
               <Icon size={20} />
               <span>{label}</span>

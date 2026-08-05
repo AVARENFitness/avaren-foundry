@@ -127,6 +127,8 @@ function App() {
   const [screen, setScreen] = useState('home')
   const [coachScreen, setCoachScreen] =
     useState('clients')
+  const [selectedCoachClient, setSelectedCoachClient] =
+    useState(null)
   const [remoteNotifications, setRemoteNotifications] =
     useState([])
   const [state, setState] = useState(() => createInitialState())
@@ -1535,6 +1537,7 @@ function App() {
       role: 'coach',
       modeEnabled: true,
     }))
+    setSelectedCoachClient(null)
     setCoachScreen('clients')
     setScreen('coach-hub')
     window.scrollTo({
@@ -1782,6 +1785,8 @@ function App() {
           setWorkspace={setCoachWorkspace}
           screen={coachScreen}
           program={state.program}
+          selectedClient={selectedCoachClient}
+          setSelectedClient={setSelectedCoachClient}
         />
       )
     }
@@ -1947,6 +1952,7 @@ function App() {
     earnedMilestones,
     earnedForgeAchievements,
     coachScreen,
+    selectedCoachClient,
     remoteNotifications,
   ])
 
@@ -2010,6 +2016,10 @@ function App() {
       <CoachShell
         screen={coachScreen}
         setScreen={setCoachScreen}
+        onNavigate={(nextScreen) => {
+          setSelectedCoachClient(null)
+          setCoachScreen(nextScreen)
+        }}
         coachName={
           session?.user?.user_metadata
             ?.display_name ||
