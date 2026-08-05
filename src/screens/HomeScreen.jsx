@@ -82,7 +82,7 @@ export default function HomeScreen({
         <div>
           <span className="eyebrow">{dashboard.date}</span>
           <h1>{dashboard.greeting}</h1>
-          <p>Your training, nutrition, recovery, and progress—organized around today.</p>
+          <p>Your focus for today, with everything else kept quietly within reach.</p>
         </div>
       </header>
 
@@ -144,7 +144,7 @@ export default function HomeScreen({
 
       <section className="home-3-next">
         <Sparkles size={19}/>
-        <div><strong>Everything important stays close.</strong><span>Use Train, Nutrition, Progress, and Account for deeper tools.</span></div>
+        <div><strong>Nothing important is buried.</strong><span>Daily actions stay one or two taps away.</span></div>
       </section>
     </div>
   )

@@ -31,7 +31,12 @@ import {
 } from '../lib/nutrition'
 import { COMMON_FOODS, FOOD_CATEGORIES } from '../data/commonFoods'
 
-const tabs = ['Today', 'Foods', 'Recipes', 'History', 'Goals']
+const tabs = [
+  { label: 'Today', value: 'Today' },
+  { label: 'Meals', value: 'Meals' },
+  { label: 'Library', value: 'Library' },
+  { label: 'Insights', value: 'Insights' },
+]
 const blankFood = { name: '', calories: '', protein: '', carbs: '', fat: '', fiber: '', servings: 1 }
 
 const round = (value) => Math.round(Number(value || 0) * 10) / 10
@@ -84,6 +89,43 @@ export default function NutritionScreen({ nutrition, onChange }) {
       })
       .slice(0, 28)
   }, [foodSearch, foodCategory, favoriteIds, recentIds, nutrition.savedFoods])
+
+  const weeklyInsights = useMemo(() => {
+    const today = new Date(`${nutritionDateKey()}T12:00:00`)
+    const days = Array.from({ length: 7 }, (_, index) => {
+      const current = new Date(today)
+      current.setDate(today.getDate() - (6 - index))
+      const key = nutritionDateKey(current)
+      const entry = nutrition?.days?.[key] ?? emptyNutritionDay(key)
+      const totalsForDay = nutritionTotals(entry)
+      return {
+        key,
+        label: current.toLocaleDateString([], { weekday: 'short' }),
+        calories: Number(totalsForDay.calories || 0),
+        protein: Number(totalsForDay.protein || 0),
+        water: Number(entry.waterOz || 0),
+        weight: Number(entry.weight || 0),
+      }
+    })
+    const loggedDays = days.filter((item) => item.calories > 0 || item.protein > 0 || item.water > 0)
+    const average = (field) => loggedDays.length
+      ? loggedDays.reduce((sum, item) => sum + Number(item[field] || 0), 0) / loggedDays.length
+      : 0
+    const proteinDays = days.filter((item) => item.protein >= Number(goals.protein || 0) * .9).length
+    const hydrationDays = days.filter((item) => item.water >= Number(goals.waterOz || 0) * .9).length
+    const weights = days.filter((item) => item.weight > 0).map((item) => item.weight)
+    const weightChange = weights.length > 1 ? weights[weights.length - 1] - weights[0] : 0
+    return {
+      days,
+      loggedDays: loggedDays.length,
+      averageCalories: average('calories'),
+      averageProtein: average('protein'),
+      averageWater: average('water'),
+      proteinDays,
+      hydrationDays,
+      weightChange,
+    }
+  }, [nutrition?.days, goals.protein, goals.waterOz])
 
   const patch = (updater) => onChange((current) => {
     const base = current ?? { goals: DEFAULT_NUTRITION_GOALS, days: {}, savedFoods: [], recipes: [], recentFoodIds: [], favoriteFoodIds: [] }
@@ -301,12 +343,12 @@ export default function NutritionScreen({ nutrition, onChange }) {
   return (
     <div className="nutrition-screen">
       <header className="nutrition-screen-header">
-        <div><span className="eyebrow">NUTRITION</span><h1>Today’s Nutrition</h1><p>Fast daily tracking for solo athletes and coached clients.</p></div>
+        <div><span className="eyebrow">NUTRITION</span><h1>Today’s Nutrition</h1><p>Everything important today, with deeper tools one tap away.</p></div>
         <button onClick={() => setTab('Goals')}><Settings2 size={18}/>Goals</button>
       </header>
 
       <nav className="nutrition-tabs">
-        {tabs.map((item) => <button key={item} className={tab === item ? 'active' : ''} onClick={() => setTab(item)}>{item}</button>)}
+        {tabs.map((item) => <button key={item.value} className={tab === item.value ? 'active' : ''} onClick={() => setTab(item.value)}>{item.label}</button>)}
       </nav>
 
       {notice && <div className="nutrition-notice">{notice}</div>}
@@ -324,7 +366,7 @@ export default function NutritionScreen({ nutrition, onChange }) {
         </section>
 
         <section className="nutrition-quick-grid">
-          <button onClick={() => setTab('Foods')}><Plus/><strong>Log Food</strong><span>Manual, saved, or recent</span></button>
+          <button onClick={() => setTab('Meals')}><Plus/><strong>Log Food</strong><span>Manual, saved, or recent</span></button>
           <button onClick={() => addWater(Number(goals.bottleOz || 33.8))}><Droplets/><strong>1 Bottle</strong><span>{goals.bottleOz} oz</span></button>
           <button onClick={() => addWater(Number(goals.bottleOz || 33.8) / 2)}><Droplets/><strong>½ Bottle</strong><span>{round(Number(goals.bottleOz || 33.8) / 2)} oz</span></button>
           <button onClick={() => setTab('Goals')}><Scale/><strong>Log Weight</strong><span>{day.weight || 'Add today’s weight'}</span></button>
@@ -333,13 +375,13 @@ export default function NutritionScreen({ nutrition, onChange }) {
         <section className="nutrition-hydration-card"><div><Droplets/><span><strong>Hydration</strong><small>{round(day.waterOz)} of {goals.waterOz} oz</small></span></div><ProgressBar value={day.waterOz} goal={goals.waterOz}/></section>
 
         <section className="nutrition-food-log">
-          <header><div><span className="eyebrow">FOOD LOG</span><h2>{day.foods.length ? `${day.foods.length} items` : 'Nothing logged yet'}</h2></div><button onClick={() => setTab('Foods')}><Plus/>Add</button></header>
+          <header><div><span className="eyebrow">FOOD LOG</span><h2>{day.foods.length ? `${day.foods.length} items` : 'Nothing logged yet'}</h2></div><button onClick={() => setTab('Meals')}><Plus/>Add</button></header>
           {day.foods.length ? day.foods.map((food) => <article key={food.id}><div><strong>{food.name}</strong><span>{food.calories} cal · P {food.protein} · C {food.carbs} · F {food.fat}</span></div><button onClick={() => patchDay((current) => ({ ...current, foods: current.foods.filter((item) => item.id !== food.id) }))}><Trash2 size={16}/></button></article>) : <div className="nutrition-empty"><Utensils/><p>Log your first meal to start today’s dashboard.</p></div>}
         </section>
       </>}
 
-      {tab === 'Foods' && <section className="nutrition-panel nutrition-quick-log-panel">
-        <header><div><span className="eyebrow">QUICK LOG</span><h2>What did you have?</h2><p>Search a common food, choose something saved, or create a custom item only when needed.</p></div></header>
+      {tab === 'Meals' && <section className="nutrition-panel nutrition-quick-log-panel">
+        <header><div><span className="eyebrow">MEALS</span><h2>What did you have?</h2><p>Search a common food, choose something saved, or create a custom item only when needed.</p></div></header>
 
         <div className="nutrition-search-shell">
           <Search size={20}/>
@@ -421,8 +463,8 @@ export default function NutritionScreen({ nutrition, onChange }) {
         <p className="nutrition-estimate-note">Common-food values are practical estimates. Brand labels and exact packaging can differ, so use Custom Food when precision matters.</p>
       </section>}
 
-      {tab === 'Recipes' && <section className="nutrition-panel nutrition-recipes-panel">
-        <header><div><span className="eyebrow">RECIPES & MEAL PREP</span><h2>Cook once. Log in seconds.</h2><p>Add ingredients from the food catalog, choose the batch yield, and AVAREN calculates every serving.</p></div></header>
+      {tab === 'Library' && <section className="nutrition-panel nutrition-recipes-panel">
+        <header><div><span className="eyebrow">LIBRARY</span><h2>Your reusable nutrition.</h2><p>Add ingredients from the food catalog, choose the batch yield, and AVAREN calculates every serving.</p></div></header>
 
         <section className="nutrition-recipe-builder">
           <header><div><ChefHat size={20}/><span><strong>Create recipe</strong><small>Macros calculate automatically from ingredients.</small></span></div></header>
@@ -491,9 +533,23 @@ export default function NutritionScreen({ nutrition, onChange }) {
         </div>}
       </section>}
 
-      {tab === 'History' && <section className="nutrition-panel">
-        <header><div><span className="eyebrow">HISTORY</span><h2>Daily nutrition</h2></div></header>
-        <div className="nutrition-history-list">{Object.values(nutrition.days ?? {}).sort((a,b)=>b.date.localeCompare(a.date)).map((entry)=>{const t=nutritionTotals(entry);return <article key={entry.date}><div><strong>{new Date(`${entry.date}T12:00:00`).toLocaleDateString()}</strong><span>{entry.foods.length} foods · {round(entry.waterOz)} oz water</span></div><div><strong>{Math.round(t.calories)} cal</strong><span>{round(t.protein)}g protein</span></div></article>})}</div>
+      {tab === 'Insights' && <section className="nutrition-panel nutrition-insights-panel">
+        <header><div><span className="eyebrow">LAST 7 DAYS</span><h2>Your nutrition rhythm</h2><p>One calm view of consistency, not a wall of data.</p></div></header>
+        <section className="nutrition-insight-hero">
+          <div><span>Protein goal</span><strong>{weeklyInsights.proteinDays} of 7 days</strong><small>{Math.round(weeklyInsights.averageProtein)}g daily average</small></div>
+          <ProgressBar value={weeklyInsights.proteinDays} goal={7}/>
+        </section>
+        <div className="nutrition-insight-grid">
+          <article><span>Calories</span><strong>{Math.round(weeklyInsights.averageCalories)}</strong><small>daily average</small></article>
+          <article><span>Hydration</span><strong>{weeklyInsights.hydrationDays}/7</strong><small>days near goal</small></article>
+          <article><span>Logging</span><strong>{weeklyInsights.loggedDays}/7</strong><small>days recorded</small></article>
+          <article><span>Weight</span><strong>{weeklyInsights.weightChange ? `${weeklyInsights.weightChange > 0 ? '+' : ''}${round(weeklyInsights.weightChange)} lb` : '—'}</strong><small>7-day change</small></article>
+        </div>
+        <section className="nutrition-week-strip">
+          {weeklyInsights.days.map((item) => <article key={item.key}><span>{item.label}</span><i style={{height:`${Math.max(8,Math.min(100, goals.calories ? (item.calories / goals.calories) * 100 : 0))}%`}}/><small>{item.calories ? Math.round(item.calories) : '—'}</small></article>)}
+        </section>
+        <section className="nutrition-coaching-insight"><Sparkles size={18}/><div><strong>{weeklyInsights.proteinDays >= 5 ? 'Protein consistency is strong.' : 'Protein is the clearest opportunity.'}</strong><span>{weeklyInsights.proteinDays >= 5 ? 'Keep the same routine and focus on consistency.' : `You reached at least 90% of your protein goal on ${weeklyInsights.proteinDays} days.`}</span></div></section>
+        <details className="nutrition-history-disclosure"><summary><History size={17}/>View daily history</summary><div className="nutrition-history-list">{Object.values(nutrition.days ?? {}).sort((a,b)=>b.date.localeCompare(a.date)).map((entry)=>{const t=nutritionTotals(entry);return <article key={entry.date}><div><strong>{new Date(`${entry.date}T12:00:00`).toLocaleDateString()}</strong><span>{entry.foods.length} foods · {round(entry.waterOz)} oz water</span></div><div><strong>{Math.round(t.calories)} cal</strong><span>{round(t.protein)}g protein</span></div></article>})}</div></details>
       </section>}
 
       {tab === 'Goals' && <section className="nutrition-panel">
@@ -505,7 +561,7 @@ export default function NutritionScreen({ nutrition, onChange }) {
           <label><span>Workout calories</span><input type="number" value={day.workoutCalories} onChange={(e)=>patchDay((current)=>({...current,workoutCalories:e.target.value}))}/></label>
         </div>
       </section>}
-      {tab !== 'Foods' && <button className="nutrition-fab" onClick={() => setTab('Foods')}><Plus size={20}/><span>Log Food</span></button>}
+      {tab !== 'Meals' && <button className="nutrition-fab" onClick={() => setTab('Meals')}><Plus size={20}/><span>Log Food</span></button>}
     </div>
   )
 }
