@@ -1,10 +1,10 @@
-import { Dumbbell, Home, LineChart, MoreHorizontal } from 'lucide-react'
+import { Dumbbell, Home, LineChart, UserRound } from 'lucide-react'
 
 const tabs = [
   { id: 'home', label: 'Home', Icon: Home },
   { id: 'gym', label: 'Gym', Icon: Dumbbell },
   { id: 'progress', label: 'Progress', Icon: LineChart },
-  { id: 'more', label: 'More', Icon: MoreHorizontal },
+  { id: 'more', label: 'Profile', Icon: UserRound },
 ]
 
 export default function AppShell({

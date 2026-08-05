@@ -344,10 +344,32 @@ export default function MoreScreen({
           <MoreItem
             icon={MessageCircle}
             title="Send Feedback"
-            description="Tell us what should improve"
+            description="Report a bug or suggest a feature"
             onClick={() => {
+              const subject =
+                encodeURIComponent(
+                  'AVAREN Feedback',
+                )
+
+              const body =
+                encodeURIComponent(
+                  [
+                    'Feedback type: Bug report / Feature request',
+                    '',
+                    'What happened or what would you like to see?',
+                    '',
+                    '',
+                    'Steps to reproduce:',
+                    '',
+                    '',
+                    `App URL: ${window.location.href}`,
+                    `Device / Browser: ${navigator.userAgent}`,
+                    `Date: ${new Date().toLocaleString()}`,
+                  ].join('\n'),
+                )
+
               window.location.href =
-                'mailto:?subject=AVAREN Feedback'
+                `mailto:hello@avarenfitness.com?subject=${subject}&body=${body}`
             }}
           />
 
