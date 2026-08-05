@@ -1,5 +1,7 @@
 import {
+  CalendarDays,
   ClipboardList,
+  CalendarRange,
   LogOut,
   Settings2,
   Users,
@@ -12,9 +14,19 @@ const tabs = [
     Icon: Users,
   },
   {
+    id: 'calendar',
+    label: 'Calendar',
+    Icon: CalendarDays,
+  },
+  {
     id: 'assignments',
     label: 'Assignments',
     Icon: ClipboardList,
+  },
+  {
+    id: 'programs',
+    label: 'Programs',
+    Icon: CalendarRange,
   },
   {
     id: 'settings',

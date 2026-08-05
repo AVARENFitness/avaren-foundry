@@ -13979,3 +13979,103 @@ input, textarea, select {
   flex-wrap: wrap;
   justify-content: flex-end;
 }
+
+/* ===== SPRINT 6.6 · PROGRAMS & COACH CALENDAR ===== */
+
+.coach-shell-nav {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.coach-calendar-screen,
+.coach-programs-screen {
+  display: grid;
+  gap: 16px;
+}
+
+.coach-calendar-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.coach-calendar-toolbar select,
+.coach-calendar-nav {
+  min-height: 44px;
+  border: 1px solid rgba(246,242,233,.09);
+  border-radius: 12px;
+  background: rgba(255,255,255,.025);
+  color: #ece4d8;
+}
+
+.coach-calendar-toolbar select { padding: 0 12px; }
+.coach-calendar-nav { display:flex;align-items:center;gap:8px;padding:0 7px; }
+.coach-calendar-nav button { min-width:36px;min-height:36px;border:0;background:transparent;color:#d7be76; }
+.coach-calendar-nav strong { font-size: 13px; }
+
+.coach-week-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(135px, 1fr));
+  gap: 9px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+}
+
+.coach-calendar-day {
+  min-height: 250px;
+  padding: 10px;
+  border: 1px solid rgba(246,242,233,.07);
+  border-radius: 14px;
+  background: rgba(255,255,255,.018);
+}
+
+.coach-calendar-day > header { display:flex;align-items:center;justify-content:space-between;margin-bottom:10px; }
+.coach-calendar-day > header strong { font-size: 12px; }
+.coach-calendar-day > header span { color:#d6bd75;font-weight:900; }
+.coach-calendar-day > div { display:grid;gap:7px; }
+.coach-calendar-day article { display:grid;gap:4px;padding:10px;border:1px solid rgba(216,184,109,.12);border-radius:10px;background:rgba(216,184,109,.04);cursor:grab; }
+.coach-calendar-day article strong { font-size: 12px; }
+.coach-calendar-day article span,.coach-calendar-day article small { font-size:10px!important;color:#aaa198;overflow-wrap:anywhere; }
+
+.coach-schedule-composer,
+.coach-program-editor {
+  width: min(600px, calc(100vw - 28px));
+  max-height: calc(100dvh - 36px);
+  overflow-y: auto;
+  display:grid;
+  gap:14px;
+  padding:20px;
+  border:1px solid rgba(216,184,109,.16);
+  border-radius:18px;
+  background:#12161a;
+}
+.coach-schedule-composer header,.coach-program-editor header { display:flex;justify-content:space-between;align-items:flex-start; }
+.coach-schedule-composer label,.coach-program-editor label { display:grid;gap:7px; }
+.coach-schedule-composer input,.coach-schedule-composer select,.coach-schedule-composer textarea,.coach-program-editor input,.coach-program-editor select,.coach-program-editor textarea { width:100%;box-sizing:border-box;padding:12px;border:1px solid rgba(246,242,233,.09);border-radius:11px;background:#0c1013;color:#eee6da; }
+
+.coach-program-grid { display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); }
+.coach-program-grid article { display:grid;gap:14px;padding:16px;border:1px solid rgba(246,242,233,.07);border-radius:15px;background:rgba(255,255,255,.018); }
+.coach-program-grid article > div:last-child { display:flex;gap:7px;flex-wrap:wrap; }
+.coach-program-grid button { display:inline-flex;align-items:center;gap:6px;min-height:40px;padding:0 10px;border:1px solid rgba(216,184,109,.12);border-radius:9px;background:rgba(216,184,109,.035);color:#d8c17c; }
+.coach-program-days { display:grid;gap:8px; }
+.coach-program-days article { display:grid;grid-template-columns:90px 100px 1fr auto;gap:7px;align-items:center; }
+
+.athlete-schedule-feature { display:grid;gap:14px;padding:18px;border:1px solid rgba(216,184,109,.16);border-radius:18px;background:radial-gradient(circle at 100% 0%,rgba(216,184,109,.1),transparent 35%),rgba(255,255,255,.02); }
+.athlete-schedule-feature > header { display:grid;grid-template-columns:1fr auto;gap:16px;align-items:center; }
+.athlete-schedule-feature h2 { margin:5px 0; }
+.athlete-schedule-feature p { margin:0 0 7px; }
+.athlete-schedule-feature small { display:inline-flex;align-items:center;gap:6px; }
+.athlete-schedule-kind { display:grid;justify-items:center;gap:5px;color:#d9c17a;text-transform:capitalize; }
+.athlete-upcoming-strip { display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px; }
+.athlete-upcoming-strip article { display:flex;gap:8px;align-items:center;padding:10px;border:1px solid rgba(246,242,233,.06);border-radius:11px;background:rgba(5,7,9,.3); }
+.athlete-upcoming-strip strong,.athlete-upcoming-strip small { display:block; }
+.athlete-upcoming-strip strong { font-size:11px!important; }
+
+@media (max-width: 700px) {
+  .coach-shell-nav button span { font-size: 9px!important; }
+  .coach-shell-nav button { padding-inline:2px; }
+  .coach-program-days article { grid-template-columns:1fr 1fr; }
+  .coach-program-days article select:nth-child(3),.coach-program-days article input { grid-column:1 / -1; }
+  .athlete-schedule-feature > header { grid-template-columns:1fr; }
+  .athlete-upcoming-strip { grid-template-columns:1fr; }
+}

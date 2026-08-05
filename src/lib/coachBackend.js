@@ -158,6 +158,88 @@ export const coachBackend = {
         .single(),
     )
   },
+  async createScheduledAssignment(payload) {
+    const assignment = await this.createAssignment(payload)
+    const user = await currentUser()
+    await unwrap(supabase.from('coach_schedule_items').insert({ coach_id: user.id, athlete_id: payload.athleteId, assignment_id: assignment.id, kind: 'workout', title: payload.title, scheduled_date: payload.dueDate, notes: payload.coachNotes ?? '' }).select().single())
+    return assignment
+  },
+  async createScheduleItem({ athleteId, kind, title, scheduledDate, notes = '' }) {
+    const user = await currentUser()
+    return unwrap(supabase.from('coach_schedule_items').insert({ coach_id: user.id, athlete_id: athleteId, kind, title, scheduled_date: scheduledDate, notes }).select().single())
+  },
+  async listScheduleItems({ athleteId = null, startDate = null, endDate = null } = {}) {
+    const user = await currentUser()
+    let query = supabase.from('coach_schedule_items').select('*').eq('coach_id', user.id)
+    if (athleteId) query = query.eq('athlete_id', athleteId)
+    if (startDate) query = query.gte('scheduled_date', startDate)
+    if (endDate) query = query.lte('scheduled_date', endDate)
+    return unwrap(query.order('scheduled_date', { ascending: true }))
+  },
+  async listAthleteSchedule({ startDate = null, endDate = null } = {}) {
+    const user = await currentUser()
+    let query = supabase.from('coach_schedule_items').select('*').eq('athlete_id', user.id)
+    if (startDate) query = query.gte('scheduled_date', startDate)
+    if (endDate) query = query.lte('scheduled_date', endDate)
+    return unwrap(query.order('scheduled_date', { ascending: true }))
+  },
+  async rescheduleAssignment(id, dueDate) {
+    const assignment = await unwrap(supabase.from('coach_assignments').update({ due_date: dueDate }).eq('id', id).in('status', ['assigned', 'started']).select().single())
+    await supabase.from('coach_schedule_items').update({ scheduled_date: dueDate, updated_at: new Date().toISOString() }).eq('assignment_id', id)
+    const user = await currentUser()
+    await supabase.from('coach_notifications').insert({ recipient_id: assignment.athlete_id, actor_id: user.id, assignment_id: id, type: 'assignment-due', title: 'Workout rescheduled', body: `${assignment.title} · Moved to ${dueDate}`, action: 'open-assignment', payload: { assignmentId: id, dueDate } })
+    const { error } = await supabase.functions.invoke('send-assignment-push', { body: { assignmentId: id, eventType: 'rescheduled', title: 'Workout rescheduled', body: `${assignment.title} · Moved to ${dueDate}` } })
+    if (error) console.warn('Reschedule push failed', error)
+    return assignment
+  },
+  async duplicateAssignmentWeek({ startDate, endDate, athleteId = null }) {
+    const user = await currentUser()
+    let query = supabase.from('coach_assignments').select('*').eq('coach_id', user.id).gte('due_date', startDate).lte('due_date', endDate).in('status', ['assigned','started'])
+    if (athleteId) query = query.eq('athlete_id', athleteId)
+    const source = await unwrap(query)
+    const created = []
+    for (const item of source) {
+      const due = new Date(`${item.due_date}T12:00:00`)
+      due.setDate(due.getDate() + 7)
+      created.push(await this.createScheduledAssignment({ athleteId: item.athlete_id, title: item.title, workout: item.workout_payload, coachNotes: item.coach_notes, dueDate: due.toISOString().slice(0,10), priority: item.priority ?? 'normal' }))
+    }
+    let scheduleQuery = supabase.from('coach_schedule_items').select('*').eq('coach_id', user.id).gte('scheduled_date', startDate).lte('scheduled_date', endDate).neq('kind', 'workout')
+    if (athleteId) scheduleQuery = scheduleQuery.eq('athlete_id', athleteId)
+    const scheduleRows = await unwrap(scheduleQuery)
+    for (const item of scheduleRows) {
+      const next = new Date(`${item.scheduled_date}T12:00:00`)
+      next.setDate(next.getDate() + 7)
+      await this.createScheduleItem({ athleteId: item.athlete_id, kind: item.kind, title: item.title, scheduledDate: next.toISOString().slice(0,10), notes: item.notes })
+    }
+    return created
+  },
+  async listPrograms() {
+    const user = await currentUser()
+    return unwrap(supabase.from('coach_programs').select('*').eq('coach_id', user.id).order('updated_at', { ascending: false }))
+  },
+  async saveProgram({ id, name, description = '', durationWeeks = 4, days = [] }) {
+    const user = await currentUser()
+    const payload = { coach_id: user.id, name, description, duration_weeks: durationWeeks, program_payload: { days }, updated_at: new Date().toISOString() }
+    if (id) payload.id = id
+    return unwrap(supabase.from('coach_programs').upsert(payload).select().single())
+  },
+  async deleteProgram(id) { return unwrap(supabase.from('coach_programs').delete().eq('id', id).select()) },
+  async assignProgram({ programId, athleteId, startDate }) {
+    const program = await unwrap(supabase.from('coach_programs').select('*').eq('id', programId).single())
+    const start = new Date(`${startDate}T12:00:00`)
+    const created = []
+    for (let week = 0; week < Number(program.duration_weeks || 1); week += 1) {
+      for (const day of program.program_payload?.days ?? []) {
+        const date = new Date(start)
+        const delta = (Number(day.weekday) - date.getDay() + 7) % 7
+        date.setDate(date.getDate() + week * 7 + delta)
+        const scheduledDate = date.toISOString().slice(0,10)
+        if (day.kind === 'workout' && day.workoutPayload) created.push(await this.createScheduledAssignment({ athleteId, title: day.title || day.workoutPayload.name || program.name, workout: day.workoutPayload, coachNotes: `${program.name}${program.description ? ` · ${program.description}` : ''}`, dueDate: scheduledDate }))
+        else await this.createScheduleItem({ athleteId, kind: day.kind, title: day.title || (day.kind === 'rest' ? 'Rest Day' : 'Deload Day'), scheduledDate, notes: program.name })
+      }
+    }
+    return created
+  },
   async getClientNotes(athleteId) {
     const user = await currentUser()
     const rows = await unwrap(supabase.from('coach_client_notes').select('*').eq('coach_id', user.id).eq('athlete_id', athleteId).limit(1))

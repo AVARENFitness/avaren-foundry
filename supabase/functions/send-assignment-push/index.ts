@@ -51,7 +51,7 @@ export default {
 
       if (userError || !user) return json({ error: 'Unauthorized' }, 401)
 
-      const { assignmentId } = await req.json()
+      const { assignmentId, eventType = 'assigned', title: requestedTitle, body: requestedBody } = await req.json()
       if (!assignmentId) {
         return json({ error: 'assignmentId is required' }, 400)
       }
@@ -91,9 +91,12 @@ export default {
           })}`
         : ''
 
+      const pushTitle = requestedTitle ?? (eventType === 'rescheduled' ? 'Workout rescheduled' : 'New workout assigned')
+      const pushBody = requestedBody ?? `${assignment.title}${dueText}`
+
       const payload = JSON.stringify({
-        title: 'New workout assigned',
-        body: `${assignment.title}${dueText}`,
+        title: pushTitle,
+        body: pushBody,
         assignmentId: assignment.id,
         url: `/?assignment=${encodeURIComponent(assignment.id)}`,
         tag: `assignment-${assignment.id}`,

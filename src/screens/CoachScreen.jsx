@@ -19,6 +19,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { coachBackend } from '../lib/coachBackend'
 import { assignmentNotificationBackend } from '../lib/assignmentNotifications'
 import CoachWorkoutDesigner from '../components/CoachWorkoutDesigner'
+import CoachCalendar from '../components/CoachCalendar'
+import CoachPrograms from '../components/CoachPrograms'
 import SectionHeader from '../components/ui/SectionHeader'
 import StatCard from '../components/ui/StatCard'
 import EmptyState from '../components/ui/EmptyState'
@@ -58,6 +60,10 @@ export default function CoachScreen({ workspace, setWorkspace, screen='clients',
     <section className="coach-profile-panel"><SectionHeader eyebrow="COACH NOTES" title="Private observations" description="Visible only in your Coach Hub."/><textarea rows={5} value={clientNotes} onChange={e=>setClientNotes(e.target.value)} placeholder="Goals, limitations, check-in notes, programming context…"/><button className="gold-button machined" onClick={async()=>{await coachBackend.saveClientNotes(selectedClient.athlete_id,clientNotes);setNotice('Client notes saved.')}}>Save Notes</button></section>
     <section className="coach-profile-panel"><SectionHeader eyebrow="ASSIGNMENTS" title="Client activity" action={<button className="coach-secondary-button" onClick={()=>setShowDesigner(true)}><Plus size={16}/>New Workout</button>}/>{clientAssignments.length?clientAssignments.map(a=><article className="coach-review-card coach-assignment-manage-card" key={a.id}><div><strong>{a.title}</strong><span>{a.status} · {formatDate(a.due_date)}</span>{a.completion_summary&&<div className="coach-review-metrics"><span>{a.completion_summary.durationMinutes??'—'} min</span><span>{Number(a.completion_summary.volume??0).toLocaleString()} lb</span><span>{a.completion_summary.sets??0} sets</span></div>}</div>{['assigned','started'].includes(a.status)&&<button className="coach-unassign-button" onClick={()=>unassign(a)}><Trash2 size={15}/>Unassign</button>}</article>):<EmptyState icon={ClipboardList} title="No assignments" description="Create an individualized workout for this client."/>}</section>
     {notice&&<p className="coach-hub-notice">{notice}</p>}</section>{designer}</>
+
+  if(screen==='calendar') return <CoachCalendar clients={clients} assignments={assignments} templates={templates} program={program} onRefresh={load} initialClientId={selectedClient?.athlete_id??''}/>
+
+  if(screen==='programs') return <CoachPrograms clients={clients} templates={templates} program={program} onRefresh={load}/>
 
   if(screen==='assignments') return <><section className="coach-hub-screen"><SectionHeader eyebrow="PROGRAM DELIVERY" title="Assignments" description="Design, send, track, edit, and unassign client workouts." action={<button className="gold-button machined" disabled={!clients.length} onClick={()=>setShowDesigner(true)}><Plus size={17}/>Create Workout</button>}/>
     {!clients.length&&<p className="coach-hub-notice">Connect a client before creating an assignment.</p>}
