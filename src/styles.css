@@ -15587,9 +15587,66 @@ input, textarea, select {
   font-weight: 800;
 }
 
-.ava-confirmation-confirm {
-  margin-top: 0;
+  .ava-confirmation-confirm {
+    margin-top: 0;
+    min-height: 48px;
+  }
+
+.ava-clarification {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 14px;
+  padding: 14px;
+  border: 1px solid rgba(246,242,233,.08);
+  border-radius: 16px;
+  background: rgba(255,255,255,.02);
+}
+
+.ava-clarification p {
+  margin: 4px 0 0;
+  color: #9b948b;
+  font-size: 14px;
+}
+
+.ava-clarification-choices {
+  display: grid;
+  gap: 8px;
+}
+
+.ava-clarification-choice {
+  display: grid;
+  gap: 3px;
   min-height: 48px;
+  padding: 11px 13px;
+  border: 1px solid rgba(246,242,233,.08);
+  border-radius: 14px;
+  background: rgba(0,0,0,.16);
+  color: var(--cream);
+  text-align: left;
+}
+
+.ava-clarification-choice strong {
+  font-size: 14px;
+}
+
+.ava-clarification-choice span {
+  color: #948d84;
+  font-size: 12px;
+}
+
+.ava-undo-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+  margin-bottom: 12px;
+  padding: 9px 12px;
+  border: 1px solid rgba(216,184,109,.18);
+  border-radius: 999px;
+  background: rgba(216,184,109,.05);
+  color: #d4c078;
+  font-size: 12px;
+  font-weight: 800;
 }
 
 @media (max-width: 560px) {

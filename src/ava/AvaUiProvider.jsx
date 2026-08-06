@@ -1,11 +1,18 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { createNutritionState } from '../lib/nutrition'
 import AvaEntryButton from './AvaEntryButton'
 import AvaSheet from './AvaSheet'
 
 const AvaUiContext = createContext(null)
 
-export function AvaUiProvider({ children, enabled = true }) {
+export function AvaUiProvider({
+  children,
+  enabled = true,
+  nutrition = createNutritionState(),
+  onNutritionChange,
+}) {
   const [open, setOpen] = useState(false)
+  const [undoSnapshot, setUndoSnapshot] = useState(null)
 
   const openAva = useCallback(() => {
     if (!enabled) return
@@ -22,20 +29,35 @@ export function AvaUiProvider({ children, enabled = true }) {
     }
   }, [enabled])
 
+  const handleNutritionChange = useCallback(
+    (nextNutrition) => {
+      onNutritionChange?.(nextNutrition)
+    },
+    [onNutritionChange],
+  )
+
   const value = useMemo(
     () => ({
       openAva,
       closeAva,
       isOpen: open && enabled,
+      undoSnapshot,
     }),
-    [closeAva, enabled, open, openAva],
+    [closeAva, enabled, open, openAva, undoSnapshot],
   )
 
   return (
     <AvaUiContext.Provider value={value}>
       {children}
       {enabled && <AvaEntryButton onOpen={openAva} />}
-      <AvaSheet open={open && enabled} onClose={closeAva} />
+      <AvaSheet
+        open={open && enabled}
+        onClose={closeAva}
+        nutrition={nutrition}
+        onNutritionChange={handleNutritionChange}
+        undoSnapshot={undoSnapshot}
+        onUndoSnapshotChange={setUndoSnapshot}
+      />
     </AvaUiContext.Provider>
   )
 }

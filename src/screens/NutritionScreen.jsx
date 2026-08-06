@@ -29,6 +29,12 @@ import {
   nutritionTotals,
   remainingNutrition,
 } from '../lib/nutrition'
+import {
+  appendFoodToNutrition,
+  addWaterToNutrition,
+  logRecipeToNutrition,
+  nutritionRound as round,
+} from '../lib/nutritionActions'
 import { COMMON_FOODS, FOOD_CATEGORIES } from '../data/commonFoods'
 import { appUi } from '../lib/appUi'
 
@@ -39,8 +45,6 @@ const tabs = [
   { label: 'Insights', value: 'Insights' },
 ]
 const blankFood = { name: '', calories: '', protein: '', carbs: '', fat: '', fiber: '', servings: 1 }
-
-const round = (value) => Math.round(Number(value || 0) * 10) / 10
 
 const ProgressBar = ({ value, goal }) => {
   const percent = Math.max(0, Math.min(100, goal ? (value / goal) * 100 : 0))
@@ -141,36 +145,14 @@ export default function NutritionScreen({ nutrition, onChange }) {
 
   const addFood = (food, source = 'manual') => {
     if (!food.name.trim()) return setNotice('Add a food name first.')
-    const servings = Number(food.servings || 1)
-    const entry = {
-      id: crypto.randomUUID(),
-      source,
-      name: food.name.trim(),
-      servings,
-      calories: round(Number(food.calories || 0) * servings),
-      protein: round(Number(food.protein || 0) * servings),
-      carbs: round(Number(food.carbs || 0) * servings),
-      fat: round(Number(food.fat || 0) * servings),
-      fiber: round(Number(food.fiber || 0) * servings),
-      loggedAt: new Date().toISOString(),
-    }
-    patch((current) => {
-      const currentDay = current.days?.[date] ?? emptyNutritionDay(date)
-      const foodId = food.id ?? `${source}:${food.name}`
-      return {
-        ...current,
-        recentFoodIds: [foodId, ...(current.recentFoodIds ?? []).filter((id) => id !== foodId)].slice(0, 30),
-        days: {
-          ...(current.days ?? {}),
-          [date]: { ...currentDay, foods: [...(currentDay.foods ?? []), entry] },
-        },
-      }
-    })
+    patch((current) =>
+      appendFoodToNutrition(current, date, food, source).nutrition,
+    )
     setFoodDraft(blankFood)
     setFoodSearch('')
     setSelectedFood(null)
     setSelectedMultiplier(1)
-    setNotice(`${entry.name} added to today.`)
+    setNotice(`${food.name.trim()} added to today.`)
     setTab('Today')
   }
 
@@ -303,41 +285,15 @@ export default function NutritionScreen({ nutrition, onChange }) {
   }
 
   const logRecipe = (recipe, amount) => {
-    const servings = Math.max(1, Number(recipe.servings || 1))
-    const multiplier = Math.max(0.01, Number(amount || 1))
-    const totals = recipe.totals ?? (recipe.ingredients ?? []).reduce(
-      (sum, item) => ({
-        calories: sum.calories + Number(item.calories || 0) * Number(item.multiplier || 1),
-        protein: sum.protein + Number(item.protein || 0) * Number(item.multiplier || 1),
-        carbs: sum.carbs + Number(item.carbs || 0) * Number(item.multiplier || 1),
-        fat: sum.fat + Number(item.fat || 0) * Number(item.multiplier || 1),
-        fiber: sum.fiber + Number(item.fiber || 0) * Number(item.multiplier || 1),
-      }),
-      { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 },
+    patch((current) =>
+      logRecipeToNutrition(current, date, recipe, amount).nutrition,
     )
-    addFood({
-      id: recipe.id,
-      name: recipe.name,
-      calories: Number(totals.calories || 0) / servings,
-      protein: Number(totals.protein || 0) / servings,
-      carbs: Number(totals.carbs || 0) / servings,
-      fat: Number(totals.fat || 0) / servings,
-      fiber: Number(totals.fiber || 0) / servings,
-      servings: multiplier,
-    }, 'recipe')
-    patch((current) => ({
-      ...current,
-      recipes: (current.recipes ?? []).map((item) =>
-        item.id === recipe.id
-          ? { ...item, remainingServings: Math.max(0, round(Number(item.remainingServings ?? item.servings ?? 0) - multiplier)), updatedAt: new Date().toISOString() }
-          : item,
-      ),
-    }))
     setRecipeLogTarget(null)
     setRecipeLogAmount(1)
   }
 
-  const addWater = (ounces) => patchDay((current) => ({ ...current, waterOz: round(Number(current.waterOz || 0) + ounces) }))
+  const addWater = (ounces) =>
+    patch((current) => addWaterToNutrition(current, date, ounces).nutrition)
 
   const changeDate = (offset) => {
     const next = new Date(`${date}T12:00:00`)

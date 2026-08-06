@@ -141,6 +141,16 @@ No existing screen imports `useAva()` directly yet. AVA UI opens only from the e
 
 Entry is **disabled** during Gym Mode, Mobility flows, Completion, authentication, onboarding, splash, and coach hub.
 
+### Confirmed nutrition actions (Part 3)
+
+| Module | Role |
+|--------|------|
+| `nutritionParser.js` | Deterministic local parsing + catalog/recipe matching |
+| `applyAvaNutritionAction.js` | Applies confirmed food/water/weight/recipe writes |
+| `lib/nutritionActions.js` | Shared nutrition write helpers (also used by NutritionScreen) |
+
+Flow: parse → clarification (if needed) → confirmation preview → explicit Confirm → `nutritionActions` → toast → optional single-step Undo.
+
 ---
 
 ## Future AI Providers

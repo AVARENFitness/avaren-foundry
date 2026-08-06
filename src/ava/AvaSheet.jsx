@@ -1,13 +1,23 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { ArrowUp, Sparkles, X } from 'lucide-react'
+import { ArrowUp, RotateCcw, Sparkles, X } from 'lucide-react'
+import { appUi } from '../lib/appUi'
+import { applyAvaNutritionAction } from './applyAvaNutritionAction'
 import AvaConfirmationPreview from './AvaConfirmationPreview'
 import { buildConfirmationPreview } from './buildConfirmationPreview'
 import { AVA_EXAMPLES, AVA_INTRO } from './constants'
+import { interpretNutritionMessage } from './nutritionParser'
 import { useAva } from './useAva'
 import { useFocusTrap } from './useFocusTrap'
 
-export default function AvaSheet({ open, onClose }) {
+export default function AvaSheet({
+  open,
+  onClose,
+  nutrition,
+  onNutritionChange,
+  undoSnapshot,
+  onUndoSnapshotChange,
+}) {
   const titleId = useId()
   const descriptionId = useId()
   const inputRef = useRef(null)
@@ -18,6 +28,7 @@ export default function AvaSheet({ open, onClose }) {
   const [loading, setLoading] = useState(false)
   const [response, setResponse] = useState(null)
   const [showPreview, setShowPreview] = useState(false)
+  const [clarification, setClarification] = useState(null)
 
   useFocusTrap(panelRef, open)
 
@@ -48,10 +59,40 @@ export default function AvaSheet({ open, onClose }) {
       setLoading(false)
       setResponse(null)
       setShowPreview(false)
+      setClarification(null)
     }
   }, [open])
 
   const preview = response ? buildConfirmationPreview(response) : null
+
+  const runInterpretation = async (message, options = {}) => {
+    const nutritionResult = interpretNutritionMessage(message, nutrition, options)
+
+    if (nutritionResult.handled) {
+      if (nutritionResult.clarification) {
+        setClarification(nutritionResult.clarification)
+        setShowPreview(false)
+        return {
+          ok: true,
+          source: 'local',
+          intent: nutritionResult.intent,
+          summary: nutritionResult.summary,
+          data: { interpretation: nutritionResult },
+        }
+      }
+
+      setClarification(null)
+      return {
+        ok: true,
+        source: 'local',
+        intent: nutritionResult.intent,
+        summary: nutritionResult.summary,
+        data: { interpretation: nutritionResult },
+      }
+    }
+
+    return routeMessage(message)
+  }
 
   const handleSubmit = async (event) => {
     event.preventDefault()
@@ -60,9 +101,16 @@ export default function AvaSheet({ open, onClose }) {
 
     setLoading(true)
     try {
-      const result = await routeMessage(message)
+      const result = await runInterpretation(message)
       setResponse(result)
-      setShowPreview(Boolean(buildConfirmationPreview(result)))
+      const interpretation = result?.data?.interpretation
+      setShowPreview(
+        Boolean(
+          interpretation?.requiresConfirmation &&
+            interpretation?.preview &&
+            !interpretation?.clarification,
+        ),
+      )
     } finally {
       setLoading(false)
     }
@@ -72,7 +120,22 @@ export default function AvaSheet({ open, onClose }) {
     setInput(example)
     setResponse(null)
     setShowPreview(false)
+    setClarification(null)
     inputRef.current?.focus()
+  }
+
+  const handleClarificationChoice = async (choice) => {
+    setLoading(true)
+    try {
+      const result = await runInterpretation(input, {
+        selectedChoice: choice,
+      })
+      setResponse(result)
+      setClarification(null)
+      setShowPreview(Boolean(result?.data?.interpretation?.requiresConfirmation))
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleEditPreview = () => {
@@ -81,7 +144,48 @@ export default function AvaSheet({ open, onClose }) {
   }
 
   const handleConfirmPreview = () => {
+    const interpretation = response?.data?.interpretation
+    const action = interpretation?.action
+
+    if (!action || !onNutritionChange) {
+      setShowPreview(false)
+      return
+    }
+
+    try {
+      const result = applyAvaNutritionAction(nutrition, action)
+      onNutritionChange(result.nutrition)
+      onUndoSnapshotChange?.(result.undo)
+      appUi.toast(result.toastMessage, 'success')
+      setShowPreview(false)
+      setResponse({
+        ok: true,
+        source: 'local',
+        intent: interpretation.intent,
+        summary: result.toastMessage,
+        data: { confirmed: true },
+      })
+    } catch (error) {
+      appUi.toast('Unable to save that AVA action.', 'error')
+      console.error('AVA nutrition confirm failed:', error)
+    }
+  }
+
+  const handleUndo = () => {
+    if (!undoSnapshot || !onNutritionChange || !onUndoSnapshotChange) return
+
+    onNutritionChange(undoSnapshot.nutrition)
+    onUndoSnapshotChange(null)
+    appUi.toast('Last AVA nutrition action undone.', 'success')
+    setResponse({
+      ok: true,
+      source: 'local',
+      intent: 'food',
+      summary: 'Your previous nutrition state was restored.',
+      data: { undone: true },
+    })
     setShowPreview(false)
+    setClarification(null)
   }
 
   if (!open) return null
@@ -125,6 +229,17 @@ export default function AvaSheet({ open, onClose }) {
           {AVA_INTRO}
         </p>
 
+        {undoSnapshot && (
+          <button
+            type="button"
+            className="ava-undo-button"
+            onClick={handleUndo}
+          >
+            <RotateCcw size={16} />
+            Undo last AVA action
+          </button>
+        )}
+
         {!response && (
           <div className="ava-sheet-examples">
             {AVA_EXAMPLES.map((example) => (
@@ -144,14 +259,27 @@ export default function AvaSheet({ open, onClose }) {
           <article className="ava-sheet-result" aria-live="polite">
             <span className="eyebrow">AVA</span>
             <p>{response.summary}</p>
-            {response.suggestions?.length > 0 && (
-              <ul className="ava-sheet-suggestions">
-                {response.suggestions.slice(0, 2).map((item) => (
-                  <li key={item}>{item}</li>
-                ))}
-              </ul>
-            )}
           </article>
+        )}
+
+        {clarification && (
+          <section className="ava-clarification" aria-label="Choose a match">
+            <span className="eyebrow">CLARIFY</span>
+            <p>Which one did you mean?</p>
+            <div className="ava-clarification-choices">
+              {clarification.choices.map((choice) => (
+                <button
+                  key={choice.id}
+                  type="button"
+                  className="ava-clarification-choice"
+                  onClick={() => handleClarificationChoice(choice)}
+                >
+                  <strong>{choice.name}</strong>
+                  <span>{choice.brand ?? choice.matchType ?? 'Match'}</span>
+                </button>
+              ))}
+            </div>
+          </section>
         )}
 
         {preview && showPreview && (

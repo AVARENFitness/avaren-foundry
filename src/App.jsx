@@ -190,6 +190,27 @@ function App() {
     onAccountHydrated: handleAccountHydrated,
   })
 
+  const handleNutritionChange = useCallback((nextNutrition) => {
+    setState((current) => {
+      const resolvedNutrition =
+        typeof nextNutrition === 'function'
+          ? nextNutrition(current.nutrition ?? createNutritionState())
+          : nextNutrition
+
+      const today = resolvedNutrition.days?.[nutritionDateKey()]
+      nutritionBackend
+        .syncProfile(session?.user?.id, resolvedNutrition)
+        .catch((error) => console.error('Nutrition profile sync failed:', error))
+      if (today) {
+        nutritionBackend
+          .syncDay(session?.user?.id, today)
+          .catch((error) => console.error('Nutrition day sync failed:', error))
+      }
+
+      return { ...current, nutrition: resolvedNutrition }
+    })
+  }, [session?.user?.id])
+
   const {
     screen,
     setScreen,
@@ -1015,26 +1036,7 @@ function App() {
       return (
         <NutritionScreen
           nutrition={state.nutrition}
-          onChange={(updater) => {
-            setState((current) => {
-              const nextNutrition =
-                typeof updater === 'function'
-                  ? updater(current.nutrition ?? createNutritionState())
-                  : updater
-
-              const today = nextNutrition.days?.[nutritionDateKey()]
-              nutritionBackend
-                .syncProfile(session?.user?.id, nextNutrition)
-                .catch((error) => console.error('Nutrition profile sync failed:', error))
-              if (today) {
-                nutritionBackend
-                  .syncDay(session?.user?.id, today)
-                  .catch((error) => console.error('Nutrition day sync failed:', error))
-              }
-
-              return { ...current, nutrition: nextNutrition }
-            })
-          }}
+          onChange={handleNutritionChange}
         />
       )
     }
@@ -1377,6 +1379,8 @@ function App() {
   return (
     <AvaUiProvider
       enabled={!isImmersiveScreen(screen, { mobilityFlow })}
+      nutrition={state.nutrition ?? createNutritionState()}
+      onNutritionChange={handleNutritionChange}
     >
       <AppShell
         screen={screen}

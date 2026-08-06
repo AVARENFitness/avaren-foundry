@@ -1,20 +1,33 @@
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { createNutritionState } from '../lib/nutrition'
 import { AvaProvider } from './AvaContext'
 import { AvaUiProvider } from './AvaUiProvider'
 
-function renderAvaUi({ enabled = true } = {}) {
-  return render(
+function renderAvaUi({ enabled = true, nutrition = createNutritionState() } = {}) {
+  const onNutritionChange = vi.fn()
+
+  render(
     <AvaProvider>
-      <AvaUiProvider enabled={enabled}>
+      <AvaUiProvider
+        enabled={enabled}
+        nutrition={nutrition}
+        onNutritionChange={onNutritionChange}
+      >
         <main>Screen content</main>
       </AvaUiProvider>
     </AvaProvider>,
   )
+
+  return { onNutritionChange }
 }
 
 describe('AVA UI', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks()
+  })
+
   it('never opens AVA automatically', () => {
     renderAvaUi()
 
@@ -43,7 +56,7 @@ describe('AVA UI', () => {
     expect(screen.queryByRole('dialog', { name: 'Ask AVA' })).not.toBeInTheDocument()
   })
 
-  it('submits a message and renders the placeholder analysis', async () => {
+  it('submits a nutrition message and shows confirmation preview', async () => {
     const user = userEvent.setup()
     renderAvaUi()
 
@@ -54,27 +67,25 @@ describe('AVA UI', () => {
     await user.click(screen.getByRole('button', { name: 'Send to AVA' }))
 
     await waitFor(() => {
-      expect(
-        screen.getByText(/intelligence providers are connected|Food analysis placeholder/i),
-      ).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: 'Log this meal?' })).toBeInTheDocument()
     })
   })
 
-  it('shows confirmation preview for food-style routed responses', async () => {
+  it('does not save nutrition before confirm', async () => {
     const user = userEvent.setup()
-    renderAvaUi()
+    const { onNutritionChange } = renderAvaUi()
 
     await user.click(screen.getByRole('button', { name: 'Ask AVA' }))
     await user.type(
       screen.getByLabelText('Your message'),
-      'I ate two eggs and toast',
+      'I drank one water bottle',
     )
     await user.click(screen.getByRole('button', { name: 'Send to AVA' }))
 
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: 'Log this meal?' })).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: 'Log hydration?' })).toBeInTheDocument()
     })
 
-    expect(screen.getByText('420')).toBeInTheDocument()
+    expect(onNutritionChange).not.toHaveBeenCalled()
   })
 })
