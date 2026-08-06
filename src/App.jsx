@@ -4,6 +4,7 @@ import { appUi } from './lib/appUi'
 import { useNavigation } from './hooks/useNavigation'
 import { useWorkoutSession } from './hooks/useWorkoutSession'
 import AppShell from './components/AppShell'
+import { isImmersiveScreen } from './lib/immersiveScreens'
 import CoachShell from './components/CoachShell'
 import { isCoachAccount } from './config/coachAccess'
 import { registerPushWorker, syncPushSubscription } from './lib/pushNotifications'
@@ -1363,6 +1364,7 @@ function App() {
       setScreen={(next) => navigate(next)}
       activeWorkout={state.activeWorkout}
       transitioning={transitioning}
+      immersive={isImmersiveScreen(screen, { mobilityFlow })}
       notificationCount={notifications.unreadCount}
       onOpenNotifications={() => navigate('notifications')}
     >

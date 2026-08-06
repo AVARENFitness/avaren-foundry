@@ -14,11 +14,14 @@ export default function AppShell({
   children,
   activeWorkout,
   transitioning,
+  immersive = false,
   notificationCount = 0,
   onOpenNotifications,
 }) {
   return (
-    <div className={`app-shell ${transitioning ? 'is-transitioning' : ''}`}>
+    <div
+      className={`app-shell ${transitioning ? 'is-transitioning' : ''} ${immersive ? 'is-immersive' : ''}`}
+    >
       <header className="app-header">
         <div className="brand-lockup foundation-lockup">
           <img
@@ -57,18 +60,20 @@ export default function AppShell({
         <main className="screen">{children}</main>
       </div>
 
-      <nav className="bottom-nav">
-        {tabs.map(({ id, label, Icon }) => (
-          <button
-            key={id}
-            className={screen === id ? 'active' : ''}
-            onClick={() => setScreen(id)}
-          >
-            <Icon size={21} strokeWidth={1.65} />
-            <span>{label}</span>
-          </button>
-        ))}
-      </nav>
+      {!immersive && (
+        <nav className="bottom-nav">
+          {tabs.map(({ id, label, Icon }) => (
+            <button
+              key={id}
+              className={screen === id ? 'active' : ''}
+              onClick={() => setScreen(id)}
+            >
+              <Icon size={21} strokeWidth={1.65} />
+              <span>{label}</span>
+            </button>
+          ))}
+        </nav>
+      )}
     </div>
   )
 }
