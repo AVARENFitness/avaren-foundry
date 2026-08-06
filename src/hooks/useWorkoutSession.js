@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { coachBackend } from '../lib/coachBackend'
+import { appUi } from '../lib/appUi'
 import { newlyUnlockedForgeAchievements } from '../lib/forge'
 import { estimatedOneRepMax } from '../lib/metrics'
 import { newlyEarnedMilestones } from '../lib/milestones'
@@ -96,7 +97,7 @@ export function useWorkoutSession({
     }
   }, [state.program.workouts])
 
-  const changeActiveWorkout = useCallback((name) => {
+  const changeActiveWorkout = useCallback(async (name) => {
     const currentWorkout = state.activeWorkout
     if (!currentWorkout || currentWorkout.name === name) return
 
@@ -111,9 +112,11 @@ export function useWorkoutSession({
 
     if (
       hasEnteredData &&
-      !confirm(
-        `Switch from ${currentWorkout.name} to ${name}? Your entered workout progress will be discarded.`,
-      )
+      !(await appUi.confirm({
+        message: `Switch from ${currentWorkout.name} to ${name}? Your entered workout progress will be discarded.`,
+        tone: 'danger',
+        confirmLabel: 'Switch',
+      }))
     ) {
       return
     }
@@ -130,7 +133,7 @@ export function useWorkoutSession({
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }, [state.activeWorkout, buildActiveWorkout, setState])
 
-  const restartActiveWorkout = useCallback(() => {
+  const restartActiveWorkout = useCallback(async () => {
     const currentWorkout = state.activeWorkout
     if (!currentWorkout) return
 
@@ -146,9 +149,11 @@ export function useWorkoutSession({
 
     if (
       hasEnteredData &&
-      !confirm(
-        `Restart ${currentWorkout.name}? All entered progress in this session will be discarded.`,
-      )
+      !(await appUi.confirm({
+        message: `Restart ${currentWorkout.name}? All entered progress in this session will be discarded.`,
+        tone: 'danger',
+        confirmLabel: 'Restart',
+      }))
     ) {
       return
     }
@@ -171,7 +176,7 @@ export function useWorkoutSession({
     })
   }, [state.activeWorkout, buildActiveWorkout, setState])
 
-  const endActiveWorkoutWithoutSaving = useCallback(() => {
+  const endActiveWorkoutWithoutSaving = useCallback(async () => {
     const currentWorkout = state.activeWorkout
     if (!currentWorkout) return
 
@@ -189,7 +194,11 @@ export function useWorkoutSession({
       ? `End ${currentWorkout.name} without saving? All entered progress in this session will be discarded.`
       : `End ${currentWorkout.name} without saving? This session will be removed and nothing will be added to your training history.`
 
-    if (!confirm(message)) return
+    if (!(await appUi.confirm({
+      message,
+      tone: 'danger',
+      confirmLabel: 'End Workout',
+    }))) return
 
     setActiveExerciseState(0)
     setIsFinishing(false)
@@ -300,8 +309,9 @@ export function useWorkoutSession({
       !definition?.name ||
       !Array.isArray(definition.exercises)
     ) {
-      alert(
+      appUi.toast(
         'This assignment does not contain a valid workout.',
+        'error',
       )
       return
     }
@@ -335,7 +345,7 @@ export function useWorkoutSession({
         assignment.id,
       )
     } catch (error) {
-      alert(error.message)
+      appUi.toast(error.message, 'error')
       return
     }
 
@@ -460,7 +470,7 @@ export function useWorkoutSession({
     })
   }, [setState])
 
-  const finishWorkout = useCallback(() => {
+  const finishWorkout = useCallback(async () => {
     if (isFinishing) return
     setIsFinishing(true)
     const workout = state.activeWorkout
@@ -485,7 +495,7 @@ export function useWorkoutSession({
     )
 
     if (sets.length === 0) {
-      alert('Log at least one set before finishing.')
+      appUi.toast('Log at least one set before finishing.', 'error')
       setIsFinishing(false)
       return
     }
@@ -500,11 +510,12 @@ export function useWorkoutSession({
 
     if (
       incompleteEnteredSets.length > 0 &&
-      !confirm(
-        `${incompleteEnteredSets.length} entered set${
+      !(await appUi.confirm({
+        message: `${incompleteEnteredSets.length} entered set${
           incompleteEnteredSets.length === 1 ? '' : 's'
         } are not marked complete. Finish the workout anyway?`,
-      )
+        confirmLabel: 'Finish Anyway',
+      }))
     ) {
       setIsFinishing(false)
       return

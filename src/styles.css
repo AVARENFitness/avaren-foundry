@@ -14850,3 +14850,208 @@ input, textarea, select {
   .nutrition-week-strip article { grid-template-rows: auto 88px auto; }
   .nutrition-week-strip i { width: 14px; max-height: 88px; }
 }
+
+/* App UI — dialogs and toasts */
+.app-ui-backdrop {
+  position: fixed;
+  z-index: 120;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 16px;
+  padding-bottom: calc(16px + env(safe-area-inset-bottom));
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(10px);
+  animation: modalFade 0.22s ease both;
+}
+
+.confirmation-dialog {
+  width: min(520px, 100%);
+  padding: 22px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background:
+    radial-gradient(circle at 85% -15%, rgba(199, 166, 92, 0.12), transparent 32%),
+    linear-gradient(145deg, rgba(25, 29, 35, 0.98), rgba(13, 16, 20, 0.98));
+  box-shadow: var(--shadow);
+  animation: modalRise 0.28s cubic-bezier(0.18, 0.8, 0.2, 1) both;
+}
+
+.confirmation-dialog-header {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 12px;
+  align-items: start;
+  margin-bottom: 14px;
+}
+
+.confirmation-dialog-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  color: var(--gold-bright);
+  background: rgba(199, 166, 92, 0.08);
+}
+
+.confirmation-dialog.tone-danger .confirmation-dialog-icon {
+  color: #e1a89a;
+  background: rgba(181, 90, 82, 0.12);
+}
+
+.confirmation-dialog.tone-info .confirmation-dialog-icon {
+  color: var(--cream);
+}
+
+.confirmation-dialog-header h2 {
+  margin: 4px 0 0;
+  font-size: clamp(22px, 5vw, 28px);
+  line-height: 1.08;
+  letter-spacing: -0.03em;
+}
+
+.confirmation-dialog-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--muted);
+}
+
+.confirmation-dialog-message {
+  margin: 0 0 20px;
+  color: #aaa69e;
+  font-size: 17px;
+  line-height: 1.55;
+  white-space: pre-line;
+}
+
+.confirmation-dialog-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.confirmation-dialog-actions:has(.confirmation-dialog-confirm:only-child) {
+  grid-template-columns: 1fr;
+}
+
+.confirmation-dialog-cancel,
+.confirmation-dialog-confirm {
+  min-height: 52px;
+  border-radius: 16px;
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.confirmation-dialog-cancel {
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--cream);
+}
+
+.confirmation-dialog-confirm {
+  border: 0;
+  background: linear-gradient(180deg, #d9b866, #b28d3f);
+  color: #100e09;
+  box-shadow: 0 12px 34px rgba(199, 166, 92, 0.18);
+}
+
+.confirmation-dialog-confirm.danger {
+  background: linear-gradient(180deg, #c76d63, #9f4f47);
+  color: #fff7f5;
+  box-shadow: 0 12px 34px rgba(181, 90, 82, 0.22);
+}
+
+.confirmation-dialog-cancel:focus-visible,
+.confirmation-dialog-confirm:focus-visible,
+.confirmation-dialog-close:focus-visible {
+  outline: 2px solid var(--gold-bright);
+  outline-offset: 2px;
+}
+
+.app-toast-stack {
+  position: fixed;
+  z-index: 130;
+  left: 16px;
+  right: 16px;
+  bottom: calc(102px + env(safe-area-inset-bottom));
+  display: grid;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.app-toast {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: linear-gradient(145deg, rgba(25, 29, 35, 0.98), rgba(13, 16, 20, 0.98));
+  box-shadow: var(--shadow);
+  pointer-events: auto;
+  animation: toastEnter 0.28s cubic-bezier(0.18, 0.8, 0.2, 1) both;
+}
+
+.app-toast p {
+  margin: 0;
+  color: var(--cream);
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+.app-toast-icon {
+  display: flex;
+  color: var(--gold-bright);
+}
+
+.app-toast.tone-success .app-toast-icon { color: var(--green); }
+.app-toast.tone-error .app-toast-icon { color: var(--danger); }
+.app-toast.tone-info .app-toast-icon { color: var(--gold-bright); }
+
+.app-toast-dismiss {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--muted);
+}
+
+@keyframes toastEnter {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-ui-backdrop,
+  .confirmation-dialog,
+  .app-toast {
+    animation: none !important;
+  }
+}
+
+@media (min-width: 680px) {
+  .app-ui-backdrop {
+    align-items: center;
+  }
+
+  .app-toast-stack {
+    left: auto;
+    right: 20px;
+    width: min(420px, calc(100% - 40px));
+  }
+}

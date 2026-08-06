@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { coachBackend } from '../lib/coachBackend'
+import { appUi } from '../lib/appUi'
 import SectionHeader from './ui/SectionHeader'
 import EmptyState from './ui/EmptyState'
 
@@ -83,7 +84,11 @@ export default function CoachCalendar({ clients, assignments, templates, program
   }
 
   const cancelItem = async (assignment) => {
-    if (!confirm(`Cancel ${assignment.title}? It will be removed from active schedules.`)) return
+    if (!(await appUi.confirm({
+      message: `Cancel ${assignment.title}? It will be removed from active schedules.`,
+      tone: 'danger',
+      confirmLabel: 'Cancel Assignment',
+    }))) return
     await coachBackend.cancelAssignment(assignment.id)
     setNotice('Assignment cancelled.')
     await onRefresh?.()
@@ -91,7 +96,11 @@ export default function CoachCalendar({ clients, assignments, templates, program
   }
 
   const deleteItem = async (assignment) => {
-    if (!confirm(`Permanently delete ${assignment.title} everywhere?`)) return
+    if (!(await appUi.confirm({
+      message: `Permanently delete ${assignment.title} everywhere?`,
+      tone: 'danger',
+      confirmLabel: 'Delete',
+    }))) return
     await coachBackend.deleteAssignment(assignment.id)
     setNotice('Assignment deleted everywhere.')
     await onRefresh?.()

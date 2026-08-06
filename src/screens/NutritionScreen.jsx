@@ -30,6 +30,7 @@ import {
   remainingNutrition,
 } from '../lib/nutrition'
 import { COMMON_FOODS, FOOD_CATEGORIES } from '../data/commonFoods'
+import { appUi } from '../lib/appUi'
 
 const tabs = [
   { label: 'Today', value: 'Today' },
@@ -292,8 +293,12 @@ export default function NutritionScreen({ nutrition, onChange }) {
     ),
   }))
 
-  const deleteRecipe = (recipe) => {
-    if (!confirm(`Delete ${recipe.name}?`)) return
+  const deleteRecipe = async (recipe) => {
+    if (!(await appUi.confirm({
+      message: `Delete ${recipe.name}?`,
+      tone: 'danger',
+      confirmLabel: 'Delete',
+    }))) return
     patch((current) => ({ ...current, recipes: (current.recipes ?? []).filter((item) => item.id !== recipe.id) }))
   }
 

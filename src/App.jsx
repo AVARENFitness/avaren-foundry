@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useAuthSession } from './hooks/useAuthSession'
+import { appUi } from './lib/appUi'
 import { useNavigation } from './hooks/useNavigation'
 import { useWorkoutSession } from './hooks/useWorkoutSession'
 import AppShell from './components/AppShell'
@@ -481,7 +482,7 @@ function App() {
             )
           await startCoachAssignment(assignment)
         } catch (error) {
-          alert(error.message)
+          appUi.toast(error.message, 'error')
         }
         return
       }
@@ -781,7 +782,7 @@ function App() {
             await coachBackend.getAthleteAssignment(assignmentId)
           await startCoachAssignment(assignment)
         } catch (error) {
-          alert(error.message)
+          appUi.toast(error.message, 'error')
         }
       } else if (openTarget === 'notifications') {
         navigate('notifications')

@@ -23,6 +23,7 @@ import { useState } from 'react'
 import ImportBackupButton from '../components/ImportBackupButton'
 import AthleteCoachPanel from '../components/AthleteCoachPanel'
 import { supabase } from '../lib/supabase'
+import { appUi } from '../lib/appUi'
 import {
   clearState,
   exportState,
@@ -191,24 +192,29 @@ export default function MoreScreen({
               exportState(state, userId)
               setState((current) => ({...current,lastBackupAt:new Date().toISOString()}))
             }}/>
-            <div className="more-import-row"><ImportBackupButton onImport={async(file)=>{
+            <div className="more-import-row"><ImportBackupButton onImport={async (file) => {
               try {
-                const restored = await importState(file,fallbackState,userId)
+                const restored = await importState(file, fallbackState, userId)
                 setState(restored)
-                alert('Backup restored successfully.')
+                appUi.toast('Backup restored successfully.', 'success')
               } catch {
-                alert('That backup file could not be restored.')
+                appUi.toast('That backup file could not be restored.', 'error')
               }
-            }}/></div>
-            <MoreItem icon={LogOut} title="Sign Out" description="Sign out of this account" onClick={async()=>{
-              const {error}=await supabase.auth.signOut()
-              if(error) alert(error.message)
-            }}/>
-            <MoreItem icon={RotateCcw} title="Reset Local Data" description="Erase this device’s local copy" danger onClick={()=>{
-              if(confirm('Reset all local Foundry data? Export a backup first. This cannot be undone.')){
-                clearState(userId); location.reload()
+            }} /></div>
+            <MoreItem icon={LogOut} title="Sign Out" description="Sign out of this account" onClick={async () => {
+              const { error } = await supabase.auth.signOut()
+              if (error) appUi.toast(error.message, 'error')
+            }} />
+            <MoreItem icon={RotateCcw} title="Reset Local Data" description="Erase this device’s local copy" danger onClick={async () => {
+              if (await appUi.confirm({
+                message: 'Reset all local Foundry data? Export a backup first. This cannot be undone.',
+                tone: 'danger',
+                confirmLabel: 'Reset Data',
+              })) {
+                clearState(userId)
+                location.reload()
               }
-            }}/>
+            }} />
           </div>
         </section>
       )}
@@ -227,7 +233,10 @@ export default function MoreScreen({
               ].join('\n'))
               window.location.href=`mailto:hello@avarenfitness.com?subject=${subject}&body=${body}`
             }}/>
-            <MoreItem icon={FileClock} title="About AVAREN" description="The Foundry training system" detail="Beta" onClick={()=>alert('AVAREN — The Foundry\nA premium training, readiness, movement, recovery, and progress system.')}/>
+            <MoreItem icon={FileClock} title="About AVAREN" description="The Foundry training system" detail="Beta" onClick={()=>appUi.alert({
+              title: 'About AVAREN',
+              message: 'AVAREN — The Foundry\nA premium training, readiness, movement, recovery, and progress system.',
+            })}/>
           </div>
           {shareMessage && <div className="more-share-message"><Share2 size={14}/>{shareMessage}</div>}
         </section>

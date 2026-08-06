@@ -24,6 +24,7 @@ import {
   JOURNEY_EVENT_TYPES,
   journeySnapshot,
 } from '../lib/journey'
+import { appUi } from '../lib/appUi'
 import {
   recentPRs,
   sessionVolume,
@@ -199,8 +200,12 @@ function SessionDetail({ session, history, onClose, onDelete, onUpdate }) {
 
       {muscles.length > 0 && <div className="session-detail-muscles">{muscles.map((muscle) => <span key={muscle}>{muscle}</span>)}</div>}
 
-      <button className="session-detail-delete" onClick={() => {
-        if (confirm('Delete this completed workout? This cannot be undone.')) {
+      <button className="session-detail-delete" onClick={async () => {
+        if (await appUi.confirm({
+          message: 'Delete this completed workout? This cannot be undone.',
+          tone: 'danger',
+          confirmLabel: 'Delete',
+        })) {
           onDelete(session.id)
           onClose()
         }
