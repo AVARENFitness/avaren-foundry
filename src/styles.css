@@ -16113,3 +16113,434 @@ input, textarea, select {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+/* ===== COACH HUB · LUXURY POLISH ===== */
+
+.coach-hub-screen {
+  gap: 24px;
+}
+
+.coach-hub-page-header p,
+.coach-invite-card span,
+.coach-hub-notice,
+.coach-client-copy span {
+  color: #9a9389;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.coach-invite-card,
+.coach-roster-section,
+.coach-pending-section,
+.coach-profile-panel,
+.coach-settings-card {
+  padding: 16px;
+  border: 1px solid rgba(246,242,233,.05);
+  border-radius: 16px;
+  background: rgba(255,255,255,.012);
+  box-shadow: none;
+}
+
+.coach-invite-card--quiet {
+  display: grid;
+  gap: 12px;
+  padding: 12px 14px;
+  border-color: rgba(216,184,109,.1);
+  background: rgba(255,255,255,.008);
+}
+
+.coach-invite-copy {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.coach-invite-copy svg {
+  flex: 0 0 auto;
+  color: #cdb678;
+}
+
+.coach-invite-copy strong {
+  display: block;
+  font-size: 14px;
+  font-weight: 800;
+  color: #eee7dc;
+}
+
+.coach-invite-copy span {
+  display: block;
+  margin-top: 2px;
+  font-size: 13px;
+}
+
+.coach-invite-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  margin-top: 0;
+}
+
+.coach-invite-submit {
+  min-height: 44px;
+  padding: 0 16px;
+  white-space: nowrap;
+}
+
+.coach-field-shell {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid rgba(216,184,109,.14);
+  border-radius: 14px;
+  background: #101419;
+  box-shadow: inset 0 0 0 1px rgba(216,184,109,.03);
+  color: #b5afa6;
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    background 0.18s ease;
+}
+
+.coach-field-shell:focus-within {
+  border-color: rgba(216,184,109,.28);
+  box-shadow: 0 0 0 3px rgba(216,184,109,.06);
+}
+
+.coach-field-shell svg {
+  color: #cdb678;
+}
+
+.coach-field-shell input,
+.coach-field-input {
+  width: 100%;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #f3ede3;
+  font-size: 15px;
+  line-height: 1.4;
+}
+
+.coach-field-shell input::placeholder {
+  color: #7f786f;
+}
+
+.coach-client-search {
+  max-width: 210px;
+}
+
+.coach-roster-section {
+  display: grid;
+  gap: 12px;
+}
+
+.coach-roster-header {
+  display: grid;
+  gap: 4px;
+}
+
+.coach-roster-header h2 {
+  margin: 4px 0 0;
+  font-size: clamp(22px, 5vw, 28px);
+  letter-spacing: -0.03em;
+}
+
+.coach-roster-search-shell {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr);
+  align-items: center;
+  gap: 6px;
+  min-height: 38px;
+  padding: 4px 10px 4px 10px;
+  border: 1px solid rgba(216,184,109,.16);
+  border-radius: 14px;
+  background: rgba(16,20,25,.72);
+  box-shadow: inset 0 0 0 1px rgba(216,184,109,.03);
+  color: #b5afa6;
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    background 0.18s ease;
+}
+
+.coach-roster-search-shell:focus-within {
+  border-color: rgba(216,184,109,.28);
+  background: #101419;
+  box-shadow: 0 0 0 2px rgba(216,184,109,.05);
+}
+
+.coach-roster-search-shell svg {
+  flex-shrink: 0;
+  color: #cdb678;
+}
+
+.coach-roster-search-shell input {
+  width: 100%;
+  min-height: 30px;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #f3ede3;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.coach-roster-search-shell input::placeholder {
+  color: #7f786f;
+}
+
+.coach-roster-search-shell input::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+}
+
+.coach-dashboard-grid {
+  gap: 12px;
+}
+
+.ui-stat-card {
+  gap: 10px;
+  padding: 16px;
+  border: 1px solid rgba(246,242,233,.05);
+  border-radius: 16px;
+  background: rgba(255,255,255,.01);
+}
+
+.ui-stat-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: rgba(216,184,109,.05);
+  color: #cdb678;
+}
+
+.ui-stat-copy {
+  display: grid;
+  gap: 4px;
+}
+
+.ui-stat-card strong {
+  font-size: clamp(26px, 5vw, 30px);
+  line-height: 1;
+  letter-spacing: -0.03em;
+  color: #f1ebe1;
+}
+
+.ui-stat-card span {
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0.01em;
+  color: #8f8880;
+}
+
+.coach-primary-action {
+  min-height: 46px;
+}
+
+.coach-secondary-button,
+.coach-session-add-preset,
+.coach-date-clear {
+  transition:
+    background 0.18s ease,
+    border-color 0.18s ease,
+    color 0.18s ease,
+    transform 0.18s ease;
+}
+
+@media (hover: hover) {
+  .coach-secondary-button:hover,
+  .coach-session-add-preset:hover,
+  .coach-date-clear:hover,
+  .coach-client-row:hover {
+    border-color: rgba(216,184,109,.16);
+  }
+
+  .gold-button.machined:hover {
+    filter: brightness(1.04);
+  }
+
+  .gold-button.machined:active,
+  .coach-secondary-button:active,
+  .coach-session-add-preset:active {
+    transform: translateY(1px);
+  }
+}
+
+.coach-business-panel {
+  gap: 16px;
+}
+
+.coach-session-package-card {
+  gap: 20px;
+  padding: 20px;
+  border-color: rgba(216,184,109,.12);
+  background:
+    radial-gradient(circle at 100% 0%, rgba(216,184,109,.06), transparent 40%),
+    rgba(255,255,255,.018);
+  box-shadow: none;
+}
+
+.coach-session-package-stats {
+  gap: 12px;
+}
+
+.coach-session-stat,
+.coach-session-package-stats div {
+  display: grid;
+  gap: 6px;
+  padding: 16px;
+  border: 0;
+  border-radius: 14px;
+  background: rgba(0,0,0,.14);
+}
+
+.coach-session-stat strong,
+.coach-session-package-stats strong {
+  order: 1;
+  margin: 0;
+  font-size: clamp(28px, 6vw, 34px);
+  line-height: 1;
+  letter-spacing: -0.04em;
+  color: #f1ebe1;
+}
+
+.coach-session-stat span,
+.coach-session-package-stats span {
+  order: 2;
+  font-size: 12px;
+  font-weight: 650;
+  color: #8f8880;
+}
+
+.coach-session-date-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.coach-date-field {
+  display: grid;
+  gap: 6px;
+}
+
+.coach-date-field > span {
+  color: #9a9389;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.coach-date-input-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.coach-field-input {
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid rgba(246,242,233,.07);
+  border-radius: 12px;
+  background: rgba(0,0,0,.16);
+  color: #f3ede3;
+  font-size: 15px;
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.coach-field-input:focus {
+  border-color: rgba(216,184,109,.24);
+  box-shadow: 0 0 0 3px rgba(216,184,109,.06);
+  outline: 0;
+}
+
+.coach-date-clear {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid rgba(246,242,233,.08);
+  border-radius: 10px;
+  background: rgba(255,255,255,.03);
+  color: #b5afa6;
+}
+
+.coach-session-note-field input.coach-field-input {
+  padding: 0 12px;
+}
+
+.coach-session-add-custom input.coach-field-input {
+  padding: 0 12px;
+}
+
+.coach-session-history-row {
+  border-color: rgba(246,242,233,.05);
+  background: rgba(255,255,255,.012);
+}
+
+.coach-client-row {
+  padding: 14px;
+  border-color: rgba(246,242,233,.05);
+}
+
+.coach-client-copy strong {
+  font-size: 14px;
+}
+
+.coach-roster-section > header,
+.coach-pending-section > header {
+  margin-bottom: 0;
+}
+
+.coach-profile-panel textarea {
+  min-height: 120px;
+  padding: 12px 14px;
+  border: 1px solid rgba(246,242,233,.07);
+  border-radius: 12px;
+  background: rgba(0,0,0,.16);
+  color: #f3ede3;
+  font-size: 15px;
+  line-height: 1.5;
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.coach-profile-panel textarea:focus {
+  border-color: rgba(216,184,109,.24);
+  box-shadow: 0 0 0 3px rgba(216,184,109,.06);
+  outline: 0;
+}
+
+@media (max-width: 680px) {
+  .coach-invite-form {
+    grid-template-columns: 1fr;
+  }
+
+  .coach-invite-submit {
+    width: 100%;
+  }
+
+  .coach-session-date-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .coach-field-shell,
+  .coach-roster-search-shell,
+  .coach-field-input,
+  .coach-secondary-button,
+  .coach-session-add-preset,
+  .coach-date-clear,
+  .gold-button.machined {
+    transition: none;
+  }
+}

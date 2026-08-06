@@ -8,7 +8,6 @@ import {
   Mail,
   Plus,
   Search,
-  Send,
   Trash2,
   TrendingUp,
   UserPlus,
@@ -30,6 +29,8 @@ import EmptyState from '../components/ui/EmptyState'
 const today = () => new Date().toISOString().slice(0,10)
 const formatDate = (value) => value ? new Date(`${value}T12:00:00`).toLocaleDateString([], { month:'short', day:'numeric' }) : 'No due date'
 const initials = (email='A') => email.slice(0,1).toUpperCase()
+const ICON = { size: 18, strokeWidth: 1.75 }
+const SEARCH_ICON = { size: 16, strokeWidth: 1.75 }
 
 export default function CoachScreen({ workspace, setWorkspace, screen='clients', program, selectedClient, setSelectedClient, coachEmail='Coach' }) {
   const [clients,setClients]=useState([]), [invitations,setInvitations]=useState([]), [assignments,setAssignments]=useState([]), [templates,setTemplates]=useState([])
@@ -58,29 +59,100 @@ export default function CoachScreen({ workspace, setWorkspace, screen='clients',
   const designer = showDesigner ? <CoachWorkoutDesigner clients={clients} program={program} templates={templates} initialClientId={selectedClient?.athlete_id??''} initialTemplate={designerTemplate} onClose={()=>{setShowDesigner(false);setDesignerTemplate(null)}} onSaveTemplate={saveTemplate} onAssign={assignCustom}/> : null
 
   if(selectedClient && screen==='clients') return <><section className="coach-hub-screen"><button className="coach-back-link" onClick={()=>setSelectedClient(null)}>← Back to clients</button>
-    <header className="coach-client-profile-hero"><div className="coach-client-avatar large">{initials(selectedClient.athlete_email)}</div><div><span className="eyebrow">CLIENT PROFILE</span><h1>{selectedClient.athlete_email}</h1><p>Connected since {new Date(selectedClient.created_at).toLocaleDateString()}</p></div><button className="gold-button machined coach-profile-assign" onClick={()=>setShowDesigner(true)}><Plus size={17}/>Create Workout</button></header>
+    <header className="coach-client-profile-hero"><div className="coach-client-avatar large">{initials(selectedClient.athlete_email)}</div><div><span className="eyebrow">CLIENT PROFILE</span><h1>{selectedClient.athlete_email}</h1><p>Connected since {new Date(selectedClient.created_at).toLocaleDateString()}</p></div><button className="gold-button machined coach-profile-assign" onClick={()=>setShowDesigner(true)}><Plus {...ICON}/>Create Workout</button></header>
     <div className="coach-dashboard-grid"><StatCard icon={ClipboardList} label="Assignments" value={clientAssignments.length}/><StatCard icon={CheckCircle2} label="Completed" value={clientAssignments.filter(a=>a.status==='completed').length}/><StatCard icon={TrendingUp} label="Adherence" value={`${clientAssignments.length?Math.round(clientAssignments.filter(a=>a.status==='completed').length/clientAssignments.length*100):0}%`}/></div>
     <CoachSessionPackage athleteId={selectedClient.athlete_id} coachLabel={coachEmail} />
     <section className="coach-profile-panel"><SectionHeader eyebrow="COACH NOTES" title="Private observations" description="Visible only in your Coach Hub."/><textarea rows={5} value={clientNotes} onChange={e=>setClientNotes(e.target.value)} placeholder="Goals, limitations, check-in notes, programming context…"/><button className="gold-button machined" onClick={async()=>{await coachBackend.saveClientNotes(selectedClient.athlete_id,clientNotes);setNotice('Client notes saved.')}}>Save Notes</button></section>
-    <section className="coach-profile-panel"><SectionHeader eyebrow="ASSIGNMENTS" title="Client activity" action={<button className="coach-secondary-button" onClick={()=>setShowDesigner(true)}><Plus size={16}/>New Workout</button>}/>{clientAssignments.length?clientAssignments.map(a=><article className={`coach-review-card coach-assignment-manage-card status-${a.status}`} key={a.id}><div><strong>{a.title}</strong><span>{a.status} · {formatDate(a.due_date)}</span>{a.completion_summary&&<div className="coach-review-metrics"><span>{a.completion_summary.durationMinutes??'—'} min</span><span>{Number(a.completion_summary.volume??0).toLocaleString()} lb</span><span>{a.completion_summary.sets??0} sets</span></div>}</div><div className="coach-assignment-lifecycle-actions">{['assigned','started'].includes(a.status)&&<button className="coach-cancel-button" onClick={()=>unassign(a)}>Cancel</button>}{a.status!=='completed'&&<button className="coach-delete-button" onClick={()=>deleteAssignment(a)}><Trash2 size={15}/>Delete</button>}</div></article>):<EmptyState icon={ClipboardList} title="No assignments" description="Create an individualized workout for this client."/>}</section>
+    <section className="coach-profile-panel"><SectionHeader eyebrow="ASSIGNMENTS" title="Client activity" action={<button className="coach-secondary-button" onClick={()=>setShowDesigner(true)}><Plus {...ICON}/>New Workout</button>}/>{clientAssignments.length?clientAssignments.map(a=><article className={`coach-review-card coach-assignment-manage-card status-${a.status}`} key={a.id}><div><strong>{a.title}</strong><span>{a.status} · {formatDate(a.due_date)}</span>{a.completion_summary&&<div className="coach-review-metrics"><span>{a.completion_summary.durationMinutes??'—'} min</span><span>{Number(a.completion_summary.volume??0).toLocaleString()} lb</span><span>{a.completion_summary.sets??0} sets</span></div>}</div><div className="coach-assignment-lifecycle-actions">{['assigned','started'].includes(a.status)&&<button className="coach-cancel-button" onClick={()=>unassign(a)}>Cancel</button>}{a.status!=='completed'&&<button className="coach-delete-button" onClick={()=>deleteAssignment(a)}><Trash2 {...ICON}/>Delete</button>}</div></article>):<EmptyState icon={ClipboardList} title="No assignments" description="Create an individualized workout for this client."/>}</section>
     {notice&&<p className="coach-hub-notice">{notice}</p>}</section>{designer}</>
 
   if(screen==='calendar') return <CoachCalendar clients={clients} assignments={assignments} templates={templates} program={program} onRefresh={load} initialClientId={selectedClient?.athlete_id??''}/>
 
   if(screen==='programs') return <CoachPrograms clients={clients} templates={templates} program={program} onRefresh={load}/>
 
-  if(screen==='assignments') return <><section className="coach-hub-screen"><SectionHeader eyebrow="PROGRAM DELIVERY" title="Assignments" description="Design, send, track, edit, and unassign client workouts." action={<button className="gold-button machined" disabled={!clients.length} onClick={()=>setShowDesigner(true)}><Plus size={17}/>Create Workout</button>}/>
+  if(screen==='assignments') return <><section className="coach-hub-screen"><SectionHeader eyebrow="PROGRAM DELIVERY" title="Assignments" description="Design, send, track, edit, and unassign client workouts." action={<button className="gold-button machined coach-primary-action" disabled={!clients.length} onClick={()=>setShowDesigner(true)}><Plus {...ICON}/>Create Workout</button>}/>
     {!clients.length&&<p className="coach-hub-notice">Connect a client before creating an assignment.</p>}
     {notice&&<p className="coach-hub-notice">{notice}</p>}
-    <section className="coach-profile-panel"><SectionHeader eyebrow="YOUR LIBRARY" title="Workout templates" description="Reusable starting points for individualized programming." action={<button className="coach-secondary-button" onClick={()=>setShowDesigner(true)}><Plus size={16}/>New Template</button>}/>{templates.length?<div className="coach-template-grid">{templates.map(template=><article key={template.id}><div><strong>{template.name}</strong><span>{template.workout_payload?.exercises?.length??0} exercises</span></div><div><button onClick={()=>{setDesignerTemplate(template);setShowDesigner(true)}}><Edit3 size={15}/>Use</button><button onClick={async()=>{if(await appUi.confirm({ message:`Delete ${template.name}?`, tone:'danger', confirmLabel:'Delete' })){await coachBackend.deleteWorkoutTemplate(template.id);await load()}}}><Trash2 size={15}/></button></div></article>)}</div>:<EmptyState icon={ClipboardList} title="No custom templates yet" description="Create a workout once, then reuse and personalize it for any client."/>}</section>
+    <section className="coach-profile-panel"><SectionHeader eyebrow="YOUR LIBRARY" title="Workout templates" description="Reusable starting points for individualized programming." action={<button className="coach-secondary-button" onClick={()=>setShowDesigner(true)}><Plus {...ICON}/>New Template</button>}/>{templates.length?<div className="coach-template-grid">{templates.map(template=><article key={template.id}><div><strong>{template.name}</strong><span>{template.workout_payload?.exercises?.length??0} exercises</span></div><div><button onClick={()=>{setDesignerTemplate(template);setShowDesigner(true)}}><Edit3 {...ICON}/>Use</button><button onClick={async()=>{if(await appUi.confirm({ message:`Delete ${template.name}?`, tone:'danger', confirmLabel:'Delete' })){await coachBackend.deleteWorkoutTemplate(template.id);await load()}}}><Trash2 {...ICON}/></button></div></article>)}</div>:<EmptyState icon={ClipboardList} title="No custom templates yet" description="Create a workout once, then reuse and personalize it for any client."/>}</section>
     {assignments.length?<div className="coach-assignment-list">{assignments.map(a=><article className={`priority-${a.priority??'normal'} coach-assignment-row status-${a.status}`} key={a.id}><div><strong>{a.title}</strong><span>{clients.find(c=>c.athlete_id===a.athlete_id)?.athlete_email??a.athlete_id} · {formatDate(a.due_date)}</span></div><div className="coach-assignment-row-actions"><small>{a.status} · {deliveryStatus[a.id]??'Queued'}</small><div className="coach-assignment-lifecycle-actions">{['assigned','started'].includes(a.status)&&<button className="coach-cancel-button" onClick={()=>unassign(a)}>Cancel</button>}{a.status!=='completed'&&<button className="coach-delete-button" onClick={()=>deleteAssignment(a)}><Trash2 size={15}/>Delete</button>}</div></div></article>)}</div>:<EmptyState icon={ClipboardList} title="No assignments yet" description="Create an individualized workout for any connected client."/>}</section>{designer}</>
 
   if(screen==='settings') return <section className="coach-hub-screen"><SectionHeader eyebrow="COACH WORKSPACE" title="Coach settings" description="Database-backed access and private client relationships are active."/><section className="coach-settings-card"><article><span>Connected clients</span><strong>{clients.length}</strong></article><article><span>Pending invitations</span><strong>{pending}</strong></article><article><span>Assignments</span><strong>{assignments.length}</strong></article><article><span>Saved templates</span><strong>{templates.length}</strong></article></section>{notice&&<p className="coach-hub-notice">{notice}</p>}</section>
 
   return <><section className="coach-hub-screen"><header className="coach-hub-page-header"><div><span className="eyebrow">COACH DASHBOARD</span><h1>Coach Hub</h1><p>Your clients, assignments, and recent results in one focused workspace.</p></div></header>
     <div className="coach-dashboard-grid"><StatCard icon={Users} label="Active clients" value={clients.length}/><StatCard icon={CalendarDays} label="Due today" value={dueToday}/><StatCard icon={Mail} label="Pending invites" value={pending}/><StatCard icon={TrendingUp} label="Adherence" value={`${adherence}%`}/></div>
-    <section className="coach-invite-card"><div><UserPlus size={20}/><div><strong>Invite an athlete</strong><span>Use the email on their AVAREN account.</span></div></div><div className="coach-invite-form"><label><Mail size={15}/><input value={inviteEmail} onChange={e=>setInviteEmail(e.target.value)} placeholder="athlete@email.com"/></label><button onClick={invite}><Send size={16}/>Invite</button></div>{notice&&<p className="coach-hub-notice">{notice}</p>}</section>
-    <section className="coach-roster-section"><header><div><span className="eyebrow">YOUR ROSTER</span><h2>Clients</h2></div><label className="coach-client-search"><Search size={15}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search clients"/></label></header>{loading?<p>Loading clients…</p>:visibleClients.length?<div className="coach-client-list">{visibleClients.map(c=><button className="coach-client-row" key={c.id} onClick={()=>setSelectedClient(c)}><div className="coach-client-avatar">{initials(c.athlete_email)}</div><div className="coach-client-copy"><strong>{c.athlete_email}</strong><span>{assignments.filter(a=>a.athlete_id===c.athlete_id&&['assigned','started'].includes(a.status)).length} active assignments</span></div><ChevronRight size={17}/></button>)}</div>:<EmptyState icon={Users} title="No connected clients yet" description="Send an invitation and have the athlete accept it."/>}</section>
-    <section className="coach-profile-panel"><SectionHeader eyebrow="RECENT ACTIVITY" title="Completed workouts"/>{recentActivity.length?recentActivity.map(a=><article className="coach-review-card" key={a.id}><Activity size={18}/><div><strong>{a.title}</strong><span>{clients.find(c=>c.athlete_id===a.athlete_id)?.athlete_email??'Athlete'} completed {new Date(a.completed_at).toLocaleDateString()}</span></div></article>):<EmptyState icon={Activity} title="No completed workouts yet" description="Completed assignments will appear here for review."/>}</section>
-    {invitations.length>0&&<section className="coach-pending-section"><header><div><span className="eyebrow">INVITATIONS</span><h2>Recent</h2></div></header><div className="coach-pending-list">{invitations.map(i=><article key={i.id}><div><Mail size={16}/><span>{i.athlete_email}</span></div><div><small>{i.status}</small>{i.status==='pending'&&<button onClick={async()=>{await coachBackend.cancelInvitation(i.id);await load()}}><X size={15}/></button>}</div></article>)}</div></section>}</section>{designer}</>
+    <section className="coach-invite-card coach-invite-card--quiet">
+      <div className="coach-invite-copy">
+        <UserPlus {...ICON} />
+        <div>
+          <strong>Invite an athlete</strong>
+          <span>Use the email on their AVAREN account.</span>
+        </div>
+      </div>
+      <div className="coach-invite-form">
+        <label className="coach-field-shell">
+          <Mail {...ICON} />
+          <input
+            value={inviteEmail}
+            onChange={(e) => setInviteEmail(e.target.value)}
+            placeholder="athlete@email.com"
+            aria-label="Athlete email"
+          />
+        </label>
+        <button type="button" className="gold-button machined coach-invite-submit" onClick={invite}>
+          Invite
+        </button>
+      </div>
+      {notice && <p className="coach-hub-notice">{notice}</p>}
+    </section>
+    <section className="coach-roster-section">
+      <header className="coach-roster-header">
+        <span className="eyebrow">YOUR ROSTER</span>
+        <h2>Clients</h2>
+      </header>
+      <label className="coach-roster-search-shell">
+        <Search {...SEARCH_ICON} aria-hidden="true" />
+        <input
+          type="search"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search clients"
+          aria-label="Search clients"
+        />
+      </label>
+      {loading ? (
+        <p>Loading clients…</p>
+      ) : visibleClients.length ? (
+        <div className="coach-client-list">
+          {visibleClients.map((c) => (
+            <button
+              className="coach-client-row"
+              key={c.id}
+              onClick={() => setSelectedClient(c)}
+            >
+              <div className="coach-client-avatar">{initials(c.athlete_email)}</div>
+              <div className="coach-client-copy">
+                <strong>{c.athlete_email}</strong>
+                <span>
+                  {assignments.filter(
+                    (a) =>
+                      a.athlete_id === c.athlete_id &&
+                      ['assigned', 'started'].includes(a.status),
+                  ).length}{' '}
+                  active assignments
+                </span>
+              </div>
+              <ChevronRight {...ICON} />
+            </button>
+          ))}
+        </div>
+      ) : (
+        <EmptyState
+          icon={Users}
+          title="No connected clients yet"
+          description="Send an invitation and have the athlete accept it."
+        />
+      )}
+    </section>
+    <section className="coach-profile-panel"><SectionHeader eyebrow="RECENT ACTIVITY" title="Completed workouts"/>{recentActivity.length?recentActivity.map(a=><article className="coach-review-card" key={a.id}><Activity {...ICON}/><div><strong>{a.title}</strong><span>{clients.find(c=>c.athlete_id===a.athlete_id)?.athlete_email??'Athlete'} completed {new Date(a.completed_at).toLocaleDateString()}</span></div></article>):<EmptyState icon={Activity} title="No completed workouts yet" description="Completed assignments will appear here for review."/>}</section>
+    {invitations.length>0&&<section className="coach-pending-section"><header><div><span className="eyebrow">INVITATIONS</span><h2>Recent</h2></div></header><div className="coach-pending-list">{invitations.map(i=><article key={i.id}><div><Mail {...ICON}/><span>{i.athlete_email}</span></div><div><small>{i.status}</small>{i.status==='pending'&&<button onClick={async()=>{await coachBackend.cancelInvitation(i.id);await load()}} aria-label="Cancel invitation"><X {...ICON}/></button>}</div></article>)}</div></section>}</section>{designer}</>
 }

@@ -1,10 +1,10 @@
 import {
   CalendarDays,
   ChevronDown,
-  Clock3,
   Package,
   Plus,
   RotateCcw,
+  X,
 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { appUi } from '../lib/appUi'
@@ -18,11 +18,13 @@ import {
   normalizeSessionPackage,
   packageIsComplete,
   recordSessionOnPackage,
+  todayKey,
   undoSessionRecord,
 } from '../lib/sessionPackages'
 import SectionHeader from './ui/SectionHeader'
 
 const PRESET_COUNTS = [1, 5, 10, 20]
+const ICON = { size: 18, strokeWidth: 1.75 }
 
 export default function CoachSessionPackage({
   athleteId,
@@ -75,8 +77,45 @@ export default function CoachSessionPackage({
     return normalized
   }
 
+  const updatePackageDates = async (patch) => {
+    const nextPackage = { ...pkg, ...patch }
+    setPkg(nextPackage)
+
+    if (!nextPackage.id && nextPackage.totalSessions <= 0) {
+      return nextPackage
+    }
+
+    setBusy(true)
+    try {
+      return await persistPackage(nextPackage)
+    } catch (error) {
+      appUi.toast(error.message ?? 'Could not update package dates.', 'error')
+      return pkg
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const handlePurchasedDateChange = (value) => {
+    updatePackageDates({ purchasedAt: value || todayKey() })
+  }
+
+  const handleExpirationDateChange = (value) => {
+    updatePackageDates({ expiresAt: value || null })
+  }
+
+  const clearExpirationDate = () => {
+    updatePackageDates({ expiresAt: null })
+  }
+
   const handleAddSessions = async (count) => {
-    const result = addSessionsToPackage(pkg, count)
+    const withDates = {
+      ...pkg,
+      purchasedAt: pkg.purchasedAt ?? todayKey(),
+    }
+    const result = addSessionsToPackage(withDates, count, {
+      expiresAt: withDates.expiresAt,
+    })
     if (!result.ok) {
       appUi.toast('Enter a valid session count.', 'error')
       return
@@ -206,7 +245,7 @@ export default function CoachSessionPackage({
       <article className="coach-session-package-card">
         {!hasPackage ? (
           <div className="coach-session-package-empty">
-            <Package size={22} />
+            <Package {...ICON} />
             <div>
               <strong>No sessions on file</strong>
               <span>Add a package when this client purchases coaching sessions.</span>
@@ -219,34 +258,62 @@ export default function CoachSessionPackage({
             )}
 
             <div className="coach-session-package-stats">
-              <div>
-                <small>Total purchased</small>
+              <div className="coach-session-stat">
                 <strong>{pkg.totalSessions}</strong>
+                <span>Sessions purchased</span>
               </div>
-              <div>
-                <small>Remaining</small>
+              <div className="coach-session-stat">
                 <strong>{pkg.sessionsRemaining}</strong>
+                <span>Remaining</span>
               </div>
-              <div>
-                <small>Used</small>
+              <div className="coach-session-stat">
                 <strong>{pkg.sessionsUsed}</strong>
+                <span>Used</span>
               </div>
-            </div>
-
-            <div className="coach-session-package-meta">
-              <span>
-                <CalendarDays size={14} />
-                Purchased {formatPackageDate(pkg.purchasedAt)}
-              </span>
-              {pkg.expiresAt && (
-                <span>
-                  <Clock3 size={14} />
-                  Expires {formatPackageDate(pkg.expiresAt)}
-                </span>
-              )}
             </div>
           </>
         )}
+
+        <div className="coach-session-date-grid">
+          <label className="coach-date-field">
+            <span>Purchased date</span>
+            <input
+              type="date"
+              className="coach-field-input"
+              value={pkg.purchasedAt ?? todayKey()}
+              disabled={busy}
+              onChange={(event) =>
+                handlePurchasedDateChange(event.target.value)
+              }
+            />
+          </label>
+
+          <label className="coach-date-field">
+            <span>Expiration date</span>
+            <div className="coach-date-input-row">
+              <input
+                type="date"
+                className="coach-field-input"
+                value={pkg.expiresAt ?? ''}
+                disabled={busy}
+                onChange={(event) =>
+                  handleExpirationDateChange(event.target.value)
+                }
+              />
+              {pkg.expiresAt && (
+                <button
+                  type="button"
+                  className="coach-date-clear"
+                  disabled={busy}
+                  onClick={clearExpirationDate}
+                  aria-label="Clear expiration date"
+                >
+                  <X size={16} strokeWidth={1.75} />
+                </button>
+              )}
+            </div>
+          </label>
+        </div>
 
         <div className="coach-session-package-actions">
           {canRecord ? (
@@ -254,6 +321,7 @@ export default function CoachSessionPackage({
               <label className="coach-session-note-field">
                 <span>Optional note</span>
                 <input
+                  className="coach-field-input"
                   value={sessionNote}
                   onChange={(event) => setSessionNote(event.target.value)}
                   placeholder="Session focus, location, context…"
@@ -262,7 +330,7 @@ export default function CoachSessionPackage({
               </label>
               <button
                 type="button"
-                className="gold-button machined"
+                className="gold-button machined coach-primary-action"
                 disabled={busy}
                 onClick={handleRecordSession}
               >
@@ -272,14 +340,14 @@ export default function CoachSessionPackage({
           ) : (
             <button
               type="button"
-              className="gold-button machined"
+              className="gold-button machined coach-primary-action"
               disabled={busy}
               onClick={() => setShowAddPanel((open) => !open)}
             >
-              <Plus size={17} />
+              <Plus {...ICON} />
               Add Sessions
               <ChevronDown
-                size={16}
+                {...ICON}
                 className={showAddPanel ? 'is-open' : ''}
               />
             </button>
@@ -316,6 +384,7 @@ export default function CoachSessionPackage({
             <div className="coach-session-add-custom">
               <input
                 type="number"
+                className="coach-field-input"
                 min="1"
                 inputMode="numeric"
                 value={customCount}
@@ -343,7 +412,7 @@ export default function CoachSessionPackage({
               handleUndo(undoSnapshot, undoSnapshot.historyEntryId)
             }
           >
-            <RotateCcw size={14} />
+            <RotateCcw size={16} strokeWidth={1.75} />
             Undo last record
           </button>
         )}
