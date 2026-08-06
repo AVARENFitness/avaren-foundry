@@ -22,7 +22,16 @@ export default class ErrorBoundary extends Component {
   }
 
   componentDidCatch(error, info) {
-    console.error('AVAREN screen error:', error, info)
+    if (import.meta.env.DEV) {
+      console.error(
+        `[AVAREN ErrorBoundary${this.props.boundary ? `: ${this.props.boundary}` : ''}]`,
+        error,
+        info?.componentStack,
+      )
+      return
+    }
+
+    console.error('AVAREN screen error:', error)
   }
 
   reset = () => {
@@ -46,8 +55,8 @@ export default class ErrorBoundary extends Component {
         <span className="eyebrow">RECOVERY MODE</span>
         <h1>This screen hit an unexpected error.</h1>
         <p>
-          Your saved training data is still protected. Reload
-          the screen or return Home to continue.
+          Your saved training data is still protected. Try again
+          or return Home to continue.
         </p>
 
         <div className="avaren-error-actions">
@@ -56,7 +65,7 @@ export default class ErrorBoundary extends Component {
             onClick={this.reset}
           >
             <RefreshCcw size={17} />
-            Reload Screen
+            Try Again
           </button>
 
           <button
@@ -70,16 +79,6 @@ export default class ErrorBoundary extends Component {
             Return Home
           </button>
         </div>
-
-        {import.meta.env.DEV && this.state.error && (
-          <pre className="avaren-error-detail">
-            {String(
-              this.state.error?.stack ??
-                this.state.error?.message ??
-                this.state.error,
-            )}
-          </pre>
-        )}
       </section>
     )
   }

@@ -4,7 +4,9 @@ import { appUi } from './lib/appUi'
 import { useNavigation } from './hooks/useNavigation'
 import { useWorkoutSession } from './hooks/useWorkoutSession'
 import AppShell from './components/AppShell'
+import ErrorBoundary from './components/ErrorBoundary'
 import { isImmersiveScreen } from './lib/immersiveScreens'
+import { STATE_SCHEMA_VERSION } from './lib/stateSchema'
 import CoachShell from './components/CoachShell'
 import { isCoachAccount } from './config/coachAccess'
 import { registerPushWorker, syncPushSubscription } from './lib/pushNotifications'
@@ -80,7 +82,7 @@ const createInitialState = (ownerUserId = null) => ({
     6: 'Legs + Core',
   },
   lastBackupAt: null,
-  schemaVersion: 2,
+  schemaVersion: STATE_SCHEMA_VERSION,
   mobility: {
     durationPreferences: {},
     completed: [],
@@ -878,27 +880,32 @@ function App() {
 
     if (screen === 'gym') {
       return (
-        <GymScreen
-          state={state}
-          onStart={startWorkout}
-          activeExercise={activeExercise}
-          setActiveExercise={setActiveExercise}
-          onSetChange={updateSet}
-          onWorkoutMetaChange={updateWorkoutMeta}
-          onAddSet={addSet}
-          onFinish={finishWorkout}
-          isFinishing={isFinishing}
-          onRepeatSet={repeatPreviousSet}
-          onSkipExercise={skipExercise}
-          onQuickAddExercise={quickAddExercise}
-          onRemoveSet={removeSet}
-          onUndoSkip={undoSkipExercise}
-          workoutOptions={state.program.rotation}
-          onChangeWorkout={changeActiveWorkout}
-          onRestartWorkout={restartActiveWorkout}
-          onEndWorkout={endActiveWorkoutWithoutSaving}
-          recommendation={trainingRecommendation}
-        />
+        <ErrorBoundary
+          boundary="gym"
+          onReturnHome={() => navigate('home')}
+        >
+          <GymScreen
+            state={state}
+            onStart={startWorkout}
+            activeExercise={activeExercise}
+            setActiveExercise={setActiveExercise}
+            onSetChange={updateSet}
+            onWorkoutMetaChange={updateWorkoutMeta}
+            onAddSet={addSet}
+            onFinish={finishWorkout}
+            isFinishing={isFinishing}
+            onRepeatSet={repeatPreviousSet}
+            onSkipExercise={skipExercise}
+            onQuickAddExercise={quickAddExercise}
+            onRemoveSet={removeSet}
+            onUndoSkip={undoSkipExercise}
+            workoutOptions={state.program.rotation}
+            onChangeWorkout={changeActiveWorkout}
+            onRestartWorkout={restartActiveWorkout}
+            onEndWorkout={endActiveWorkoutWithoutSaving}
+            recommendation={trainingRecommendation}
+          />
+        </ErrorBoundary>
       )
     }
 
@@ -1337,24 +1344,32 @@ function App() {
     isCoachAccount(session)
   ) {
     return (
-      <CoachShell
-        screen={coachScreen}
-        setScreen={setCoachScreen}
-        onNavigate={(nextScreen) => {
-          setSelectedCoachClient(null)
-          setCoachScreen(nextScreen)
+      <ErrorBoundary
+        boundary="coach-hub"
+        onReturnHome={() => {
+          exitCoachMode()
+          navigate('home')
         }}
-        coachName={
-          session?.user?.user_metadata
-            ?.display_name ||
-          session?.user?.email
-            ?.split('@')[0] ||
-          'Coach'
-        }
-        onExit={exitCoachMode}
       >
-        {activeScreen}
-      </CoachShell>
+        <CoachShell
+          screen={coachScreen}
+          setScreen={setCoachScreen}
+          onNavigate={(nextScreen) => {
+            setSelectedCoachClient(null)
+            setCoachScreen(nextScreen)
+          }}
+          coachName={
+            session?.user?.user_metadata
+              ?.display_name ||
+            session?.user?.email
+              ?.split('@')[0] ||
+            'Coach'
+          }
+          onExit={exitCoachMode}
+        >
+          {activeScreen}
+        </CoachShell>
+      </ErrorBoundary>
     )
   }
 

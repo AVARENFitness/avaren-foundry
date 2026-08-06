@@ -1,76 +1,95 @@
+import {
+  STATE_SCHEMA_VERSION,
+  migrateStoredState,
+} from './stateSchema'
+
 const STORAGE_PREFIX = 'avaren-foundry-user'
 const BACKUP_META_PREFIX = 'avaren-foundry-last-backup'
-const SCHEMA_VERSION = 3
 
 const keyFor = (userId) => `${STORAGE_PREFIX}:${String(userId)}`
 const backupKeyFor = (userId) => `${BACKUP_META_PREFIX}:${String(userId)}`
 
-const normalizeState = (value, fallback, userId = null) => ({
-  ownerUserId: userId ?? value?.ownerUserId ?? null,
-  ...fallback,
-  ...value,
-  schemaVersion: SCHEMA_VERSION,
-  program: {
-    ...fallback.program,
-    ...(value?.program ?? {}),
-    workouts: {
-      ...fallback.program.workouts,
-      ...(value?.program?.workouts ?? {}),
+export function normalizeAppState(value, fallback, userId = null) {
+  return normalizeState(value, fallback, userId)
+}
+
+const normalizeState = (value, fallback, userId = null) => {
+  const migrated = migrateStoredState(value ?? {}, fallback)
+
+  return {
+    ownerUserId: userId ?? migrated?.ownerUserId ?? null,
+    ...fallback,
+    ...migrated,
+    schemaVersion: STATE_SCHEMA_VERSION,
+    program: {
+      ...fallback.program,
+      ...(migrated?.program ?? {}),
+      workouts: {
+        ...fallback.program.workouts,
+        ...(migrated?.program?.workouts ?? {}),
+      },
     },
-  },
-  weeklySchedule: value?.weeklySchedule ?? fallback.weeklySchedule,
-  mobility: {
-    ...(fallback.mobility ?? {}),
-    ...(value?.mobility ?? {}),
-    durationPreferences: {
-      ...(fallback.mobility?.durationPreferences ?? {}),
-      ...(value?.mobility?.durationPreferences ?? {}),
+    weeklySchedule: migrated?.weeklySchedule ?? fallback.weeklySchedule,
+    mobility: {
+      ...(fallback.mobility ?? {}),
+      ...(migrated?.mobility ?? {}),
+      durationPreferences: {
+        ...(fallback.mobility?.durationPreferences ?? {}),
+        ...(migrated?.mobility?.durationPreferences ?? {}),
+      },
+      completed: migrated?.mobility?.completed ?? [],
     },
-    completed: value?.mobility?.completed ?? [],
-  },
-  readiness: {
-    ...(fallback.readiness ?? {}),
-    ...(value?.readiness ?? {}),
-    entries: value?.readiness?.entries ?? [],
-  },
-  notifications: {
-    ...(fallback.notifications ?? {}),
-    ...(value?.notifications ?? {}),
-  },
-  onboarding: {
-    ...(fallback.onboarding ?? {}),
-    ...(value?.onboarding ?? {}),
-  },
-  coachWorkspace: {
-    ...(fallback.coachWorkspace ?? {}),
-    ...(value?.coachWorkspace ?? {}),
-    clients:
-      value?.coachWorkspace?.clients ??
-      fallback.coachWorkspace?.clients ??
-      [],
-    invitations:
-      value?.coachWorkspace?.invitations ??
-      fallback.coachWorkspace?.invitations ??
-      [],
-    assignments:
-      value?.coachWorkspace?.assignments ??
-      fallback.coachWorkspace?.assignments ??
-      [],
-  },
-  nutrition: {
-    ...(fallback.nutrition ?? {}),
-    ...(value?.nutrition ?? {}),
-    goals: {
-      ...(fallback.nutrition?.goals ?? {}),
-      ...(value?.nutrition?.goals ?? {}),
+    readiness: {
+      ...(fallback.readiness ?? {}),
+      ...(migrated?.readiness ?? {}),
+      entries: migrated?.readiness?.entries ?? [],
     },
-    days: value?.nutrition?.days ?? fallback.nutrition?.days ?? {},
-    savedFoods: value?.nutrition?.savedFoods ?? fallback.nutrition?.savedFoods ?? [],
-    recipes: value?.nutrition?.recipes ?? fallback.nutrition?.recipes ?? [],
-    recentFoodIds: value?.nutrition?.recentFoodIds ?? fallback.nutrition?.recentFoodIds ?? [],
-  },
-  lastSavedAt: value?.lastSavedAt ?? null,
-})
+    notifications: {
+      ...(fallback.notifications ?? {}),
+      ...(migrated?.notifications ?? {}),
+    },
+    onboarding: {
+      ...(fallback.onboarding ?? {}),
+      ...(migrated?.onboarding ?? {}),
+    },
+    coachWorkspace: {
+      ...(fallback.coachWorkspace ?? {}),
+      ...(migrated?.coachWorkspace ?? {}),
+      clients:
+        migrated?.coachWorkspace?.clients ??
+        fallback.coachWorkspace?.clients ??
+        [],
+      invitations:
+        migrated?.coachWorkspace?.invitations ??
+        fallback.coachWorkspace?.invitations ??
+        [],
+      assignments:
+        migrated?.coachWorkspace?.assignments ??
+        fallback.coachWorkspace?.assignments ??
+        [],
+    },
+    nutrition: {
+      ...(fallback.nutrition ?? {}),
+      ...(migrated?.nutrition ?? {}),
+      goals: {
+        ...(fallback.nutrition?.goals ?? {}),
+        ...(migrated?.nutrition?.goals ?? {}),
+      },
+      days: migrated?.nutrition?.days ?? fallback.nutrition?.days ?? {},
+      savedFoods:
+        migrated?.nutrition?.savedFoods ??
+        fallback.nutrition?.savedFoods ??
+        [],
+      recipes:
+        migrated?.nutrition?.recipes ?? fallback.nutrition?.recipes ?? [],
+      recentFoodIds:
+        migrated?.nutrition?.recentFoodIds ??
+        fallback.nutrition?.recentFoodIds ??
+        [],
+    },
+    lastSavedAt: migrated?.lastSavedAt ?? null,
+  }
+}
 
 export function loadState(fallback, userId) {
   if (!userId) return normalizeState({}, fallback, null)
@@ -95,7 +114,7 @@ export function saveState(value, userId) {
     JSON.stringify({
       ...value,
       ownerUserId: userId,
-      schemaVersion: SCHEMA_VERSION,
+      schemaVersion: STATE_SCHEMA_VERSION,
       lastSavedAt: new Date().toISOString(),
     }),
   )
@@ -106,7 +125,7 @@ export function exportState(value, userId) {
     app: 'AVAREN — The Foundry',
     userId,
     exportedAt: new Date().toISOString(),
-    schemaVersion: SCHEMA_VERSION,
+    schemaVersion: STATE_SCHEMA_VERSION,
     state: { ...value, ownerUserId: userId },
   }
   const blob = new Blob([JSON.stringify(payload, null, 2)], {

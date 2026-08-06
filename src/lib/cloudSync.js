@@ -1,6 +1,5 @@
 import { supabase } from './supabase'
-
-const CLOUD_SCHEMA_VERSION = 2
+import { STATE_SCHEMA_VERSION } from './stateSchema'
 
 const stateTime = (state) => {
   const value = state?.lastSavedAt
@@ -27,7 +26,7 @@ export async function saveCloudState(userId, state) {
   const payload = {
     user_id: userId,
     state: { ...state, ownerUserId: userId },
-    schema_version: CLOUD_SCHEMA_VERSION,
+    schema_version: STATE_SCHEMA_VERSION,
     updated_at: new Date().toISOString(),
   }
 

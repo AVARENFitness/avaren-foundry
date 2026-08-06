@@ -4,7 +4,7 @@ import {
   loadCloudState,
   saveCloudState,
 } from '../lib/cloudSync'
-import { loadState, saveState } from '../lib/storage'
+import { loadState, normalizeAppState, saveState } from '../lib/storage'
 import { isSupabaseConfigured, supabase } from '../lib/supabase'
 
 export function useAuthSession({
@@ -84,21 +84,27 @@ export function useAuthSession({
         if (cancelled) return
 
         const decision = chooseNewestState(localAccountState, cloudRecord)
+        const baseState = createInitialState(userId)
+        const normalizedState = normalizeAppState(
+          decision.state,
+          baseState,
+          userId,
+        )
 
         const hasExistingUsage =
-          (decision.state?.history?.length ?? 0) > 0 ||
-          (decision.state?.achievements?.length ?? 0) > 0 ||
-          (decision.state?.mobility?.completed?.length ?? 0) > 0 ||
-          Boolean(decision.state?.activeWorkout)
+          (normalizedState?.history?.length ?? 0) > 0 ||
+          (normalizedState?.achievements?.length ?? 0) > 0 ||
+          (normalizedState?.mobility?.completed?.length ?? 0) > 0 ||
+          Boolean(normalizedState?.activeWorkout)
 
         const hydratedState = {
-          ...createInitialState(userId),
-          ...decision.state,
+          ...baseState,
+          ...normalizedState,
           ownerUserId: userId,
           activeWorkout:
-            decision.state?.activeWorkout ?? null,
+            normalizedState?.activeWorkout ?? null,
           onboarding:
-            decision.state?.onboarding ?? {
+            normalizedState?.onboarding ?? {
               completed: hasExistingUsage,
               completedAt:
                 hasExistingUsage
@@ -111,7 +117,7 @@ export function useAuthSession({
         onAccountHydrated?.(hydratedState, decision)
 
         if (decision.uploadLocal && navigator.onLine) {
-          await saveCloudState(userId, decision.state)
+          await saveCloudState(userId, normalizedState)
         }
 
         hydratedUserId.current = userId
