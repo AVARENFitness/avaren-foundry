@@ -1110,6 +1110,11 @@ function App() {
           program={state.program}
           selectedClient={selectedCoachClient}
           setSelectedClient={setSelectedCoachClient}
+          coachEmail={
+            session?.user?.user_metadata?.display_name ??
+            session?.user?.email ??
+            'Coach'
+          }
         />
       )
     }

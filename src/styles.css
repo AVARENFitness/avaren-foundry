@@ -15032,6 +15032,27 @@ input, textarea, select {
   line-height: 1.45;
 }
 
+.app-toast-copy {
+  display: grid;
+  gap: 8px;
+}
+
+.app-toast-action {
+  justify-self: start;
+  min-height: 36px;
+  padding: 0 10px;
+  border: 1px solid rgba(216,184,109,.22);
+  border-radius: 10px;
+  background: rgba(216,184,109,.08);
+  color: #e8d08a;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.app-toast.has-action {
+  align-items: start;
+}
+
 .app-toast-icon {
   display: flex;
   color: var(--gold-bright);
@@ -15852,5 +15873,243 @@ input, textarea, select {
 @media (prefers-reduced-motion: reduce) {
   .ava-sheet {
     animation: none;
+  }
+}
+
+/* ===== COACH BUSINESS HUB · SESSION PACKAGES ===== */
+
+.coach-business-panel {
+  display: grid;
+  gap: 14px;
+}
+
+.coach-session-package-card {
+  display: grid;
+  gap: 18px;
+  padding: 18px;
+  border: 1px solid rgba(216,184,109,.16);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(216,184,109,.08), transparent 38%),
+    rgba(255,255,255,.025);
+}
+
+.coach-session-package-empty {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 12px;
+  align-items: start;
+  color: #b5afa6;
+}
+
+.coach-session-package-empty strong,
+.coach-session-package-empty span {
+  display: block;
+}
+
+.coach-session-package-empty strong {
+  color: #eee7dc;
+  font-size: 16px;
+}
+
+.coach-session-package-empty span {
+  margin-top: 4px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.coach-session-package-status {
+  margin: 0;
+  color: #d8c17a;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.coach-session-package-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.coach-session-package-stats div {
+  padding: 12px;
+  border-radius: 14px;
+  background: rgba(0,0,0,.18);
+}
+
+.coach-session-package-stats small,
+.coach-session-package-stats strong {
+  display: block;
+}
+
+.coach-session-package-stats small {
+  color: #9a9389;
+  font-size: 12px;
+}
+
+.coach-session-package-stats strong {
+  margin-top: 4px;
+  font-size: 24px;
+  color: #eee7dc;
+}
+
+.coach-session-package-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 18px;
+  color: #a59e95;
+  font-size: 13px;
+}
+
+.coach-session-package-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.coach-session-package-actions {
+  display: grid;
+  gap: 12px;
+}
+
+.coach-session-note-field {
+  display: grid;
+  gap: 6px;
+}
+
+.coach-session-note-field span {
+  color: #9a9389;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.coach-session-note-field input {
+  min-height: 46px;
+  padding: 0 14px;
+  border: 1px solid rgba(246,242,233,.08);
+  border-radius: 12px;
+  background: rgba(0,0,0,.18);
+  color: #eee7dc;
+  font-size: 15px;
+}
+
+.coach-session-add-toggle {
+  justify-self: start;
+}
+
+.coach-session-add-panel {
+  display: grid;
+  gap: 12px;
+  padding-top: 4px;
+}
+
+.coach-session-add-panel p {
+  margin: 0;
+  color: #a59e95;
+  font-size: 14px;
+}
+
+.coach-session-add-presets {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.coach-session-add-preset,
+.coach-session-add-custom button {
+  min-height: 44px;
+}
+
+.coach-session-add-preset {
+  border: 1px solid rgba(216,184,109,.16);
+  border-radius: 12px;
+  background: rgba(216,184,109,.06);
+  color: #e0c982;
+  font-size: 15px;
+  font-weight: 850;
+}
+
+.coach-session-add-custom {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+}
+
+.coach-session-add-custom input {
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid rgba(246,242,233,.08);
+  border-radius: 12px;
+  background: rgba(0,0,0,.18);
+  color: #eee7dc;
+  font-size: 15px;
+}
+
+.coach-session-inline-undo {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #c9b978;
+  font-size: 13px;
+  font-weight: 750;
+}
+
+.coach-session-history {
+  display: grid;
+  gap: 10px;
+}
+
+.coach-session-history header h3 {
+  margin: 4px 0 0;
+  font-size: 18px;
+}
+
+.coach-session-history-list {
+  display: grid;
+  gap: 8px;
+}
+
+.coach-session-history-row {
+  padding: 12px 14px;
+  border: 1px solid rgba(246,242,233,.07);
+  border-radius: 14px;
+  background: rgba(255,255,255,.018);
+}
+
+.coach-session-history-row strong,
+.coach-session-history-row span,
+.coach-session-history-row p {
+  display: block;
+}
+
+.coach-session-history-row span {
+  margin-top: 3px;
+  color: #9a9389;
+  font-size: 13px;
+}
+
+.coach-session-history-row p {
+  margin: 6px 0 0;
+  color: #c8c1b7;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.coach-session-add-toggle svg.is-open {
+  transform: rotate(180deg);
+}
+
+@media (max-width: 560px) {
+  .coach-session-package-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .coach-session-add-presets {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }

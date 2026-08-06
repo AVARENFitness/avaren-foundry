@@ -6,20 +6,40 @@ const TONE_META = {
   info: { icon: Info, className: 'tone-info' },
 }
 
-export default function Toast({ message, tone = 'info', onDismiss }) {
+export default function Toast({
+  message,
+  tone = 'info',
+  actionLabel = null,
+  onAction = null,
+  onDismiss,
+}) {
   const meta = TONE_META[tone] ?? TONE_META.info
   const Icon = meta.icon
 
   return (
     <article
-      className={`app-toast ${meta.className}`}
+      className={`app-toast ${meta.className}${actionLabel ? ' has-action' : ''}`}
       role="status"
       aria-live="polite"
     >
       <span className="app-toast-icon" aria-hidden="true">
         <Icon size={18} />
       </span>
-      <p>{message}</p>
+      <div className="app-toast-copy">
+        <p>{message}</p>
+        {actionLabel && onAction && (
+          <button
+            type="button"
+            className="app-toast-action"
+            onClick={() => {
+              onAction()
+              onDismiss?.()
+            }}
+          >
+            {actionLabel}
+          </button>
+        )}
+      </div>
       <button
         type="button"
         className="app-toast-dismiss"
@@ -42,6 +62,8 @@ export function ToastStack({ toasts, onDismiss }) {
           key={toast.id}
           message={toast.message}
           tone={toast.tone}
+          actionLabel={toast.actionLabel}
+          onAction={toast.onAction}
           onDismiss={() => onDismiss(toast.id)}
         />
       ))}

@@ -22,6 +22,7 @@ import { assignmentNotificationBackend } from '../lib/assignmentNotifications'
 import CoachWorkoutDesigner from '../components/CoachWorkoutDesigner'
 import CoachCalendar from '../components/CoachCalendar'
 import CoachPrograms from '../components/CoachPrograms'
+import CoachSessionPackage from '../components/CoachSessionPackage'
 import SectionHeader from '../components/ui/SectionHeader'
 import StatCard from '../components/ui/StatCard'
 import EmptyState from '../components/ui/EmptyState'
@@ -30,7 +31,7 @@ const today = () => new Date().toISOString().slice(0,10)
 const formatDate = (value) => value ? new Date(`${value}T12:00:00`).toLocaleDateString([], { month:'short', day:'numeric' }) : 'No due date'
 const initials = (email='A') => email.slice(0,1).toUpperCase()
 
-export default function CoachScreen({ workspace, setWorkspace, screen='clients', program, selectedClient, setSelectedClient }) {
+export default function CoachScreen({ workspace, setWorkspace, screen='clients', program, selectedClient, setSelectedClient, coachEmail='Coach' }) {
   const [clients,setClients]=useState([]), [invitations,setInvitations]=useState([]), [assignments,setAssignments]=useState([]), [templates,setTemplates]=useState([])
   const [query,setQuery]=useState(''), [inviteEmail,setInviteEmail]=useState(''), [notice,setNotice]=useState(''), [loading,setLoading]=useState(true)
   const [showDesigner,setShowDesigner]=useState(false), [designerTemplate,setDesignerTemplate]=useState(null), [clientNotes,setClientNotes]=useState('')
@@ -59,6 +60,7 @@ export default function CoachScreen({ workspace, setWorkspace, screen='clients',
   if(selectedClient && screen==='clients') return <><section className="coach-hub-screen"><button className="coach-back-link" onClick={()=>setSelectedClient(null)}>← Back to clients</button>
     <header className="coach-client-profile-hero"><div className="coach-client-avatar large">{initials(selectedClient.athlete_email)}</div><div><span className="eyebrow">CLIENT PROFILE</span><h1>{selectedClient.athlete_email}</h1><p>Connected since {new Date(selectedClient.created_at).toLocaleDateString()}</p></div><button className="gold-button machined coach-profile-assign" onClick={()=>setShowDesigner(true)}><Plus size={17}/>Create Workout</button></header>
     <div className="coach-dashboard-grid"><StatCard icon={ClipboardList} label="Assignments" value={clientAssignments.length}/><StatCard icon={CheckCircle2} label="Completed" value={clientAssignments.filter(a=>a.status==='completed').length}/><StatCard icon={TrendingUp} label="Adherence" value={`${clientAssignments.length?Math.round(clientAssignments.filter(a=>a.status==='completed').length/clientAssignments.length*100):0}%`}/></div>
+    <CoachSessionPackage athleteId={selectedClient.athlete_id} coachLabel={coachEmail} />
     <section className="coach-profile-panel"><SectionHeader eyebrow="COACH NOTES" title="Private observations" description="Visible only in your Coach Hub."/><textarea rows={5} value={clientNotes} onChange={e=>setClientNotes(e.target.value)} placeholder="Goals, limitations, check-in notes, programming context…"/><button className="gold-button machined" onClick={async()=>{await coachBackend.saveClientNotes(selectedClient.athlete_id,clientNotes);setNotice('Client notes saved.')}}>Save Notes</button></section>
     <section className="coach-profile-panel"><SectionHeader eyebrow="ASSIGNMENTS" title="Client activity" action={<button className="coach-secondary-button" onClick={()=>setShowDesigner(true)}><Plus size={16}/>New Workout</button>}/>{clientAssignments.length?clientAssignments.map(a=><article className={`coach-review-card coach-assignment-manage-card status-${a.status}`} key={a.id}><div><strong>{a.title}</strong><span>{a.status} · {formatDate(a.due_date)}</span>{a.completion_summary&&<div className="coach-review-metrics"><span>{a.completion_summary.durationMinutes??'—'} min</span><span>{Number(a.completion_summary.volume??0).toLocaleString()} lb</span><span>{a.completion_summary.sets??0} sets</span></div>}</div><div className="coach-assignment-lifecycle-actions">{['assigned','started'].includes(a.status)&&<button className="coach-cancel-button" onClick={()=>unassign(a)}>Cancel</button>}{a.status!=='completed'&&<button className="coach-delete-button" onClick={()=>deleteAssignment(a)}><Trash2 size={15}/>Delete</button>}</div></article>):<EmptyState icon={ClipboardList} title="No assignments" description="Create an individualized workout for this client."/>}</section>
     {notice&&<p className="coach-hub-notice">{notice}</p>}</section>{designer}</>

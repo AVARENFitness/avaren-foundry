@@ -4,6 +4,7 @@ import ConfirmationDialog from './ConfirmationDialog'
 import { ToastStack } from './Toast'
 
 const TOAST_DURATION_MS = 4200
+const UNDO_TOAST_DURATION_MS = 10000
 
 export default function AppUiProvider({ children }) {
   const [dialog, setDialog] = useState(null)
@@ -19,13 +20,25 @@ export default function AppUiProvider({ children }) {
     setToasts((current) => current.filter((toast) => toast.id !== id))
   }, [])
 
-  const showToast = useCallback((message, tone = 'info') => {
+  const showToast = useCallback((message, tone = 'info', options = null) => {
     const id = crypto.randomUUID()
-    setToasts((current) => [...current, { id, message, tone }])
+    setToasts((current) => [
+      ...current,
+      {
+        id,
+        message,
+        tone,
+        actionLabel: options?.actionLabel ?? null,
+        onAction: options?.onAction ?? null,
+      },
+    ])
+
+    const duration = options?.durationMs ??
+      (options?.actionLabel ? UNDO_TOAST_DURATION_MS : TOAST_DURATION_MS)
 
     const timer = window.setTimeout(() => {
       dismissToast(id)
-    }, TOAST_DURATION_MS)
+    }, duration)
 
     toastTimers.current.set(id, timer)
   }, [dismissToast])

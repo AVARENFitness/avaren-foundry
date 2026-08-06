@@ -251,4 +251,88 @@ export const coachBackend = {
     const user = await currentUser()
     return unwrap(supabase.from('coach_client_notes').upsert({ coach_id: user.id, athlete_id: athleteId, notes, updated_at: new Date().toISOString() }, { onConflict: 'coach_id,athlete_id' }).select().single())
   },
+
+  async getSessionPackage(athleteId) {
+    const user = await currentUser()
+    const rows = await unwrap(
+      supabase
+        .from('coach_session_packages')
+        .select('*')
+        .eq('coach_id', user.id)
+        .eq('athlete_id', athleteId)
+        .limit(1),
+    )
+    return rows[0] ?? null
+  },
+
+  async saveSessionPackage(athleteId, packageState) {
+    const user = await currentUser()
+    return unwrap(
+      supabase
+        .from('coach_session_packages')
+        .upsert(
+          {
+            coach_id: user.id,
+            athlete_id: athleteId,
+            total_sessions: packageState.totalSessions,
+            sessions_remaining: packageState.sessionsRemaining,
+            sessions_used: packageState.sessionsUsed,
+            purchased_at: packageState.purchasedAt,
+            expires_at: packageState.expiresAt,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: 'coach_id,athlete_id' },
+        )
+        .select()
+        .single(),
+    )
+  },
+
+  async listSessionHistory(athleteId, limit = 20) {
+    const user = await currentUser()
+    return unwrap(
+      supabase
+        .from('coach_session_history')
+        .select('*')
+        .eq('coach_id', user.id)
+        .eq('athlete_id', athleteId)
+        .order('session_date', { ascending: false })
+        .order('created_at', { ascending: false })
+        .limit(limit),
+    )
+  },
+
+  async insertSessionHistoryEntry({
+    packageId,
+    athleteId,
+    sessionDate,
+    coachLabel,
+    note = '',
+  }) {
+    const user = await currentUser()
+    return unwrap(
+      supabase
+        .from('coach_session_history')
+        .insert({
+          package_id: packageId,
+          coach_id: user.id,
+          athlete_id: athleteId,
+          session_date: sessionDate,
+          coach_label: coachLabel,
+          note,
+        })
+        .select()
+        .single(),
+    )
+  },
+
+  async deleteSessionHistoryEntry(id) {
+    return unwrap(
+      supabase
+        .from('coach_session_history')
+        .delete()
+        .eq('id', id)
+        .select(),
+    )
+  },
 }

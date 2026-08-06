@@ -24,11 +24,11 @@ export const appUi = {
     return handlers.alert(normalizeOptions(options))
   },
 
-  toast(message, tone = 'info') {
+  toast(message, tone = 'info', options = null) {
     if (!handlers?.toast) {
       console.warn('AppUiProvider is not mounted.')
       return
     }
-    handlers.toast(message, tone)
+    handlers.toast(message, tone, options)
   },
 }
