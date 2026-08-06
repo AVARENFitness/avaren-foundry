@@ -1,10 +1,10 @@
 import {
   ArrowRight,
   Check,
+  ChevronRight,
   Dumbbell,
   HeartPulse,
   Moon,
-  Sparkles,
   Sun,
   Utensils,
 } from 'lucide-react'
@@ -76,19 +76,19 @@ export default function HomeScreen({
   const movementDone = completedToday(state.mobility?.completed, 'daily-reset')
   const resetDone = completedToday(state.mobility?.completed, 'recovery-flow')
 
+  const dailyPreview = [
+    readiness?.completed ? `${readinessScore} readiness` : 'Readiness pending',
+    `${nutritionSummary?.calories || 0} cal logged`,
+  ].join(' · ')
+
   return (
     <div className="home-3">
-      <header className="home-3-header">
-        <div>
-          <span className="eyebrow">{dashboard.date}</span>
-          <h1>{dashboard.greeting}</h1>
-          <p>Your focus for today, with everything else kept quietly within reach.</p>
-        </div>
+      <header className="home-3-header home-3-header--quiet">
+        <span className="eyebrow">{dashboard.date}</span>
+        <h1>{dashboard.greeting}</h1>
       </header>
 
-      <AthleteAssignmentHome onStartAssignment={onStartCoachAssignment} />
-
-      <section className="home-3-workout">
+      <section className="home-3-workout home-3-workout--hero">
         <div>
           <span className="eyebrow">TODAY’S TRAINING</span>
           <h2>{state.activeWorkout ? state.activeWorkout.name : dashboard.isRestDay ? 'Recovery Day' : dashboard.workoutName}</h2>
@@ -101,51 +101,78 @@ export default function HomeScreen({
         </button>
       </section>
 
-      <section className="home-3-dashboard">
-        <button className="home-3-dashboard-card readiness" onClick={onOpenReadiness}>
-          <div><HeartPulse size={20}/><span>Readiness</span></div>
-          <strong>{readiness?.completed ? readinessScore : 'Check in'}</strong>
-          <small>{readinessLabel}</small>
-        </button>
+      <div className="home-assignment-slot">
+        <AthleteAssignmentHome
+          compact
+          onStartAssignment={onStartCoachAssignment}
+        />
+      </div>
 
-        <button className="home-3-dashboard-card nutrition" onClick={() => setScreen('nutrition')}>
-          <div><Utensils size={20}/><span>Nutrition</span></div>
-          <strong>{nutritionSummary?.calories || 0} / {nutritionSummary?.goal || 2200}</strong>
-          <small>{nutritionSummary?.protein || 0}g protein · {Math.round(nutritionSummary?.waterOz || 0)} oz water</small>
-        </button>
+      <details className="foundry-disclosure home-daily-panel">
+        <summary>
+          <span>Daily essentials</span>
+          <small>{dailyPreview}</small>
+        </summary>
 
-        <button className={`home-3-dashboard-card ${movementDone ? 'done' : ''}`} onClick={onOpenMobility}>
-          <div>{movementDone ? <Check size={20}/> : <Sun size={20}/>}<span>Movement</span></div>
-          <strong>{movementDone ? 'Complete' : `${mobilityMinutes} min`}</strong>
-          <small>{mobilityTitle}</small>
-        </button>
+        <div className="home-daily-list">
+          <button className="home-daily-row" onClick={onOpenReadiness}>
+            <HeartPulse size={18}/>
+            <div>
+              <strong>Readiness</strong>
+              <span>{readiness?.completed ? `${readinessScore} · ${readinessLabel}` : readinessLabel}</span>
+            </div>
+            <ChevronRight size={16}/>
+          </button>
 
-        <button className={`home-3-dashboard-card ${resetDone ? 'done' : ''}`} onClick={onOpenReset}>
-          <div>{resetDone ? <Check size={20}/> : <Moon size={20}/>}<span>Recovery</span></div>
-          <strong>{resetDone ? 'Complete' : 'Reset'}</strong>
-          <small>Mobility and stretching</small>
-        </button>
-      </section>
+          <button className="home-daily-row" onClick={() => setScreen('nutrition')}>
+            <Utensils size={18}/>
+            <div>
+              <strong>Nutrition</strong>
+              <span>{nutritionSummary?.calories || 0} / {nutritionSummary?.goal || 2200} cal · {nutritionSummary?.protein || 0}g protein</span>
+            </div>
+            <ChevronRight size={16}/>
+          </button>
 
-      <section className="home-3-week">
-        <header>
-          <div>
-            <span className="eyebrow">THIS WEEK</span>
-            <h2>Progress at a glance.</h2>
-          </div>
-          <button onClick={() => setScreen('progress')}>View Progress <ArrowRight size={16}/></button>
-        </header>
-        <div>
+          <button className={`home-daily-row ${movementDone ? 'is-complete' : ''}`} onClick={onOpenMobility}>
+            {movementDone ? <Check size={18}/> : <Sun size={18}/>}
+            <div>
+              <strong>Movement</strong>
+              <span>{movementDone ? 'Complete' : `${mobilityMinutes} min · ${mobilityTitle}`}</span>
+            </div>
+            <ChevronRight size={16}/>
+          </button>
+
+          <button className={`home-daily-row ${resetDone ? 'is-complete' : ''}`} onClick={onOpenReset}>
+            {resetDone ? <Check size={18}/> : <Moon size={18}/>}
+            <div>
+              <strong>Recovery</strong>
+              <span>{resetDone ? 'Complete' : 'Mobility and stretching'}</span>
+            </div>
+            <ChevronRight size={16}/>
+          </button>
+        </div>
+      </details>
+
+      <details className="foundry-disclosure home-week-panel">
+        <summary>
+          <span>This week</span>
+          <small>{dashboard.workouts} workouts · {dashboard.volume.toLocaleString()} lb · {dashboard.prs} PRs</small>
+        </summary>
+
+        <div className="home-week-stats">
           <article><strong>{dashboard.workouts}</strong><span>Workouts</span></article>
           <article><strong>{dashboard.volume.toLocaleString()}</strong><span>Volume</span></article>
           <article><strong>{dashboard.prs}</strong><span>PRs</span></article>
         </div>
-      </section>
 
-      <section className="home-3-next">
-        <Sparkles size={19}/>
-        <div><strong>Nothing important is buried.</strong><span>Daily actions stay one or two taps away.</span></div>
-      </section>
+        <button
+          className="home-week-link"
+          onClick={() => setScreen('progress')}
+        >
+          View full progress
+          <ArrowRight size={16}/>
+        </button>
+      </details>
     </div>
   )
 }

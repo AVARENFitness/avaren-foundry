@@ -24,7 +24,7 @@ const compactNumber = (value) => {
   return Math.round(number).toLocaleString()
 }
 
-export default function TrainingOverview({ state }) {
+export default function TrainingOverview({ state, compact = false }) {
   const analytics = analyticsSnapshot(state)
 
   const metrics = [
@@ -82,14 +82,16 @@ export default function TrainingOverview({ state }) {
   )
 
   return (
-    <section className="training-overview">
-      <header>
-        <span className="eyebrow">YOUR TRAINING</span>
-        <h2>Built over time.</h2>
-        <p>
-          Your work, consistency, and recovery—measured without adding noise to Gym Mode.
-        </p>
-      </header>
+    <section className={`training-overview ${compact ? 'training-overview--compact' : ''}`}>
+      {!compact && (
+        <header>
+          <span className="eyebrow">YOUR TRAINING</span>
+          <h2>Built over time.</h2>
+          <p>
+            Your work, consistency, and recovery—measured without adding noise to Gym Mode.
+          </p>
+        </header>
+      )}
 
       <div className="training-overview-grid">
         {metrics.map(({ label, value, icon: Icon }) => (

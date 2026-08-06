@@ -11,7 +11,6 @@ import {
   personalBest,
   prsThisMonth,
   recentPRs,
-  totalSets,
   totalVolume,
 } from '../lib/metrics'
 
@@ -40,45 +39,39 @@ export default function ProgressScreen({
 
   const sessions = exerciseSessions(state.history, selectedExercise)
   const prs = recentPRs(state.history, 8)
+  const streak = consistencyStreak(state.history)
+  const monthlyPrs = prsThisMonth(state.history)
+  const lifetimeVolume = Math.round(totalVolume(state.history))
 
   return (
     <>
-      <TrainingOverview state={state} />
-      <section className="section-heading progress-heading">
-        <span className="eyebrow">MY TRAINING</span>
-        <h1>Progress, without noise.</h1>
-        <p>Open the details when you want them. Gym Mode stays focused.</p>
+      <section className="progress-summary-hero">
+        <span className="eyebrow">YOUR PROGRESS</span>
+        <h1>{state.history.length} workouts logged</h1>
+        <p>
+          {streak} day streak · {monthlyPrs} PRs this month · {lifetimeVolume.toLocaleString()} lb lifetime volume
+        </p>
       </section>
 
       <button
-        className="progress-readiness-entry"
+        className="progress-readiness-entry progress-readiness-entry--quiet"
         onClick={onOpenReadinessTrends}
       >
         <div className="progress-readiness-icon">
           <HeartPulse size={21} />
         </div>
         <div>
-          <span className="eyebrow">READINESS ANALYTICS</span>
-          <strong>Review your recovery patterns.</strong>
-          <small>
-            Compare sleep, energy, soreness, stress, workouts,
-            and PR performance.
-          </small>
+          <span className="eyebrow">READINESS</span>
+          <strong>Review recovery patterns</strong>
+          <small>Sleep, energy, soreness, stress, and workout load</small>
         </div>
         <ArrowRight size={18} />
       </button>
 
-      <section className="progress-overview-grid">
-        <article><Trophy /><span>Workouts</span><strong>{state.history.length}</strong></article>
-        <article><Flame /><span>Streak</span><strong>{consistencyStreak(state.history)}</strong></article>
-        <article><Layers3 /><span>Lifetime Sets</span><strong>{totalSets(state.history).toLocaleString()}</strong></article>
-        <article><Award /><span>PRs This Month</span><strong>{prsThisMonth(state.history)}</strong></article>
-      </section>
-
-      <section className="progress-chart-panel">
+      <section className="progress-chart-panel progress-chart-panel--primary">
         <header>
           <div>
-            <span className="eyebrow">STRENGTH GRAPH</span>
+            <span className="eyebrow">STRENGTH</span>
             <h2>{selectedExercise}</h2>
           </div>
           <select
@@ -107,82 +100,100 @@ export default function ProgressScreen({
 
         <div className="chart-total">
           <span>Lifetime training volume</span>
-          <strong>{Math.round(totalVolume(state.history)).toLocaleString()} lb</strong>
+          <strong>{lifetimeVolume.toLocaleString()} lb</strong>
         </div>
       </section>
 
-      <section className="milestone-panel">
-        <div className="panel-title">
-          <span className="eyebrow">DYNAMIC ACHIEVEMENTS</span>
-          <h2>Next milestones</h2>
-        </div>
+      <details className="foundry-disclosure progress-details-panel">
+        <summary>
+          <span>Detailed metrics</span>
+          <small>Lifetime volume, streaks, muscle breakdown</small>
+        </summary>
+        <TrainingOverview state={state} compact />
+      </details>
 
-        {Object.entries(MILESTONE_CHAINS).map(([exercise, chain]) => {
-          const best = personalBest(state.history, exercise)
-          const hasPersonalBest = best > 0
-          const next = hasPersonalBest
-            ? chain.find((target) => target > best)
-            : null
-          const previousTargets = chain.filter((target) => target <= best)
-          const start = previousTargets.at(-1) ?? 0
-          const progress = next
-            ? Math.max(0, Math.min(100, ((best - start) / (next - start || 1)) * 100))
-            : hasPersonalBest
-              ? 100
-              : 0
+      <details className="foundry-disclosure progress-details-panel">
+        <summary>
+          <span>Next milestones</span>
+          <small>Dynamic achievement targets by lift</small>
+        </summary>
 
-          return (
-            <article className="milestone-card" key={exercise}>
+        <section className="milestone-panel milestone-panel--nested">
+          {Object.entries(MILESTONE_CHAINS).map(([exercise, chain]) => {
+            const best = personalBest(state.history, exercise)
+            const hasPersonalBest = best > 0
+            const next = hasPersonalBest
+              ? chain.find((target) => target > best)
+              : null
+            const previousTargets = chain.filter((target) => target <= best)
+            const start = previousTargets.at(-1) ?? 0
+            const progress = next
+              ? Math.max(0, Math.min(100, ((best - start) / (next - start || 1)) * 100))
+              : hasPersonalBest
+                ? 100
+                : 0
+
+            return (
+              <article className="milestone-card" key={exercise}>
+                <div>
+                  <strong>{exercise}</strong>
+                  <span>
+                    {hasPersonalBest
+                      ? `Current best · ${best} lb`
+                      : 'Complete this lift to establish your baseline'}
+                  </span>
+                </div>
+                <div className="milestone-number">
+                  <small>
+                    {!hasPersonalBest ? 'BASELINE' : next ? 'NEXT' : 'COMPLETE'}
+                  </small>
+                  <strong>
+                    {!hasPersonalBest ? '—' : next ? `${next} lb` : '✓'}
+                  </strong>
+                </div>
+                <div className="milestone-progress">
+                  <div style={{ width: `${progress}%` }} />
+                </div>
+              </article>
+            )
+          })}
+        </section>
+      </details>
+
+      <details className="foundry-disclosure progress-details-panel">
+        <summary>
+          <span>Recent PRs</span>
+          <small>{prs.length ? `${prs.length} recent personal records` : 'PR timeline starts after your first workouts'}</small>
+        </summary>
+
+        <section className="pr-feed-panel pr-feed-panel--nested">
+          {!prs.length && (
+            <p className="progress-empty-copy">
+              Your first completed workouts will begin the PR timeline.
+            </p>
+          )}
+
+          {prs.map((pr) => (
+            <article className="pr-feed-row" key={pr.id}>
+              <div className="pr-medallion"><Trophy size={16} /></div>
               <div>
-                <strong>{exercise}</strong>
-                <span>
-                  {hasPersonalBest
-                    ? `Current best · ${best} lb`
-                    : 'Complete this lift to establish your baseline'}
-                </span>
+                <strong>{pr.exercise}</strong>
+                <span>{pr.type} · {pr.date}</span>
               </div>
-              <div className="milestone-number">
-                <small>
-                  {!hasPersonalBest ? 'BASELINE' : next ? 'NEXT' : 'COMPLETE'}
-                </small>
-                <strong>
-                  {!hasPersonalBest ? '—' : next ? `${next} lb` : '✓'}
-                </strong>
-              </div>
-              <div className="milestone-progress">
-                <div style={{ width: `${progress}%` }} />
-              </div>
+              <strong>{pr.value}</strong>
             </article>
-          )
-        })}
-      </section>
-
-      <section className="pr-feed-panel">
-        <div className="panel-title">
-          <span className="eyebrow">RECENT PRS</span>
-          <h2>Quiet wins.</h2>
-        </div>
-
-        {!prs.length && (
-          <p className="progress-empty-copy">
-            Your first completed workouts will begin the PR timeline.
-          </p>
-        )}
-
-        {prs.map((pr) => (
-          <article className="pr-feed-row" key={pr.id}>
-            <div className="pr-medallion"><Trophy size={16} /></div>
-            <div>
-              <strong>{pr.exercise}</strong>
-              <span>{pr.type} · {pr.date}</span>
-            </div>
-            <strong>{pr.value}</strong>
-          </article>
-        ))}
-      </section>
+          ))}
+        </section>
+      </details>
 
       {selectedExercise && (
-        <ExerciseProfile history={state.history} exercise={selectedExercise} />
+        <details className="foundry-disclosure progress-details-panel">
+          <summary>
+            <span>Exercise profile</span>
+            <small>{selectedExercise} · session history and bests</small>
+          </summary>
+          <ExerciseProfile history={state.history} exercise={selectedExercise} />
+        </details>
       )}
     </>
   )

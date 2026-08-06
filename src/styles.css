@@ -15077,3 +15077,246 @@ input, textarea, select {
     width: min(420px, calc(100% - 40px));
   }
 }
+
+/* ===== MILESTONE A · HOME & PROGRESS QUIET HIERARCHY ===== */
+
+.foundry-disclosure {
+  border: 1px solid rgba(246,242,233,.07);
+  border-radius: 16px;
+  background: rgba(255,255,255,.018);
+}
+
+.foundry-disclosure > summary {
+  display: grid;
+  gap: 4px;
+  min-height: 56px;
+  padding: 14px 16px;
+  color: var(--cream);
+  font-weight: 800;
+  cursor: pointer;
+  list-style: none;
+}
+
+.foundry-disclosure > summary::-webkit-details-marker {
+  display: none;
+}
+
+.foundry-disclosure > summary small {
+  color: #9a9389;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.foundry-disclosure[open] > summary {
+  border-bottom: 1px solid rgba(246,242,233,.06);
+}
+
+.home-3 {
+  gap: 20px;
+}
+
+.home-3-header--quiet h1 {
+  margin-bottom: 0;
+}
+
+.home-3-workout--hero {
+  padding: 24px;
+  border-color: rgba(216,184,109,.24);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.03),
+    0 18px 48px rgba(0,0,0,.22);
+}
+
+.home-assignment-slot .athlete-schedule-feature--compact {
+  padding: 14px 16px;
+  border-color: rgba(246,242,233,.07);
+  background: rgba(255,255,255,.018);
+  box-shadow: none;
+}
+
+.home-assignment-slot .athlete-schedule-feature--compact h2 {
+  font-size: clamp(18px, 4.8vw, 24px);
+}
+
+.home-assignment-slot .athlete-schedule-feature--compact p {
+  color: #8f8981;
+  font-size: 13px;
+}
+
+.home-assignment-slot .athlete-schedule-start {
+  min-height: 44px;
+  padding-inline: 14px;
+}
+
+.home-daily-list {
+  display: grid;
+}
+
+.home-daily-row {
+  display: grid;
+  grid-template-columns: 20px 1fr auto;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 56px;
+  padding: 12px 16px;
+  border: 0;
+  border-top: 1px solid rgba(246,242,233,.05);
+  background: transparent;
+  color: var(--cream);
+  text-align: left;
+}
+
+.home-daily-row:first-child {
+  border-top: 0;
+}
+
+.home-daily-row svg {
+  color: #b9a56a;
+}
+
+.home-daily-row strong,
+.home-daily-row span {
+  display: block;
+}
+
+.home-daily-row strong {
+  font-size: 14px;
+}
+
+.home-daily-row span {
+  margin-top: 2px;
+  color: #948d84;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.home-daily-row.is-complete svg {
+  color: #7ea88d;
+}
+
+.home-week-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  padding: 14px 16px 0;
+}
+
+.home-week-stats article {
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(0,0,0,.16);
+}
+
+.home-week-stats article strong,
+.home-week-stats article span {
+  display: block;
+}
+
+.home-week-stats article strong {
+  font-size: 18px !important;
+}
+
+.home-week-stats article span {
+  margin-top: 3px;
+  color: #9b948b;
+  font-size: 12px;
+}
+
+.home-week-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 12px 16px 14px;
+  border: 0;
+  background: transparent;
+  color: #d4c078;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.progress-summary-hero {
+  margin-bottom: 4px;
+  padding: 4px 2px 10px;
+}
+
+.progress-summary-hero h1 {
+  margin: 8px 0 6px;
+  font-size: clamp(30px, 8vw, 46px);
+  letter-spacing: -.05em;
+}
+
+.progress-summary-hero p {
+  margin: 0;
+  max-width: 560px;
+  color: #9a9389;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.progress-readiness-entry--quiet {
+  margin-bottom: 16px;
+  padding: 13px 14px;
+  border-color: rgba(246,242,233,.08);
+  background: rgba(255,255,255,.02);
+  box-shadow: none;
+}
+
+.progress-readiness-entry--quiet strong {
+  font-size: 15px;
+}
+
+.progress-readiness-entry--quiet small {
+  font-size: 12px;
+}
+
+.progress-chart-panel--primary {
+  margin-bottom: 16px;
+}
+
+.progress-details-panel > :not(summary) {
+  padding: 0 12px 12px;
+}
+
+.training-overview--compact {
+  margin-bottom: 0;
+  padding: 12px 8px 4px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.training-overview--compact .training-overview-grid {
+  margin-top: 0;
+}
+
+.milestone-panel--nested,
+.pr-feed-panel--nested,
+.progress-details-panel .exercise-profile-panel {
+  margin-bottom: 0;
+  padding: 12px 4px 4px;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.milestone-panel--nested .panel-title,
+.pr-feed-panel--nested .panel-title {
+  display: none;
+}
+
+@media (max-width: 560px) {
+  .home-3-workout--hero {
+    grid-template-columns: 1fr;
+  }
+
+  .home-3-workout--hero .gold-button {
+    width: 100%;
+  }
+
+  .home-week-stats {
+    grid-template-columns: 1fr;
+  }
+}
