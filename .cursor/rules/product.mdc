@@ -1,0 +1,41 @@
+---
+description: AVAREN product identity, audience, and feature philosophy
+alwaysApply: true
+---
+
+# AVAREN Product
+
+AVAREN is a **luxury fitness product** — a premium training companion for strength, recovery, nutrition, and progress. Every feature must feel intentional, calm, and worth the athlete's attention.
+
+## Identity
+
+- **The Foundry**: deliberate improvement over time, not isolated sessions.
+- **Premium, not flashy**: refined materials, restrained gold, strong typography.
+- **Quiet intelligence**: one useful insight at the right time — never noise.
+
+## Audience
+
+Coaches and individual athletes use the **exact same experience**. Role differences (assignments, roster, adherence) surface contextually — never as a separate, cluttered product.
+
+## AVA (AI)
+
+- AI is named **AVA**, never generic "AI assistant" copy.
+- AVA **never interrupts** — no pop-ups, badges, or unsolicited prompts.
+- AVA **only appears when requested** — explicit user action opens AVA.
+- AVA reduces manual work but **never silently changes a plan**.
+
+## Feature bar
+
+Before shipping any feature, confirm:
+
+1. Does it reduce taps or cognitive load?
+2. Does it avoid clutter on the primary path?
+3. Does it work for solo athletes and coached athletes?
+4. Does it feel premium on a phone in a bright gym?
+5. Would removing something else make this unnecessary?
+
+If a feature fails these checks, do not add it. Prefer removing UI over adding UI.
+
+## Reference
+
+Long-form product direction: `docs/PRODUCT_BLUEPRINT.md` and `docs/ROADMAP.md`.

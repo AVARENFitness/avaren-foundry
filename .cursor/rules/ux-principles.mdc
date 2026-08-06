@@ -1,0 +1,45 @@
+---
+description: AVAREN UX interaction and navigation principles
+alwaysApply: true
+---
+
+# AVAREN UX Principles
+
+## Calm by default
+
+- Generous spacing between elements and sections.
+- One **primary action** per screen — everything else is secondary or hidden behind navigation.
+- Important content before secondary detail.
+- Long flows split into focused destinations, not endless scroll.
+
+## Minimize taps
+
+- Daily actions should begin in **two taps or fewer**.
+- Preserve state across navigation (active workouts, timers, drafts).
+- Save important changes immediately — never make the athlete confirm twice.
+
+## Never clutter
+
+- If a feature adds a permanent UI element, question whether it belongs.
+- Prefer **removing UI** over adding UI.
+- No feature flags, badges, or notification dots unless the user opted in.
+- Modals are last resort; use dedicated screens for complex flows.
+
+## Gym-ready
+
+- Readable under **bright gym lighting** — high contrast, large tap targets.
+- Timers never start automatically; athlete controls every transition.
+- Fixed elements must not obscure navigation or workout controls.
+- Local-first: workouts must work offline.
+
+## AVA interaction
+
+- AVA surfaces only on **explicit request** (tap, search, or dedicated entry).
+- No interruptive toasts, coach marks, or "AI suggestions" on load.
+- When AVA responds, present one focused answer — not a chat flood.
+
+## Unified experience
+
+Coaches and athletes share the same screens, navigation, and visual language. Coaching features appear as contextual panels or assignments — not a parallel app.
+
+Reference: `docs/PRODUCT_BLUEPRINT.md`.

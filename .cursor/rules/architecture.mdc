@@ -1,0 +1,46 @@
+---
+description: AVAREN codebase structure and engineering constraints
+globs: src/**/*
+alwaysApply: false
+---
+
+# AVAREN Architecture
+
+React + Vite app, deployed on Vercel, backed by Supabase. Mobile-first PWA.
+
+## Layers
+
+```
+Screen / Component  →  hooks & services  →  domain engines  →  local storage + Supabase
+```
+
+| Layer | Location | Responsibility |
+|-------|----------|----------------|
+| Presentation | `src/screens/`, `src/components/` | Layout, interaction, composition |
+| Application state | `src/App.jsx`, future hooks | Navigation, session lifecycle, sync |
+| Domain engines | `src/lib/` | Pure calculations: metrics, journey, readiness, nutrition |
+| Data | `src/lib/supabase.js`, `src/lib/userData.js` | Auth, cloud sync, persistence |
+| Config | `src/config/` | Feature flags, access control |
+
+## Rules for new code
+
+1. **Protect workout data** — local save first, cloud sync second.
+2. **Pure domain logic** in `src/lib/` — no JSX, no DOM.
+3. **Screens compose** — avoid embedding business rules in screen files.
+4. **Reuse components** in `src/components/` and `src/components/ui/` before creating new ones.
+5. **Design tokens only** — styles via existing CSS classes and variables in `src/styles.css`.
+6. **No behavior changes** unless explicitly requested — documentation and refactors must preserve UX.
+
+## Recommended extractions (future)
+
+As `App.jsx` grows, extract focused hooks: `useAuthSession`, `useCloudSync`, `useWorkoutSession`, `useNavigation`.
+
+## Sync strategy
+
+Local-first: update state → save locally → debounce cloud write → resolve conflicts by timestamp.
+
+## Definition of done
+
+Build passes, mobile verified, empty/error/loading states handled, solo and coached workflows tested.
+
+Full reference: `docs/AVAREN_OS/ARCHITECTURE.md`, `docs/AVAREN_OS/ENGINEERING_STANDARDS.md`.

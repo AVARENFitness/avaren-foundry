@@ -1,0 +1,48 @@
+---
+description: AVAREN visual language and design token usage
+globs: src/**/*.{jsx,css}
+alwaysApply: false
+---
+
+# AVAREN Design System
+
+Every new component must reuse existing design tokens from `src/styles.css`. Do not introduce ad-hoc colors, radii, or spacing.
+
+## Tokens (CSS variables)
+
+| Token | Role |
+|-------|------|
+| `--black`, `--obsidian`, `--graphite`, `--steel` | Surface hierarchy |
+| `--cream`, `--muted` | Primary and secondary text |
+| `--gold`, `--gold-bright` | Primary actions, emphasis, achievement |
+| `--green` | Recovery, readiness, completion |
+| `--danger` | Warnings, destructive actions |
+| `--line` | Borders and dividers |
+| `--radius` | Card and panel corners (24px) |
+| `--shadow` | Elevated surfaces |
+
+## Typography
+
+- **DM Sans** — body and UI text
+- **Manrope** — headings, brand, strong emphasis
+- **Eyebrow** — `.eyebrow` class for section labels (gold, tracked caps)
+
+## Component families
+
+Reuse existing patterns before creating new ones:
+
+- `.hero-card` — primary daily focus
+- `.luxury-panel`, `.menu-card` — secondary content blocks
+- `.gold-button` — primary action
+- `.empty-state` — empty/error states
+- `.section-heading` — eyebrow + title + optional subtitle
+
+## Rules
+
+- **Generous spacing** — calm layouts; never pack controls tight.
+- **One primary action** per screen — one gold button, visually dominant.
+- **Bright-gym readable** — cream on dark surfaces; minimum 17px body on mobile.
+- **Consistency over novelty** — match existing card, button, and panel patterns.
+- **Mobile-first** — design for 320px+; max content width ~760px.
+
+Full reference: `docs/AVAREN_OS/DESIGN_SYSTEM.md`.
