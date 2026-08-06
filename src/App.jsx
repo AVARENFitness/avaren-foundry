@@ -5,6 +5,7 @@ import { useNavigation } from './hooks/useNavigation'
 import { useWorkoutSession } from './hooks/useWorkoutSession'
 import AppShell from './components/AppShell'
 import ErrorBoundary from './components/ErrorBoundary'
+import { AvaUiProvider } from './ava/AvaUiProvider'
 import { isImmersiveScreen } from './lib/immersiveScreens'
 import { STATE_SCHEMA_VERSION } from './lib/stateSchema'
 import CoachShell from './components/CoachShell'
@@ -1374,31 +1375,35 @@ function App() {
   }
 
   return (
-    <AppShell
-      screen={screen}
-      setScreen={(next) => navigate(next)}
-      activeWorkout={state.activeWorkout}
-      transitioning={transitioning}
-      immersive={isImmersiveScreen(screen, { mobilityFlow })}
-      notificationCount={notifications.unreadCount}
-      onOpenNotifications={() => navigate('notifications')}
+    <AvaUiProvider
+      enabled={!isImmersiveScreen(screen, { mobilityFlow })}
     >
-      <CloudStatus status={cloudStatus} />
-      {activeScreen}
-      {showReadinessCheckIn && (
-        <ReadinessCheckIn
-          initialValues={
-            readinessEntryForDate(
-              state.readiness ?? {},
-            ) ?? undefined
-          }
-          onSave={saveReadinessCheckIn}
-          onClose={() =>
-            setShowReadinessCheckIn(false)
-          }
-        />
-      )}
-    </AppShell>
+      <AppShell
+        screen={screen}
+        setScreen={(next) => navigate(next)}
+        activeWorkout={state.activeWorkout}
+        transitioning={transitioning}
+        immersive={isImmersiveScreen(screen, { mobilityFlow })}
+        notificationCount={notifications.unreadCount}
+        onOpenNotifications={() => navigate('notifications')}
+      >
+        <CloudStatus status={cloudStatus} />
+        {activeScreen}
+        {showReadinessCheckIn && (
+          <ReadinessCheckIn
+            initialValues={
+              readinessEntryForDate(
+                state.readiness ?? {},
+              ) ?? undefined
+            }
+            onSave={saveReadinessCheckIn}
+            onClose={() =>
+              setShowReadinessCheckIn(false)
+            }
+          />
+        )}
+      </AppShell>
+    </AvaUiProvider>
   )
 }
 

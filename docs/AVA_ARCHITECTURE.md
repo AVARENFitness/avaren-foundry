@@ -122,7 +122,24 @@ The router classifies free-text input and delegates to the correct `AvaService` 
 ErrorBoundary → AvaProvider → AppUiProvider → App
 ```
 
-No UI is rendered. No existing screens import `useAva()` yet. Behavior is identical to pre-AVA.
+`AvaUiProvider` wraps the authenticated athlete shell in `App.jsx` when `AppShell` is active.
+
+No existing screen imports `useAva()` directly yet. AVA UI opens only from the explicit **Ask AVA** entry control.
+
+---
+
+## UI Layer (Part 2)
+
+| Module | Role |
+|--------|------|
+| `AvaUiProvider.jsx` | Entry visibility, open/close state, mounts sheet + button |
+| `AvaEntryButton.jsx` | Compact floating “Ask AVA” control |
+| `AvaSheet.jsx` | On-demand sheet with input, examples, and result |
+| `AvaConfirmationPreview.jsx` | Reusable confirm/edit/cancel preview for future logging actions |
+| `buildConfirmationPreview.js` | Maps service responses to preview props |
+| `useAvaUi.js` | Hook for programmatic open/close (future use) |
+
+Entry is **disabled** during Gym Mode, Mobility flows, Completion, authentication, onboarding, splash, and coach hub.
 
 ---
 
@@ -228,11 +245,19 @@ AVA responses may include **proposed actions** (e.g. log food, adjust workout). 
 
 ```
 src/ava/
-  AvaService.js       — public intelligence API (mock)
-  AvaIntentRouter.js  — intent detection + routing
-  AvaContext.jsx      — AvaProvider + React context
-  useAva.js           — consumer hook
-  intents.js          — intent constants + keyword detector
+  AvaService.js              — public intelligence API (mock)
+  AvaIntentRouter.js         — intent detection + routing
+  AvaContext.jsx             — AvaProvider + React context
+  useAva.js                  — intelligence consumer hook
+  intents.js                 — intent constants + keyword detector
+  AvaUiProvider.jsx          — UI state + entry/sheet mount
+  AvaEntryButton.jsx         — floating Ask AVA control
+  AvaSheet.jsx               — on-demand sheet
+  AvaConfirmationPreview.jsx — future action preview
+  buildConfirmationPreview.js
+  constants.js
+  useFocusTrap.js
+  useAvaUi.js
 ```
 
 ---
