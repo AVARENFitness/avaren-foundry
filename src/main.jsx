@@ -1,6 +1,7 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App'
+import { AvaProvider } from './ava/AvaContext'
 import AppUiProvider from './components/ui/AppUiProvider'
 import ErrorBoundary from './components/ErrorBoundary'
 import './styles.css'
@@ -13,9 +14,11 @@ ReactDOM.createRoot(document.getElementById('root')).render(
         window.location.assign(window.location.pathname)
       }}
     >
-      <AppUiProvider>
-        <App />
-      </AppUiProvider>
+      <AvaProvider>
+        <AppUiProvider>
+          <App />
+        </AppUiProvider>
+      </AvaProvider>
     </ErrorBoundary>
   </React.StrictMode>,
 )
