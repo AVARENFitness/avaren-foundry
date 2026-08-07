@@ -13,6 +13,12 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { coachBackend } from '../lib/coachBackend'
 import { buildClientIntelligence } from '../lib/clientIntelligence'
 import {
+  formatWeekRangeLabel,
+  getCoachWeekRange,
+  getWeeklyReviewStatus,
+  normalizeWeeklyReview,
+} from '../lib/weeklyReview'
+import {
   emptySessionPackage,
   formatPackageDate,
   normalizeSessionPackage,
@@ -77,6 +83,7 @@ export default function CoachClientProfile({
   coachEmail = 'Coach',
   onBack,
   onAssignWorkout,
+  onOpenWeeklyReview,
   notice = '',
 }) {
   const businessRef = useRef(null)
@@ -88,6 +95,7 @@ export default function CoachClientProfile({
   const [nutritionDays, setNutritionDays] = useState([])
   const [intelligenceLoading, setIntelligenceLoading] = useState(true)
   const [intelligenceError, setIntelligenceError] = useState('')
+  const [currentWeekReview, setCurrentWeekReview] = useState(null)
 
   const clientAssignments = useMemo(
     () => assignments.filter((item) => item.athlete_id === client.athlete_id),
@@ -168,12 +176,14 @@ export default function CoachClientProfile({
     Promise.all([
       coachBackend.getAthleteFoundryState(client.athlete_id),
       coachBackend.getAthleteNutritionSnapshot(client.athlete_id),
+      coachBackend.getClientWeeklyReview(client.athlete_id),
     ])
-      .then(([state, nutrition]) => {
+      .then(([state, nutrition, review]) => {
         if (!active) return
         setAthleteState(state)
         setNutritionProfile(nutrition.profile)
         setNutritionDays(nutrition.days)
+        setCurrentWeekReview(normalizeWeeklyReview(review))
       })
       .catch((error) => {
         if (!active) return
@@ -227,6 +237,28 @@ export default function CoachClientProfile({
     day: 'numeric',
     year: 'numeric',
   })}`
+
+  const weeklyReviewStatus = useMemo(
+    () => getWeeklyReviewStatus({ currentReview: currentWeekReview }),
+    [currentWeekReview],
+  )
+
+  const weeklyReviewAction = (
+    <div className="coach-weekly-review-entry">
+      <div>
+        <span className="eyebrow">WEEKLY REVIEW</span>
+        <strong>{formatWeekRangeLabel(weeklyReviewStatus.weekRange.weekStart, weeklyReviewStatus.weekRange.weekEnd)}</strong>
+        <small>{weeklyReviewStatus.status}</small>
+      </div>
+      <button
+        type="button"
+        className="gold-button machined"
+        onClick={onOpenWeeklyReview}
+      >
+        {weeklyReviewStatus.actionLabel}
+      </button>
+    </div>
+  )
 
   const renderSection = () => {
     switch (activeSection) {
@@ -491,6 +523,7 @@ export default function CoachClientProfile({
       activeSection={activeSection}
       onSectionChange={setActiveSection}
       onBack={onBack}
+      weeklyReviewAction={weeklyReviewAction}
     >
       {renderSection()}
       {notice && <p className="coach-hub-notice">{notice}</p>}

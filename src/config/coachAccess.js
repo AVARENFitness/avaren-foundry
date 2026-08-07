@@ -14,6 +14,14 @@ export const isCoachAccount = (session) =>
     ) === OWNER_COACH_EMAIL,
   )
 
+/** Primary AVAREN owner/admin account — not general is_avaren_coach RPC coaches. */
+export const isPrimaryAvarenCoach = (session) =>
+  isCoachAccount(session)
+
+/** Quick Coach Hub shortcut on Home — primary owner only. */
+export const canShowCoachHubShortcut = (session) =>
+  isPrimaryAvarenCoach(session)
+
 export const coachOwnerEmail =
   OWNER_COACH_EMAIL
 

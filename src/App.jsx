@@ -13,6 +13,7 @@ import {
   canAccessCoachHub,
   useCoachAccess,
 } from './hooks/useCoachAccess'
+import { canShowCoachHubShortcut } from './config/coachAccess'
 import { registerPushWorker, syncPushSubscription } from './lib/pushNotifications'
 import { coachBackend } from './lib/coachBackend'
 import {
@@ -1350,6 +1351,8 @@ function App() {
               waterOz: Number(day?.waterOz ?? 0),
             }
           })()}
+          showCoachHubShortcut={canShowCoachHubShortcut(session)}
+          onOpenCoachHub={enterCoachMode}
         />
       </>
     )
@@ -1366,6 +1369,7 @@ function App() {
     remoteNotifications,
     coachAuthorized,
     session,
+    enterCoachMode,
   ])
 
   if (!isSupabaseConfigured) {

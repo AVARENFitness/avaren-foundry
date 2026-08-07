@@ -12,6 +12,8 @@ vi.mock('../lib/supabase', () => ({
 import {
   fetchCoachAuthorization,
   isCoachAccount,
+  canShowCoachHubShortcut,
+  isPrimaryAvarenCoach,
 } from '../config/coachAccess'
 import { canAccessCoachHub } from '../hooks/useCoachAccess'
 
@@ -63,5 +65,38 @@ describe('coach access', () => {
     const authorized = await fetchCoachAuthorization(session)
     expect(authorized).toBe(true)
     expect(rpcMock).toHaveBeenCalledWith('is_avaren_coach')
+  })
+})
+
+describe('Coach Hub shortcut', () => {
+  const primarySession = {
+    user: { email: 'hello@avarenfitness.com', id: 'owner-id' },
+  }
+
+  it('shows the shortcut for the primary AVAREN coach account', () => {
+    expect(isPrimaryAvarenCoach(primarySession)).toBe(true)
+    expect(canShowCoachHubShortcut(primarySession)).toBe(true)
+  })
+
+  it('hides the shortcut from regular client accounts', () => {
+    const session = {
+      user: { email: 'athlete@example.com', id: 'athlete-id' },
+    }
+
+    expect(canShowCoachHubShortcut(session)).toBe(false)
+  })
+
+  it('hides the shortcut from non-primary authorized coaches', () => {
+    const session = {
+      user: { email: 'trainer@studio.com', id: 'coach-id' },
+    }
+
+    expect(canShowCoachHubShortcut(session)).toBe(false)
+    expect(canAccessCoachHub(session, true)).toBe(true)
+  })
+
+  it('hides the shortcut when no user is signed in', () => {
+    expect(canShowCoachHubShortcut(null)).toBe(false)
+    expect(canShowCoachHubShortcut({})).toBe(false)
   })
 })

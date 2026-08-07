@@ -15,6 +15,7 @@ import CoachWorkoutDesigner from '../components/CoachWorkoutDesigner'
 import CoachSessionCalendar from '../components/CoachSessionCalendar'
 import CoachPrograms from '../components/CoachPrograms'
 import CoachCommandCenter from '../components/coach/CoachCommandCenter'
+import CoachWeeklyReview from '../components/coach/CoachWeeklyReview'
 import SectionHeader from '../components/ui/SectionHeader'
 import EmptyState from '../components/ui/EmptyState'
 
@@ -28,8 +29,10 @@ export default function CoachScreen({ workspace, setWorkspace, screen='clients',
   const [showDesigner,setShowDesigner]=useState(false), [designerTemplate,setDesignerTemplate]=useState(null), [clientNotes,setClientNotes]=useState(''), [notesUpdatedAt,setNotesUpdatedAt]=useState(null)
   const [deliveryStatus,setDeliveryStatus]=useState({})
   const [sortKey,setSortKey]=useState(COACH_CLIENT_SORT.NEEDS_ATTENTION)
+  const [weeklyReviewClient,setWeeklyReviewClient]=useState(null)
+  const [historicalReviewId,setHistoricalReviewId]=useState(null)
 
-  const { portfolio, portfolioLoading, portfolioError } = useCoachPortfolio(
+  const { portfolio, portfolioLoading, portfolioError, refreshPortfolio } = useCoachPortfolio(
     clients,
     assignments,
   )
@@ -55,6 +58,31 @@ export default function CoachScreen({ workspace, setWorkspace, screen='clients',
 
   const designer = showDesigner ? <CoachWorkoutDesigner clients={clients} program={program} templates={templates} initialClientId={selectedClient?.athlete_id??''} initialTemplate={designerTemplate} onClose={()=>{setShowDesigner(false);setDesignerTemplate(null)}} onSaveTemplate={saveTemplate} onAssign={assignCustom}/> : null
 
+  const openWeeklyReview = (client, reviewId = null) => {
+    if (!client) return
+    setSelectedClient(client)
+    setWeeklyReviewClient(client)
+    setHistoricalReviewId(reviewId)
+  }
+
+  if(weeklyReviewClient && screen==='clients') return <>
+    <CoachWeeklyReview
+      client={weeklyReviewClient}
+      assignments={assignments}
+      initialReviewId={historicalReviewId}
+      onBack={()=>{
+        setWeeklyReviewClient(null)
+        setHistoricalReviewId(null)
+      }}
+      onSaved={()=>{
+        refreshPortfolio()
+        setNotice('Weekly review saved.')
+      }}
+      notice={notice}
+    />
+    {designer}
+  </>
+
   if(selectedClient && screen==='clients') return <>
     <CoachClientProfile
       client={selectedClient}
@@ -70,6 +98,7 @@ export default function CoachScreen({ workspace, setWorkspace, screen='clients',
       coachEmail={coachEmail}
       onBack={()=>setSelectedClient(null)}
       onAssignWorkout={()=>setShowDesigner(true)}
+      onOpenWeeklyReview={()=>openWeeklyReview(selectedClient)}
       notice={notice}
     />
     {designer}
@@ -103,6 +132,11 @@ export default function CoachScreen({ workspace, setWorkspace, screen='clients',
       onSelectClient={setSelectedClient}
       onAssignWorkout={()=>setShowDesigner(true)}
       onViewAssignments={()=>onNavigateCoachScreen?.('assignments')}
+      onReviewNext={()=>{
+        const next = sortedPortfolio?.reviewQueue?.[0]
+        if (next) openWeeklyReview(next.client)
+      }}
+      onOpenWeeklyReview={(client)=>openWeeklyReview(client)}
       onInvite={invite}
       inviteEmail={inviteEmail}
       onInviteEmailChange={setInviteEmail}

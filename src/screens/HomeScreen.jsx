@@ -1,5 +1,6 @@
 import {
   ArrowRight,
+  BriefcaseBusiness,
   Check,
   ChevronRight,
   Dumbbell,
@@ -53,6 +54,8 @@ export default function HomeScreen({
   mobilityMinutes = 7,
   onStartCoachAssignment,
   nutritionSummary,
+  showCoachHubShortcut = false,
+  onOpenCoachHub,
 }) {
   const [showWhySheet, setShowWhySheet] = useState(false)
   const [assignments, setAssignments] = useState([])
@@ -174,6 +177,23 @@ export default function HomeScreen({
         <span className="eyebrow">{dashboard.date}</span>
         <h1>{dashboard.greeting}</h1>
       </header>
+
+      {showCoachHubShortcut && (
+        <button
+          type="button"
+          className="home-coach-hub-shortcut"
+          onClick={onOpenCoachHub}
+        >
+          <span className="home-coach-hub-shortcut-icon">
+            <BriefcaseBusiness size={18} strokeWidth={1.75} />
+          </span>
+          <span className="home-coach-hub-shortcut-copy">
+            <strong>Coach Hub</strong>
+            <span>Clients, reviews, and assignments</span>
+          </span>
+          <ChevronRight size={16} strokeWidth={1.75} />
+        </button>
+      )}
 
       <section
         className={`todays-focus-hero todays-focus-hero--${todaysFocus.type}`}

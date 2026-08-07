@@ -15141,6 +15141,65 @@ input, textarea, select {
   margin-bottom: 0;
 }
 
+.home-coach-hub-shortcut {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 16px 18px;
+  border-radius: 16px;
+  border: 1px solid rgba(216,184,109,.16);
+  background:
+    radial-gradient(circle at 100% 0%, rgba(216,184,109,.08), transparent 42%),
+    rgba(255,255,255,.02);
+  color: var(--cream);
+  text-align: left;
+}
+
+.home-coach-hub-shortcut-icon {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: rgba(216,184,109,.08);
+  color: var(--gold-bright);
+}
+
+.home-coach-hub-shortcut-copy strong,
+.home-coach-hub-shortcut-copy span {
+  display: block;
+}
+
+.home-coach-hub-shortcut-copy strong {
+  font-size: 15px;
+  color: #eee7dc;
+}
+
+.home-coach-hub-shortcut-copy span {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.home-coach-hub-shortcut > svg:last-child {
+  color: #b9a56a;
+}
+
+.home-coach-hub-shortcut:hover {
+  border-color: rgba(216,184,109,.24);
+  background:
+    radial-gradient(circle at 100% 0%, rgba(216,184,109,.12), transparent 42%),
+    rgba(255,255,255,.028);
+}
+
+.home-coach-hub-shortcut:focus-visible {
+  outline: 2px solid rgba(216,184,109,.35);
+  outline-offset: 2px;
+}
+
 .home-3-workout--hero {
   padding: 24px;
   border-color: rgba(216,184,109,.24);
@@ -17836,5 +17895,262 @@ input, textarea, select {
 
   .coach-command-assignment-strip {
     grid-template-columns: 1fr;
+  }
+}
+
+/* ===== SPRINT 7.5 · COACH WEEKLY REVIEWS ===== */
+
+.coach-weekly-review-entry {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 20px;
+  border-radius: 16px;
+  border: 1px solid rgba(216,184,109,.16);
+  background: rgba(216,184,109,.04);
+}
+
+.coach-weekly-review-entry strong,
+.coach-weekly-review-entry small {
+  display: block;
+}
+
+.coach-weekly-review-entry strong {
+  margin-top: 6px;
+  color: #f1ebe1;
+}
+
+.coach-weekly-review-entry small {
+  margin-top: 6px;
+  color: #9a9389;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+}
+
+.coach-weekly-review-screen {
+  gap: 28px;
+}
+
+.coach-weekly-review-hero h1 {
+  margin: 0;
+  font-size: clamp(30px, 7vw, 42px);
+  letter-spacing: -0.05em;
+}
+
+.coach-weekly-review-hero p {
+  margin: 8px 0 0;
+  color: #b5afa6;
+}
+
+.coach-weekly-review-status-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.coach-weekly-review-status {
+  display: inline-flex;
+  min-height: 32px;
+  align-items: center;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(216,184,109,.18);
+  color: #ddc57f;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.coach-weekly-review-status.historical {
+  color: #b5afa6;
+  border-color: rgba(246,242,233,.08);
+}
+
+.coach-weekly-review-panel {
+  display: grid;
+  gap: 16px;
+}
+
+.coach-weekly-review-panel h2 {
+  margin: 6px 0 0;
+  font-size: clamp(22px, 4.5vw, 28px);
+}
+
+.coach-weekly-review-panel p {
+  margin: 8px 0 0;
+  color: #918980;
+}
+
+.coach-weekly-review-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.coach-weekly-review-decisions {
+  display: grid;
+  gap: 10px;
+}
+
+.coach-weekly-review-decisions label {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 14px;
+  padding: 16px 18px;
+  border-radius: 16px;
+  border: 1px solid rgba(246,242,233,.06);
+  background: rgba(255,255,255,.012);
+  cursor: pointer;
+}
+
+.coach-weekly-review-decisions label.active {
+  border-color: rgba(216,184,109,.22);
+  background: rgba(216,184,109,.05);
+}
+
+.coach-weekly-review-decisions strong,
+.coach-weekly-review-decisions span {
+  display: block;
+}
+
+.coach-weekly-review-decisions span {
+  margin-top: 6px;
+  color: #9a9389;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.coach-weekly-review-priorities {
+  display: grid;
+  gap: 10px;
+}
+
+.coach-weekly-review-followup {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #b5afa6;
+  font-size: 14px;
+}
+
+.coach-weekly-review-save {
+  width: 100%;
+  min-height: 52px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.coach-weekly-review-history {
+  display: grid;
+  gap: 10px;
+}
+
+.coach-weekly-review-history button {
+  width: 100%;
+  text-align: left;
+  padding: 16px 18px;
+  border-radius: 14px;
+  border: 1px solid rgba(246,242,233,.06);
+  background: rgba(255,255,255,.012);
+  color: var(--cream);
+}
+
+.coach-weekly-review-history button:hover {
+  border-color: rgba(216,184,109,.14);
+  background: rgba(255,255,255,.02);
+}
+
+.coach-weekly-review-history button:focus-visible {
+  outline: 2px solid rgba(216,184,109,.35);
+  outline-offset: 2px;
+}
+
+.coach-weekly-review-history button.active {
+  border-color: rgba(216,184,109,.22);
+  background: rgba(216,184,109,.05);
+}
+
+.coach-weekly-review-history strong,
+.coach-weekly-review-history span {
+  display: block;
+}
+
+.coach-weekly-review-history strong {
+  color: #eee7dc;
+  font-size: 14px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+.coach-weekly-review-history span {
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.coach-weekly-review-banner,
+.coach-weekly-review-loading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 18px;
+  border-radius: 16px;
+  border: 1px solid rgba(246,242,233,.06);
+  background: rgba(255,255,255,.012);
+}
+
+.coach-command-review-summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #b5afa6;
+  font-size: 13px;
+}
+
+.coach-command-review-badge {
+  display: inline-flex;
+  width: fit-content;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.coach-command-review-badge.due {
+  color: #ddc57f;
+  background: rgba(216,184,109,.08);
+}
+
+.coach-command-review-badge.reviewed {
+  color: #9fd0a8;
+  background: rgba(120, 176, 132, .08);
+}
+
+@media (min-width: 640px) {
+  .coach-weekly-review-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 639px) {
+  .coach-weekly-review-entry {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .coach-weekly-review-entry button {
+    width: 100%;
+  }
+
+  .coach-weekly-review-banner {
+    flex-direction: column;
+    align-items: stretch;
   }
 }

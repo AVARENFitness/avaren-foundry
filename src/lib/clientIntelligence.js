@@ -11,6 +11,10 @@ import {
   estimatedOneRepMax,
 } from './metrics'
 import { nutritionTotals } from './nutrition'
+import {
+  getCoachWeekRange,
+  isDateInWeek,
+} from './weeklyReview'
 
 const DAY_MS = 86400000
 
@@ -1280,31 +1284,63 @@ export const buildCoachPortfolioIntelligence = ({
   assignments = [],
   athleteStatesById = {},
   nutritionByAthleteId = {},
+  weeklyReviewsByAthleteId = {},
   now = new Date(),
 } = {}) => {
-  const rosterEntries = clients.map((client) =>
-    buildClientRosterEntry({
+  const weekRange = getCoachWeekRange(now)
+
+  const rosterEntries = clients.map((client) => {
+    const entry = buildClientRosterEntry({
       client,
       assignments,
       athleteState: athleteStatesById[client.athlete_id] ?? null,
       nutritionProfile: nutritionByAthleteId[client.athlete_id]?.profile ?? null,
       nutritionDays: nutritionByAthleteId[client.athlete_id]?.days ?? [],
       now,
-    }),
-  )
+    })
+    const currentReview = weeklyReviewsByAthleteId[client.athlete_id] ?? null
+    const reviewedThisWeek =
+      currentReview?.weekStart === weekRange.weekStart
+
+    return {
+      ...entry,
+      weeklyReviewStatus: reviewedThisWeek ? 'REVIEWED' : 'REVIEW DUE',
+      currentWeeklyReview: currentReview,
+    }
+  })
 
   const hero = buildCoachPortfolioSnapshot({
     rosterEntries,
     assignments,
     now,
   })
-  const attentionQueue = rankClientAttention(
+  let attentionQueue = rankClientAttention(
     rosterEntries.map((entry) => ({
       client: entry.client,
       intelligence: entry.intelligence,
     })),
     { limit: 8 },
   )
+
+  const reviewAttention = rosterEntries
+    .filter((entry) => entry.weeklyReviewStatus === 'REVIEW DUE')
+    .map((entry) => ({
+      client: entry.client,
+      clientName: entry.clientName,
+      item: {
+        id: 'weekly-review-due',
+        title: 'Weekly review not completed',
+        description: `Review ${entry.clientName}'s week while context is still fresh.`,
+        severity: ATTENTION_SEVERITY.WATCH,
+      },
+      priority: 30,
+      actionLabel: 'Review Client',
+    }))
+
+  attentionQueue = [...attentionQueue, ...reviewAttention]
+    .sort((first, second) => second.priority - first.priority)
+    .slice(0, 8)
+
   const activityFeed = buildCoachActivityFeed({
     rosterEntries,
     assignments,
@@ -1312,16 +1348,220 @@ export const buildCoachPortfolioIntelligence = ({
   })
   const wins = buildClientWins(rosterEntries)
   const assignmentOverview = buildAssignmentOverview(assignments, now)
+  const reviewsComplete = rosterEntries.filter(
+    (entry) => entry.weeklyReviewStatus === 'REVIEWED',
+  ).length
+  const reviewQueue = rankClientsForWeeklyReview(
+    rosterEntries,
+    weeklyReviewsByAthleteId,
+    now,
+  )
 
   return {
     rosterEntries,
-    hero,
+    hero: {
+      ...hero,
+      weeklyReviews: {
+        complete: reviewsComplete,
+        total: clients.length,
+        remaining: Math.max(0, clients.length - reviewsComplete),
+      },
+    },
     attentionQueue,
     activityFeed,
     wins,
     assignmentOverview,
     weekly: hero.weekly,
+    reviewQueue,
+    weekRange,
   }
+}
+
+export const buildWeeklyReviewSnapshot = ({
+  intelligence,
+  assignments = [],
+  weekRange = getCoachWeekRange(),
+  now = new Date(),
+} = {}) => {
+  const history = intelligence?.history ?? []
+  const { weekStart, weekEnd } = weekRange
+
+  const priorStart = new Date(`${weekStart}T12:00:00`)
+  priorStart.setDate(priorStart.getDate() - 7)
+  const priorEnd = new Date(`${weekStart}T12:00:00`)
+  priorEnd.setDate(priorEnd.getDate() - 1)
+  const priorWeekStart = priorStart.toISOString().slice(0, 10)
+  const priorWeekEnd = priorEnd.toISOString().slice(0, 10)
+
+  const sessionsThisWeek = history.filter((session) =>
+    isDateInWeek(
+      session.date ?? session.finishedAt?.slice(0, 10),
+      weekStart,
+      weekEnd,
+    ),
+  )
+  const sessionsPriorWeek = history.filter((session) =>
+    isDateInWeek(
+      session.date ?? session.finishedAt?.slice(0, 10),
+      priorWeekStart,
+      priorWeekEnd,
+    ),
+  )
+
+  const completedAssignmentsThisWeek = assignments.filter(
+    (item) =>
+      item.status === 'completed' &&
+      isDateInWeek(item.completed_at, weekStart, weekEnd),
+  )
+  const activeAssignment = intelligence?.assignmentStatus?.active ?? null
+
+  const weekVolume = sessionsThisWeek.reduce((total, session) => {
+    const volume =
+      session.summary?.volume ??
+      (Array.isArray(session.sets)
+        ? session.sets.reduce(
+            (sum, set) =>
+              sum + Number(set.weight || 0) * Number(set.reps || 0),
+            0,
+          )
+        : 0)
+    return total + Number(volume || 0)
+  }, 0)
+
+  const priorWeekVolume = sessionsPriorWeek.reduce((total, session) => {
+    const volume =
+      session.summary?.volume ??
+      (Array.isArray(session.sets)
+        ? session.sets.reduce(
+            (sum, set) =>
+              sum + Number(set.weight || 0) * Number(set.reps || 0),
+            0,
+          )
+        : 0)
+    return total + Number(volume || 0)
+  }, 0)
+
+  let volumeTrend = 'unknown'
+  if (weekVolume > 0 || priorWeekVolume > 0) {
+    if (weekVolume > priorWeekVolume * 1.08) volumeTrend = 'up'
+    else if (weekVolume < priorWeekVolume * 0.92) volumeTrend = 'down'
+    else volumeTrend = 'flat'
+  }
+
+  const nutrition = intelligence?.nutrition ?? {}
+  const nutritionDaysThisWeek = (nutrition.shared
+    ? intelligence?.nutrition?.daysLoggedThisWeek
+    : null)
+
+  const weekPrs = (intelligence?.performance?.recentPrs ?? []).filter((pr) =>
+    isDateInWeek(pr.date, weekStart, weekEnd),
+  )
+
+  const wins = []
+  if (sessionsThisWeek.length >= 3) {
+    wins.push({
+      id: 'strong-week',
+      label: 'Strong training week',
+      detail: `${sessionsThisWeek.length} sessions completed`,
+    })
+  }
+  if (weekPrs.length) {
+    wins.push({
+      id: 'week-pr',
+      label: 'New performance marker',
+      detail: `${weekPrs[0].exercise} · ${weekPrs[0].value}`,
+    })
+  }
+  if (
+    intelligence?.training?.workoutsThisWeek > 0 &&
+    intelligence?.training?.priorWeeklyAverage !== null &&
+    intelligence.training.workoutsThisWeek >=
+      intelligence.training.priorWeeklyAverage
+  ) {
+    wins.push({
+      id: 'consistency-up',
+      label: 'Consistency held or improved',
+      detail: intelligence.training.label,
+    })
+  }
+  if (completedAssignmentsThisWeek.length) {
+    wins.push({
+      id: 'assignment-complete',
+      label: 'Assigned work completed',
+      detail: `${completedAssignmentsThisWeek.length} assignment${completedAssignmentsThisWeek.length === 1 ? '' : 's'} finished`,
+    })
+  }
+  if (nutrition.shared && nutritionDaysThisWeek >= 5) {
+    wins.push({
+      id: 'nutrition-logging',
+      label: 'Nutrition logging improved',
+      detail: `${nutritionDaysThisWeek} days logged this week`,
+    })
+  }
+
+  const reviewItems = buildClientAttentionItems({
+    history,
+    assignments,
+    readiness: intelligence?.readiness ?? null,
+    nutrition: intelligence?.nutrition ?? null,
+    now,
+  }).filter((item) => item.id !== 'all-clear' && item.id !== 'performance-up')
+
+  return {
+    weekRange,
+    training: {
+      workoutsCompleted: sessionsThisWeek.length,
+      priorWeekWorkouts: sessionsPriorWeek.length,
+      consistency: intelligence?.training?.label ?? 'No training logged',
+      activeAssignment: activeAssignment?.title ?? null,
+      activeAssignmentStatus: activeAssignment?.status ?? null,
+      volumeTrend,
+      weekVolume: weekVolume > 0 ? Math.round(weekVolume) : null,
+      priorWeekVolume: priorWeekVolume > 0 ? Math.round(priorWeekVolume) : null,
+    },
+    recovery: {
+      available: Boolean(intelligence?.readiness?.available),
+      score: intelligence?.readiness?.score ?? null,
+      status: intelligence?.readiness?.status ?? 'No readiness data this week',
+      trend: intelligence?.readiness?.trend ?? null,
+      mobility: intelligence?.readiness?.mobility?.detail ?? null,
+    },
+    nutrition: {
+      available: Boolean(intelligence?.nutrition?.available),
+      shared: Boolean(intelligence?.nutrition?.shared),
+      daysLogged: nutritionDaysThisWeek ?? null,
+      status: intelligence?.nutrition?.status ?? 'No nutrition data this week',
+      calorieAdherence: intelligence?.nutrition?.calorieAdherence ?? null,
+      proteinAdherence: intelligence?.nutrition?.proteinAdherence ?? null,
+    },
+    progress: {
+      prs: weekPrs,
+      performanceCards: intelligence?.performance?.cards ?? [],
+      streak: intelligence?.training?.streak ?? null,
+    },
+    wins,
+    reviewItems,
+  }
+}
+
+export const rankClientsForWeeklyReview = (
+  rosterEntries = [],
+  weeklyReviewsByAthleteId = {},
+  now = new Date(),
+) => {
+  const { weekStart } = getCoachWeekRange(now)
+
+  return rosterEntries
+    .filter((entry) => {
+      const review = weeklyReviewsByAthleteId[entry.client.athlete_id]
+      return !review || review.weekStart !== weekStart
+    })
+    .sort(
+      (first, second) =>
+        second.sortScore - first.sortScore ||
+        second.attentionCount - first.attentionCount ||
+        first.clientName.localeCompare(second.clientName),
+    )
 }
 
 const formatShortDate = (value) => {

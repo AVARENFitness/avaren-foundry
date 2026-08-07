@@ -21,8 +21,16 @@ const statusClass = (status) => {
 }
 
 export default function CoachClientCard({ entry, onSelect }) {
-  const { client, clientName, status, card, attentionCount, hasWin, winLabel } =
-    entry
+  const {
+    client,
+    clientName,
+    status,
+    card,
+    attentionCount,
+    hasWin,
+    winLabel,
+    weeklyReviewStatus,
+  } = entry
 
   return (
     <button
@@ -37,6 +45,11 @@ export default function CoachClientCard({ entry, onSelect }) {
           <span className={`coach-command-status ${statusClass(status)}`}>
             {status}
           </span>
+          {weeklyReviewStatus && (
+            <span className={`coach-command-review-badge ${weeklyReviewStatus === 'REVIEWED' ? 'reviewed' : 'due'}`}>
+              {weeklyReviewStatus}
+            </span>
+          )}
         </div>
         {attentionCount > 0 && (
           <span className="coach-command-attention-dot" aria-label="Needs attention">

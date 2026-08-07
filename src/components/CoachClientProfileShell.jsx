@@ -17,6 +17,7 @@ export default function CoachClientProfileShell({
   activeSection = 'today',
   onSectionChange,
   onBack,
+  weeklyReviewAction = null,
   children,
 }) {
   return (
@@ -33,6 +34,8 @@ export default function CoachClientProfileShell({
           <p>{clientEmail}</p>
           {connectedSince && <small>{connectedSince}</small>}
         </div>
+
+        {weeklyReviewAction}
 
         <nav
           className="coach-client-profile-section-nav"

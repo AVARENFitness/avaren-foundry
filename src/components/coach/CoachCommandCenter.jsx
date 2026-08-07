@@ -5,6 +5,7 @@ import {
   Search,
   UserPlus,
   Users,
+  CalendarRange,
 } from 'lucide-react'
 import { COACH_CLIENT_SORT } from '../../lib/clientIntelligence'
 import CoachAttentionQueue from './CoachAttentionQueue'
@@ -44,6 +45,7 @@ export default function CoachCommandCenter({
   onInvite,
   inviteEmail = '',
   onInviteEmailChange,
+  onReviewNext,
   notice = '',
 }) {
   const hero = portfolio?.hero
@@ -138,6 +140,15 @@ export default function CoachCommandCenter({
             </article>
           </div>
         ) : null}
+
+        {!loading && !portfolioLoading && hero?.weeklyReviews && (
+          <div className="coach-command-review-summary">
+            <CalendarRange size={16} />
+            <span>
+              Weekly Reviews · {hero.weeklyReviews.complete} / {hero.weeklyReviews.total} complete
+            </span>
+          </div>
+        )}
       </header>
 
       {portfolioError && (
@@ -150,6 +161,28 @@ export default function CoachCommandCenter({
         onViewClient={onSelectClient}
         onViewAll={() => onSortChange?.(COACH_CLIENT_SORT.NEEDS_ATTENTION)}
       />
+
+      {!loading && !portfolioLoading && portfolio?.hero?.weeklyReviews?.remaining > 0 && (
+        <section className="coach-command-panel coach-command-review-queue">
+          <header className="coach-command-panel-header">
+            <div>
+              <span className="eyebrow">WORKFLOW</span>
+              <h2>Weekly Reviews</h2>
+            </div>
+            <button
+              type="button"
+              className="gold-button machined coach-command-inline-action"
+              onClick={onReviewNext}
+            >
+              Review Next
+            </button>
+          </header>
+          <div className="coach-command-empty-copy">
+            <strong>{portfolio.hero.weeklyReviews.remaining} remaining</strong>
+            <span>Complete this week&apos;s private reviews while client context is still fresh.</span>
+          </div>
+        </section>
+      )}
 
       <section className="coach-command-panel coach-command-roster">
         <header className="coach-command-panel-header">

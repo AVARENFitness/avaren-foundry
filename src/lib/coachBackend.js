@@ -10,6 +10,7 @@ import {
 } from './sessionRsvp'
 import { buildScheduleInstant } from './sessionReminders'
 import { DEFAULT_COACH_SCHEDULE_TIMEZONE } from './sessionTimezone'
+import { getCoachWeekRange } from './weeklyReview'
 
 const normalizeEmail = (value = '') => String(value).trim().toLowerCase()
 const missingBackend = (error) =>
@@ -390,6 +391,111 @@ export const coachBackend = {
       return byAthlete
     } catch {
       return {}
+    }
+  },
+
+  async getClientWeeklyReview(athleteId, weekStart = null) {
+    const user = await currentUser()
+    const week = weekStart ?? getCoachWeekRange().weekStart
+
+    try {
+      const rows = await unwrap(
+        supabase
+          .from('coach_weekly_reviews')
+          .select('*')
+          .eq('coach_id', user.id)
+          .eq('athlete_id', athleteId)
+          .eq('week_start', week)
+          .limit(1),
+      )
+      return rows[0] ?? null
+    } catch (error) {
+      if (missingBackend(error)) return null
+      throw error
+    }
+  },
+
+  async listClientWeeklyReviews(athleteId, limit = 12) {
+    const user = await currentUser()
+
+    try {
+      return unwrap(
+        supabase
+          .from('coach_weekly_reviews')
+          .select('*')
+          .eq('coach_id', user.id)
+          .eq('athlete_id', athleteId)
+          .order('week_start', { ascending: false })
+          .limit(limit),
+      )
+    } catch (error) {
+      if (missingBackend(error)) return []
+      throw error
+    }
+  },
+
+  async listCoachWeeklyReviews(weekStart = null) {
+    const user = await currentUser()
+    const week = weekStart ?? getCoachWeekRange().weekStart
+
+    try {
+      return unwrap(
+        supabase
+          .from('coach_weekly_reviews')
+          .select('*')
+          .eq('coach_id', user.id)
+          .eq('week_start', week)
+          .order('updated_at', { ascending: false }),
+      )
+    } catch (error) {
+      if (missingBackend(error)) return []
+      throw error
+    }
+  },
+
+  async saveClientWeeklyReview({
+    athleteId,
+    weekStart,
+    weekEnd,
+    decision,
+    observation = '',
+    priorities = [],
+    followUpRequired = false,
+    followUpNote = '',
+    snapshot = {},
+  }) {
+    const user = await currentUser()
+
+    try {
+      return unwrap(
+        supabase
+          .from('coach_weekly_reviews')
+          .upsert(
+            {
+              coach_id: user.id,
+              athlete_id: athleteId,
+              week_start: weekStart,
+              week_end: weekEnd,
+              decision,
+              observation,
+              priorities,
+              follow_up_required: followUpRequired,
+              follow_up_note: followUpNote,
+              snapshot,
+              updated_at: new Date().toISOString(),
+            },
+            { onConflict: 'coach_id,athlete_id,week_start' },
+          )
+          .select()
+          .single(),
+      )
+    } catch (error) {
+      if (missingBackend(error)) {
+        throw new Error(
+          'Weekly reviews are not installed. Run AVAREN_COACH_WEEKLY_REVIEWS_7_5.sql.',
+        )
+      }
+      throw error
     }
   },
 
