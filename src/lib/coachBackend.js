@@ -1,7 +1,21 @@
 import { supabase } from './supabase'
+import {
+  mapCompleteScheduledSessionRpcError,
+  normalizeCompleteScheduledSessionRpcResult,
+  normalizeUndoScheduledSessionRpcResult,
+} from './coachScheduledSessions'
+import {
+  mapRsvpRpcError,
+  normalizeRsvpRpcResult,
+} from './sessionRsvp'
+import { buildScheduleInstant } from './sessionReminders'
+import { DEFAULT_COACH_SCHEDULE_TIMEZONE } from './sessionTimezone'
 
 const normalizeEmail = (value = '') => String(value).trim().toLowerCase()
-const missingBackend = (error) => error?.code === '42P01' || /does not exist/i.test(error?.message ?? '')
+const missingBackend = (error) =>
+  error?.code === '42P01' ||
+  error?.code === '42883' ||
+  /does not exist/i.test(error?.message ?? '')
 const unwrap = async (request) => {
   const result = await request
   if (result.error && missingBackend(result.error)) throw new Error('Coach backend is not installed. Run the Supabase coach migrations.')
@@ -334,5 +348,190 @@ export const coachBackend = {
         .eq('id', id)
         .select(),
     )
+  },
+
+  async getAthleteSessionPackage() {
+    const user = await currentUser()
+    const rows = await unwrap(
+      supabase
+        .from('coach_session_packages')
+        .select('*')
+        .eq('athlete_id', user.id)
+        .order('updated_at', { ascending: false })
+        .limit(1),
+    )
+    return rows[0] ?? null
+  },
+
+  async listScheduledSessions({ startDate, endDate, athleteId = null } = {}) {
+    const user = await currentUser()
+    let query = supabase
+      .from('coach_scheduled_sessions')
+      .select('*')
+      .eq('coach_id', user.id)
+      .gte('session_date', startDate)
+      .lte('session_date', endDate)
+      .order('session_date', { ascending: true })
+      .order('start_time', { ascending: true })
+
+    if (athleteId) query = query.eq('athlete_id', athleteId)
+
+    return unwrap(query)
+  },
+
+  async createScheduledSession({
+    athleteId,
+    sessionDate,
+    startTime,
+    durationMinutes = null,
+    coachNote = '',
+    startsAt = null,
+    scheduleTimezone = DEFAULT_COACH_SCHEDULE_TIMEZONE,
+  }) {
+    const user = await currentUser()
+    const instant = buildScheduleInstant({
+      sessionDate,
+      startTime,
+      scheduleTimezone,
+    })
+    const resolvedStartsAt = startsAt ?? instant.startsAt
+    const resolvedTimezone = instant.scheduleTimezone
+
+    return unwrap(
+      supabase
+        .from('coach_scheduled_sessions')
+        .insert({
+          coach_id: user.id,
+          athlete_id: athleteId,
+          session_date: sessionDate,
+          start_time: startTime,
+          starts_at: resolvedStartsAt,
+          schedule_timezone: resolvedTimezone,
+          duration_minutes: durationMinutes,
+          coach_note: coachNote,
+          status: 'scheduled',
+          updated_at: new Date().toISOString(),
+        })
+        .select()
+        .single(),
+    )
+  },
+
+  async updateScheduledSession(id, patch) {
+    const payload = { updated_at: new Date().toISOString() }
+    if (patch.sessionDate !== undefined) payload.session_date = patch.sessionDate
+    if (patch.startTime !== undefined) payload.start_time = patch.startTime
+    if (patch.durationMinutes !== undefined) {
+      payload.duration_minutes = patch.durationMinutes
+    }
+    if (patch.coachNote !== undefined) payload.coach_note = patch.coachNote
+    if (patch.status !== undefined) payload.status = patch.status
+    if (patch.completedAt !== undefined) payload.completed_at = patch.completedAt
+    if (patch.sessionHistoryId !== undefined) {
+      payload.session_history_id = patch.sessionHistoryId
+    }
+    if (patch.scheduleTimezone !== undefined) {
+      payload.schedule_timezone = patch.scheduleTimezone
+    }
+    if (patch.startsAt !== undefined) {
+      payload.starts_at = patch.startsAt
+    } else if (patch.sessionDate !== undefined || patch.startTime !== undefined) {
+      const sessionDate = patch.sessionDate
+      const startTime = patch.startTime
+      const scheduleTimezone =
+        patch.scheduleTimezone ?? DEFAULT_COACH_SCHEDULE_TIMEZONE
+      if (sessionDate && startTime) {
+        const instant = buildScheduleInstant({
+          sessionDate,
+          startTime,
+          scheduleTimezone,
+        })
+        payload.starts_at = instant.startsAt
+        payload.schedule_timezone = instant.scheduleTimezone
+      }
+    }
+
+    return unwrap(
+      supabase
+        .from('coach_scheduled_sessions')
+        .update(payload)
+        .eq('id', id)
+        .select()
+        .single(),
+    )
+  },
+
+  async completeScheduledSessionAtomic(sessionId, coachLabel = '') {
+    const { data, error } = await supabase.rpc(
+      'complete_coach_scheduled_session',
+      {
+        p_scheduled_session_id: sessionId,
+        p_coach_label: coachLabel,
+      },
+    )
+
+    if (error) {
+      if (missingBackend(error)) {
+        throw new Error(
+          'Atomic session completion is not installed. Run AVAREN_COACH_SESSION_COMPLETION_ATOMIC_7_1.sql.',
+        )
+      }
+      return mapCompleteScheduledSessionRpcError(error)
+    }
+
+    return normalizeCompleteScheduledSessionRpcResult(data)
+  },
+
+  async undoScheduledSessionCompletionAtomic(sessionId) {
+    const { data, error } = await supabase.rpc(
+      'undo_complete_coach_scheduled_session',
+      {
+        p_scheduled_session_id: sessionId,
+      },
+    )
+
+    if (error) {
+      if (missingBackend(error)) {
+        throw new Error(
+          'Atomic session completion is not installed. Run AVAREN_COACH_SESSION_COMPLETION_ATOMIC_7_1.sql.',
+        )
+      }
+      return mapCompleteScheduledSessionRpcError(error)
+    }
+
+    return normalizeUndoScheduledSessionRpcResult(data)
+  },
+
+  async listAthleteScheduledSessions() {
+    const { data, error } = await supabase.rpc('list_athlete_scheduled_sessions')
+
+    if (error) {
+      if (missingBackend(error)) {
+        throw new Error(
+          'Athlete session scheduling is not installed. Run AVAREN_COACH_SESSION_RSVP_7_1.sql.',
+        )
+      }
+      throw error
+    }
+
+    return Array.isArray(data) ? data : data ?? []
+  },
+
+  async updateSessionRsvp(sessionId, rsvpStatus) {
+    const { data, error } = await supabase.rpc('update_scheduled_session_rsvp', {
+      p_session_id: sessionId,
+      p_rsvp_status: rsvpStatus,
+    })
+
+    if (error) {
+      if (missingBackend(error)) {
+        throw new Error(
+          'Session RSVP is not installed. Run AVAREN_COACH_SESSION_RSVP_7_1.sql.',
+        )
+      }
+      return mapRsvpRpcError(error)
+    }
+
+    return normalizeRsvpRpcResult(data)
   },
 }

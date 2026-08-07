@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react'
-import { isCoachAccount } from '../config/coachAccess'
+import { canAccessCoachHub } from './useCoachAccess'
 
-export function useNavigation({ session, setCoachWorkspace }) {
+export function useNavigation({ session, setCoachWorkspace, coachAuthorized = false }) {
   const [screen, setScreen] = useState('home')
   const [coachScreen, setCoachScreen] = useState('clients')
   const [selectedCoachClient, setSelectedCoachClient] = useState(null)
@@ -18,7 +18,7 @@ export function useNavigation({ session, setCoachWorkspace }) {
   }, [])
 
   const enterCoachMode = useCallback(() => {
-    if (!isCoachAccount(session)) {
+    if (!canAccessCoachHub(session, coachAuthorized)) {
       return
     }
 
@@ -34,7 +34,7 @@ export function useNavigation({ session, setCoachWorkspace }) {
       top: 0,
       behavior: 'auto',
     })
-  }, [session, setCoachWorkspace])
+  }, [session, coachAuthorized, setCoachWorkspace])
 
   const exitCoachMode = useCallback(() => {
     setCoachWorkspace((current) => ({

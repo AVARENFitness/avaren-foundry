@@ -16742,3 +16742,327 @@ input, textarea, select {
     padding-top: 0;
   }
 }
+
+.athlete-session-package-card {
+  display: grid;
+  gap: 12px;
+  padding: 22px 20px;
+  border-radius: 18px;
+  border: 1px solid color-mix(in srgb, var(--gold) 18%, transparent);
+  background: linear-gradient(
+    160deg,
+    color-mix(in srgb, var(--gold) 8%, var(--surface-elevated)),
+    var(--surface-elevated)
+  );
+}
+
+.athlete-session-package-card header {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.athlete-session-package-card h2 {
+  margin: 4px 0 0;
+  font-size: 1.35rem;
+}
+
+.athlete-session-package-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 18px;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.coach-session-calendar-screen {
+  display: grid;
+  gap: 28px;
+}
+
+.coach-session-calendar-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.coach-session-calendar-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 14px;
+  background: var(--surface-elevated);
+  border: 1px solid color-mix(in srgb, var(--gold) 12%, transparent);
+}
+
+.coach-session-calendar-toolbar button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--gold) 16%, transparent);
+  background: transparent;
+  color: var(--text);
+}
+
+.coach-session-calendar-day-block {
+  display: grid;
+  gap: 14px;
+}
+
+.coach-session-calendar-list {
+  display: grid;
+  gap: 10px;
+}
+
+.coach-session-calendar-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+  padding: 16px 18px;
+  border-radius: 16px;
+  border: 1px solid color-mix(in srgb, var(--gold) 14%, transparent);
+  background: var(--surface-elevated);
+  text-align: left;
+}
+
+.coach-session-calendar-row strong {
+  display: block;
+  font-size: 1rem;
+}
+
+.coach-session-calendar-row span {
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.coach-session-calendar-row-meta {
+  display: grid;
+  justify-items: end;
+  gap: 4px;
+  text-transform: capitalize;
+}
+
+.coach-session-calendar-row.status-completed {
+  opacity: 0.72;
+}
+
+.coach-session-calendar-row.status-cancelled {
+  opacity: 0.55;
+}
+
+.coach-session-composer,
+.coach-session-detail-sheet {
+  width: min(100%, 520px);
+  margin: auto;
+  padding: 24px;
+  border-radius: 20px;
+  background: var(--surface-elevated);
+  border: 1px solid color-mix(in srgb, var(--gold) 18%, transparent);
+  display: grid;
+  gap: 16px;
+}
+
+.coach-session-detail-sheet header,
+.coach-session-composer header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.coach-session-detail-balance {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--gold) 6%, transparent);
+}
+
+.coach-session-detail-balance strong {
+  display: block;
+}
+
+.coach-session-detail-balance span {
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.coach-session-detail-note {
+  margin: 0;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: var(--surface);
+  color: var(--muted);
+}
+
+.coach-session-detail-actions,
+.coach-session-reschedule-fields {
+  display: grid;
+  gap: 10px;
+}
+
+.coach-session-inline-undo {
+  justify-self: start;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--gold);
+  text-decoration: underline;
+  min-height: 44px;
+}
+
+.coach-schedule-session-backdrop {
+  z-index: 130;
+  align-items: flex-end;
+}
+
+.coach-schedule-session-sheet {
+  width: min(100%, 560px);
+  max-height: min(92vh, 760px);
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  border-radius: 24px 24px 0 0;
+  border: 1px solid color-mix(in srgb, var(--gold) 18%, transparent);
+  background:
+    radial-gradient(circle at 85% -15%, rgba(199, 166, 92, 0.12), transparent 32%),
+    linear-gradient(145deg, rgba(25, 29, 35, 0.98), rgba(13, 16, 20, 0.98));
+  box-shadow: var(--shadow);
+  animation: modalRise 0.28s cubic-bezier(0.18, 0.8, 0.2, 1) both;
+}
+
+.coach-schedule-session-sheet-header,
+.coach-schedule-session-sheet-footer {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 20px;
+}
+
+.coach-schedule-session-sheet-footer {
+  align-items: center;
+  padding-bottom: calc(20px + env(safe-area-inset-bottom));
+  border-top: 1px solid color-mix(in srgb, var(--gold) 12%, transparent);
+}
+
+.coach-schedule-session-sheet-body {
+  overflow: auto;
+  padding: 0 20px 12px;
+  display: grid;
+  gap: 12px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.coach-session-rsvp-alerts {
+  display: grid;
+  gap: 8px;
+}
+
+.coach-session-rsvp-alerts p {
+  margin: 0;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, #c98b78 28%, transparent);
+  background: color-mix(in srgb, #c98b78 10%, transparent);
+  color: var(--cream);
+}
+
+.coach-session-rsvp-label,
+.coach-session-detail-rsvp,
+.athlete-rsvp-status {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.coach-session-calendar-row.is-rsvp-exception {
+  border-color: color-mix(in srgb, #c98b78 34%, transparent);
+  background: color-mix(in srgb, #c98b78 8%, var(--surface-elevated));
+}
+
+.coach-session-calendar-row.rsvp-confirmed .coach-session-rsvp-label::before,
+.athlete-scheduled-session.rsvp-confirmed .athlete-rsvp-status::before {
+  content: '✓ ';
+}
+
+.coach-session-calendar-row.rsvp-cannot_attend .coach-session-rsvp-label::before,
+.athlete-scheduled-session.rsvp-cannot_attend .athlete-rsvp-status::before {
+  content: '! ';
+}
+
+.athlete-scheduled-sessions-card {
+  display: grid;
+  gap: 14px;
+  padding: 22px 20px;
+  border-radius: 18px;
+  border: 1px solid color-mix(in srgb, var(--gold) 18%, transparent);
+  background: var(--surface-elevated);
+}
+
+.athlete-scheduled-sessions-card header {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.athlete-scheduled-sessions-list {
+  display: grid;
+  gap: 12px;
+}
+
+.athlete-scheduled-session {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 16px;
+  border: 1px solid color-mix(in srgb, var(--gold) 14%, transparent);
+  background: var(--surface);
+}
+
+.athlete-scheduled-session.rsvp-cannot_attend {
+  border-color: color-mix(in srgb, #c98b78 30%, transparent);
+}
+
+.athlete-rsvp-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.athlete-rsvp-actions button {
+  min-height: 44px;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--gold) 16%, transparent);
+  background: transparent;
+  color: var(--cream);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.athlete-rsvp-actions button.active {
+  border-color: color-mix(in srgb, var(--gold) 40%, transparent);
+  background: color-mix(in srgb, var(--gold) 10%, transparent);
+}
+
+@media (min-width: 720px) {
+  .coach-schedule-session-backdrop {
+    align-items: center;
+  }
+
+  .coach-schedule-session-sheet {
+    border-radius: 24px;
+  }
+}

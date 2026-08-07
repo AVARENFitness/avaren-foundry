@@ -99,8 +99,22 @@ export const assignmentNotificationBackend = {
 
 export const mapAssignmentNotification = (row) => ({
   id: row.id,
-  type: row.type === 'assignment-completed' ? 'workout' : 'assignment',
-  priority: row.type === 'assignment-created' ? 100 : 90,
+  type:
+    row.type === 'assignment-completed'
+      ? 'workout'
+      : row.type?.startsWith('session-')
+      ? 'session'
+      : 'assignment',
+  priority:
+    row.type === 'session-rsvp-declined'
+      ? 110
+      : row.type === 'session-rsvp-confirmed'
+      ? 95
+      : row.type === 'session-reminder'
+      ? 88
+      : row.type === 'assignment-created'
+      ? 100
+      : 90,
   title: row.title,
   body: row.body,
   action: row.action,
@@ -109,6 +123,10 @@ export const mapAssignmentNotification = (row) => ({
       ? 'Open Workout'
       : row.action === 'open-coach-assignment'
       ? 'Open Coach Hub'
+      : row.action === 'open-coach-calendar'
+      ? 'Open Calendar'
+      : row.action === 'open-session-rsvp'
+      ? 'Respond'
       : null,
   createdAt: row.created_at,
   fingerprint: `remote:${row.id}`,
@@ -116,5 +134,6 @@ export const mapAssignmentNotification = (row) => ({
   remote: true,
   remoteId: row.id,
   assignmentId: row.assignment_id,
+  scheduledSessionId: row.scheduled_session_id,
   payload: row.payload ?? {},
 })

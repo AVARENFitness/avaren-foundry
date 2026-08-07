@@ -22,6 +22,8 @@ import {
 import { useState } from 'react'
 import ImportBackupButton from '../components/ImportBackupButton'
 import AthleteCoachPanel from '../components/AthleteCoachPanel'
+import AthleteSessionPackageCard from '../components/AthleteSessionPackageCard'
+import AthleteScheduledSessions from '../components/AthleteScheduledSessions'
 import { supabase } from '../lib/supabase'
 import { appUi } from '../lib/appUi'
 import {
@@ -152,6 +154,8 @@ export default function MoreScreen({
               <History size={18}/>Open History<ChevronRight size={17}/>
             </button>
           </section>
+          <AthleteSessionPackageCard />
+          <AthleteScheduledSessions />
           <AthleteCoachPanel onStartAssignment={onStartCoachAssignment}/>
         </div>
       )}
@@ -162,7 +166,6 @@ export default function MoreScreen({
           <div className="more-destination-list">
             <MoreItem icon={CalendarDays} title="Weekly Program" description="Organize the training week" onClick={onOpenPlanner}/>
             <MoreItem icon={Settings2} title="Workout Builder" description="Create and edit workouts" onClick={onOpenBuilder}/>
-            {coachAccessEnabled && <MoreItem icon={BriefcaseBusiness} title="Coach Hub" description="Manage clients, calendars, and assignments" detail={coachRole === 'coach' ? 'Enabled' : 'Open'} onClick={onEnterCoachMode ?? onOpenCoach}/>}
             <MoreItem icon={Hammer} title="The Forge" description="Achievements and milestones" onClick={onOpenForge}/>
             <MoreItem icon={Zap} title="Readiness Trends" description="See how recovery changes over time" onClick={onOpenReadinessTrends}/>
           </div>
@@ -187,6 +190,15 @@ export default function MoreScreen({
             <div><strong>{displayName}</strong><span>{email}</span></div>
           </div>
           <div className="more-destination-list">
+            {coachAccessEnabled && (
+              <MoreItem
+                icon={BriefcaseBusiness}
+                title="Coach Hub"
+                description="Clients, session calendar, and assignments"
+                detail={coachRole === 'coach' ? 'Enabled' : 'Open'}
+                onClick={onEnterCoachMode ?? onOpenCoach}
+              />
+            )}
             <MoreItem icon={Bell} title="Notifications" description="Reminders and training updates" badge={notificationCount || null} onClick={onOpenNotifications}/>
             <MoreItem icon={Download} title="Export Backup" description="Download a copy of your data" detail={formatTime(state.lastBackupAt ?? lastBackupAt(userId))} onClick={() => {
               exportState(state, userId)

@@ -19,7 +19,7 @@ import { appUi } from '../lib/appUi'
 import { assignmentNotificationBackend } from '../lib/assignmentNotifications'
 import CoachClientProfile from './CoachClientProfile'
 import CoachWorkoutDesigner from '../components/CoachWorkoutDesigner'
-import CoachCalendar from '../components/CoachCalendar'
+import CoachSessionCalendar from '../components/CoachSessionCalendar'
 import CoachPrograms from '../components/CoachPrograms'
 import SectionHeader from '../components/ui/SectionHeader'
 import StatCard from '../components/ui/StatCard'
@@ -31,7 +31,7 @@ const initials = (email='A') => email.slice(0,1).toUpperCase()
 const ICON = { size: 18, strokeWidth: 1.75 }
 const SEARCH_ICON = { size: 16, strokeWidth: 1.75 }
 
-export default function CoachScreen({ workspace, setWorkspace, screen='clients', program, selectedClient, setSelectedClient, coachEmail='Coach' }) {
+export default function CoachScreen({ workspace, setWorkspace, screen='clients', program, selectedClient, setSelectedClient, coachEmail='Coach', onOpenClientProfile }) {
   const [clients,setClients]=useState([]), [invitations,setInvitations]=useState([]), [assignments,setAssignments]=useState([]), [templates,setTemplates]=useState([])
   const [query,setQuery]=useState(''), [inviteEmail,setInviteEmail]=useState(''), [notice,setNotice]=useState(''), [loading,setLoading]=useState(true)
   const [showDesigner,setShowDesigner]=useState(false), [designerTemplate,setDesignerTemplate]=useState(null), [clientNotes,setClientNotes]=useState('')
@@ -74,7 +74,7 @@ export default function CoachScreen({ workspace, setWorkspace, screen='clients',
     {designer}
   </>
 
-  if(screen==='calendar') return <CoachCalendar clients={clients} assignments={assignments} templates={templates} program={program} onRefresh={load} initialClientId={selectedClient?.athlete_id??''}/>
+  if(screen==='calendar') return <CoachSessionCalendar clients={clients} coachEmail={coachEmail} initialClientId={selectedClient?.athlete_id??''} onOpenClientProfile={(client)=>{if(!client)return; if(onOpenClientProfile) onOpenClientProfile(client); else setSelectedClient(client)}} />
 
   if(screen==='programs') return <CoachPrograms clients={clients} templates={templates} program={program} onRefresh={load}/>
 

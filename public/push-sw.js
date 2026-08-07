@@ -17,18 +17,23 @@ self.addEventListener('push', (event) => {
     body: payload.body ?? 'You have a new update.',
     icon: '/brand/foundation/icon-192.png',
     badge: '/brand/foundation/icon-96.png',
-    tag: payload.tag ?? payload.assignmentId ?? 'avaren-update',
+    tag: payload.tag ?? payload.assignmentId ?? payload.sessionId ?? 'avaren-update',
     renotify: true,
     data: {
       url:
         payload.url ??
         (payload.assignmentId
-          ? `/?assignment=${encodeURIComponent(
-              payload.assignmentId,
-            )}`
+          ? `/?assignment=${encodeURIComponent(payload.assignmentId)}`
+          : payload.sessionId
+          ? `/?session=${encodeURIComponent(payload.sessionId)}&open=session-rsvp`
           : DEFAULT_URL),
       assignmentId: payload.assignmentId ?? null,
+      sessionId: payload.sessionId ?? null,
     },
+  }
+
+  if (Array.isArray(payload.actions) && payload.actions.length) {
+    options.actions = payload.actions
   }
 
   event.waitUntil(
@@ -41,7 +46,18 @@ self.addEventListener('push', (event) => {
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close()
-  const url = event.notification.data?.url ?? DEFAULT_URL
+
+  const sessionId = event.notification.data?.sessionId
+  const action = event.action
+  let url = event.notification.data?.url ?? DEFAULT_URL
+
+  if (sessionId && action === 'confirm') {
+    url = `/?session=${encodeURIComponent(sessionId)}&rsvp=confirmed`
+  } else if (sessionId && action === 'decline') {
+    url = `/?session=${encodeURIComponent(sessionId)}&rsvp=cannot_attend`
+  } else if (sessionId && !action) {
+    url = `/?session=${encodeURIComponent(sessionId)}&open=session-rsvp`
+  }
 
   event.waitUntil(
     clients

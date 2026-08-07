@@ -9,7 +9,10 @@ import { AvaUiProvider } from './ava/AvaUiProvider'
 import { isImmersiveScreen } from './lib/immersiveScreens'
 import { STATE_SCHEMA_VERSION } from './lib/stateSchema'
 import CoachShell from './components/CoachShell'
-import { isCoachAccount } from './config/coachAccess'
+import {
+  canAccessCoachHub,
+  useCoachAccess,
+} from './hooks/useCoachAccess'
 import { registerPushWorker, syncPushSubscription } from './lib/pushNotifications'
 import { coachBackend } from './lib/coachBackend'
 import {
@@ -28,6 +31,7 @@ import WeeklyPlannerScreen from './screens/WeeklyPlannerScreen'
 import HistoryScreen from './screens/HistoryScreen'
 import ForgeScreen from './screens/ForgeScreen'
 import CoachScreen from './screens/CoachScreen'
+import { respondToSessionRsvpFromPush } from './components/AthleteScheduledSessions'
 import WorkoutBuilderScreen from './screens/WorkoutBuilderScreen'
 import CompletionScreen from './screens/CompletionScreen'
 import WorkoutIntelligenceSummary from './components/WorkoutIntelligenceSummary'
@@ -212,6 +216,11 @@ function App() {
   }, [session?.user?.id])
 
   const {
+    authorized: coachAuthorized,
+    loading: coachAccessLoading,
+  } = useCoachAccess(session)
+
+  const {
     screen,
     setScreen,
     coachScreen,
@@ -225,7 +234,30 @@ function App() {
   } = useNavigation({
     session,
     setCoachWorkspace,
+    coachAuthorized,
   })
+
+  useEffect(() => {
+    if (
+      screen === 'coach-hub' &&
+      !coachAccessLoading &&
+      !canAccessCoachHub(session, coachAuthorized)
+    ) {
+      setScreen('more')
+      setCoachWorkspace((current) => ({
+        ...current,
+        modeEnabled: false,
+        role: 'athlete',
+      }))
+    }
+  }, [
+    screen,
+    coachAccessLoading,
+    coachAuthorized,
+    session,
+    setScreen,
+    setCoachWorkspace,
+  ])
 
   sessionBridgeRef.current.setScreen = setScreen
 
@@ -517,6 +549,17 @@ function App() {
         enterCoachMode()
         return
       }
+
+      if (notification.action === 'open-coach-calendar') {
+        setCoachScreen('calendar')
+        enterCoachMode()
+        return
+      }
+
+      if (notification.action === 'open-session-rsvp') {
+        navigate('more')
+        return
+      }
     }
 
     updateNotificationState((current) =>
@@ -799,9 +842,29 @@ function App() {
     const openPushUrl = async (rawUrl) => {
       const url = new URL(rawUrl, window.location.origin)
       const assignmentId = url.searchParams.get('assignment')
+      const sessionId = url.searchParams.get('session')
+      const rsvp = url.searchParams.get('rsvp')
       const openTarget = url.searchParams.get('open')
 
-      if (assignmentId) {
+      if (sessionId && rsvp) {
+        try {
+          await respondToSessionRsvpFromPush(
+            sessionId,
+            rsvp === 'confirmed' ? 'confirmed' : 'cannot_attend',
+          )
+          appUi.toast(
+            rsvp === 'confirmed'
+              ? 'Session confirmed.'
+              : 'Coach notified you cannot make it.',
+            'success',
+          )
+        } catch (error) {
+          appUi.toast(error.message, 'error')
+        }
+        navigate('more')
+      } else if (sessionId || openTarget === 'session-rsvp') {
+        navigate('more')
+      } else if (assignmentId) {
         try {
           const assignment =
             await coachBackend.getAthleteAssignment(assignmentId)
@@ -817,9 +880,11 @@ function App() {
     }
 
     const currentUrl = window.location.href
+    const currentParams = new URL(currentUrl).searchParams
     if (
-      new URL(currentUrl).searchParams.has('assignment') ||
-      new URL(currentUrl).searchParams.has('open')
+      currentParams.has('assignment') ||
+      currentParams.has('open') ||
+      currentParams.has('session')
     ) {
       openPushUrl(currentUrl)
     }
@@ -1092,7 +1157,7 @@ function App() {
 
     if (
       screen === 'coach-hub' &&
-      isCoachAccount(session)
+      canAccessCoachHub(session, coachAuthorized)
     ) {
       return (
         <CoachScreen
@@ -1115,6 +1180,10 @@ function App() {
             session?.user?.email ??
             'Coach'
           }
+          onOpenClientProfile={(client) => {
+            setSelectedCoachClient(client)
+            setCoachScreen('clients')
+          }}
         />
       )
     }
@@ -1198,9 +1267,10 @@ function App() {
             state.coachWorkspace?.role ??
             'athlete'
           }
-          coachAccessEnabled={
-            isCoachAccount(session)
-          }
+          coachAccessEnabled={canAccessCoachHub(
+            session,
+            coachAuthorized,
+          )}
           onEnterCoachMode={enterCoachMode}
           onStartCoachAssignment={startCoachAssignment}
         />
@@ -1293,6 +1363,8 @@ function App() {
     coachScreen,
     selectedCoachClient,
     remoteNotifications,
+    coachAuthorized,
+    session,
   ])
 
   if (!isSupabaseConfigured) {
@@ -1349,7 +1421,7 @@ function App() {
 
   if (
     screen === 'coach-hub' &&
-    isCoachAccount(session)
+    canAccessCoachHub(session, coachAuthorized)
   ) {
     return (
       <ErrorBoundary
