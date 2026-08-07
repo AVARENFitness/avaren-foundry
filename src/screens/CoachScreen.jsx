@@ -34,13 +34,13 @@ const SEARCH_ICON = { size: 16, strokeWidth: 1.75 }
 export default function CoachScreen({ workspace, setWorkspace, screen='clients', program, selectedClient, setSelectedClient, coachEmail='Coach', onOpenClientProfile }) {
   const [clients,setClients]=useState([]), [invitations,setInvitations]=useState([]), [assignments,setAssignments]=useState([]), [templates,setTemplates]=useState([])
   const [query,setQuery]=useState(''), [inviteEmail,setInviteEmail]=useState(''), [notice,setNotice]=useState(''), [loading,setLoading]=useState(true)
-  const [showDesigner,setShowDesigner]=useState(false), [designerTemplate,setDesignerTemplate]=useState(null), [clientNotes,setClientNotes]=useState('')
+  const [showDesigner,setShowDesigner]=useState(false), [designerTemplate,setDesignerTemplate]=useState(null), [clientNotes,setClientNotes]=useState(''), [notesUpdatedAt,setNotesUpdatedAt]=useState(null)
   const [deliveryStatus,setDeliveryStatus]=useState({})
 
   const load=async()=>{setLoading(true);try{const [c,i,a]=await Promise.all([coachBackend.listClients(),coachBackend.listCoachInvitations(),coachBackend.listCoachAssignments()]);let t=[];try{t=await coachBackend.listWorkoutTemplates()}catch(error){if(!/coach_workout_templates|migration|does not exist/i.test(error.message??''))throw error}setClients(c);setInvitations(i);setAssignments(a);setTemplates(t);setWorkspace((w)=>({...w,clients:c,invitations:i,assignments:a}));const deliveryRows=await assignmentNotificationBackend.deliveryForAssignments(a.map(item=>item.id));setDeliveryStatus(Object.fromEntries(deliveryRows.map(row=>[row.assignment_id,row.read_at?'Read':'Delivered'])));setNotice('')}catch(e){setNotice(e.message)}finally{setLoading(false)}}
   useEffect(()=>{load()},[])
   useEffect(()=>{if(screen!=='clients')setSelectedClient?.(null)},[screen,setSelectedClient])
-  useEffect(()=>{if(!selectedClient)return;coachBackend.getClientNotes(selectedClient.athlete_id).then(note=>setClientNotes(note?.notes??'')).catch(()=>setClientNotes(''))},[selectedClient])
+  useEffect(()=>{if(!selectedClient)return;coachBackend.getClientNotes(selectedClient.athlete_id).then(note=>{setClientNotes(note?.notes??'');setNotesUpdatedAt(note?.updated_at??null)}).catch(()=>{setClientNotes('');setNotesUpdatedAt(null)})},[selectedClient])
 
   const visibleClients=useMemo(()=>clients.filter(c=>c.athlete_email.toLowerCase().includes(query.trim().toLowerCase())),[clients,query])
   const pending=invitations.filter(i=>i.status==='pending').length
@@ -61,9 +61,11 @@ export default function CoachScreen({ workspace, setWorkspace, screen='clients',
       client={selectedClient}
       assignments={assignments}
       clientNotes={clientNotes}
+      notesUpdatedAt={notesUpdatedAt}
       onClientNotesChange={setClientNotes}
       onSaveNotes={async()=>{
-        await coachBackend.saveClientNotes(selectedClient.athlete_id, clientNotes)
+        const saved = await coachBackend.saveClientNotes(selectedClient.athlete_id, clientNotes)
+        setNotesUpdatedAt(saved?.updated_at ?? new Date().toISOString())
         setNotice('Client notes saved.')
       }}
       coachEmail={coachEmail}

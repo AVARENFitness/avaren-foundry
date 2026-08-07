@@ -266,6 +266,64 @@ export const coachBackend = {
     return unwrap(supabase.from('coach_client_notes').upsert({ coach_id: user.id, athlete_id: athleteId, notes, updated_at: new Date().toISOString() }, { onConflict: 'coach_id,athlete_id' }).select().single())
   },
 
+  async getAthleteFoundryState(athleteId) {
+    try {
+      const { data, error } = await supabase
+        .from('foundry_state')
+        .select('state, updated_at')
+        .eq('user_id', athleteId)
+        .maybeSingle()
+
+      if (error) {
+        if (missingBackend(error)) return null
+        return null
+      }
+
+      return data?.state ?? null
+    } catch {
+      return null
+    }
+  },
+
+  async getAthleteNutritionSnapshot(athleteId, { days = 14 } = {}) {
+    const end = new Date()
+    const start = new Date(end.getTime() - (days - 1) * 86400000)
+    const startKey = start.toISOString().slice(0, 10)
+
+    try {
+      const profileResult = await supabase
+        .from('nutrition_profiles')
+        .select('*')
+        .eq('user_id', athleteId)
+        .maybeSingle()
+
+      if (profileResult.error && !missingBackend(profileResult.error)) {
+        return { profile: null, days: [] }
+      }
+
+      const daysResult = await supabase
+        .from('nutrition_days')
+        .select('*')
+        .eq('user_id', athleteId)
+        .gte('log_date', startKey)
+        .order('log_date', { ascending: false })
+
+      if (daysResult.error && !missingBackend(daysResult.error)) {
+        return {
+          profile: profileResult.data ?? null,
+          days: [],
+        }
+      }
+
+      return {
+        profile: profileResult.data ?? null,
+        days: daysResult.data ?? [],
+      }
+    } catch {
+      return { profile: null, days: [] }
+    }
+  },
+
   async getSessionPackage(athleteId) {
     const user = await currentUser()
     const rows = await unwrap(

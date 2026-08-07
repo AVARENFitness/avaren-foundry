@@ -16867,6 +16867,283 @@ input, textarea, select {
   }
 }
 
+/* ===== SPRINT 7.3 · CLIENT INTELLIGENCE DASHBOARD ===== */
+
+.client-intelligence-dashboard {
+  display: grid;
+  gap: 28px;
+}
+
+.client-intelligence-hero {
+  display: grid;
+  gap: 16px;
+  padding: 22px 20px;
+  border-radius: 18px;
+  border: 1px solid rgba(246,242,233,.07);
+  background:
+    radial-gradient(circle at top right, rgba(216,184,109,.08), transparent 42%),
+    rgba(255,255,255,.014);
+}
+
+.client-intelligence-hero-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(216,184,109,.18);
+  color: #ddc57f;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.client-intelligence-hero-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.client-intelligence-hero-metric small,
+.client-intelligence-metric-strip small {
+  display: block;
+  color: #8f8880;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.client-intelligence-hero-metric strong,
+.client-intelligence-metric-strip strong {
+  display: block;
+  margin-top: 6px;
+  color: #f1ebe1;
+  font-size: 17px;
+  line-height: 1.35;
+}
+
+.client-intelligence-hero-metric span,
+.client-intelligence-metric-strip span {
+  display: block;
+  margin-top: 6px;
+  color: #9a9389;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.client-intelligence-panel {
+  display: grid;
+  gap: 16px;
+}
+
+.client-intelligence-panel-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.client-intelligence-panel-header h2 {
+  margin: 6px 0 0;
+  font-size: clamp(22px, 4.5vw, 28px);
+  letter-spacing: -0.03em;
+}
+
+.client-intelligence-panel > header h2 {
+  margin: 6px 0 0;
+  font-size: clamp(22px, 4.5vw, 28px);
+  letter-spacing: -0.03em;
+}
+
+.client-intelligence-attention-list,
+.client-intelligence-insight-grid,
+.client-intelligence-nutrition-grid,
+.client-intelligence-metric-strip {
+  display: grid;
+  gap: 12px;
+}
+
+.client-intelligence-attention-item {
+  display: grid;
+  gap: 12px;
+  padding: 16px 18px;
+  border-radius: 16px;
+  border: 1px solid rgba(246,242,233,.06);
+  background: rgba(255,255,255,.012);
+}
+
+.client-intelligence-attention-item strong {
+  display: block;
+  color: #eee7dc;
+  font-size: 16px;
+}
+
+.client-intelligence-attention-item p {
+  margin: 6px 0 0;
+  color: #9a9389;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.client-intelligence-attention-item.severity-alert {
+  border-color: rgba(214, 96, 92, .24);
+  background: rgba(214, 96, 92, .05);
+}
+
+.client-intelligence-attention-item.severity-watch {
+  border-color: rgba(216,184,109,.18);
+}
+
+.client-intelligence-inline-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  white-space: nowrap;
+}
+
+.client-intelligence-readiness-card {
+  display: grid;
+  gap: 12px;
+  padding: 18px;
+  border-radius: 16px;
+  border: 1px solid rgba(246,242,233,.06);
+  background: rgba(255,255,255,.012);
+}
+
+.client-intelligence-readiness-card.ready {
+  border-color: rgba(120, 176, 132, .24);
+  background: rgba(120, 176, 132, .05);
+}
+
+.client-intelligence-readiness-card.manage {
+  border-color: rgba(216,184,109,.18);
+}
+
+.client-intelligence-readiness-card.recovery {
+  border-color: rgba(214, 96, 92, .22);
+  background: rgba(214, 96, 92, .04);
+}
+
+.client-intelligence-readiness-score {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.client-intelligence-readiness-score strong {
+  display: block;
+  font-size: 28px;
+  color: #f1ebe1;
+}
+
+.client-intelligence-readiness-score span {
+  display: block;
+  margin-top: 4px;
+  color: #b5afa6;
+  font-size: 14px;
+}
+
+.client-intelligence-readiness-card p {
+  margin: 0;
+  color: #b5afa6;
+  line-height: 1.55;
+}
+
+.client-intelligence-readiness-trend,
+.client-intelligence-readiness-mobility,
+.client-intelligence-notes-updated {
+  color: #8f8880;
+  font-size: 13px;
+}
+
+.client-intelligence-session-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.client-intelligence-pr-badge {
+  flex-shrink: 0;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(216,184,109,.08);
+  color: #ddc57f;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.client-intelligence-pr-list {
+  display: grid;
+  gap: 8px;
+}
+
+.client-intelligence-pr-row {
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(0,0,0,.12);
+}
+
+.client-intelligence-loading,
+.client-intelligence-error {
+  justify-items: start;
+  padding: 22px 20px;
+  border-radius: 16px;
+  border: 1px solid rgba(246,242,233,.06);
+  background: rgba(255,255,255,.012);
+}
+
+.client-intelligence-loading strong,
+.client-intelligence-error strong {
+  display: block;
+  margin-top: 10px;
+  color: #eee7dc;
+}
+
+.client-intelligence-loading span,
+.client-intelligence-error span {
+  display: block;
+  margin-top: 6px;
+  color: #9a9389;
+}
+
+@media (min-width: 640px) {
+  .client-intelligence-hero-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .client-intelligence-metric-strip {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .client-intelligence-insight-grid,
+  .client-intelligence-nutrition-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .client-intelligence-attention-item {
+    grid-template-columns: 1fr auto;
+    align-items: center;
+  }
+}
+
+@media (max-width: 639px) {
+  .coach-client-profile-shell {
+    gap: 24px;
+  }
+
+  .client-intelligence-panel-header {
+    flex-direction: column;
+  }
+
+  .client-intelligence-inline-action {
+    width: 100%;
+  }
+}
+
 .athlete-session-package-card {
   display: grid;
   gap: 12px;

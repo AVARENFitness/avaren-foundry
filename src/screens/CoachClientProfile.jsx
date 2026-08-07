@@ -10,13 +10,14 @@ import {
   Target,
 } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { appUi } from '../lib/appUi'
 import { coachBackend } from '../lib/coachBackend'
+import { buildClientIntelligence } from '../lib/clientIntelligence'
 import {
   emptySessionPackage,
   formatPackageDate,
   normalizeSessionPackage,
 } from '../lib/sessionPackages'
+import ClientIntelligenceDashboard from '../components/ClientIntelligenceDashboard'
 import CoachSessionPackage from '../components/CoachSessionPackage'
 import CoachClientProfileShell from '../components/CoachClientProfileShell'
 import EmptyState from '../components/ui/EmptyState'
@@ -38,13 +39,6 @@ const displayName = (email = '') => {
     .filter(Boolean)
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(' ')
-}
-
-const notesPreview = (value = '') => {
-  const trimmed = value.trim()
-  if (!trimmed) return 'No private notes yet.'
-  const firstLine = trimmed.split('\n').find(Boolean) ?? trimmed
-  return firstLine.length > 140 ? `${firstLine.slice(0, 137)}…` : firstLine
 }
 
 const goalFromNotes = (value = '') => {
@@ -77,6 +71,7 @@ export default function CoachClientProfile({
   client,
   assignments = [],
   clientNotes = '',
+  notesUpdatedAt = null,
   onClientNotesChange,
   onSaveNotes,
   coachEmail = 'Coach',
@@ -88,6 +83,11 @@ export default function CoachClientProfile({
   const [activeSection, setActiveSection] = useState('today')
   const [packageSummary, setPackageSummary] = useState(emptySessionPackage())
   const [packageLoading, setPackageLoading] = useState(true)
+  const [athleteState, setAthleteState] = useState(null)
+  const [nutritionProfile, setNutritionProfile] = useState(null)
+  const [nutritionDays, setNutritionDays] = useState([])
+  const [intelligenceLoading, setIntelligenceLoading] = useState(true)
+  const [intelligenceError, setIntelligenceError] = useState('')
 
   const clientAssignments = useMemo(
     () => assignments.filter((item) => item.athlete_id === client.athlete_id),
@@ -117,6 +117,28 @@ export default function CoachClientProfile({
     [clientAssignments],
   )
 
+  const intelligence = useMemo(
+    () =>
+      buildClientIntelligence({
+        client,
+        assignments: clientAssignments,
+        athleteState,
+        nutritionProfile,
+        nutritionDays,
+        clientNotes,
+        notesUpdatedAt,
+      }),
+    [
+      client,
+      clientAssignments,
+      athleteState,
+      nutritionProfile,
+      nutritionDays,
+      clientNotes,
+      notesUpdatedAt,
+    ],
+  )
+
   useEffect(() => {
     let active = true
     setPackageLoading(true)
@@ -138,6 +160,36 @@ export default function CoachClientProfile({
     }
   }, [client.athlete_id])
 
+  useEffect(() => {
+    let active = true
+    setIntelligenceLoading(true)
+    setIntelligenceError('')
+
+    Promise.all([
+      coachBackend.getAthleteFoundryState(client.athlete_id),
+      coachBackend.getAthleteNutritionSnapshot(client.athlete_id),
+    ])
+      .then(([state, nutrition]) => {
+        if (!active) return
+        setAthleteState(state)
+        setNutritionProfile(nutrition.profile)
+        setNutritionDays(nutrition.days)
+      })
+      .catch((error) => {
+        if (!active) return
+        setIntelligenceError(
+          error?.message ?? 'Could not load client intelligence.',
+        )
+      })
+      .finally(() => {
+        if (active) setIntelligenceLoading(false)
+      })
+
+    return () => {
+      active = false
+    }
+  }, [client.athlete_id])
+
   const handleRecordSession = () => {
     setActiveSection('business')
     requestAnimationFrame(() => {
@@ -148,11 +200,22 @@ export default function CoachClientProfile({
     })
   }
 
-  const handleViewProgress = () => {
-    appUi.toast(
-      'Athlete progress for coaches is coming in a future update.',
-      'info',
-    )
+  const handleSectionAction = (action) => {
+    if (!action) return
+
+    if (action === 'assignment') {
+      onAssignWorkout?.()
+      return
+    }
+
+    if (action === 'notes') {
+      setActiveSection('notes')
+      return
+    }
+
+    if (['training', 'progress'].includes(action)) {
+      setActiveSection(action === 'progress' ? 'progress' : 'training')
+    }
   }
 
   const programLabel =
@@ -169,83 +232,14 @@ export default function CoachClientProfile({
     switch (activeSection) {
       case 'today':
         return (
-          <ProfileSection
-            eyebrow="TODAY"
-            title="At a glance"
-            description="What matters for this client right now."
-            primaryAction={
-              <button
-                type="button"
-                className="gold-button machined coach-primary-action coach-client-profile-section-action"
-                onClick={onAssignWorkout}
-              >
-                <Plus {...ICON} />
-                Assign Workout
-              </button>
-            }
-          >
-            <div className="coach-client-profile-overview">
-              <article className="coach-profile-card coach-profile-card--wide">
-                <span className="coach-profile-card-icon" aria-hidden="true">
-                  <CalendarDays {...ICON} />
-                </span>
-                <div>
-                  <small>Next assigned workout</small>
-                  {nextAssignment ? (
-                    <>
-                      <strong>{nextAssignment.title}</strong>
-                      <span>
-                        {nextAssignment.status} · {formatDate(nextAssignment.due_date)}
-                      </span>
-                    </>
-                  ) : (
-                    <>
-                      <strong>Nothing scheduled</strong>
-                      <span>Assign a workout when programming is ready.</span>
-                    </>
-                  )}
-                </div>
-              </article>
-
-              <article className="coach-profile-card coach-profile-card--muted">
-                <span className="coach-profile-card-icon" aria-hidden="true">
-                  <HeartPulse {...ICON} />
-                </span>
-                <div>
-                  <small>Readiness</small>
-                  <strong>Not shared yet</strong>
-                  <span>Readiness will appear when the athlete checks in.</span>
-                </div>
-              </article>
-
-              <article className="coach-profile-card">
-                <span className="coach-profile-card-icon" aria-hidden="true">
-                  <Package {...ICON} />
-                </span>
-                <div>
-                  <small>Session balance</small>
-                  {packageLoading ? (
-                    <strong>Loading…</strong>
-                  ) : packageSummary.totalSessions > 0 ? (
-                    <>
-                      <strong>
-                        {packageSummary.sessionsRemaining} remaining
-                      </strong>
-                      <span>
-                        {packageSummary.sessionsUsed} used ·{' '}
-                        {packageSummary.totalSessions} purchased
-                      </span>
-                    </>
-                  ) : (
-                    <>
-                      <strong>No package on file</strong>
-                      <span>Add sessions in Coaching Business.</span>
-                    </>
-                  )}
-                </div>
-              </article>
-            </div>
-          </ProfileSection>
+          <ClientIntelligenceDashboard
+            intelligence={intelligence}
+            loading={intelligenceLoading}
+            error={intelligenceError}
+            onSectionAction={handleSectionAction}
+            onAssignWorkout={onAssignWorkout}
+            onSaveNotes={() => setActiveSection('notes')}
+          />
         )
 
       case 'training':
@@ -285,7 +279,45 @@ export default function CoachClientProfile({
                   <strong>{programLabel}</strong>
                 </div>
               </article>
+
+              <article className="coach-profile-card coach-profile-card--wide">
+                <span className="coach-profile-card-icon" aria-hidden="true">
+                  <CalendarDays {...ICON} />
+                </span>
+                <div>
+                  <small>Next assigned workout</small>
+                  {nextAssignment ? (
+                    <>
+                      <strong>{nextAssignment.title}</strong>
+                      <span>
+                        {nextAssignment.status} · {formatDate(nextAssignment.due_date)}
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <strong>Nothing scheduled</strong>
+                      <span>Assign a workout when programming is ready.</span>
+                    </>
+                  )}
+                </div>
+              </article>
             </div>
+
+            {intelligence.training.recentSessions.length > 0 && (
+              <div className="coach-client-profile-activity">
+                {intelligence.training.recentSessions.map((session) => (
+                  <article key={session.id} className="coach-profile-activity-row">
+                    <strong>{session.name}</strong>
+                    <span>
+                      {session.relativeLabel}
+                      {session.volume
+                        ? ` · ${Math.round(session.volume).toLocaleString()} lb`
+                        : ''}
+                    </span>
+                  </article>
+                ))}
+              </div>
+            )}
           </ProfileSection>
         )
 
@@ -364,8 +396,18 @@ export default function CoachClientProfile({
           >
             <section className="coach-profile-quiet-panel">
               <p className="coach-profile-notes-preview">
-                {notesPreview(clientNotes)}
+                {intelligence.notes.preview || 'No private notes yet.'}
               </p>
+              {notesUpdatedAt && (
+                <small className="client-intelligence-notes-updated">
+                  Updated{' '}
+                  {new Date(notesUpdatedAt).toLocaleDateString([], {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric',
+                  })}
+                </small>
+              )}
               <textarea
                 className="coach-field-input coach-profile-notes-input"
                 rows={6}
@@ -382,18 +424,32 @@ export default function CoachClientProfile({
           <ProfileSection
             eyebrow="PROGRESS"
             title="Completed work"
-            description="Recent workouts and long-term trends."
+            description="Recent workouts, performance trends, and assignment history."
             primaryAction={
               <button
                 type="button"
                 className="coach-secondary-button coach-client-profile-section-action"
-                onClick={handleViewProgress}
+                onClick={() => handleSectionAction('progress')}
               >
                 <BarChart3 {...ICON} />
-                View Progress
+                Review trends
               </button>
             }
           >
+            {intelligence.performance.cards.length > 0 && (
+              <div className="client-intelligence-insight-grid">
+                {intelligence.performance.cards.map((card) => (
+                  <article key={card.id} className="coach-profile-card">
+                    <div>
+                      <small>{card.title}</small>
+                      <strong>{card.value}</strong>
+                      <span>{card.detail}</span>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
+
             {recentActivity.length ? (
               <div className="coach-client-profile-activity">
                 {recentActivity.map((item) => (
@@ -405,6 +461,9 @@ export default function CoachClientProfile({
                         month: 'short',
                         day: 'numeric',
                       })}
+                      {item.completion_summary?.volume
+                        ? ` · ${Math.round(item.completion_summary.volume).toLocaleString()} lb`
+                        : ''}
                     </span>
                   </article>
                 ))}
