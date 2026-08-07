@@ -42,48 +42,53 @@ export default function CoachShell({
   children,
   coachName,
   onExit,
+  profileMode = false,
 }) {
   return (
-    <div className="coach-shell">
-      <header className="coach-shell-header">
-        <div>
-          <span className="eyebrow">
-            AVAREN COACH
-          </span>
-          <strong>{coachName}</strong>
-        </div>
+    <div className={`coach-shell${profileMode ? ' coach-shell--profile' : ''}`}>
+      {!profileMode && (
+        <header className="coach-shell-header">
+          <div>
+            <span className="eyebrow">
+              AVAREN COACH
+            </span>
+            <strong>{coachName}</strong>
+          </div>
 
-        <button onClick={onExit}>
-          <LogOut size={16} />
-          Athlete App
-        </button>
-      </header>
+          <button onClick={onExit}>
+            <LogOut size={16} />
+            Athlete App
+          </button>
+        </header>
+      )}
 
       <main className="coach-shell-main">
         {children}
       </main>
 
-      <nav className="coach-shell-nav">
-        {tabs.map(
-          ({ id, label, Icon }) => (
-            <button
-              key={id}
-              className={
-                screen === id
-                  ? 'active'
-                  : ''
-              }
-              onClick={() => {
-                onNavigate?.(id)
-                setScreen(id)
-              }}
-            >
-              <Icon size={20} />
-              <span>{label}</span>
-            </button>
-          ),
-        )}
-      </nav>
+      {!profileMode && (
+        <nav className="coach-shell-nav">
+          {tabs.map(
+            ({ id, label, Icon }) => (
+              <button
+                key={id}
+                className={
+                  screen === id
+                    ? 'active'
+                    : ''
+                }
+                onClick={() => {
+                  onNavigate?.(id)
+                  setScreen(id)
+                }}
+              >
+                <Icon size={20} />
+                <span>{label}</span>
+              </button>
+            ),
+          )}
+        </nav>
+      )}
     </div>
   )
 }

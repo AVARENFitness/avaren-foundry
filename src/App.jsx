@@ -1434,6 +1434,7 @@ function App() {
         <CoachShell
           screen={coachScreen}
           setScreen={setCoachScreen}
+          profileMode={Boolean(selectedCoachClient)}
           onNavigate={(nextScreen) => {
             setSelectedCoachClient(null)
             setCoachScreen(nextScreen)

@@ -1,4 +1,14 @@
 import { describe, expect, it, vi } from 'vitest'
+
+const rpcMock = vi.fn()
+
+vi.mock('../lib/supabase', () => ({
+  isSupabaseConfigured: true,
+  supabase: {
+    rpc: (...args) => rpcMock(...args),
+  },
+}))
+
 import {
   fetchCoachAuthorization,
   isCoachAccount,
@@ -44,12 +54,7 @@ describe('coach access', () => {
   })
 
   it('fetches coach authorization from is_avaren_coach when configured', async () => {
-    vi.doMock('../lib/supabase', () => ({
-      isSupabaseConfigured: true,
-      supabase: {
-        rpc: vi.fn().mockResolvedValue({ data: true, error: null }),
-      },
-    }))
+    rpcMock.mockResolvedValue({ data: true, error: null })
 
     const session = {
       user: { email: 'trainer@studio.com', id: 'coach-id' },
@@ -57,7 +62,6 @@ describe('coach access', () => {
 
     const authorized = await fetchCoachAuthorization(session)
     expect(authorized).toBe(true)
-
-    vi.doUnmock('../lib/supabase')
+    expect(rpcMock).toHaveBeenCalledWith('is_avaren_coach')
   })
 })
