@@ -3,22 +3,21 @@ import {
   BriefcaseBusiness,
   Check,
   ChevronRight,
-  Dumbbell,
   HeartPulse,
   Moon,
   Sun,
   Utensils,
 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
+import { useAvaUi } from '../ava/useAvaUi'
 import AthleteAssignmentHome from '../components/AthleteAssignmentHome'
-import TodaysFocusWhySheet from '../components/TodaysFocusWhySheet'
+import AvaDailyBriefing from '../components/AvaDailyBriefing'
+import { buildAvaDailyBriefing } from '../lib/avaIntelligence'
+import { AVA_ACTION_TYPES } from '../lib/avaActions'
 import { coachBackend } from '../lib/coachBackend'
 import { recentPRs, sessionVolume } from '../lib/metrics'
-import {
-  assignmentDueToday,
-  deriveTodaysFocus,
-  FOCUS_ACTIONS,
-} from '../lib/todaysFocus'
+import { resolveTodayWorkoutContext } from '../lib/todayWorkout'
+import { resolveActiveCoachAssignment } from '../lib/coachAssignments'
 
 const DAY_MS = 86400000
 
@@ -57,7 +56,7 @@ export default function HomeScreen({
   showCoachHubShortcut = false,
   onOpenCoachHub,
 }) {
-  const [showWhySheet, setShowWhySheet] = useState(false)
+  const { openAva } = useAvaUi()
   const [assignments, setAssignments] = useState([])
 
   useEffect(() => {
@@ -67,28 +66,33 @@ export default function HomeScreen({
       .catch(() => {})
   }, [])
 
-  const dueTodayAssignment = useMemo(
-    () => assignmentDueToday(assignments),
+  const activeCoachAssignment = useMemo(
+    () => resolveActiveCoachAssignment(assignments),
     [assignments],
   )
 
-  const todaysFocus = useMemo(
+  const avaBriefing = useMemo(
     () =>
-      deriveTodaysFocus(state, {
-        assignmentDueToday: dueTodayAssignment,
+      buildAvaDailyBriefing(state, {
+        assignments,
+        activeCoachAssignment,
+        userName,
       }),
-    [state, dueTodayAssignment],
+    [state, assignments, activeCoachAssignment, userName],
   )
 
   const dashboard = useMemo(() => {
     const now = new Date()
-    const scheduledWorkout = state.weeklySchedule?.[now.getDay()]
-    const isRestDay = scheduledWorkout === 'Rest'
+    const workoutContext = resolveTodayWorkoutContext(state, {
+      now,
+      assignments,
+      activeCoachAssignment,
+    })
+    const isRestDay = workoutContext.isRestDay
     const workoutName =
       state.activeWorkout?.name ||
-      state.selectedWorkout ||
-      (!isRestDay ? scheduledWorkout : null) ||
-      state.program?.nextWorkout
+      workoutContext.displayName ||
+      null
     const firstName = userName?.trim()?.split(/\s+/)[0] || null
     const workoutsThisWeek = state.history.filter((session) => {
       const date = sessionDate(session)
@@ -117,7 +121,7 @@ export default function HomeScreen({
       volume: Math.round(weeklyVolume),
       prs: weeklyPRs.length,
     }
-  }, [state, userName])
+  }, [state, userName, assignments, activeCoachAssignment])
 
   const readinessScore = readiness?.completed
     ? readiness.score
@@ -141,33 +145,35 @@ export default function HomeScreen({
     `${nutritionSummary?.calories || 0} cal logged`,
   ].join(' · ')
 
-  const handleFocusAction = () => {
-    switch (todaysFocus.action) {
-      case FOCUS_ACTIONS.CONTINUE_WORKOUT:
-      case FOCUS_ACTIONS.START_WORKOUT:
-        if (
-          dueTodayAssignment &&
-          todaysFocus.meta?.assignmentId === dueTodayAssignment.id
-        ) {
-          onStartCoachAssignment?.(dueTodayAssignment)
+  const handleAvaAction = (action) => {
+    if (!action) return
+
+    switch (action.type) {
+      case AVA_ACTION_TYPES.CONTINUE_WORKOUT:
+      case AVA_ACTION_TYPES.START_WORKOUT: {
+        const assignmentId = action.meta?.assignmentId
+        if (assignmentId && activeCoachAssignment?.id === assignmentId) {
+          onStartCoachAssignment?.(activeCoachAssignment)
           return
         }
         onStart()
         return
-      case FOCUS_ACTIONS.BEGIN_RECOVERY:
+      }
+      case AVA_ACTION_TYPES.MORNING_MOVEMENT:
+        onOpenMobility()
+        return
+      case AVA_ACTION_TYPES.RECOVERY_FLOW:
         onOpenReset()
         return
-      case FOCUS_ACTIONS.LOG_FOOD:
-        setScreen('nutrition')
-        return
-      case FOCUS_ACTIONS.CHECK_IN:
+      case AVA_ACTION_TYPES.CHECK_READINESS:
+      case AVA_ACTION_TYPES.BUILD_BASELINE:
         onOpenReadiness()
         return
-      case FOCUS_ACTIONS.VIEW_TODAY:
+      case AVA_ACTION_TYPES.VIEW_PLAN:
         setScreen('train')
         return
       default:
-        onStart()
+        break
     }
   }
 
@@ -195,43 +201,43 @@ export default function HomeScreen({
         </button>
       )}
 
-      <section
-        className={`todays-focus-hero todays-focus-hero--${todaysFocus.type}`}
-      >
-        <div className="todays-focus-copy">
-          <span className="eyebrow">TODAY&apos;S FOCUS</span>
-          <h2>{todaysFocus.title}</h2>
-          <p>{todaysFocus.explanation}</p>
-        </div>
-
-        <div className="todays-focus-actions">
-          <button
-            type="button"
-            className="gold-button machined todays-focus-primary"
-            onClick={handleFocusAction}
-          >
-            {todaysFocus.action === FOCUS_ACTIONS.CONTINUE_WORKOUT ||
-            todaysFocus.action === FOCUS_ACTIONS.START_WORKOUT ? (
-              <Dumbbell size={18} />
-            ) : null}
-            {todaysFocus.actionLabel}
-            <ArrowRight size={17} />
-          </button>
-          <button
-            type="button"
-            className="todays-focus-why-trigger"
-            onClick={() => setShowWhySheet(true)}
-          >
-            Why this?
-          </button>
-        </div>
-      </section>
-
-      <TodaysFocusWhySheet
-        open={showWhySheet}
-        focus={todaysFocus}
-        onClose={() => setShowWhySheet(false)}
+      <AvaDailyBriefing
+        briefing={avaBriefing}
+        onAction={handleAvaAction}
+        onAskAva={openAva}
       />
+
+      <section className="home-today-plan">
+        <span className="eyebrow">TODAY&apos;S PLAN</span>
+        {dashboard.isRestDay && !activeCoachAssignment ? (
+          <>
+            <h2>Rest day</h2>
+            <p>Your schedule calls for recovery today.</p>
+          </>
+        ) : dashboard.workoutName ? (
+          <>
+            <h2>{dashboard.workoutName}</h2>
+            <p>
+              {activeCoachAssignment
+                ? 'Coach-assigned session on your calendar.'
+                : 'Scheduled on your weekly plan.'}
+            </p>
+          </>
+        ) : (
+          <>
+            <h2>Open schedule</h2>
+            <p>Review your week and choose the next session that fits.</p>
+          </>
+        )}
+        <button
+          type="button"
+          className="home-today-plan-link"
+          onClick={() => setScreen('train')}
+        >
+          View schedule
+          <ChevronRight size={16} strokeWidth={1.75} />
+        </button>
+      </section>
 
       <div className="home-assignment-slot">
         <AthleteAssignmentHome

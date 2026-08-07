@@ -16,7 +16,7 @@ export const TRAINING_RECOMMENDATIONS = {
 const DAY_MS = 86400000
 
 const workoutFocus = (name = '') => {
-  const value = name.toLowerCase()
+  const value = String(name ?? '').toLowerCase()
 
   if (value.includes('leg') || value.includes('core')) {
     return 'lower'

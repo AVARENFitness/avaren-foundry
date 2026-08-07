@@ -3,6 +3,11 @@ import { calculateReadiness } from './readiness'
 import { buildTrainingRecommendation, TRAINING_RECOMMENDATIONS } from './trainingRecommendations'
 import { calculateRecoveryIntelligence } from '../data/mobility'
 import { nutritionDateKey, nutritionTotals } from './nutrition'
+import {
+  resolveActiveCoachAssignment,
+  assignmentDueToday,
+} from './coachAssignments'
+import { resolveTodayWorkoutContext } from './todayWorkout'
 
 const DAY_MS = 86400000
 
@@ -56,15 +61,13 @@ const lastWorkoutSession = (history = []) =>
     )
     .at(-1) ?? null
 
-const getPlannedWorkout = (state = {}, now = new Date()) => {
-  const scheduledWorkout = state.weeklySchedule?.[now.getDay()]
-  return scheduledWorkout && scheduledWorkout !== 'Rest'
-    ? scheduledWorkout
-    : state.selectedWorkout || state.program?.nextWorkout || null
-}
+const getPlannedWorkout = (state = {}, context = {}) =>
+  resolveTodayWorkoutContext(state, context).name
 
-const isScheduledRestDay = (state = {}, now = new Date()) =>
-  state.weeklySchedule?.[now.getDay()] === 'Rest'
+const isScheduledRestDay = (state = {}, context = {}) => {
+  const now = context.now ?? new Date()
+  return state.weeklySchedule?.[now.getDay()] === 'Rest'
+}
 
 const nutritionDaySummary = (state = {}, now = new Date()) => {
   const day = state.nutrition?.days?.[nutritionDateKey(now)]
@@ -133,13 +136,22 @@ export const deriveTodaysFocus = (
   const readiness = calculateReadiness(state)
   const recovery = calculateRecoveryIntelligence(state)
   const analytics = analyticsSnapshot(state)
-  const plannedWorkout = getPlannedWorkout(state, now)
+  const assignmentDueTodayItem =
+    context.activeCoachAssignment ??
+    resolveActiveCoachAssignment(context.assignments ?? [], now) ??
+    context.assignmentDueToday ??
+    null
+  const workoutContext = resolveTodayWorkoutContext(state, {
+    now,
+    assignments: context.assignments,
+    activeCoachAssignment: assignmentDueTodayItem,
+  })
+  const plannedWorkout = workoutContext.name
   const trainingRecommendation = buildTrainingRecommendation(
     state,
     plannedWorkout,
   )
   const nutrition = nutritionDaySummary(state, now)
-  const assignmentDueToday = context.assignmentDueToday ?? null
   const hasHistory = history.length > 0
 
   if (state.activeWorkout) {
@@ -157,22 +169,22 @@ export const deriveTodaysFocus = (
     })
   }
 
-  if (assignmentDueToday) {
+  if (assignmentDueTodayItem) {
     return buildFocus({
       type: FOCUS_TYPES.TRAIN,
-      title: assignmentDueToday.title || 'Assigned workout',
+      title: assignmentDueTodayItem.title || 'Assigned workout',
       explanation:
-        assignmentDueToday.coach_notes ||
-        assignmentDueToday.notes ||
+        assignmentDueTodayItem.coach_notes ||
+        assignmentDueTodayItem.notes ||
         'Your coach assigned this session for today.',
       action: FOCUS_ACTIONS.START_WORKOUT,
       reasons: [
-        'A coached assignment is due today.',
-        assignmentDueToday.title
-          ? `Assignment: ${assignmentDueToday.title}`
+        'A coached assignment is active.',
+        assignmentDueTodayItem.title
+          ? `Assignment: ${assignmentDueTodayItem.title}`
           : 'Coach-assigned session',
       ],
-      meta: { assignmentId: assignmentDueToday.id },
+      meta: { assignmentId: assignmentDueTodayItem.id },
     })
   }
 
@@ -223,7 +235,7 @@ export const deriveTodaysFocus = (
     })
   }
 
-  if (isScheduledRestDay(state, now)) {
+  if (isScheduledRestDay(state, { now, assignmentDueToday: assignmentDueTodayItem })) {
     return buildFocus({
       type: FOCUS_TYPES.REST,
       title: 'Recovery day on your plan',
@@ -321,13 +333,4 @@ export const deriveTodaysFocus = (
   })
 }
 
-export const assignmentDueToday = (assignments = [], now = new Date()) => {
-  const key = todayKey(now)
-  return (
-    assignments.find(
-      (item) =>
-        item?.due_date === key ||
-        item?.scheduled_date === key,
-    ) ?? null
-  )
-}
+export { assignmentDueToday } from './coachAssignments'

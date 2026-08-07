@@ -8,6 +8,7 @@ import {
   applyRecommendationToWorkout,
   TRAINING_RECOMMENDATIONS,
 } from '../lib/trainingRecommendations'
+import { resolveTodayWorkoutContext } from '../lib/todayWorkout'
 
 const makeSet = (number, type = 'Working') => ({
   id: crypto.randomUUID(),
@@ -61,12 +62,10 @@ export function useWorkoutSession({
     }
   }, [])
 
-  const plannedWorkout = useMemo(() => {
-    const scheduledWorkout = state.weeklySchedule?.[new Date().getDay()]
-    return scheduledWorkout && scheduledWorkout !== 'Rest'
-      ? scheduledWorkout
-      : state.selectedWorkout || state.program.nextWorkout
-  }, [state.weeklySchedule, state.selectedWorkout, state.program.nextWorkout])
+  const plannedWorkout = useMemo(
+    () => resolveTodayWorkoutContext(state).name,
+    [state.weeklySchedule, state.selectedWorkout, state.program.nextWorkout, state.activeWorkout],
+  )
 
   const buildActiveWorkout = useCallback((name) => {
     const definitions = state.program.workouts[name] ?? []
@@ -220,11 +219,7 @@ export function useWorkoutSession({
       return
     }
 
-    const scheduled = state.weeklySchedule?.[new Date().getDay()]
-    const name =
-      state.selectedWorkout ||
-      (scheduled && scheduled !== 'Rest' ? scheduled : null) ||
-      state.program.nextWorkout
+    const { name } = resolveTodayWorkoutContext(state)
     const activeWorkout = buildActiveWorkout(name)
 
     setActiveExercise(0)

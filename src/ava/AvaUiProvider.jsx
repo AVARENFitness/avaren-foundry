@@ -8,6 +8,7 @@ const AvaUiContext = createContext(null)
 export function AvaUiProvider({
   children,
   enabled = true,
+  showFloatingEntry = true,
   nutrition = createNutritionState(),
   onNutritionChange,
 }) {
@@ -49,7 +50,9 @@ export function AvaUiProvider({
   return (
     <AvaUiContext.Provider value={value}>
       {children}
-      {enabled && <AvaEntryButton onOpen={openAva} />}
+      {enabled && showFloatingEntry && (
+        <AvaEntryButton onOpen={openAva} />
+      )}
       <AvaSheet
         open={open && enabled}
         onClose={closeAva}

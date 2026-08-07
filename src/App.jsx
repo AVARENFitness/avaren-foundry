@@ -1462,6 +1462,7 @@ function App() {
   return (
     <AvaUiProvider
       enabled={!isImmersiveScreen(screen, { mobilityFlow })}
+      showFloatingEntry={screen !== 'home'}
       nutrition={state.nutrition ?? createNutritionState()}
       onNutritionChange={handleNutritionChange}
     >

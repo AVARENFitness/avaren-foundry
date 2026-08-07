@@ -8,6 +8,7 @@ import { buildMilestones } from './milestones'
 import { calculateRecoveryIntelligence } from '../data/mobility'
 import { calculateReadiness } from './readiness'
 import { buildTrainingRecommendation } from './trainingRecommendations'
+import { resolveTodayWorkoutContext } from './todayWorkout'
 
 export const COACH_CATEGORIES = {
   RECOVERY: 'recovery',
@@ -239,10 +240,7 @@ const readinessInsights = (state) => {
 
 
 const trainingRecommendationInsights = (state) => {
-  const scheduled =
-    state.weeklySchedule?.[new Date().getDay()] ??
-    state.selectedWorkout ??
-    state.program?.nextWorkout
+  const scheduled = resolveTodayWorkoutContext(state).name
   const recommendation =
     buildTrainingRecommendation(state, scheduled)
 

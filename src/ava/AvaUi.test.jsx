@@ -56,6 +56,23 @@ describe('AVA UI', () => {
     expect(screen.queryByRole('dialog', { name: 'Ask AVA' })).not.toBeInTheDocument()
   })
 
+  it('hides the floating entry when showFloatingEntry is false', () => {
+    render(
+      <AvaProvider>
+        <AvaUiProvider
+          enabled
+          showFloatingEntry={false}
+          nutrition={createNutritionState()}
+          onNutritionChange={vi.fn()}
+        >
+          <main>Screen content</main>
+        </AvaUiProvider>
+      </AvaProvider>,
+    )
+
+    expect(screen.queryByRole('button', { name: 'Ask AVA' })).not.toBeInTheDocument()
+  })
+
   it('submits a nutrition message and shows confirmation preview', async () => {
     const user = userEvent.setup()
     renderAvaUi()
