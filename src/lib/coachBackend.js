@@ -324,6 +324,75 @@ export const coachBackend = {
     }
   },
 
+  async listAthleteFoundryStates(athleteIds = []) {
+    if (!athleteIds.length) return {}
+
+    try {
+      const { data, error } = await supabase
+        .from('foundry_state')
+        .select('user_id, state')
+        .in('user_id', athleteIds)
+
+      if (error) {
+        if (missingBackend(error)) return {}
+        return {}
+      }
+
+      return Object.fromEntries(
+        (data ?? []).map((row) => [row.user_id, row.state ?? null]),
+      )
+    } catch {
+      return {}
+    }
+  },
+
+  async listAthleteNutritionSnapshots(athleteIds = [], { days = 14 } = {}) {
+    if (!athleteIds.length) return {}
+
+    const end = new Date()
+    const start = new Date(end.getTime() - (days - 1) * 86400000)
+    const startKey = start.toISOString().slice(0, 10)
+
+    try {
+      const [profilesResult, daysResult] = await Promise.all([
+        supabase
+          .from('nutrition_profiles')
+          .select('*')
+          .in('user_id', athleteIds),
+        supabase
+          .from('nutrition_days')
+          .select('*')
+          .in('user_id', athleteIds)
+          .gte('log_date', startKey)
+          .order('log_date', { ascending: false }),
+      ])
+
+      const profiles = profilesResult.data ?? []
+      const days = daysResult.data ?? []
+      const byAthlete = Object.fromEntries(
+        athleteIds.map((id) => [id, { profile: null, days: [] }]),
+      )
+
+      profiles.forEach((profile) => {
+        byAthlete[profile.user_id] = {
+          profile,
+          days: byAthlete[profile.user_id]?.days ?? [],
+        }
+      })
+
+      days.forEach((day) => {
+        if (!byAthlete[day.user_id]) {
+          byAthlete[day.user_id] = { profile: null, days: [] }
+        }
+        byAthlete[day.user_id].days.push(day)
+      })
+
+      return byAthlete
+    } catch {
+      return {}
+    }
+  },
+
   async getSessionPackage(athleteId) {
     const user = await currentUser()
     const rows = await unwrap(

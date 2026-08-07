@@ -1184,6 +1184,7 @@ function App() {
             setSelectedCoachClient(client)
             setCoachScreen('clients')
           }}
+          onNavigateCoachScreen={setCoachScreen}
         />
       )
     }

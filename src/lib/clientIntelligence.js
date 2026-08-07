@@ -26,6 +26,41 @@ export const READINESS_BAND = {
   RECOVERY: 'recovery',
 }
 
+export const CLIENT_ROSTER_STATUS = {
+  ON_TRACK: 'ON TRACK',
+  NEEDS_ATTENTION: 'NEEDS ATTENTION',
+  RECOVERY_PRIORITY: 'RECOVERY PRIORITY',
+  INACTIVE: 'INACTIVE',
+  NEW_CLIENT: 'NEW CLIENT',
+}
+
+export const COACH_CLIENT_SORT = {
+  NEEDS_ATTENTION: 'needs_attention',
+  RECENTLY_ACTIVE: 'recently_active',
+  LEAST_ACTIVE: 'least_active',
+  ACTIVE_ASSIGNMENT: 'active_assignment',
+  READY: 'ready',
+  RECOVERY: 'recovery',
+  ALL: 'all',
+}
+
+const ATTENTION_PRIORITY = {
+  inactive: 100,
+  'overdue-assignment': 90,
+  'readiness-low': 80,
+  'open-assignment': 70,
+  'frequency-drop': 60,
+  'nutrition-light': 50,
+}
+
+const STATUS_SORT_SCORE = {
+  [CLIENT_ROSTER_STATUS.RECOVERY_PRIORITY]: 100,
+  [CLIENT_ROSTER_STATUS.INACTIVE]: 90,
+  [CLIENT_ROSTER_STATUS.NEEDS_ATTENTION]: 80,
+  [CLIENT_ROSTER_STATUS.NEW_CLIENT]: 40,
+  [CLIENT_ROSTER_STATUS.ON_TRACK]: 10,
+}
+
 const toTime = (value) => {
   if (!value) return null
   const time = new Date(value).getTime()
@@ -800,6 +835,493 @@ export const buildClientAttentionItems = ({
   }
 
   return items.slice(0, 3)
+}
+
+export const displayClientName = (email = '') => {
+  const local = email.split('@')[0] ?? email
+  return local
+    .split(/[._-]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ')
+}
+
+export const relativeTimeLabel = (value, now = new Date()) => {
+  const time = toTime(value)
+  if (time === null) return null
+
+  const diffMs = now.getTime() - time
+  const diffMins = Math.floor(diffMs / 60000)
+
+  if (diffMins < 1) return 'Just now'
+  if (diffMins < 60) return `${diffMins}m ago`
+
+  const diffHours = Math.floor(diffMs / 3600000)
+  if (diffHours < 24) return `${diffHours}h ago`
+
+  return relativeDayLabel(value, now)
+}
+
+export const buildClientRosterStatus = ({
+  client,
+  history = [],
+  assignments = [],
+  readiness = null,
+  attention = [],
+  now = new Date(),
+} = {}) => {
+  const last = latestSession(history)
+  const daysSinceLast = last
+    ? daysBetween(sessionTimestamp(last), now)
+    : null
+  const daysSinceConnect = client?.created_at
+    ? daysBetween(client.created_at, now)
+    : null
+  const hasCompletedWork =
+    history.length > 0 ||
+    assignments.some((item) => item.status === 'completed')
+
+  if (
+    !hasCompletedWork &&
+    daysSinceConnect !== null &&
+    daysSinceConnect <= 14
+  ) {
+    return CLIENT_ROSTER_STATUS.NEW_CLIENT
+  }
+
+  if (readiness?.available && readiness.band === READINESS_BAND.RECOVERY) {
+    return CLIENT_ROSTER_STATUS.RECOVERY_PRIORITY
+  }
+
+  if (daysSinceLast !== null && daysSinceLast >= 7) {
+    return CLIENT_ROSTER_STATUS.INACTIVE
+  }
+
+  const actionableAttention = attention.filter((item) => item.id !== 'all-clear')
+  if (
+    actionableAttention.some(
+      (item) => item.severity === ATTENTION_SEVERITY.ALERT,
+    ) ||
+    (daysSinceLast !== null && daysSinceLast >= 5)
+  ) {
+    return CLIENT_ROSTER_STATUS.NEEDS_ATTENTION
+  }
+
+  if (
+    actionableAttention.some(
+      (item) => item.severity === ATTENTION_SEVERITY.WATCH,
+    ) ||
+    (readiness?.available && readiness.band === READINESS_BAND.MANAGE)
+  ) {
+    return CLIENT_ROSTER_STATUS.NEEDS_ATTENTION
+  }
+
+  return CLIENT_ROSTER_STATUS.ON_TRACK
+}
+
+export const rankClientAttention = (clientEntries = [], { limit = 5 } = {}) => {
+  const ranked = []
+
+  clientEntries.forEach((entry) => {
+    entry.intelligence.attention.forEach((item) => {
+      if (item.id === 'all-clear' || item.id === 'performance-up') return
+
+      ranked.push({
+        client: entry.client,
+        clientName: displayClientName(entry.client?.athlete_email),
+        item,
+        priority: ATTENTION_PRIORITY[item.id] ?? 40,
+        actionLabel:
+          item.actionLabel ??
+          (item.action === 'assignment'
+            ? 'Review Assignment'
+            : item.action === 'progress'
+            ? 'Review Recovery'
+            : 'View Client'),
+      })
+    })
+  })
+
+  return ranked
+    .sort((first, second) => second.priority - first.priority)
+    .slice(0, limit)
+}
+
+export const buildClientRosterEntry = ({
+  client,
+  assignments = [],
+  athleteState = null,
+  nutritionProfile = null,
+  nutritionDays = [],
+  now = new Date(),
+} = {}) => {
+  const clientAssignments = assignments.filter(
+    (item) => item.athlete_id === client.athlete_id,
+  )
+  const intelligence = buildClientIntelligence({
+    client,
+    assignments: clientAssignments,
+    athleteState,
+    nutritionProfile,
+    nutritionDays,
+    now,
+  })
+  const status = buildClientRosterStatus({
+    client,
+    history: intelligence.history,
+    assignments: clientAssignments,
+    readiness: intelligence.readiness,
+    attention: intelligence.attention,
+    now,
+  })
+  const actionableAttention = intelligence.attention.filter(
+    (item) => item.id !== 'all-clear' && item.id !== 'performance-up',
+  )
+  const lastSession = intelligence.training.lastSession
+  const win = buildClientWin(intelligence, now)
+
+  return {
+    client,
+    clientName: displayClientName(client.athlete_email),
+    status,
+    sortScore: STATUS_SORT_SCORE[status] ?? 0,
+    intelligence,
+    attentionCount: actionableAttention.length,
+    hasWin: Boolean(win),
+    winLabel: win?.label ?? null,
+    card: {
+      workoutsThisWeek: intelligence.training.workoutsThisWeek,
+      lastWorkoutLabel: lastSession?.relativeLabel ?? null,
+      readinessLabel: intelligence.readiness.available
+        ? `${intelligence.readiness.score} · ${readinessBandLabel(intelligence.readiness.band)}`
+        : null,
+      assignmentLabel: intelligence.assignmentStatus.active
+        ? intelligence.assignmentStatus.active.overdue
+          ? 'Assignment overdue'
+          : 'Assignment active'
+        : intelligence.assignmentStatus.latestCompleted
+        ? 'No active assignment'
+        : null,
+      activeAssignmentTitle: intelligence.assignmentStatus.active?.title ?? null,
+    },
+    lastActivityAt:
+      lastSession?.date ??
+      intelligence.assignmentStatus.latestCompleted?.completedAt ??
+      null,
+    daysSinceLastActivity: lastSession
+      ? daysBetween(sessionTimestamp(lastSession), now)
+      : null,
+  }
+}
+
+const buildClientWin = (intelligence, now = new Date()) => {
+  if (intelligence.performance.recentPrs?.length) {
+    const pr = intelligence.performance.recentPrs[0]
+    return {
+      label: `${pr.exercise} PR`,
+      detail: `${pr.type} · ${pr.value}`,
+    }
+  }
+
+  if (intelligence.training.streak >= 3) {
+    return {
+      label: `${intelligence.training.streak}-day rhythm`,
+      detail: 'Consistent training streak',
+    }
+  }
+
+  if (intelligence.performance.cards?.some((card) => card.id === 'improvement')) {
+    const card = intelligence.performance.cards.find(
+      (item) => item.id === 'improvement',
+    )
+    return {
+      label: card.title,
+      detail: card.value,
+    }
+  }
+
+  const weekStart = startOfDay(now).getTime() - 6 * DAY_MS
+  const completedThisWeek = intelligence.history.filter((session) => {
+    const time = toTime(sessionTimestamp(session))
+    return time !== null && time >= weekStart
+  }).length
+
+  if (completedThisWeek >= 3) {
+    return {
+      label: 'Strong week',
+      detail: `${completedThisWeek} sessions completed`,
+    }
+  }
+
+  return null
+}
+
+export const buildCoachPortfolioSnapshot = ({
+  rosterEntries = [],
+  assignments = [],
+  now = new Date(),
+} = {}) => {
+  const weekStart = startOfDay(now).getTime() - 6 * DAY_MS
+  const activeAssignments = assignments.filter((item) =>
+    ['assigned', 'started'].includes(item.status),
+  )
+  const completedThisWeek = assignments.filter(
+    (item) =>
+      item.status === 'completed' &&
+      toTime(item.completed_at) !== null &&
+      toTime(item.completed_at) >= weekStart,
+  )
+  const trainedThisWeek = rosterEntries.filter(
+    (entry) => entry.card.workoutsThisWeek > 0,
+  ).length
+  const needsAttention = rosterEntries.filter(
+    (entry) =>
+      entry.status === CLIENT_ROSTER_STATUS.NEEDS_ATTENTION ||
+      entry.status === CLIENT_ROSTER_STATUS.INACTIVE ||
+      entry.status === CLIENT_ROSTER_STATUS.RECOVERY_PRIORITY,
+  ).length
+
+  return {
+    activeClients: rosterEntries.length,
+    trainedThisWeek,
+    needsAttention,
+    activeAssignments: activeAssignments.length,
+    weekly: {
+      totalWorkoutsCompleted: completedThisWeek.length,
+      clientsWhoTrained: trainedThisWeek,
+      assignmentsCompleted: completedThisWeek.length,
+      activeIncomplete: activeAssignments.length,
+      overdueAssignments: activeAssignments.filter(
+        (item) => item.due_date && item.due_date < todayKey(now),
+      ).length,
+      followUpCount: needsAttention,
+    },
+  }
+}
+
+export const buildCoachActivityFeed = ({
+  rosterEntries = [],
+  assignments = [],
+  now = new Date(),
+} = {}) => {
+  const events = []
+
+  assignments
+    .filter((item) => item.status === 'completed' && item.completed_at)
+    .forEach((item) => {
+      const client = rosterEntries.find(
+        (entry) => entry.client.athlete_id === item.athlete_id,
+      )
+      events.push({
+        id: `assignment-complete-${item.id}`,
+        type: 'assignment_completed',
+        athleteId: item.athlete_id,
+        clientName:
+          client?.clientName ??
+          displayClientName(
+            rosterEntries.find((entry) => entry.client.athlete_id === item.athlete_id)
+              ?.client?.athlete_email,
+          ),
+        title: `${client?.clientName ?? 'Client'} completed ${item.title}`,
+        subtitle: item.title,
+        timestamp: item.completed_at,
+        relativeLabel: relativeTimeLabel(item.completed_at, now),
+        client: client?.client ?? null,
+      })
+    })
+
+  rosterEntries.forEach((entry) => {
+    entry.intelligence.performance.recentPrs?.slice(0, 2).forEach((pr) => {
+      events.push({
+        id: `pr-${entry.client.athlete_id}-${pr.id}`,
+        type: 'pr',
+        athleteId: entry.client.athlete_id,
+        clientName: entry.clientName,
+        title: `${entry.clientName} hit a new ${pr.type.toLowerCase()}`,
+        subtitle: `${pr.exercise} · ${pr.value}`,
+        timestamp: pr.date ? `${pr.date}T12:00:00` : null,
+        relativeLabel: relativeTimeLabel(
+          pr.date ? `${pr.date}T12:00:00` : null,
+          now,
+        ),
+        client: entry.client,
+      })
+    })
+
+    const nutrition = entry.intelligence.nutrition
+    if (nutrition.shared && nutrition.daysLoggedThisWeek > 0) {
+      events.push({
+        id: `nutrition-${entry.client.athlete_id}`,
+        type: 'nutrition',
+        athleteId: entry.client.athlete_id,
+        clientName: entry.clientName,
+        title: `${entry.clientName} logged nutrition`,
+        subtitle: nutrition.status,
+        timestamp: now.toISOString(),
+        relativeLabel: 'This week',
+        client: entry.client,
+      })
+    }
+  })
+
+  return events
+    .filter((event) => event.timestamp && toTime(event.timestamp) !== null)
+    .sort(
+      (first, second) =>
+        toTime(second.timestamp) - toTime(first.timestamp),
+    )
+    .slice(0, 10)
+}
+
+export const buildClientWins = (rosterEntries = [], { limit = 5 } = {}) =>
+  rosterEntries
+    .map((entry) => {
+      const win = buildClientWin(entry.intelligence)
+      if (!win) return null
+      return {
+        id: `win-${entry.client.athlete_id}`,
+        client: entry.client,
+        clientName: entry.clientName,
+        label: win.label,
+        detail: win.detail,
+        status: entry.status,
+      }
+    })
+    .filter(Boolean)
+    .slice(0, limit)
+
+export const buildAssignmentOverview = (assignments = [], now = new Date()) => {
+  const active = assignments.filter((item) =>
+    ['assigned', 'started'].includes(item.status),
+  )
+  const weekStart = startOfDay(now).getTime() - 6 * DAY_MS
+  const completedRecently = assignments
+    .filter(
+      (item) =>
+        item.status === 'completed' &&
+        toTime(item.completed_at) !== null &&
+        toTime(item.completed_at) >= weekStart,
+    )
+    .sort(
+      (first, second) =>
+        toTime(second.completed_at) - toTime(first.completed_at),
+    )
+    .slice(0, 5)
+
+  return {
+    active: active.length,
+    incomplete: active.filter((item) => item.status === 'assigned').length,
+    overdue: active.filter(
+      (item) => item.due_date && item.due_date < todayKey(now),
+    ).length,
+    completedRecently,
+  }
+}
+
+export const sortCoachClients = (
+  rosterEntries = [],
+  sortKey = COACH_CLIENT_SORT.NEEDS_ATTENTION,
+) => {
+  const entries = [...rosterEntries]
+
+  switch (sortKey) {
+    case COACH_CLIENT_SORT.RECENTLY_ACTIVE:
+      return entries.sort(
+        (first, second) =>
+          toTime(second.lastActivityAt ? `${second.lastActivityAt}T12:00:00` : null) -
+          toTime(first.lastActivityAt ? `${first.lastActivityAt}T12:00:00` : null),
+      )
+    case COACH_CLIENT_SORT.LEAST_ACTIVE:
+      return entries.sort(
+        (first, second) =>
+          (second.daysSinceLastActivity ?? 999) -
+          (first.daysSinceLastActivity ?? 999),
+      )
+    case COACH_CLIENT_SORT.ACTIVE_ASSIGNMENT:
+      return entries.sort((first, second) => {
+        const firstActive = Boolean(first.intelligence.assignmentStatus.active)
+        const secondActive = Boolean(second.intelligence.assignmentStatus.active)
+        if (firstActive !== secondActive) return secondActive - firstActive
+        return second.sortScore - first.sortScore
+      })
+    case COACH_CLIENT_SORT.READY:
+      return entries.sort((first, second) => {
+        const firstReady =
+          first.intelligence.readiness.band === READINESS_BAND.READY ? 1 : 0
+        const secondReady =
+          second.intelligence.readiness.band === READINESS_BAND.READY ? 1 : 0
+        return secondReady - firstReady || second.sortScore - first.sortScore
+      })
+    case COACH_CLIENT_SORT.RECOVERY:
+      return entries.sort((first, second) => {
+        const firstRecovery =
+          first.status === CLIENT_ROSTER_STATUS.RECOVERY_PRIORITY ? 1 : 0
+        const secondRecovery =
+          second.status === CLIENT_ROSTER_STATUS.RECOVERY_PRIORITY ? 1 : 0
+        return secondRecovery - firstRecovery || second.sortScore - first.sortScore
+      })
+    case COACH_CLIENT_SORT.ALL:
+      return entries.sort((first, second) =>
+        first.clientName.localeCompare(second.clientName),
+      )
+    case COACH_CLIENT_SORT.NEEDS_ATTENTION:
+    default:
+      return entries.sort(
+        (first, second) =>
+          second.sortScore - first.sortScore ||
+          second.attentionCount - first.attentionCount ||
+          first.clientName.localeCompare(second.clientName),
+      )
+  }
+}
+
+export const buildCoachPortfolioIntelligence = ({
+  clients = [],
+  assignments = [],
+  athleteStatesById = {},
+  nutritionByAthleteId = {},
+  now = new Date(),
+} = {}) => {
+  const rosterEntries = clients.map((client) =>
+    buildClientRosterEntry({
+      client,
+      assignments,
+      athleteState: athleteStatesById[client.athlete_id] ?? null,
+      nutritionProfile: nutritionByAthleteId[client.athlete_id]?.profile ?? null,
+      nutritionDays: nutritionByAthleteId[client.athlete_id]?.days ?? [],
+      now,
+    }),
+  )
+
+  const hero = buildCoachPortfolioSnapshot({
+    rosterEntries,
+    assignments,
+    now,
+  })
+  const attentionQueue = rankClientAttention(
+    rosterEntries.map((entry) => ({
+      client: entry.client,
+      intelligence: entry.intelligence,
+    })),
+    { limit: 8 },
+  )
+  const activityFeed = buildCoachActivityFeed({
+    rosterEntries,
+    assignments,
+    now,
+  })
+  const wins = buildClientWins(rosterEntries)
+  const assignmentOverview = buildAssignmentOverview(assignments, now)
+
+  return {
+    rosterEntries,
+    hero,
+    attentionQueue,
+    activityFeed,
+    wins,
+    assignmentOverview,
+    weekly: hero.weekly,
+  }
 }
 
 const formatShortDate = (value) => {
