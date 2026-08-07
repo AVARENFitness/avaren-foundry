@@ -16544,3 +16544,201 @@ input, textarea, select {
     transition: none;
   }
 }
+
+/* ===== SPRINT 7.0 · PREMIUM CLIENT PROFILE ===== */
+
+.coach-client-profile-screen {
+  gap: 28px;
+}
+
+.coach-client-profile-screen .coach-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0;
+}
+
+.coach-client-profile-header {
+  display: grid;
+  gap: 8px;
+  padding: 8px 0 4px;
+}
+
+.coach-client-profile-header h1 {
+  margin: 0;
+  font-size: clamp(34px, 8vw, 48px);
+  letter-spacing: -0.055em;
+  line-height: 1.02;
+  color: #f1ebe1;
+}
+
+.coach-client-profile-header p {
+  margin: 0;
+  color: #b5afa6;
+  font-size: 15px;
+}
+
+.coach-client-profile-header small {
+  color: #8f8880;
+  font-size: 13px;
+}
+
+.coach-client-profile-actions {
+  display: grid;
+  gap: 10px;
+}
+
+.coach-client-profile-actions .coach-primary-action {
+  width: 100%;
+  min-height: 48px;
+}
+
+.coach-client-profile-actions .coach-secondary-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  width: 100%;
+}
+
+.coach-client-profile-overview {
+  display: grid;
+  gap: 12px;
+}
+
+.coach-profile-card {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 14px;
+  align-items: start;
+  padding: 18px;
+  border: 1px solid rgba(246,242,233,.06);
+  border-radius: 16px;
+  background: rgba(255,255,255,.012);
+}
+
+.coach-profile-card--wide {
+  grid-column: 1 / -1;
+}
+
+.coach-profile-card--muted strong {
+  color: #c8c1b7;
+}
+
+.coach-profile-card-icon {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: rgba(216,184,109,.06);
+  color: #cdb678;
+  flex-shrink: 0;
+}
+
+.coach-profile-card small {
+  display: block;
+  color: #8f8880;
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0.01em;
+}
+
+.coach-profile-card strong {
+  display: block;
+  margin-top: 6px;
+  font-size: 17px;
+  line-height: 1.35;
+  color: #eee7dc;
+}
+
+.coach-profile-card span {
+  display: block;
+  margin-top: 6px;
+  color: #9a9389;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.coach-profile-quiet-panel {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid rgba(246,242,233,.05);
+  border-radius: 16px;
+  background: rgba(255,255,255,.008);
+}
+
+.coach-profile-quiet-header {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 12px;
+  align-items: start;
+}
+
+.coach-profile-quiet-header h2 {
+  margin: 4px 0 0;
+  font-size: 18px;
+  letter-spacing: -0.02em;
+}
+
+.coach-profile-notes-preview {
+  margin: 0;
+  color: #b5afa6;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.coach-profile-notes-input {
+  min-height: 108px;
+  padding: 12px 14px;
+  resize: vertical;
+}
+
+.coach-client-profile-activity {
+  display: grid;
+  gap: 8px;
+}
+
+.coach-profile-activity-row {
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(0,0,0,.12);
+}
+
+.coach-profile-activity-row strong,
+.coach-profile-activity-row span {
+  display: block;
+}
+
+.coach-profile-activity-row span {
+  margin-top: 4px;
+  color: #9a9389;
+  font-size: 13px;
+}
+
+#coach-session-business {
+  scroll-margin-top: 24px;
+}
+
+@media (min-width: 640px) {
+  .coach-client-profile-actions {
+    grid-template-columns: 1.2fr 1fr 1fr;
+  }
+
+  .coach-client-profile-overview {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 639px) {
+  .coach-client-profile-screen {
+    gap: 24px;
+  }
+
+  .coach-client-profile-header {
+    padding-top: 0;
+  }
+}

@@ -693,15 +693,17 @@ export const rankCoachInsights = (
     cooldownDays = 5,
   } = options
 
-  const fresh = insights.filter(
-    (insight) =>
-      !isExpired(insight) &&
-      !wasRecentlyShown(
-        insight,
-        coachHistory,
-        cooldownDays,
-      ),
-  )
+  const fresh = insights
+    .filter(
+      (insight) =>
+        !isExpired(insight) &&
+        !wasRecentlyShown(
+          insight,
+          coachHistory,
+          cooldownDays,
+        ),
+    )
+    .sort((first, second) => second.priority - first.priority)
 
   if (fresh.length >= limit) {
     return fresh.slice(0, limit)
@@ -717,6 +719,7 @@ export const rankCoachInsights = (
             insight.fingerprint,
         ),
     )
+    .sort((first, second) => second.priority - first.priority)
 
   return [...fresh, ...repeated].slice(0, limit)
 }
