@@ -24,6 +24,7 @@ import {
 } from './avaNutritionTransaction'
 import { logCandidateDiagnostics } from './avaFoodRefinement'
 import { AVA_PIPELINE_KIND, runAvaMessagePipeline } from './avaMessagePipeline'
+import { recordAvaTurn } from '../lib/avaSessionContext'
 import AvaConfirmationPreview from './AvaConfirmationPreview'
 import { buildConfirmationPreview } from './buildConfirmationPreview'
 import { useAva } from './useAva'
@@ -179,7 +180,7 @@ export default function AvaSheet({
   const appendMessage = (message) => {
     setMessages((current) => [...current, message])
     if (session && message.role === 'ava') {
-      session.add('ava', message.text, { actions: message.actions ?? [] })
+      recordAvaTurn(session, message.text, { actions: message.actions ?? [] })
     }
     return message
   }

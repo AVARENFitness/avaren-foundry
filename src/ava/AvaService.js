@@ -80,6 +80,9 @@ export default class AvaService {
     )
 
     if (conversational) {
+      if (import.meta.env?.DEV) {
+        console.debug('[ava-chat]', JSON.stringify({ provider: 'deterministic', intent: conversational.intent }))
+      }
       return {
         ...conversational,
         source: conversational.source ?? 'deterministic',

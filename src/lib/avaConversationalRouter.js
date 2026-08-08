@@ -14,9 +14,9 @@ export const AVA_ROUTE_INTENTS = {
 }
 
 const STATE_STATEMENT_PATTERNS = [
-  /\b(i'm|i am|im)\s+(feeling\s+)?(tired|exhausted|sore|run down|beat up|flat|worn out|drained|rough|pretty good|good|great|not feeling it)\b/,
-  /\b(i'm|i am|im)\s+(tired|exhausted|sore|hungry)\b/,
-  /\bfeeling\s+(tired|exhausted|sore|pretty good|good|great|flat|run down|worn out|rough)\b/,
+  /\b(i'm|i am|im)\s+(feeling\s+)?(pretty\s+|really\s+|kind of\s+|a little\s+|so\s+)?(tired|exhausted|sore|run down|beat up|flat|worn out|drained|rough|pretty good|good|great|not feeling it)\b/,
+  /\b(i'm|i am|im)\s+(pretty\s+|really\s+|kind of\s+|a little\s+|so\s+)?(tired|exhausted|sore|hungry)\b/,
+  /\bfeeling\s+(pretty\s+|really\s+|kind of\s+|a little\s+|so\s+)?(tired|exhausted|sore|pretty good|good|great|flat|run down|worn out|rough)\b/,
   /\b(don't|do not)\s+(feel like training|have much energy|really feel like)\b/,
   /\bmy legs feel heavy\b/,
   /\bnot feeling it today\b/,
@@ -83,11 +83,18 @@ const REFERENT_FOLLOW_UP_PATTERNS = [
 ]
 
 const SESSION_CONSTRAINT_PATTERNS = [
-  /\bonly have \d+ minutes\b/,
+  /\b(only have|have) (about )?\d+\s*minutes?\b/,
+  /\babout \d+\s*minutes?\b/,
   /\bkeep it lighter\b/,
   /\btraining at home\b/,
   /\bjust do half\b/,
   /\bhalf workout\b/,
+  /\bdon't want to skip\b/,
+  /\bdo not want to skip\b/,
+  /\bdon't want to miss\b/,
+  /\bno time for (a )?full\b/,
+  /\bshort on time\b/,
+  /\bpressed for time\b/,
 ]
 
 export const isExplicitNutritionLogIntent = (message = '') => {

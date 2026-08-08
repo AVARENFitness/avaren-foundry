@@ -9,6 +9,16 @@ const today = new Date().toISOString().slice(0, 10)
 const now = new Date()
 now.setHours(15, 0, 0, 0)
 
+const trainingDaySchedule = [
+  'Upper Body',
+  'Upper Body',
+  'Upper Body',
+  'Upper Body',
+  'Upper Body',
+  'Upper Body',
+  'Upper Body',
+]
+
 const readinessEntry = (overrides = {}) => ({
   id: 'ready-1',
   date: today,
@@ -143,6 +153,7 @@ describe('deriveTodaysFocus', () => {
     const focus = deriveTodaysFocus(
       {
         ...baseState,
+        weeklySchedule: trainingDaySchedule,
         nutrition: {
           ...baseState.nutrition,
           days: {
@@ -194,7 +205,10 @@ describe('deriveTodaysFocus', () => {
 
     const morning = new Date()
     morning.setHours(9, 0, 0, 0)
-    const startFocus = deriveTodaysFocus(baseState, { now: morning })
+    const startFocus = deriveTodaysFocus(
+      { ...baseState, weeklySchedule: trainingDaySchedule },
+      { now: morning },
+    )
     expect(startFocus.action).toBe(FOCUS_ACTIONS.START_WORKOUT)
     expect(startFocus.actionLabel).toBe('Start Workout')
 

@@ -7,6 +7,7 @@ import {
   fetchTrustedAthleteData,
   resolveAuthenticatedUserId,
 } from './trustedContext.ts'
+import { callOpenAi } from './openaiClient.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -73,8 +74,16 @@ Your job is to understand natural athlete conversation and respond with grounded
 
 IDENTITY
 - Sound natural, calm, confident, warm, observant, and concise (1-4 sentences by default).
-- Never corny, hype-heavy, robotic, or fake-human.
+- Never corny, hype-heavy, robotic, therapist-like, or corporate.
 - You are AVA, not a generic AI assistant. Do not say "As an AI".
+- Avoid filler phrases such as: "It's understandable to feel...", "It's great to hear...", "Listen to your body...", "Would you like to consider...", "It would be best to...".
+
+CONVERSATION MEMORY (THIS SESSION ONLY)
+- athleteMessage is the latest turn.
+- sessionContext.recentMessages, temporaryConstraints, userStatements, topic, and lastRecommendation describe the current open Ask AVA session — not permanent memory.
+- Before answering, synthesize ALL active session constraints together (e.g. tired + 30 minutes + don't want to skip → recommend a short focused session, not a generic readiness recap).
+- Resolve referents ("it", "still do it", "what would you do?") using sessionContext plus SERVER_FACTS.
+- When enough context exists, make a clear recommendation. Do not repeatedly end with "Are you ready to start?" or "What would you like to do?" unless a genuine choice remains unresolved.
 
 TRUST MODEL (CRITICAL)
 The context packet has three classes:
@@ -82,14 +91,22 @@ The context packet has three classes:
 1. SERVER_FACTS (serverFacts.*) — authoritative application facts fetched server-side.
    - canonicalWorkout, readiness score, coach assignment, recent training, nutrition totals
    - Never invent, override, or contradict SERVER_FACTS.
+   - If the athlete says today's workout is something else, acknowledge their statement but canonicalWorkout from SERVER_FACTS remains the scheduled workout.
    - If serverFacts.trustedToday.source is "unverified-local-only", be cautious about missing synced data.
 
-2. USER_STATEMENTS (sessionContext.*) — subjective/contextual statements from the athlete.
+2. USER_STATEMENTS (sessionContext.*) — subjective/contextual statements from the athlete this session.
    - temporaryConstraints, userStatements, recentMessages from the athlete
-   - Take these seriously even when SERVER_FACTS suggest otherwise.
+   - Take these seriously for tone, effort, and session planning — even when SERVER_FACTS suggest otherwise.
    - Example: readiness score 82 + user says "I'm exhausted" → acknowledge exhaustion; do not claim they feel great.
+   - User statements do NOT change canonical workout, logged nutrition, or coach assignment in SERVER_FACTS.
 
 3. CLIENT_HINTS (clientHints.*) — advisory UI hints only (daypart, timezone). Never treat as measured facts.
+
+VOICE & METRICS
+- Lead with natural coaching judgment, not numbers.
+- Use exact readiness/recovery metrics only when they materially change the recommendation, the athlete asks why, asks for the number, or precision is useful.
+- Preferred: "You're still in a reasonable spot to train, so I'd shorten the session rather than skip it."
+- When citing metrics: "Your readiness is 74 today." — not as the opening line every time.
 
 TRUTH RULES
 - Never invent workout names, exercises, macros, PRs, readiness scores, or history not present in SERVER_FACTS.
@@ -165,72 +182,6 @@ const sanitizeModelResponse = (raw: unknown) => {
       suggestedAction.type === 'NONE' ? null : suggestedAction,
     followUpSuggestions: suggestions,
     safetyLevel,
-  }
-}
-
-async function callOpenAi(userPayload: string) {
-  const apiKey = Deno.env.get('OPENAI_API_KEY')
-  const model = Deno.env.get('AVA_CHAT_MODEL') ?? 'gpt-4o-mini'
-
-  if (!apiKey) {
-    return { ok: false as const, reason: 'model-not-configured' }
-  }
-
-  const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
-
-  try {
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      signal: controller.signal,
-      body: JSON.stringify({
-        model,
-        temperature: 0.55,
-        max_tokens: MAX_OUTPUT_TOKENS,
-        response_format: { type: 'json_object' },
-        messages: [
-          { role: 'system', content: AVA_SYSTEM_PROMPT },
-          {
-            role: 'user',
-            content: userPayload,
-          },
-        ],
-      }),
-    })
-
-    if (!response.ok) {
-      console.error('OpenAI request failed', response.status)
-      return { ok: false as const, reason: 'model-error' }
-    }
-
-    const payload = await response.json()
-    const content = payload?.choices?.[0]?.message?.content
-    if (!content) {
-      return { ok: false as const, reason: 'empty-model-response' }
-    }
-
-    let parsed: unknown
-    try {
-      parsed = JSON.parse(content)
-    } catch {
-      return { ok: false as const, reason: 'invalid-model-json' }
-    }
-
-    const sanitized = sanitizeModelResponse(parsed)
-    if (!sanitized) {
-      return { ok: false as const, reason: 'invalid-model-response' }
-    }
-
-    return { ok: true as const, data: sanitized }
-  } catch (error) {
-    console.error('AVA chat model call failed', error)
-    return { ok: false as const, reason: 'model-timeout' }
-  } finally {
-    clearTimeout(timeout)
   }
 }
 
@@ -321,11 +272,32 @@ export default {
       })
 
       const userPayload = buildModelPayload({ message, trustedContext })
-      const modelResult = await callOpenAi(userPayload)
+      const modelResult = await callOpenAi({
+        userPayload,
+        systemPrompt: AVA_SYSTEM_PROMPT,
+        maxTokens: MAX_OUTPUT_TOKENS,
+        timeoutMs: REQUEST_TIMEOUT_MS,
+        sanitizeResponse: sanitizeModelResponse,
+      })
 
       if (!modelResult.ok) {
+        console.info(
+          JSON.stringify({
+            provider: 'fallback',
+            reason: modelResult.reason,
+            sessionTurns: sessionContext.recentMessages?.length ?? 0,
+          }),
+        )
         return json({ ok: false, reason: modelResult.reason }, 503)
       }
+
+      console.info(
+        JSON.stringify({
+          provider: 'model',
+          status: 'success',
+          sessionTurns: sessionContext.recentMessages?.length ?? 0,
+        }),
+      )
 
       return json(modelResult.data)
     } catch (error) {

@@ -2,6 +2,7 @@ import { AVA_SESSION_MAX_TURNS } from './avaConversation'
 
 const MAX_MESSAGE_LENGTH = 12
 const MAX_CONSTRAINT_LENGTH = 4
+const MAX_STATEMENT_LENGTH = 6
 
 /**
  * Client-side session payload for AVA chat (Patch 7.7.4).
@@ -30,8 +31,8 @@ export const buildAvaModelConversation = (session = null) => {
     temporaryConstraints: (snapshot.userConstraints ?? [])
       .slice(-MAX_CONSTRAINT_LENGTH)
       .map((item) => String(item ?? '').slice(0, 400)),
-    userStatements: (snapshot.userStatements ?? snapshot.userConstraints ?? [])
-      .slice(-MAX_CONSTRAINT_LENGTH)
+    userStatements: (snapshot.userStatements ?? [])
+      .slice(-MAX_STATEMENT_LENGTH)
       .map((item) => String(item ?? '').slice(0, 400)),
     topic: snapshot.topic ?? null,
     lastRecommendation: snapshot.lastRecommendation

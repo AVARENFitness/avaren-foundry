@@ -59,6 +59,7 @@ export class AvaSessionMemory {
     this.topic = null
     this.lastRecommendation = null
     this.userConstraints = []
+    this.userStatements = []
     this.pendingAction = null
     this.lastReversibleAction = null
   }
@@ -89,7 +90,15 @@ export class AvaSessionMemory {
   addConstraint(text) {
     const value = String(text ?? '').trim()
     if (!value) return
+    if (this.userConstraints.includes(value)) return
     this.userConstraints = [...this.userConstraints, value].slice(-4)
+  }
+
+  addUserStatement(text) {
+    const value = String(text ?? '').trim()
+    if (!value) return
+    if (this.userStatements.includes(value)) return
+    this.userStatements = [...this.userStatements, value].slice(-6)
   }
 
   getRecentUserMessages(limit = 3) {
@@ -105,6 +114,7 @@ export class AvaSessionMemory {
       topic: this.topic,
       lastRecommendation: this.lastRecommendation,
       userConstraints: this.userConstraints,
+      userStatements: this.userStatements,
       pendingAction: this.pendingAction,
       lastReversibleAction: this.lastReversibleAction,
     }
@@ -681,7 +691,7 @@ const isExplicitFoodRequest = (text) =>
   /^(i|we)\s+(had|ate|eat|eaten)\b|^(log|add|track)\b/.test(text)
 
 const buildTimeConstraintAnswer = (packet, session, text) => {
-  const match = text.match(/\bonly have (\d+) minutes\b/)
+  const match = text.match(/\b(?:only have |have about |about )?(\d+)\s*minutes?\b/i)
   if (!match) return null
 
   session.addConstraint(text)
