@@ -228,3 +228,39 @@ export function restoreNutritionUndoSnapshot(nutrition, undoSnapshot) {
   if (!undoSnapshot?.nutrition) return nutrition
   return cloneNutritionState(undoSnapshot.nutrition)
 }
+
+export function removeFoodEntriesFromNutrition(
+  nutrition,
+  date = nutritionDateKey(),
+  entryIds = [],
+) {
+  const ids = new Set(entryIds)
+  const currentDay = nutrition?.days?.[date] ?? emptyNutritionDay(date)
+
+  return {
+    nutrition: {
+      ...nutrition,
+      days: {
+        ...(nutrition?.days ?? {}),
+        [date]: {
+          ...currentDay,
+          foods: (currentDay.foods ?? []).filter((entry) => !ids.has(entry.id)),
+        },
+      },
+    },
+    removedIds: entryIds.filter((id) =>
+      (currentDay.foods ?? []).some((entry) => entry.id === id),
+    ),
+  }
+}
+
+export function replaceFoodEntriesInNutrition(
+  nutrition,
+  date = nutritionDateKey(),
+  entryIds = [],
+  replacementFood,
+  source = 'catalog',
+) {
+  const without = removeFoodEntriesFromNutrition(nutrition, date, entryIds)
+  return appendFoodToNutrition(without.nutrition, date, replacementFood, source)
+}

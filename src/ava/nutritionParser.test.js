@@ -29,7 +29,8 @@ describe('AVA nutrition parser', () => {
     expect(result.handled).toBe(true)
     expect(result.action.type).toBe('log-food')
     expect(result.action.items.length).toBe(2)
-    expect(result.requiresConfirmation).toBe(true)
+    expect(result.autoExecute).toBe(true)
+    expect(result.requiresConfirmation).toBe(false)
     expect(result.preview.estimates.some((item) => item.label === 'Calories')).toBe(
       true,
     )
@@ -91,6 +92,13 @@ describe('AVA nutrition parser', () => {
     expect(result.action.value).toBe('179.6')
   })
 
+  it('does not treat conversational state statements as food logging', () => {
+    const result = interpretNutritionMessage("I'm feeling tired", baseNutrition())
+
+    expect(result.handled).toBe(false)
+    expect(result.clarification).toBeUndefined()
+  })
+
   it('asks for clarification when multiple foods match closely', () => {
     const nutrition = {
       ...baseNutrition(),
@@ -119,7 +127,7 @@ describe('AVA nutrition parser', () => {
     const result = interpretNutritionMessage('my chicken bowl', nutrition)
 
     expect(result.clarification?.choices.length).toBeGreaterThan(1)
-    expect(result.clarification.choices.length).toBeLessThanOrEqual(3)
+    expect(result.clarification.choices.length).toBeLessThanOrEqual(4)
     expect(result.requiresConfirmation).toBe(false)
   })
 })

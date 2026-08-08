@@ -62,6 +62,75 @@ export const COMMON_FOODS = [
     ]
   },
   {
+    "id": "nature-valley-oats-honey",
+    "name": "Nature Valley Oats 'n Honey Crunchy Granola Bar",
+    "brand": "Nature Valley",
+    "serving": "1 bar (42 g)",
+    "calories": 190,
+    "protein": 3,
+    "carbs": 29,
+    "fat": 7,
+    "fiber": 2,
+    "keywords": "nature valley oats honey granola bar crunchy",
+    "category": "Popular",
+    "servingOptions": [
+      {
+        "label": "1 bar (42 g)",
+        "multiplier": 1
+      },
+      {
+        "label": "2 bars",
+        "multiplier": 2
+      }
+    ]
+  },
+  {
+    "id": "nature-valley-peanut-butter",
+    "name": "Nature Valley Peanut Butter Crunchy Granola Bar",
+    "brand": "Nature Valley",
+    "serving": "1 bar (42 g)",
+    "calories": 190,
+    "protein": 4,
+    "carbs": 27,
+    "fat": 8,
+    "fiber": 2,
+    "keywords": "nature valley peanut butter granola bar crunchy",
+    "category": "Popular",
+    "servingOptions": [
+      {
+        "label": "1 bar (42 g)",
+        "multiplier": 1
+      },
+      {
+        "label": "2 bars",
+        "multiplier": 2
+      }
+    ]
+  },
+  {
+    "id": "nature-valley-protein-pb",
+    "name": "Nature Valley Protein Bar Peanut Butter Dark Chocolate",
+    "brand": "Nature Valley",
+    "serving": "1 bar (40 g)",
+    "calories": 190,
+    "protein": 10,
+    "carbs": 16,
+    "fat": 9,
+    "fiber": 5,
+    "keywords": "nature valley protein bar peanut butter dark chocolate",
+    "category": "Popular",
+    "servingOptions": [
+      {
+        "label": "1 bar (40 g)",
+        "multiplier": 1
+      },
+      {
+        "label": "2 bars",
+        "multiplier": 2
+      }
+    ]
+  },
+  {
     "id": "fairlife-30",
     "name": "Fairlife Nutrition Plan Chocolate",
     "brand": "Fairlife",
@@ -182,6 +251,82 @@ export const COMMON_FOODS = [
       {
         "label": "2 servings",
         "multiplier": 2
+      }
+    ]
+  },
+  {
+    "id": "chobani-plain",
+    "name": "Chobani Non-Fat Greek Yogurt, Plain",
+    "brand": "Chobani",
+    "serving": "1 container (170 g)",
+    "calories": 100,
+    "protein": 17,
+    "carbs": 6,
+    "fat": 0,
+    "fiber": 0,
+    "keywords": "chobani greek yogurt plain nonfat",
+    "category": "Popular",
+    "servingOptions": [
+      {
+        "label": "1 container (170 g)",
+        "multiplier": 1
+      }
+    ]
+  },
+  {
+    "id": "chobani-vanilla",
+    "name": "Chobani Non-Fat Greek Yogurt, Vanilla",
+    "brand": "Chobani",
+    "serving": "1 container (170 g)",
+    "calories": 120,
+    "protein": 12,
+    "carbs": 16,
+    "fat": 0,
+    "fiber": 0,
+    "keywords": "chobani greek yogurt vanilla",
+    "category": "Popular",
+    "servingOptions": [
+      {
+        "label": "1 container (170 g)",
+        "multiplier": 1
+      }
+    ]
+  },
+  {
+    "id": "oikos-vanilla",
+    "name": "Oikos Triple Zero Vanilla Greek Yogurt",
+    "brand": "Oikos",
+    "serving": "1 container (150 g)",
+    "calories": 90,
+    "protein": 15,
+    "carbs": 8,
+    "fat": 0,
+    "fiber": 0,
+    "keywords": "oikos greek yogurt vanilla triple zero",
+    "category": "Popular",
+    "servingOptions": [
+      {
+        "label": "1 container (150 g)",
+        "multiplier": 1
+      }
+    ]
+  },
+  {
+    "id": "fage-total-plain",
+    "name": "Fage Total 0% Greek Yogurt, Plain",
+    "brand": "Fage",
+    "serving": "1 container (170 g)",
+    "calories": 90,
+    "protein": 18,
+    "carbs": 5,
+    "fat": 0,
+    "fiber": 0,
+    "keywords": "fage greek yogurt plain total",
+    "category": "Popular",
+    "servingOptions": [
+      {
+        "label": "1 container (170 g)",
+        "multiplier": 1
       }
     ]
   },

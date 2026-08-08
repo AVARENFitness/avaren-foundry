@@ -111,6 +111,13 @@ describe('avaActions', () => {
       {
         ...baseState,
         history: [workout({ daysAgo: 2 })],
+        readiness: {
+          entries: [
+            readinessEntry({
+              date: tuesday.toISOString().slice(0, 10),
+            }),
+          ],
+        },
         mobility: {
           completed: [
             {

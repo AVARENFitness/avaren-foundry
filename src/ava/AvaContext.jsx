@@ -1,8 +1,7 @@
-import { createContext, useMemo } from 'react'
+import { useMemo } from 'react'
 import AvaIntentRouter from './AvaIntentRouter'
 import AvaService from './AvaService'
-
-export const AvaContext = createContext(null)
+import { AvaContext } from './avaReactContext'
 
 export function AvaProvider({ children, service: serviceOverride = null }) {
   const value = useMemo(() => {

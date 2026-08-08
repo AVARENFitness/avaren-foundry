@@ -1,6 +1,15 @@
 import { COMMON_FOODS } from '../data/commonFoods'
 import { DEFAULT_NUTRITION_GOALS, nutritionTotals } from '../lib/nutrition'
 import { nutritionRound } from '../lib/nutritionActions'
+import {
+  isExplicitNutritionLogIntent,
+  hasNutritionLoggingShape,
+} from '../lib/avaConversationalRouter'
+import {
+  analyzeFoodResolution,
+  classifyFoodQuerySpecificity,
+  getUnsupportedProductAttributes,
+} from './avaFoodSpecificity'
 
 const WORD_NUMBERS = {
   one: 1,
@@ -14,6 +23,36 @@ const WORD_NUMBERS = {
   'one-quarter': 0.25,
   'one-third': 1 / 3,
 }
+
+const FOOD_SEARCH_STOP_TOKENS = new Set([
+  'a',
+  'an',
+  'am',
+  'and',
+  'at',
+  'feel',
+  'feeling',
+  'good',
+  'great',
+  'had',
+  'i',
+  'im',
+  'just',
+  'm',
+  'my',
+  'not',
+  'of',
+  'on',
+  'pretty',
+  'really',
+  'so',
+  'still',
+  'the',
+  'today',
+  'very',
+  'we',
+  'with',
+])
 
 const FOOD_ALIASES = {
   toast: ['toast', 'bread'],
@@ -32,6 +71,12 @@ export const AVA_CONFIDENCE = {
   MEDIUM: 'medium',
   NEEDS_CLARIFICATION: 'needs-clarification',
 }
+
+export { classifyFoodQuerySpecificity, getUnsupportedProductAttributes }
+
+export const isExplicitPastTenseConsumption = (message = '') =>
+  /^(i|we)\s+(had|ate|eat|eaten|drank|drink)\b/i.test(String(message).trim()) ||
+  /^(log|logged|add|track)\b/i.test(String(message).trim())
 
 const normalize = (value = '') =>
   String(value)
@@ -112,28 +157,32 @@ function scoreFoodMatch(item, queryTokens = []) {
     `${item.name} ${item.brand ?? ''} ${item.keywords ?? ''}`,
   )
   const tokens = haystack.split(' ').filter(Boolean)
-  let score = item.priority ?? 0
+  let matchScore = 0
 
   for (const queryToken of queryTokens) {
-    if (tokens.includes(queryToken)) score += 18
-    else if (haystack.includes(queryToken)) score += 10
+    if (tokens.includes(queryToken)) matchScore += 18
+    else if (haystack.includes(queryToken)) matchScore += 10
   }
 
   for (const [aliasKey, aliasTokens] of Object.entries(FOOD_ALIASES)) {
     if (queryTokens.includes(aliasKey) || queryTokens.some((t) => aliasTokens.includes(t))) {
       if (haystack.includes(aliasKey) || aliasTokens.some((alias) => haystack.includes(alias))) {
-        score += 14
+        matchScore += 14
       }
     }
   }
 
-  if (item.isRecipe && queryTokens.includes('my')) score += 8
+  if (item.isRecipe && queryTokens.includes('my')) matchScore += 8
 
-  return score
+  if (matchScore <= 0) return 0
+
+  return matchScore + (item.priority ?? 0)
 }
 
 export function searchFoodMatches(nutrition, query, { limit = 6 } = {}) {
-  const queryTokens = tokenize(query)
+  const queryTokens = tokenize(query).filter(
+    (token) => token.length >= 2 && !FOOD_SEARCH_STOP_TOKENS.has(token),
+  )
   if (!queryTokens.length) return []
 
   return buildFoodIndex(nutrition)
@@ -279,6 +328,10 @@ function resolveFoodSegment(nutrition, segment) {
     .replace(/^(one|two|three|four|five|half|quarter|a|an|\d+(?:\.\d+)?)\s+/i, '')
     .replace(/^(large|medium|small)\s+/i, '')
     .replace(/\s+(serving|servings)$/i, '')
+    .replace(/\s+today$/i, '')
+    .replace(/\s+this morning$/i, '')
+    .replace(/\s+this afternoon$/i, '')
+    .replace(/\s+tonight$/i, '')
     .trim()
 
   const directId = DIRECT_FOOD_IDS[query]
@@ -294,40 +347,30 @@ function resolveFoodSegment(nutrition, segment) {
     }
   }
 
-  const matches = searchFoodMatches(nutrition, query, { limit: 4 }).filter(
+  const matches = searchFoodMatches(nutrition, query, { limit: 6 }).filter(
     (entry) => !entry.item.isRecipe,
   )
 
-  if (!matches.length) {
+  const analysis = analyzeFoodResolution(query, matches)
+
+  if (analysis.requiresClarification) {
     return {
       confidence: AVA_CONFIDENCE.NEEDS_CLARIFICATION,
       query,
       quantity,
-      choices: [],
-    }
-  }
-
-  const top = matches[0]
-  const second = matches[1]
-
-  if (second && top.score - second.score < 12) {
-    return {
-      confidence: AVA_CONFIDENCE.NEEDS_CLARIFICATION,
-      query,
-      quantity,
-      choices: matches.slice(0, 3).map((entry) => entry.item),
+      choices: analysis.candidates,
     }
   }
 
   return {
     confidence:
-      top.score >= 42
+      analysis.confidence === 'high'
         ? AVA_CONFIDENCE.HIGH
-        : top.score >= 24
+        : analysis.confidence === 'medium'
           ? AVA_CONFIDENCE.MEDIUM
           : AVA_CONFIDENCE.NEEDS_CLARIFICATION,
-    food: top.item,
-    source: top.item.source,
+    food: analysis.candidate,
+    source: analysis.source,
     quantity,
   }
 }
@@ -342,13 +385,20 @@ export function interpretNutritionMessage(message = '', nutrition = {}, options 
     const quantity = parseQuantity(text)
     const item = options.selectedChoice
     if (item.isRecipe) {
-      return finalizeRecipeInterpretation(item, quantity, AVA_CONFIDENCE.HIGH)
+      return finalizeRecipeInterpretation(item, quantity, AVA_CONFIDENCE.HIGH, text, {
+        autoExecute: true,
+      })
     }
     return finalizeFoodInterpretation(
       [{ food: item, source: item.source, quantity }],
       AVA_CONFIDENCE.HIGH,
       text,
+      { autoExecute: true },
     )
+  }
+
+  if (!options.selectedChoice && !hasNutritionLoggingShape(text)) {
+    return { handled: false }
   }
 
   const water = detectWaterMessage(text, nutrition)
@@ -420,7 +470,10 @@ export function interpretNutritionMessage(message = '', nutrition = {}, options 
       ? AVA_CONFIDENCE.MEDIUM
       : AVA_CONFIDENCE.HIGH
 
-  return finalizeFoodInterpretation(foodItems, confidence, text)
+  return finalizeFoodInterpretation(foodItems, confidence, text, {
+    autoExecute:
+      confidence === AVA_CONFIDENCE.HIGH && isExplicitPastTenseConsumption(text),
+  })
 }
 
 function scaledFoodPayload(food, quantity, source) {
@@ -467,16 +520,20 @@ function confidenceLabel(confidence) {
 }
 
 function finalizeClarification(payload, message) {
+  const query = String(payload.query ?? '')
+    .replace(/\s+today$/i, '')
+    .trim()
+
   return {
     handled: true,
     intent: 'food',
     confidence: payload.confidence,
-    summary: `Which “${payload.query}” did you mean?`,
+    summary: query ? `Which one was it?` : `Which “${payload.query}” did you mean?`,
     requiresConfirmation: false,
     clarification: {
-      query: payload.query,
+      query: query || payload.query,
       quantity: payload.quantity ?? 1,
-      choices: payload.choices.slice(0, 3),
+      choices: payload.choices.slice(0, 4),
     },
     action: null,
     message,
@@ -485,12 +542,19 @@ function finalizeClarification(payload, message) {
 
 function finalizeWaterInterpretation(water, nutrition, message) {
   const goals = { ...DEFAULT_NUTRITION_GOALS, ...(nutrition.goals ?? {}) }
+  const autoExecute =
+    water.confidence === AVA_CONFIDENCE.HIGH &&
+    isExplicitPastTenseConsumption(message)
+
   return {
     handled: true,
     intent: 'water',
     confidence: water.confidence,
-    summary: `Log ${nutritionRound(water.ounces)} oz of water for today?`,
-    requiresConfirmation: true,
+    summary: autoExecute
+      ? `Logged ${nutritionRound(water.ounces)} oz of water for today.`
+      : `Log ${nutritionRound(water.ounces)} oz of water for today?`,
+    autoExecute,
+    requiresConfirmation: !autoExecute,
     action: {
       type: 'log-water',
       ounces: water.ounces,
@@ -528,7 +592,13 @@ function finalizeWeightInterpretation(weight, message) {
   }
 }
 
-function finalizeRecipeInterpretation(recipe, servings, confidence, message) {
+function finalizeRecipeInterpretation(
+  recipe,
+  servings,
+  confidence,
+  message,
+  options = {},
+) {
   const batchServings = Math.max(1, Number(recipe.servings || 1))
   const totals =
     recipe.totals ??
@@ -556,12 +626,17 @@ function finalizeRecipeInterpretation(recipe, servings, confidence, message) {
     fat: Number(totals.fat || 0) / batchServings,
   }
 
+  const autoExecute = Boolean(options.autoExecute)
+
   return {
     handled: true,
     intent: 'recipe',
     confidence,
-    summary: `Log ${servings} serving${servings === 1 ? '' : 's'} of ${recipe.name}?`,
-    requiresConfirmation: true,
+    summary: autoExecute
+      ? `Logged ${servings} serving${servings === 1 ? '' : 's'} of ${recipe.name}.`
+      : `Log ${servings} serving${servings === 1 ? '' : 's'} of ${recipe.name}?`,
+    autoExecute,
+    requiresConfirmation: !autoExecute,
     action: {
       type: 'log-recipe',
       recipe,
@@ -595,7 +670,7 @@ function finalizeRecipeInterpretation(recipe, servings, confidence, message) {
   }
 }
 
-function finalizeFoodInterpretation(items, confidence, message) {
+function finalizeFoodInterpretation(items, confidence, message, options = {}) {
   const scaledItems = items.map((item) =>
     scaledFoodPayload(item.food, item.quantity, item.source),
   )
@@ -607,12 +682,20 @@ function finalizeFoodInterpretation(items, confidence, message) {
     )
     .join(' and ')
 
+  const autoExecute =
+    Boolean(options.autoExecute) ||
+    (confidence === AVA_CONFIDENCE.HIGH &&
+      isExplicitPastTenseConsumption(message))
+
   return {
     handled: true,
     intent: 'food',
     confidence,
-    summary: `Log ${names} for today?`,
-    requiresConfirmation: confidence !== AVA_CONFIDENCE.NEEDS_CLARIFICATION,
+    summary: autoExecute
+      ? `Logged ${names} for today.`
+      : `Log ${names} for today?`,
+    autoExecute,
+    requiresConfirmation: !autoExecute && confidence !== AVA_CONFIDENCE.NEEDS_CLARIFICATION,
     action: {
       type: 'log-food',
       items: scaledItems,

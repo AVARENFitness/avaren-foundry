@@ -1,5 +1,5 @@
 import { useContext } from 'react'
-import { AvaContext } from './AvaContext'
+import { AvaContext } from './avaReactContext'
 
 export function useAva() {
   const context = useContext(AvaContext)

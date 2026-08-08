@@ -1,19 +1,48 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { buildAvaContextPacket } from '../lib/avaContext'
+import { createAvaSession } from '../lib/avaConversation'
 import { createNutritionState } from '../lib/nutrition'
+import { coachBackend } from '../lib/coachBackend'
 import AvaEntryButton from './AvaEntryButton'
 import AvaSheet from './AvaSheet'
-
-const AvaUiContext = createContext(null)
+import { AvaUiContext } from './avaUiReactContext'
 
 export function AvaUiProvider({
   children,
   enabled = true,
   showFloatingEntry = true,
+  appState = null,
+  userName = '',
+  onAvaAction,
   nutrition = createNutritionState(),
   onNutritionChange,
 }) {
   const [open, setOpen] = useState(false)
-  const [undoSnapshot, setUndoSnapshot] = useState(null)
+  const [assignments, setAssignments] = useState([])
+  const sessionRef = useRef(createAvaSession())
+
+  useEffect(() => {
+    coachBackend
+      .listAthleteAssignments()
+      .then(setAssignments)
+      .catch(() => {})
+  }, [])
+
+  const packet = useMemo(() => {
+    if (!appState) return null
+
+    return buildAvaContextPacket(
+      {
+        ...appState,
+        nutrition: nutrition ?? appState.nutrition,
+      },
+      {
+        userName,
+        assignments,
+        now: new Date(),
+      },
+    )
+  }, [appState, nutrition, userName, assignments, open])
 
   const openAva = useCallback(() => {
     if (!enabled) return
@@ -22,6 +51,7 @@ export function AvaUiProvider({
 
   const closeAva = useCallback(() => {
     setOpen(false)
+    sessionRef.current = createAvaSession()
   }, [])
 
   useEffect(() => {
@@ -42,9 +72,9 @@ export function AvaUiProvider({
       openAva,
       closeAva,
       isOpen: open && enabled,
-      undoSnapshot,
+      packet,
     }),
-    [closeAva, enabled, open, openAva, undoSnapshot],
+    [closeAva, enabled, open, openAva, packet],
   )
 
   return (
@@ -58,19 +88,11 @@ export function AvaUiProvider({
         onClose={closeAva}
         nutrition={nutrition}
         onNutritionChange={handleNutritionChange}
-        undoSnapshot={undoSnapshot}
-        onUndoSnapshotChange={setUndoSnapshot}
+        packet={packet}
+        session={sessionRef.current}
+        appHistory={appState?.history ?? []}
+        onAvaAction={onAvaAction}
       />
     </AvaUiContext.Provider>
   )
-}
-
-export function useAvaUi() {
-  const context = useContext(AvaUiContext)
-
-  if (!context) {
-    throw new Error('useAvaUi must be used within an AvaUiProvider')
-  }
-
-  return context
 }

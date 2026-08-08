@@ -722,6 +722,32 @@ function App() {
     navigate('mobility')
   }
 
+  const handleAvaAction = (actionId) => {
+    switch (actionId) {
+      case 'start-workout':
+      case 'continue-workout':
+        startWorkout()
+        return
+      case 'open-readiness':
+        setShowReadinessCheckIn(true)
+        return
+      case 'start-recovery':
+        openHomeReset()
+        return
+      case 'open-nutrition':
+        navigate('nutrition')
+        return
+      case 'open-progress':
+        navigate('progress')
+        return
+      case 'view-assignment':
+        navigate('home')
+        return
+      default:
+        break
+    }
+  }
+
   const updateMobilityPreferences = (
     patch,
   ) => {
@@ -1463,6 +1489,13 @@ function App() {
     <AvaUiProvider
       enabled={!isImmersiveScreen(screen, { mobilityFlow })}
       showFloatingEntry={screen !== 'home'}
+      appState={state}
+      userName={
+        session?.user?.user_metadata?.display_name ??
+        session?.user?.email?.split('@')[0] ??
+        ''
+      }
+      onAvaAction={handleAvaAction}
       nutrition={state.nutrition ?? createNutritionState()}
       onNutritionChange={handleNutritionChange}
     >

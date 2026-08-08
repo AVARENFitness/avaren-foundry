@@ -104,6 +104,21 @@ export const selectPrimaryAvaAction = (ctx, dailyState) => {
     })
   }
 
+  if (
+    dailyState === DAILY_STATE.REST &&
+    !assignment &&
+    !state.activeWorkout
+  ) {
+    return buildAction({
+      type: AVA_ACTION_TYPES.REST,
+      focusAction: FOCUS_ACTIONS.VIEW_TODAY,
+      eyebrow: null,
+      label: null,
+      detail: null,
+      meta: {},
+    })
+  }
+
   if (!readiness.completed) {
     if (!hasHistory) {
       return buildAction({
@@ -134,21 +149,6 @@ export const selectPrimaryAvaAction = (ctx, dailyState) => {
       label: 'Start Recovery Flow',
       detail: null,
       meta: { flowId: 'recovery-flow' },
-    })
-  }
-
-  if (
-    dailyState === DAILY_STATE.REST &&
-    !assignment &&
-    !state.activeWorkout
-  ) {
-    return buildAction({
-      type: AVA_ACTION_TYPES.REST,
-      focusAction: FOCUS_ACTIONS.VIEW_TODAY,
-      eyebrow: null,
-      label: null,
-      detail: null,
-      meta: {},
     })
   }
 

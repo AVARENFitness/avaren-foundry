@@ -148,9 +148,10 @@ const recoveryHabitAdjustment = (state = {}) => {
   return Math.min(8, recentMobility.length * 2)
 }
 
-export const calculateReadiness = (state = {}) => {
+export const calculateReadiness = (state = {}, date = new Date()) => {
   const entry = readinessEntryForDate(
     state.readiness ?? {},
+    date,
   )
   const subjectiveScore = scoreFromEntry(entry)
 

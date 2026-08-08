@@ -100,8 +100,8 @@ const lastWorkoutSession = (history = []) =>
     )
     .at(-1) ?? null
 
-const mobilityCompletedToday = (state = {}, flowId) => {
-  const today = new Date().toISOString().slice(0, 10)
+const mobilityCompletedToday = (state = {}, flowId, date = new Date()) => {
+  const today = date.toISOString().slice(0, 10)
   return (state.mobility?.completed ?? []).some((item) => {
     const date = String(item?.completedAt ?? '').slice(0, 10)
     return date === today && (!flowId || item?.flowId === flowId)
@@ -113,7 +113,7 @@ export const buildAvaContext = (state = {}, context = {}) => {
   const history = (state.history ?? []).filter((session) =>
     Array.isArray(session?.sets),
   )
-  const readiness = calculateReadiness(state)
+  const readiness = calculateReadiness(state, now)
   const sevenDay = readinessTrendSnapshot(state, 7)
   const recovery = calculateRecoveryIntelligence(state)
   const analytics = analyticsSnapshot(state)
@@ -131,6 +131,7 @@ export const buildAvaContext = (state = {}, context = {}) => {
   const trainingRecommendation = buildTrainingRecommendation(
     state,
     workoutContext.name,
+    now,
   )
   const todaysFocus = deriveTodaysFocus(state, {
     now,
@@ -155,8 +156,8 @@ export const buildAvaContext = (state = {}, context = {}) => {
     isRestDay: isScheduledRestDay(workoutContext),
     recentWorkouts: recentSessions(history, 7, now),
     lastSession: lastWorkoutSession(history),
-    mobilityResetDone: mobilityCompletedToday(state, 'daily-reset'),
-    recoveryFlowDone: mobilityCompletedToday(state, 'recovery-flow'),
+    mobilityResetDone: mobilityCompletedToday(state, 'daily-reset', now),
+    recoveryFlowDone: mobilityCompletedToday(state, 'recovery-flow', now),
   }
 }
 
@@ -194,20 +195,20 @@ export const buildAvaConfidence = (ctx) => {
 export const buildAvaDailyState = (ctx) => {
   const { trainingRecommendation, readiness, hasHistory, isRestDay } = ctx
 
-  if (!hasHistory && !readiness.completed) {
-    return AVA_DAILY_STATES.INSUFFICIENT_DATA
-  }
-
-  if (!readiness.completed && hasHistory) {
-    return AVA_DAILY_STATES.INSUFFICIENT_DATA
-  }
-
   if (
     isRestDay &&
     !ctx.assignmentDueToday &&
     !ctx.state.activeWorkout
   ) {
     return AVA_DAILY_STATES.REST
+  }
+
+  if (!hasHistory && !readiness.completed) {
+    return AVA_DAILY_STATES.INSUFFICIENT_DATA
+  }
+
+  if (!readiness.completed && hasHistory) {
+    return AVA_DAILY_STATES.INSUFFICIENT_DATA
   }
 
   if (

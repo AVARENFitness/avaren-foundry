@@ -29,6 +29,7 @@ export function applyAvaNutritionAction(
       )
       return {
         nutrition: result.nutrition,
+        entries: result.entries,
         undo,
         toastMessage: `Logged ${result.entries.map((entry) => entry.name).join(' and ')}.`,
       }

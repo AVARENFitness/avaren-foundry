@@ -106,8 +106,9 @@ const confidenceFromEvidence = (
 export const buildTrainingRecommendation = (
   state = {},
   scheduledWorkout,
+  now = new Date(),
 ) => {
-  const readiness = calculateReadiness(state)
+  const readiness = calculateReadiness(state, now)
   const sevenDay = readinessTrendSnapshot(state, 7)
   const recovery = calculateRecoveryIntelligence(state)
   const workout =

@@ -1,39 +1,102 @@
 import { AVA_INTENTS } from './intents'
+import {
+  buildAvaSuggestedPrompts,
+  respondToAvaMessage,
+} from '../lib/avaConversation'
+import { requestAvaChat } from '../lib/avaChatBackend'
+import { shouldRunNutritionTool, isNutritionQuery } from '../lib/avaConversationalRouter'
 
 const nowIso = () => new Date().toISOString()
 
-const createMockResponse = ({
+const createFallbackResponse = ({
   intent,
   summary,
   suggestions = [],
   data = {},
 }) => ({
   ok: true,
-  source: 'mock',
+  source: 'fallback',
   intent,
   summary,
   suggestions,
+  actions: [],
   data,
   generatedAt: nowIso(),
 })
+
+const withDeterministicConversation = (
+  input,
+  context = {},
+  intent = AVA_INTENTS.MESSAGE,
+) => {
+  if (!context?.packet || !context?.session) return null
+
+  return respondToAvaMessage({
+    message: typeof input === 'string' ? input : input?.query ?? '',
+    packet: context.packet,
+    session: context.session,
+    history: context.history ?? context.packet?.history ?? [],
+    intent,
+  })
+}
+
+const withModelConversation = async (message, context = {}) => {
+  if (!context?.packet || !context?.session) return null
+
+  const nutritionBlocked = shouldRunNutritionTool(message, {
+    packet: context.packet,
+    session: context.session,
+  })
+  if (nutritionBlocked || isNutritionQuery(message)) return null
+
+  const modelResult = await requestAvaChat({
+    message,
+    packet: context.packet,
+    session: context.session,
+    invoke: context.invokeAvaChat,
+  })
+
+  if (modelResult?.ok) {
+    return {
+      ...modelResult,
+      generatedAt: nowIso(),
+    }
+  }
+
+  return null
+}
 
 export default class AvaService {
   async analyzeMessage(input = '', context = {}) {
     const message = String(input ?? '').trim()
 
-    return createMockResponse({
+    const modelResponse = await withModelConversation(message, context)
+    if (modelResponse) return modelResponse
+
+    const conversational = withDeterministicConversation(
+      message,
+      context,
+      AVA_INTENTS.MESSAGE,
+    )
+
+    if (conversational) {
+      return {
+        ...conversational,
+        source: conversational.source ?? 'deterministic',
+        generatedAt: nowIso(),
+      }
+    }
+
+    return createFallbackResponse({
       intent: AVA_INTENTS.MESSAGE,
       summary: message
-        ? 'AVA received your message and will analyze it once intelligence providers are connected.'
+        ? "I'm having trouble opening the full conversation right now, but I can still help with today's plan."
         : 'Send AVA a message to get guidance.',
       suggestions: [
         'How should I adjust today’s workout?',
         'What should I eat after training?',
       ],
-      data: {
-        message,
-        contextKeys: Object.keys(context ?? {}),
-      },
+      data: { message, modelUnavailable: true },
     })
   }
 
@@ -43,51 +106,51 @@ export default class AvaService {
         ? input
         : input?.description ?? input?.query ?? ''
 
-    return createMockResponse({
+    const conversational = withDeterministicConversation(
+      description,
+      context,
+      AVA_INTENTS.FOOD,
+    )
+    if (conversational) {
+      return { ...conversational, generatedAt: nowIso() }
+    }
+
+    return createFallbackResponse({
       intent: AVA_INTENTS.FOOD,
       summary: description
         ? `Food analysis placeholder for “${description}”.`
         : 'Food analysis will estimate macros from your description.',
-      suggestions: [
-        'Log 6 oz grilled chicken',
-        'Estimate macros for overnight oats',
-      ],
-      data: {
-        description,
-        estimated: {
-          calories: 420,
-          protein: 32,
-          carbs: 28,
-          fat: 16,
-        },
-        contextKeys: Object.keys(context ?? {}),
-      },
+      suggestions: ['Log 6 oz grilled chicken', 'Estimate macros for overnight oats'],
+      data: { description },
     })
   }
 
   async analyzeWorkout(input = {}, context = {}) {
-    const focus =
+    const query =
       typeof input === 'string'
         ? input
-        : input?.focus ?? input?.question ?? 'today'
+        : input?.focus ?? input?.question ?? input?.query ?? 'today'
 
-    return createMockResponse({
+    const modelResponse = await withModelConversation(query, context)
+    if (modelResponse) return modelResponse
+
+    const conversational = withDeterministicConversation(
+      query,
+      context,
+      AVA_INTENTS.WORKOUT,
+    )
+    if (conversational) {
+      return { ...conversational, generatedAt: nowIso() }
+    }
+
+    return createFallbackResponse({
       intent: AVA_INTENTS.WORKOUT,
-      summary: `Workout guidance placeholder for ${focus}.`,
+      summary: `Workout guidance placeholder for ${query}.`,
       suggestions: [
         'Keep today’s session at maintenance volume',
         'Swap bench press for dumbbell press',
       ],
-      data: {
-        focus,
-        recommendation: {
-          action: 'maintain',
-          confidence: 0.62,
-          rationale:
-            'Placeholder response until AVA connects to training engines.',
-        },
-        contextKeys: Object.keys(context ?? {}),
-      },
+      data: { focus: query },
     })
   }
 
@@ -97,7 +160,7 @@ export default class AvaService {
         ? input
         : Number(input?.weight ?? input?.value ?? 0) || null
 
-    return createMockResponse({
+    return createFallbackResponse({
       intent: AVA_INTENTS.WEIGHT,
       summary: value
         ? `Weight insight placeholder for ${value}.`
@@ -106,11 +169,7 @@ export default class AvaService {
         'Compare this week to last month',
         'Set a realistic weekly target',
       ],
-      data: {
-        value,
-        trend: 'stable',
-        contextKeys: Object.keys(context ?? {}),
-      },
+      data: { value, trend: 'stable' },
     })
   }
 
@@ -120,28 +179,33 @@ export default class AvaService {
         ? input
         : Number(input?.waterOz ?? input?.ounces ?? 0) || null
 
-    return createMockResponse({
+    return createFallbackResponse({
       intent: AVA_INTENTS.WATER,
       summary: ounces
         ? `Hydration placeholder for ${ounces} oz logged today.`
         : 'Hydration insights will compare intake against your daily goal.',
-      suggestions: [
-        'Add 16 oz before your next meal',
-        'Log the bottle you just finished',
-      ],
-      data: {
-        waterOz: ounces,
-        goalOz: 100,
-        contextKeys: Object.keys(context ?? {}),
-      },
+      suggestions: ['Add 16 oz before your next meal', 'Log the bottle you just finished'],
+      data: { waterOz: ounces, goalOz: 100 },
     })
   }
 
   async getSuggestions(context = {}) {
-    return createMockResponse({
+    if (context?.packet) {
+      return {
+        ok: true,
+        source: 'deterministic',
+        intent: AVA_INTENTS.SUGGESTIONS,
+        summary: 'Here are a few useful places to start.',
+        suggestions: buildAvaSuggestedPrompts(context.packet),
+        actions: [],
+        data: { items: buildAvaSuggestedPrompts(context.packet) },
+        generatedAt: nowIso(),
+      }
+    }
+
+    return createFallbackResponse({
       intent: AVA_INTENTS.SUGGESTIONS,
-      summary:
-        'Placeholder suggestions until AVA connects to your training data.',
+      summary: 'Placeholder suggestions until AVA connects to your training data.',
       suggestions: [
         'Review readiness before today’s session',
         'Log protein within two hours of training',
@@ -149,23 +213,10 @@ export default class AvaService {
       ],
       data: {
         items: [
-          {
-            id: 'readiness-check',
-            label: 'Check readiness',
-            domain: 'recovery',
-          },
-          {
-            id: 'post-workout-meal',
-            label: 'Plan post-workout meal',
-            domain: 'nutrition',
-          },
-          {
-            id: 'weekly-review',
-            label: 'Review weekly progress',
-            domain: 'progress',
-          },
+          { id: 'readiness-check', label: 'Check readiness', domain: 'recovery' },
+          { id: 'post-workout-meal', label: 'Plan post-workout meal', domain: 'nutrition' },
+          { id: 'weekly-review', label: 'Review weekly progress', domain: 'progress' },
         ],
-        contextKeys: Object.keys(context ?? {}),
       },
     })
   }

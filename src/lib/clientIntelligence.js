@@ -538,7 +538,10 @@ export const buildPerformanceInsights = (history = []) => {
   }
 }
 
-export const buildReadinessSnapshot = (athleteState = null) => {
+export const buildReadinessSnapshot = (
+  athleteState = null,
+  now = new Date(),
+) => {
   if (!athleteState?.readiness?.entries?.length) {
     return {
       available: false,
@@ -552,7 +555,7 @@ export const buildReadinessSnapshot = (athleteState = null) => {
     }
   }
 
-  const readiness = calculateReadiness(athleteState)
+  const readiness = calculateReadiness(athleteState, now)
   const trend = readinessTrendSnapshot(athleteState, 14)
 
   let band = READINESS_BAND.MANAGE
@@ -1686,7 +1689,7 @@ export const buildClientIntelligence = ({
     athleteState,
     assignments,
   })
-  const readiness = buildReadinessSnapshot(athleteState)
+  const readiness = buildReadinessSnapshot(athleteState, now)
   const nutrition = buildNutritionSnapshot({
     nutritionProfile,
     nutritionDays,

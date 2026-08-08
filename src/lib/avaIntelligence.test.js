@@ -120,8 +120,41 @@ describe('avaIntelligence', () => {
     while (tuesday.getDay() !== 2) {
       tuesday.setDate(tuesday.getDate() + 1)
     }
+    const tuesdayKey = tuesday.toISOString().slice(0, 10)
 
-    const briefing = buildAvaDailyBriefing(baseState, { now: tuesday })
+    const briefing = buildAvaDailyBriefing(
+      {
+        ...baseState,
+        readiness: {
+          entries: [
+            readinessEntry({ date: tuesdayKey }),
+            readinessEntry({
+              id: 'ready-2',
+              date: workout({ daysAgo: 1 }).date,
+            }),
+            readinessEntry({
+              id: 'ready-3',
+              date: workout({ daysAgo: 3 }).date,
+            }),
+          ],
+          lastPromptedDate: tuesdayKey,
+        },
+        mobility: {
+          completed: [
+            {
+              flowId: 'daily-reset',
+              completedAt: `${tuesdayKey}T07:00:00`,
+            },
+            {
+              flowId: 'recovery-flow',
+              title: 'Recovery Flow',
+              completedAt: `${tuesdayKey}T07:30:00`,
+            },
+          ],
+        },
+      },
+      { now: tuesday },
+    )
 
     expect(briefing.dailyState).toBe(AVA_DAILY_STATES.READY)
     expect(briefing.recommendation.id).toBe(
