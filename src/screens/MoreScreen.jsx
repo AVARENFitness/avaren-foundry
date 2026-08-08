@@ -19,13 +19,23 @@ import {
   UserRound,
   Zap,
 } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import CollapsibleIdentityPanel, {
+  IDENTITY_EDITOR_MODE,
+} from '../components/ui/CollapsibleIdentityPanel'
 import ImportBackupButton from '../components/ImportBackupButton'
 import AthleteCoachPanel from '../components/AthleteCoachPanel'
 import AthleteSessionPackageCard from '../components/AthleteSessionPackageCard'
 import AthleteScheduledSessions from '../components/AthleteScheduledSessions'
 import { supabase } from '../lib/supabase'
 import { appUi } from '../lib/appUi'
+import { getAthleteDisplayName } from '../lib/clientDisplayName'
+import { probeIdentityCapabilities } from '../lib/identityCapabilities'
+import {
+  profileSeedFromAuthUser,
+  sanitizeOwnProfileDraft,
+  userProfileBackend,
+} from '../lib/userProfileBackend'
 import {
   clearState,
   exportState,
@@ -94,12 +104,111 @@ export default function MoreScreen({
 }) {
   const [activeSection, setActiveSection] = useState('Overview')
   const [shareMessage, setShareMessage] = useState('')
+  const [profileDraft, setProfileDraft] = useState(() =>
+    sanitizeOwnProfileDraft(profileSeedFromAuthUser(session?.user ?? {})),
+  )
+  const [savedProfile, setSavedProfile] = useState(() =>
+    sanitizeOwnProfileDraft(profileSeedFromAuthUser(session?.user ?? {})),
+  )
+  const [profileEditorMode, setProfileEditorMode] = useState(
+    IDENTITY_EDITOR_MODE.VIEW,
+  )
+  const [profileLoading, setProfileLoading] = useState(false)
+  const [profileEnabled, setProfileEnabled] = useState(false)
+  const [profileError, setProfileError] = useState('')
+  const profileSavedTimerRef = useRef(null)
   const userId = session?.user?.id ?? null
   const email = session?.user?.email ?? ''
-  const displayName =
+  const legacyName =
     session?.user?.user_metadata?.display_name ||
     email.split('@')[0] ||
     'AVAREN Athlete'
+
+  useEffect(() => {
+    return () => {
+      if (profileSavedTimerRef.current) {
+        clearTimeout(profileSavedTimerRef.current)
+      }
+    }
+  }, [])
+
+  useEffect(() => {
+    probeIdentityCapabilities().then((caps) => {
+      setProfileEnabled(Boolean(caps.userProfiles))
+    })
+  }, [])
+
+  useEffect(() => {
+    if (!userId || !profileEnabled) {
+      const seed = sanitizeOwnProfileDraft(profileSeedFromAuthUser(session?.user ?? {}))
+      setProfileDraft(seed)
+      setSavedProfile(seed)
+      return
+    }
+
+    let active = true
+    setProfileLoading(true)
+    userProfileBackend
+      .getUserProfile(userId)
+      .then((profile) => {
+        if (!active) return
+        const next = sanitizeOwnProfileDraft(
+          profile ?? profileSeedFromAuthUser(session?.user ?? {}),
+        )
+        setProfileDraft(next)
+        setSavedProfile(next)
+        setProfileEditorMode(IDENTITY_EDITOR_MODE.VIEW)
+      })
+      .catch(() => {
+        if (!active) return
+        const seed = sanitizeOwnProfileDraft(profileSeedFromAuthUser(session?.user ?? {}))
+        setProfileDraft(seed)
+        setSavedProfile(seed)
+      })
+      .finally(() => {
+        if (active) setProfileLoading(false)
+      })
+
+    return () => {
+      active = false
+    }
+  }, [userId, profileEnabled, session?.user?.id])
+
+  const displayName = useMemo(
+    () =>
+      getAthleteDisplayName({
+        profile: savedProfile,
+        legacyName,
+        email,
+      }),
+    [savedProfile, legacyName, email],
+  )
+
+  const profileFullName = useMemo(() => {
+    const parts = [savedProfile.first_name, savedProfile.last_name].filter(Boolean)
+    return parts.length ? parts.join(' ') : displayName
+  }, [savedProfile, displayName])
+
+  const handleProfileSave = async () => {
+    setProfileEditorMode(IDENTITY_EDITOR_MODE.SAVING)
+    setProfileError('')
+    try {
+      const saved = await userProfileBackend.updateOwnUserProfile(profileDraft)
+      const next = sanitizeOwnProfileDraft(saved ?? profileDraft)
+      setSavedProfile(next)
+      setProfileDraft(next)
+      setProfileEditorMode(IDENTITY_EDITOR_MODE.SAVED)
+      if (profileSavedTimerRef.current) {
+        clearTimeout(profileSavedTimerRef.current)
+      }
+      profileSavedTimerRef.current = setTimeout(() => {
+        setProfileEditorMode(IDENTITY_EDITOR_MODE.VIEW)
+      }, 1400)
+    } catch (error) {
+      setProfileError(error?.message ?? 'Could not save profile name.')
+      setProfileEditorMode(IDENTITY_EDITOR_MODE.ERROR)
+    }
+  }
 
   const shareAvaren = async () => {
     const data = {
@@ -189,6 +298,98 @@ export default function MoreScreen({
             <div className="more-account-icon"><UserRound size={19}/></div>
             <div><strong>{displayName}</strong><span>{email}</span></div>
           </div>
+
+          {profileEnabled ? (
+            <CollapsibleIdentityPanel
+              eyebrow="PROFILE"
+              title="Profile name"
+              hint="How you appear across AVAREN."
+              mode={profileEditorMode}
+              canEdit={!profileLoading}
+              isEmpty={!savedProfile.first_name && !savedProfile.last_name}
+              successMessage="Profile name saved"
+              errorMessage={profileError}
+              editLabel="Edit"
+              addLabel="Add name"
+              saveLabel="Save profile name"
+              onEdit={() => {
+                setProfileDraft(savedProfile)
+                setProfileError('')
+                setProfileEditorMode(IDENTITY_EDITOR_MODE.EDITING)
+              }}
+              onCancel={() => {
+                setProfileDraft(savedProfile)
+                setProfileError('')
+                setProfileEditorMode(IDENTITY_EDITOR_MODE.VIEW)
+              }}
+              onSave={handleProfileSave}
+              viewContent={
+                <>
+                  <div className="identity-summary-row">
+                    <small>Name</small>
+                    <strong>{profileFullName}</strong>
+                  </div>
+                  {savedProfile.preferred_name ? (
+                    <div className="identity-summary-row">
+                      <small>Preferred</small>
+                      <strong>{savedProfile.preferred_name}</strong>
+                    </div>
+                  ) : null}
+                </>
+              }
+              editingContent={
+                <div className="coach-client-identity-grid">
+                  <label className="coach-field">
+                    <span>First name</span>
+                    <input
+                      className="coach-field-input"
+                      value={profileDraft.first_name}
+                      disabled={profileEditorMode === IDENTITY_EDITOR_MODE.SAVING}
+                      onChange={(event) =>
+                        setProfileDraft((current) => ({
+                          ...current,
+                          first_name: event.target.value,
+                        }))
+                      }
+                      autoComplete="given-name"
+                    />
+                  </label>
+                  <label className="coach-field">
+                    <span>Last name</span>
+                    <input
+                      className="coach-field-input"
+                      value={profileDraft.last_name}
+                      disabled={profileEditorMode === IDENTITY_EDITOR_MODE.SAVING}
+                      onChange={(event) =>
+                        setProfileDraft((current) => ({
+                          ...current,
+                          last_name: event.target.value,
+                        }))
+                      }
+                      autoComplete="family-name"
+                    />
+                  </label>
+                  <label className="coach-field coach-field--wide">
+                    <span>Preferred name</span>
+                    <input
+                      className="coach-field-input"
+                      value={profileDraft.preferred_name}
+                      disabled={profileEditorMode === IDENTITY_EDITOR_MODE.SAVING}
+                      onChange={(event) =>
+                        setProfileDraft((current) => ({
+                          ...current,
+                          preferred_name: event.target.value,
+                        }))
+                      }
+                      placeholder="Optional nickname"
+                      autoComplete="nickname"
+                    />
+                  </label>
+                </div>
+              }
+            />
+          ) : null}
+
           <div className="more-destination-list">
             {coachAccessEnabled && (
               <MoreItem

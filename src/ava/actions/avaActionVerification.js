@@ -1,5 +1,6 @@
-import { AVA_ACTION_IDS } from './avaActionTypes'
+import { AVA_ACTION_IDS, isCoachAvaAction } from './avaActionTypes'
 import { getDestinationForAction } from './avaActionReferent'
+import { isCoachClientsListVerified } from '../coach/avaCoachNav'
 
 export const verifyAvaAction = ({
   actionId,
@@ -8,6 +9,71 @@ export const verifyAvaAction = ({
 } = {}) => {
   const snapshot = runtime?.getSnapshot?.() ?? {}
   const destination = getDestinationForAction(actionId)
+
+  if (isCoachAvaAction(actionId)) {
+    switch (actionId) {
+      case AVA_ACTION_IDS.OPEN_COACH_HUB:
+        if (isCoachClientsListVerified(snapshot)) {
+          return {
+            ok: true,
+            destination: 'coach-clients',
+            alreadyActive: true,
+          }
+        }
+        if (snapshot.coachHub && snapshot.coachScreen === 'clients') {
+          return { ok: true, destination: 'coach-clients' }
+        }
+        if (snapshot.coachHub) {
+          return {
+            ok: false,
+            reason: 'coach-clients-not-active',
+            destination: 'coach-clients',
+          }
+        }
+        return {
+          ok: false,
+          reason: 'coach-hub-not-open',
+          destination: 'coach-clients',
+        }
+      case AVA_ACTION_IDS.OPEN_CLIENT_PROFILE:
+      case AVA_ACTION_IDS.OPEN_CLIENT_INTELLIGENCE:
+        if (
+          snapshot.coachHub &&
+          String(snapshot.selectedClientId) ===
+            String(context.athleteId ?? context.meta?.athleteId)
+        ) {
+          return { ok: true, destination: 'coach-client' }
+        }
+        return { ok: false, reason: 'client-not-open', destination: 'coach-client' }
+      case AVA_ACTION_IDS.OPEN_WEEKLY_REVIEWS:
+        if (snapshot.coachHub && snapshot.weeklyReviewOpen) {
+          return { ok: true, destination: 'coach-weekly-review' }
+        }
+        if (
+          snapshot.coachHub &&
+          snapshot.coachScreen === 'clients' &&
+          !context.athleteId &&
+          !context.meta?.athleteId
+        ) {
+          return { ok: true, destination: 'coach-weekly-reviews' }
+        }
+        if (
+          snapshot.coachHub &&
+          snapshot.weeklyReviewOpen &&
+          String(snapshot.selectedClientId) ===
+            String(context.athleteId ?? context.meta?.athleteId)
+        ) {
+          return { ok: true, destination: 'coach-weekly-review' }
+        }
+        return {
+          ok: false,
+          reason: 'weekly-review-not-open',
+          destination: 'coach-weekly-review',
+        }
+      default:
+        return { ok: true, destination: 'coach-query' }
+    }
+  }
 
   switch (actionId) {
     case AVA_ACTION_IDS.START_TODAYS_WORKOUT:

@@ -14,16 +14,9 @@ import {
   WEEKLY_REVIEW_STATUS,
 } from '../../lib/weeklyReview'
 
-const ICON = { size: 18, strokeWidth: 1.75 }
+import { getClientDisplayName } from '../../lib/clientDisplayName'
 
-const displayName = (email = '') => {
-  const local = email.split('@')[0] ?? email
-  return local
-    .split(/[._-]+/)
-    .filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(' ')
-}
+const ICON = { size: 18, strokeWidth: 1.75 }
 
 const decisionLabel = (id) =>
   WEEKLY_REVIEW_DECISIONS.find((item) => item.id === id)?.label ?? id
@@ -209,7 +202,7 @@ export default function CoachWeeklyReview({
 
       <header className="coach-weekly-review-hero">
         <span className="eyebrow">WEEKLY REVIEW</span>
-        <h1>{displayName(client.athlete_email)}</h1>
+        <h1>{getClientDisplayName(client)}</h1>
         <p>{activeWeekLabel}</p>
         <div className="coach-weekly-review-status-row">
           <span className={`coach-weekly-review-status ${isHistorical ? 'historical' : ''}`}>

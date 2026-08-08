@@ -225,6 +225,13 @@ export const getDestinationForAction = (actionId) => {
     case AVA_ACTION_IDS.OPEN_RECOVERY:
     case AVA_ACTION_IDS.START_RECOVERY_FLOW:
       return 'mobility'
+    case AVA_ACTION_IDS.OPEN_COACH_HUB:
+      return 'coach-clients'
+    case AVA_ACTION_IDS.OPEN_CLIENT_PROFILE:
+    case AVA_ACTION_IDS.OPEN_CLIENT_INTELLIGENCE:
+      return 'coach-client'
+    case AVA_ACTION_IDS.OPEN_WEEKLY_REVIEWS:
+      return 'coach-weekly-review'
     default:
       return null
   }

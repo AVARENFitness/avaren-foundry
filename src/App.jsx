@@ -6,6 +6,11 @@ import { useWorkoutSession } from './hooks/useWorkoutSession'
 import AppShell from './components/AppShell'
 import ErrorBoundary from './components/ErrorBoundary'
 import { createAvaActionRuntime } from './ava/actions/createAvaActionRuntime'
+import { createAvaCoachActionRuntime } from './ava/coach/createAvaCoachActionRuntime'
+import {
+  buildBaseCoachAvaContext,
+  resolveAvaRole,
+} from './ava/coach/avaCoachRole'
 import { AvaUiProvider } from './ava/AvaUiProvider'
 import { isImmersiveScreen } from './lib/immersiveScreens'
 import { STATE_SCHEMA_VERSION } from './lib/stateSchema'
@@ -29,6 +34,7 @@ import TrainHubScreen from './screens/TrainHubScreen'
 import NutritionScreen from './screens/NutritionScreen'
 import { createNutritionState, nutritionDateKey, nutritionTotals } from './lib/nutrition'
 import { nutritionBackend } from './lib/nutritionBackend'
+import { userProfileBackend } from './lib/userProfileBackend'
 import WeeklyPlannerScreen from './screens/WeeklyPlannerScreen'
 import HistoryScreen from './screens/HistoryScreen'
 import ForgeScreen from './screens/ForgeScreen'
@@ -446,6 +452,22 @@ function App() {
   }, [session?.user?.id, cloudReady])
 
   useEffect(() => {
+    if (!session?.user || !cloudReady) return undefined
+
+    let active = true
+    userProfileBackend
+      .ensureOwnUserProfileFromSession(session.user)
+      .catch(() => {
+        if (!active) return
+        // Identity tables may not exist until migration is applied.
+      })
+
+    return () => {
+      active = false
+    }
+  }, [session?.user?.id, cloudReady, session?.user])
+
+  useEffect(() => {
     if ('setAppBadge' in navigator) {
       if (notifications.unreadCount > 0) {
         navigator.setAppBadge(notifications.unreadCount).catch(() => {})
@@ -761,6 +783,27 @@ function App() {
     activeWorkout: null,
     showReadinessCheckIn: false,
   })
+  const coachAvaContextRef = useRef({
+    isCoachMode: false,
+    authorized: false,
+    clients: [],
+  })
+  const [coachAvaContext, setCoachAvaContext] = useState(() =>
+    buildBaseCoachAvaContext({
+      session: null,
+      coachAuthorized: false,
+      isCoachMode: false,
+    }),
+  )
+  const coachAvaSnapshotRef = useRef({
+    coachHub: false,
+    coachScreen: 'clients',
+    selectedClientId: null,
+    weeklyReviewOpen: false,
+    profileOpen: false,
+  })
+  const screenRef = useRef(screen)
+  const coachScreenApiRef = useRef(null)
 
   useEffect(() => {
     avaSnapshotRef.current = {
@@ -813,6 +856,186 @@ function App() {
       }),
     [startWorkout, navigate, openDailyReset, openHomeReset],
   )
+
+  const avaRoleState = useMemo(
+    () => resolveAvaRole({ session, coachAuthorized }),
+    [session, coachAuthorized],
+  )
+
+  useEffect(() => {
+    setCoachAvaContext((current) => {
+      const merged = buildBaseCoachAvaContext({
+        session,
+        coachAuthorized,
+        isCoachMode: screen === 'coach-hub',
+        rosterContext: current,
+      })
+      coachAvaContextRef.current = merged
+      return merged
+    })
+  }, [session, coachAuthorized, screen])
+
+  useEffect(() => {
+    if (!coachAuthorized || !session?.user?.id) return
+    if ((coachAvaContextRef.current.clients?.length ?? 0) > 0) return
+
+    let cancelled = false
+    coachBackend
+      .listClientsWithIdentity()
+      .then((clients) => {
+        if (cancelled || !Array.isArray(clients) || clients.length === 0) return
+        setCoachAvaContext((current) => {
+          const merged = buildBaseCoachAvaContext({
+            session,
+            coachAuthorized,
+            isCoachMode: screen === 'coach-hub',
+            rosterContext: {
+              ...current,
+              clients,
+            },
+          })
+          coachAvaContextRef.current = merged
+          return merged
+        })
+      })
+      .catch(() => {})
+
+    return () => {
+      cancelled = true
+    }
+  }, [coachAuthorized, session?.user?.id, screen])
+
+  const ensureCoachHubNavigation = useCallback(
+    ({ focus = 'clients' } = {}) => {
+      coachAvaSnapshotRef.current = {
+        coachHub: true,
+        coachScreen: 'clients',
+        selectedClientId: null,
+        weeklyReviewOpen: false,
+        profileOpen: false,
+      }
+
+      if (screenRef.current !== 'coach-hub') {
+        enterCoachMode()
+        return
+      }
+
+      setCoachScreen('clients')
+      setSelectedCoachClient(null)
+      coachScreenApiRef.current?.clearClientOverlays?.()
+    },
+    [enterCoachMode, setCoachScreen, setSelectedCoachClient],
+  )
+
+  const coachAvaActionRuntime = useMemo(
+    () =>
+      createAvaCoachActionRuntime({
+        setCoachScreen: (nextScreen) => {
+          coachAvaSnapshotRef.current = {
+            ...coachAvaSnapshotRef.current,
+            coachHub: true,
+            coachScreen: nextScreen,
+          }
+          setCoachScreen(nextScreen)
+        },
+        enterCoachHub: ensureCoachHubNavigation,
+        openCoachClientList: ensureCoachHubNavigation,
+        openClientProfile: (client) => {
+          if (!client?.athlete_id) return
+          if (screenRef.current !== 'coach-hub') {
+            ensureCoachHubNavigation()
+          }
+          coachAvaSnapshotRef.current = {
+            ...coachAvaSnapshotRef.current,
+            coachHub: true,
+            coachScreen: 'clients',
+            selectedClientId: client.athlete_id,
+            profileOpen: true,
+            weeklyReviewOpen: false,
+          }
+          setSelectedCoachClient(client)
+          setCoachScreen('clients')
+          coachScreenApiRef.current?.openClientProfile?.(client)
+        },
+        openWeeklyReview: (client) => {
+          if (!client?.athlete_id) return
+          if (screenRef.current !== 'coach-hub') {
+            ensureCoachHubNavigation()
+          }
+          coachAvaSnapshotRef.current = {
+            ...coachAvaSnapshotRef.current,
+            coachHub: true,
+            coachScreen: 'clients',
+            selectedClientId: client.athlete_id,
+            profileOpen: false,
+            weeklyReviewOpen: true,
+          }
+          setSelectedCoachClient(client)
+          setCoachScreen('clients')
+          coachScreenApiRef.current?.openWeeklyReview?.(client)
+        },
+        getSnapshot: () => coachAvaSnapshotRef.current,
+        getCoachContext: () => coachAvaContextRef.current,
+      }),
+    [ensureCoachHubNavigation, setCoachScreen, setSelectedCoachClient],
+  )
+
+  const avaRuntimeForUser = useMemo(() => {
+    if (!avaRoleState.coachAccess) {
+      return avaActionRuntime
+    }
+
+    return {
+      ...avaActionRuntime,
+      ...coachAvaActionRuntime,
+      isCoachRuntime: true,
+      getCoachContext: () => coachAvaContextRef.current,
+    }
+  }, [avaActionRuntime, avaRoleState.coachAccess, coachAvaActionRuntime])
+
+  useEffect(() => {
+    screenRef.current = screen
+  }, [screen])
+
+  useEffect(() => {
+    if (screen === 'coach-hub') {
+      coachAvaSnapshotRef.current = {
+        ...coachAvaSnapshotRef.current,
+        coachHub: true,
+        coachScreen,
+        selectedClientId: selectedCoachClient?.athlete_id ?? null,
+        profileOpen: Boolean(selectedCoachClient) && !coachAvaSnapshotRef.current.weeklyReviewOpen,
+      }
+    } else {
+      coachAvaSnapshotRef.current = {
+        ...coachAvaSnapshotRef.current,
+        coachHub: false,
+      }
+    }
+  }, [screen, coachScreen, selectedCoachClient])
+
+  const handleCoachAvaContextChange = useCallback((nextContext = {}) => {
+    const merged = buildBaseCoachAvaContext({
+      session,
+      coachAuthorized,
+      isCoachMode: screen === 'coach-hub',
+      rosterContext: nextContext,
+    })
+
+    coachAvaContextRef.current = merged
+    setCoachAvaContext(merged)
+    coachAvaSnapshotRef.current = {
+      coachHub: screen === 'coach-hub',
+      coachScreen: merged.coachScreen ?? coachScreen,
+      selectedClientId: merged.selectedClientId ?? null,
+      weeklyReviewOpen: Boolean(merged.weeklyReviewOpen),
+      profileOpen: Boolean(merged.profileOpen),
+    }
+  }, [session, coachAuthorized, screen, coachScreen])
+
+  const handleRegisterCoachScreenApi = useCallback((api = null) => {
+    coachScreenApiRef.current = api
+  }, [])
 
   const updateMobilityPreferences = (
     patch,
@@ -1278,6 +1501,8 @@ function App() {
             setCoachScreen('clients')
           }}
           onNavigateCoachScreen={setCoachScreen}
+          onCoachAvaContextChange={handleCoachAvaContextChange}
+          onRegisterCoachScreenApi={handleRegisterCoachScreenApi}
         />
       )
     }
@@ -1528,25 +1753,38 @@ function App() {
           navigate('home')
         }}
       >
-        <CoachShell
-          screen={coachScreen}
-          setScreen={setCoachScreen}
-          profileMode={Boolean(selectedCoachClient)}
-          onNavigate={(nextScreen) => {
-            setSelectedCoachClient(null)
-            setCoachScreen(nextScreen)
-          }}
-          coachName={
-            session?.user?.user_metadata
-              ?.display_name ||
-            session?.user?.email
-              ?.split('@')[0] ||
+        <AvaUiProvider
+          enabled
+          showFloatingEntry
+          coachContext={coachAvaContext}
+          role={avaRoleState.role}
+          actionRuntime={avaRuntimeForUser}
+          userName={
+            session?.user?.user_metadata?.display_name ??
+            session?.user?.email?.split('@')[0] ??
             'Coach'
           }
-          onExit={exitCoachMode}
         >
-          {activeScreen}
-        </CoachShell>
+          <CoachShell
+            screen={coachScreen}
+            setScreen={setCoachScreen}
+            profileMode={Boolean(selectedCoachClient)}
+            onNavigate={(nextScreen) => {
+              setSelectedCoachClient(null)
+              setCoachScreen(nextScreen)
+            }}
+            coachName={
+              session?.user?.user_metadata
+                ?.display_name ||
+              session?.user?.email
+                ?.split('@')[0] ||
+              'Coach'
+            }
+            onExit={exitCoachMode}
+          >
+            {activeScreen}
+          </CoachShell>
+        </AvaUiProvider>
       </ErrorBoundary>
     )
   }
@@ -1562,7 +1800,9 @@ function App() {
         ''
       }
       onAvaAction={handleAvaAction}
-      actionRuntime={avaActionRuntime}
+      actionRuntime={avaRuntimeForUser}
+      coachContext={coachAvaContext}
+      role={avaRoleState.role}
       nutrition={state.nutrition ?? createNutritionState()}
       onNutritionChange={handleNutritionChange}
     >

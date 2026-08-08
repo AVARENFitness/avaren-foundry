@@ -12116,6 +12116,155 @@ button:active {
   font-size: 8px;
 }
 
+.more-profile-name-panel {
+  display: grid;
+  gap: 14px;
+  margin-bottom: 18px;
+  padding: 18px;
+  border: 1px solid rgba(246,242,233,.05);
+  border-radius: 16px;
+  background: rgba(255,255,255,.008);
+}
+
+.more-profile-name-panel .gold-button {
+  justify-self: start;
+}
+
+.identity-panel {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 16px;
+  border: 1px solid rgba(246,242,233,.05);
+  border-radius: 16px;
+  background: rgba(255,255,255,.008);
+}
+
+.identity-panel-header h3 {
+  margin: 4px 0 0;
+  font-size: 1rem;
+  color: #f6f2e8;
+}
+
+.identity-panel-header p {
+  margin: 6px 0 0;
+  color: rgba(246,242,233,.58);
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.identity-panel-summary {
+  display: grid;
+  gap: 10px;
+}
+
+.identity-summary-row {
+  display: grid;
+  gap: 4px;
+}
+
+.identity-summary-row small {
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(246,242,233,.52);
+}
+
+.identity-summary-row strong {
+  font-size: 0.95rem;
+  color: #f6f2e8;
+}
+
+.identity-panel-form .coach-field-input {
+  width: 100%;
+  min-height: 44px;
+}
+
+.identity-panel-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.identity-panel-action,
+.identity-panel-actions .gold-button,
+.identity-panel-actions .coach-secondary-button {
+  justify-self: start;
+}
+
+.identity-panel-success {
+  margin: 0;
+  color: #c5af72;
+  font-size: 0.82rem;
+}
+
+.identity-panel-error {
+  margin: 0;
+  color: #d4847d;
+  font-size: 0.82rem;
+}
+
+.identity-panel-clear {
+  margin-left: auto;
+}
+
+.coach-command-center--calm .coach-command-hero--compact {
+  margin-bottom: 8px;
+}
+
+.coach-command-summary {
+  margin: 8px 0 0;
+  color: rgba(246,242,233,.62);
+  font-size: 0.88rem;
+}
+
+.coach-command-review-compact {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.coach-command-review-compact-copy {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.coach-command-review-compact-copy strong {
+  display: block;
+  font-size: 0.92rem;
+}
+
+.coach-command-review-compact-copy span {
+  display: block;
+  margin-top: 2px;
+  color: rgba(246,242,233,.58);
+  font-size: 0.78rem;
+}
+
+.coach-command-sort-row--compact {
+  gap: 8px;
+}
+
+.coach-command-tools-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.coach-command-tools-grid .coach-secondary-button {
+  min-height: 42px;
+}
+
+.coach-pending-section--compact {
+  opacity: 0.82;
+}
+
+.coach-pending-section--compact h2 {
+  font-size: 0.92rem;
+}
+
 .more-import-row .import-backup-button,
 .more-import-row button {
   width: 100%;
@@ -16121,6 +16270,45 @@ input, textarea, select {
   opacity: 0.92;
 }
 
+.ava-coach-results {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.ava-coach-result {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.ava-coach-result-copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.ava-coach-result-copy strong {
+  font-size: 14px;
+  line-height: 1.3;
+  word-break: break-word;
+}
+
+.ava-coach-result-copy span {
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.ava-coach-result-action {
+  flex-shrink: 0;
+}
+
 @media (max-width: 560px) {
   .ava-entry-button span {
     display: none;
@@ -16949,6 +17137,28 @@ input, textarea, select {
   border: 1px solid rgba(246,242,233,.05);
   border-radius: 16px;
   background: rgba(255,255,255,.008);
+}
+
+.coach-client-identity-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.coach-client-identity-grid .coach-field {
+  display: grid;
+  gap: 8px;
+}
+
+.coach-client-identity-grid .coach-field span {
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(246, 242, 233, 0.58);
+}
+
+.coach-client-identity-grid .coach-field--wide {
+  grid-column: 1 / -1;
 }
 
 .coach-profile-quiet-header {

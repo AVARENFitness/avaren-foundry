@@ -32,6 +32,9 @@ import {
   orchestrateModelAction,
 } from './actions/avaActionOrchestrator'
 import { resolveModelProposedAction } from './actions/avaActionResolver'
+import { runCoachPipelineStep } from './coach/avaCoachPipeline'
+import { isOpenCoachHubCommand } from './coach/avaCoachResolver'
+import { logAvaRoleDiagnostic } from './coach/avaCoachRole'
 
 const PIPELINE_TIMEOUT_MS = 12000
 const FALLBACK_BUSY =
@@ -96,7 +99,7 @@ const mapActionOutcomeToPipeline = (actionOutcome) => {
   return null
 }
 
-const sanitizeConversationalActions = (result, packet) => {
+const sanitizeConversationalActions = (result, packet, role = 'athlete') => {
   const actions = Array.isArray(result?.actions) ? result.actions : []
   if (!actions.length) return result
 
@@ -108,7 +111,7 @@ const sanitizeConversationalActions = (result, packet) => {
           type: action.actionId ?? action.id,
           label: action.label,
         },
-        { packet },
+        { packet, role },
       ),
     )
     .filter((resolution) => resolution && !resolution.rejected)
@@ -130,6 +133,8 @@ export async function runAvaMessagePipeline({
   routeMessage,
   onNutritionChange,
   actionRuntime = null,
+  coachContext = null,
+  role = 'athlete',
   options = {},
 } = {}) {
   const text = String(message ?? '').trim()
@@ -139,7 +144,45 @@ export async function runAvaMessagePipeline({
 
   debugLog('submitted', { message: text })
 
+  const effectiveCoachAccess = Boolean(
+    coachContext?.coachAccess ?? coachContext?.authorized ?? role === 'coach',
+  )
+
+  logAvaRoleDiagnostic({
+    role: effectiveCoachAccess ? 'coach' : 'athlete',
+    resolvedRole: effectiveCoachAccess ? 'coach' : 'athlete',
+    coachAccess: effectiveCoachAccess,
+    source: coachContext?.roleSource ?? (effectiveCoachAccess ? 'coach-access' : 'athlete'),
+  })
+
   try {
+    if (isOpenCoachHubCommand(text) && !effectiveCoachAccess) {
+      return createPipelineOutcome({
+        kind: AVA_PIPELINE_KIND.ACTION_FAILURE,
+        message: "Coach Hub isn't available on this account.",
+        readOnly: true,
+      })
+    }
+
+    if (effectiveCoachAccess) {
+      const coachOutcome = await runCoachPipelineStep({
+        message: text,
+        session,
+        coachContext: {
+          ...(coachContext ?? {}),
+          coachAccess: effectiveCoachAccess,
+          authorized: effectiveCoachAccess,
+        },
+        actionRuntime,
+        requestId: `coach-${session?.messages?.length ?? 0}-${text.slice(0, 24)}`,
+      })
+
+      if (coachOutcome) {
+        debugLog('coach-route', { kind: coachOutcome.kind })
+        return coachOutcome
+      }
+    }
+
     if (shouldRouteNutritionPending(text, { session })) {
       debugLog('intent-resolved', { route: 'nutrition-pending', pending: session?.pendingAction?.status })
 
@@ -371,7 +414,7 @@ export async function runAvaMessagePipeline({
 
     debugLog('response-appended', { source: conversational?.source ?? 'unknown' })
 
-    const sanitized = sanitizeConversationalActions(conversational, packet)
+    const sanitized = sanitizeConversationalActions(conversational, packet, role)
 
     if (sanitized?.actions?.length) {
       const modelAction = orchestrateModelAction({

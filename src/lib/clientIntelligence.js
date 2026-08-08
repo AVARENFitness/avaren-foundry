@@ -12,6 +12,10 @@ import {
 } from './metrics'
 import { nutritionTotals } from './nutrition'
 import {
+  getClientDisplayName as resolveClientDisplayName,
+  emailPrefixFallback,
+} from './clientDisplayName'
+import {
   getCoachWeekRange,
   isDateInWeek,
 } from './weeklyReview'
@@ -844,13 +848,11 @@ export const buildClientAttentionItems = ({
   return items.slice(0, 3)
 }
 
-export const displayClientName = (email = '') => {
-  const local = email.split('@')[0] ?? email
-  return local
-    .split(/[._-]+/)
-    .filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(' ')
+export const displayClientName = (clientOrEmail = '') => {
+  if (typeof clientOrEmail === 'object' && clientOrEmail !== null) {
+    return resolveClientDisplayName(clientOrEmail)
+  }
+  return emailPrefixFallback(clientOrEmail)
 }
 
 export const relativeTimeLabel = (value, now = new Date()) => {
@@ -935,7 +937,7 @@ export const rankClientAttention = (clientEntries = [], { limit = 5 } = {}) => {
 
       ranked.push({
         client: entry.client,
-        clientName: displayClientName(entry.client?.athlete_email),
+        clientName: displayClientName(entry.client),
         item,
         priority: ATTENTION_PRIORITY[item.id] ?? 40,
         actionLabel:
@@ -989,7 +991,7 @@ export const buildClientRosterEntry = ({
 
   return {
     client,
-    clientName: displayClientName(client.athlete_email),
+    clientName: displayClientName(client),
     status,
     sortScore: STATUS_SORT_SCORE[status] ?? 0,
     intelligence,
@@ -1127,7 +1129,7 @@ export const buildCoachActivityFeed = ({
           client?.clientName ??
           displayClientName(
             rosterEntries.find((entry) => entry.client.athlete_id === item.athlete_id)
-              ?.client?.athlete_email,
+              ?.client,
           ),
         title: `${client?.clientName ?? 'Client'} completed ${item.title}`,
         subtitle: item.title,

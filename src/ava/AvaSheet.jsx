@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { ArrowUp, RotateCcw, Sparkles, X } from 'lucide-react'
 import { appUi } from '../lib/appUi'
@@ -27,6 +27,7 @@ import { AVA_PIPELINE_KIND, runAvaMessagePipeline } from './avaMessagePipeline'
 import { AVA_ACTION_OUTCOME_KIND } from './actions/avaActionTypes'
 import { isNavigationAction } from './actions/avaActionReferent'
 import { orchestrateUiAction } from './actions/avaActionOrchestrator'
+import { runCoachDisambiguationStep } from './coach/avaCoachPipeline'
 import { recordAvaTurn } from '../lib/avaSessionContext'
 import AvaConfirmationPreview from './AvaConfirmationPreview'
 import { buildConfirmationPreview } from './buildConfirmationPreview'
@@ -43,6 +44,7 @@ const createMessage = (role, text, extras = {}) => ({
 export default function AvaSheet({
   open,
   onClose,
+  onDismissAfterNavigation,
   nutrition,
   onNutritionChange,
   packet,
@@ -50,6 +52,8 @@ export default function AvaSheet({
   appHistory = [],
   onAvaAction,
   actionRuntime = null,
+  coachContext = null,
+  role = 'athlete',
 }) {
   const titleId = useId()
   const descriptionId = useId()
@@ -60,6 +64,13 @@ export default function AvaSheet({
   const openedRef = useRef(false)
   const nutritionRef = useRef(nutrition)
   const { routeMessage } = useAva()
+  const dismissAfterNavigation = onDismissAfterNavigation ?? onClose
+
+  const closeSheetAfterNavigation = useCallback(() => {
+    queueMicrotask(() => {
+      dismissAfterNavigation?.()
+    })
+  }, [dismissAfterNavigation])
 
   useEffect(() => {
     nutritionRef.current = nutrition
@@ -216,7 +227,7 @@ export default function AvaSheet({
         isNavigationAction(actionId)
 
       if (navigated && actionId) {
-        onClose?.()
+        closeSheetAfterNavigation()
         return
       }
 
@@ -246,7 +257,11 @@ export default function AvaSheet({
 
       if (outcome.candidates?.choices?.length) {
         setClarification(outcome.candidates)
-        setPendingContextLabel(buildPendingContextLabel(session?.pendingAction))
+        setPendingContextLabel(
+          outcome.candidates?.coachClientDisambiguation
+            ? 'Choose a client'
+            : buildPendingContextLabel(session?.pendingAction),
+        )
       } else {
         syncCandidatesFromPending()
       }
@@ -262,6 +277,17 @@ export default function AvaSheet({
       setPendingContextLabel(buildPendingContextLabel(session?.pendingAction))
       setCandidateRevision((value) => value + 1)
       appendMessage(createMessage('ava', outcome.message))
+      return
+    }
+
+    if (outcome.kind === AVA_PIPELINE_KIND.COACH_RESULT) {
+      appendMessage(
+        createMessage('ava', outcome.message, {
+          actions: outcome.actions ?? [],
+          coachResults: outcome.coachResults ?? [],
+        }),
+      )
+      setSuggestedPrompts(outcome.suggestions ?? [])
       return
     }
 
@@ -309,6 +335,8 @@ export default function AvaSheet({
       appHistory,
       routeMessage,
       actionRuntime,
+      coachContext,
+      role,
       onNutritionChange: (nextNutrition) => {
         nutritionRef.current = nextNutrition
         onNutritionChange?.(nextNutrition)
@@ -381,6 +409,20 @@ export default function AvaSheet({
     setLoading(true)
 
     try {
+      if (activeClarification?.coachClientDisambiguation) {
+        const outcome = await runCoachDisambiguationStep({
+          choice,
+          session,
+          coachContext,
+          actionRuntime,
+          pendingAction: activeClarification?.pendingAction ?? null,
+        })
+        applyPipelineOutcome(outcome)
+        setClarification(null)
+        setCandidateRevision((value) => value + 1)
+        return
+      }
+
       const sourceMessage =
         session?.pendingAction?.originalUserMessage ||
         session?.pendingAction?.originalMessage ||
@@ -495,7 +537,7 @@ export default function AvaSheet({
 
         if (outcome.kind === AVA_ACTION_OUTCOME_KIND.ACTION_SUCCESS) {
           setExecutedActionIds((current) => [...current, `${messageId}-${actionId}`])
-          onClose?.()
+          closeSheetAfterNavigation()
           return
         }
 
@@ -548,9 +590,11 @@ export default function AvaSheet({
         </header>
 
         <p id={descriptionId} className="ava-sheet-context">
-          {packet?.briefing?.headline
-            ? `Today's read: ${packet.briefing.headline}`
-            : 'Training companion for today\'s plan, readiness, and recovery.'}
+          {role === 'coach'
+            ? 'Coach operations — clients, reviews, and who needs attention.'
+            : packet?.briefing?.headline
+              ? `Today's read: ${packet.briefing.headline}`
+              : 'Training companion for today\'s plan, readiness, and recovery.'}
         </p>
 
         <div className="ava-sheet-body">
@@ -567,6 +611,32 @@ export default function AvaSheet({
                   <span className="ava-chat-label ava-chat-label--user">You</span>
                 )}
                 <p>{message.text}</p>
+                {message.coachResults?.length > 0 && (
+                  <div className="ava-coach-results">
+                    {message.coachResults.map((item) => (
+                      <div
+                        key={`${message.id}-${item.athleteId ?? item.clientName}`}
+                        className="ava-coach-result"
+                      >
+                        <div className="ava-coach-result-copy">
+                          <strong>{item.clientName}</strong>
+                          <span>{item.reason}</span>
+                        </div>
+                        {(item.actions ?? []).slice(0, 1).map((action) => (
+                          <button
+                            key={`${item.athleteId}-${action.actionId}`}
+                            type="button"
+                            className="ava-chat-action ava-coach-result-action"
+                            disabled={Boolean(actionBusyId)}
+                            onClick={() => handleAction(action, message.id)}
+                          >
+                            Open
+                          </button>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                )}
                 {message.id === undoMessageId && showUndo && (
                   <button
                     type="button"

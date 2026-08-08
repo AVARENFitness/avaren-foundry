@@ -1,4 +1,7 @@
 import { supabase } from './supabase'
+import { enrichCoachClientRecord } from './clientDisplayName'
+import { coachClientLabelsBackend } from './coachClientLabelsBackend'
+import { userProfileBackend } from './userProfileBackend'
 import {
   mapCompleteScheduledSessionRpcError,
   normalizeCompleteScheduledSessionRpcResult,
@@ -50,7 +53,29 @@ export const coachBackend = {
   async declineInvitation(id) { return unwrap(supabase.rpc('decline_coach_invitation', { invitation_id: id })) },
   async listClients() {
     const user = await currentUser()
-    return unwrap(supabase.from('coach_clients').select('*').eq('coach_id', user.id).order('created_at', { ascending: false }))
+    return unwrap(
+      supabase
+        .from('coach_clients')
+        .select('*')
+        .eq('coach_id', user.id)
+        .order('created_at', { ascending: false }),
+    )
+  },
+  async listClientsWithIdentity() {
+    const clients = await this.listClients()
+    const athleteIds = clients.map((client) => client.athlete_id).filter(Boolean)
+
+    const [profilesById, labelsById] = await Promise.all([
+      userProfileBackend.listProfilesForAthletes(athleteIds),
+      coachClientLabelsBackend.listOwnCoachLabels(),
+    ])
+
+    return clients.map((client) =>
+      enrichCoachClientRecord(client, {
+        profile: profilesById[client.athlete_id] ?? null,
+        coachLabel: labelsById[client.athlete_id]?.coach_label ?? '',
+      }),
+    )
   },
   async createAssignment({ athleteId, title, workout, coachNotes, dueDate, priority = 'normal' }) {
     const user = await currentUser()

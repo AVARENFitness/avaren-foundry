@@ -10,8 +10,16 @@ import {
   Target,
 } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
+import CollapsibleIdentityPanel, {
+  IDENTITY_EDITOR_MODE,
+} from '../components/ui/CollapsibleIdentityPanel'
 import { coachBackend } from '../lib/coachBackend'
 import { buildClientIntelligence } from '../lib/clientIntelligence'
+import {
+  getAthleteDisplayName,
+  getClientDisplayName,
+  sanitizeCoachLabelDraft,
+} from '../lib/clientDisplayName'
 import {
   formatWeekRangeLabel,
   getCoachWeekRange,
@@ -37,15 +45,6 @@ const formatDate = (value) =>
         day: 'numeric',
       })
     : 'No due date'
-
-const displayName = (email = '') => {
-  const local = email.split('@')[0] ?? email
-  return local
-    .split(/[._-]+/)
-    .filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(' ')
-}
 
 const goalFromNotes = (value = '') => {
   const trimmed = value.trim()
@@ -80,6 +79,8 @@ export default function CoachClientProfile({
   notesUpdatedAt = null,
   onClientNotesChange,
   onSaveNotes,
+  onSaveCoachLabel,
+  coachLabelsEnabled = false,
   coachEmail = 'Coach',
   onBack,
   onAssignWorkout,
@@ -96,6 +97,105 @@ export default function CoachClientProfile({
   const [intelligenceLoading, setIntelligenceLoading] = useState(true)
   const [intelligenceError, setIntelligenceError] = useState('')
   const [currentWeekReview, setCurrentWeekReview] = useState(null)
+  const [coachLabelDraft, setCoachLabelDraft] = useState(() =>
+    sanitizeCoachLabelDraft(client.coach_label ?? ''),
+  )
+  const [savedCoachLabel, setSavedCoachLabel] = useState(() =>
+    sanitizeCoachLabelDraft(client.coach_label ?? ''),
+  )
+  const [coachLabelMode, setCoachLabelMode] = useState(IDENTITY_EDITOR_MODE.VIEW)
+  const [coachLabelError, setCoachLabelError] = useState('')
+  const coachLabelSavedTimerRef = useRef(null)
+  const [notesMode, setNotesMode] = useState(IDENTITY_EDITOR_MODE.VIEW)
+  const [notesDraft, setNotesDraft] = useState(clientNotes)
+  const [notesError, setNotesError] = useState('')
+  const [notesSaving, setNotesSaving] = useState(false)
+
+  useEffect(() => {
+    return () => {
+      if (coachLabelSavedTimerRef.current) {
+        clearTimeout(coachLabelSavedTimerRef.current)
+      }
+    }
+  }, [])
+
+  useEffect(() => {
+    const label = sanitizeCoachLabelDraft(client.coach_label ?? '')
+    setCoachLabelDraft(label)
+    setSavedCoachLabel(label)
+    setCoachLabelMode(IDENTITY_EDITOR_MODE.VIEW)
+    setCoachLabelError('')
+  }, [client])
+
+  useEffect(() => {
+    setNotesDraft(clientNotes)
+    setNotesMode(IDENTITY_EDITOR_MODE.VIEW)
+    setNotesError('')
+  }, [clientNotes, client.athlete_id])
+
+  const athleteDisplayName = useMemo(
+    () => getAthleteDisplayName(client),
+    [client],
+  )
+
+  const handleCoachLabelSave = async () => {
+    if (!onSaveCoachLabel) return
+    setCoachLabelMode(IDENTITY_EDITOR_MODE.SAVING)
+    setCoachLabelError('')
+    try {
+      await onSaveCoachLabel(coachLabelDraft)
+      const next = sanitizeCoachLabelDraft(coachLabelDraft)
+      setSavedCoachLabel(next)
+      setCoachLabelDraft(next)
+      setCoachLabelMode(IDENTITY_EDITOR_MODE.SAVED)
+      if (coachLabelSavedTimerRef.current) {
+        clearTimeout(coachLabelSavedTimerRef.current)
+      }
+      coachLabelSavedTimerRef.current = setTimeout(() => {
+        setCoachLabelMode(IDENTITY_EDITOR_MODE.VIEW)
+      }, 1400)
+    } catch (error) {
+      setCoachLabelError(error?.message ?? 'Could not save coach label.')
+      setCoachLabelMode(IDENTITY_EDITOR_MODE.ERROR)
+    }
+  }
+
+  const handleCoachLabelClear = async () => {
+    setCoachLabelDraft('')
+    if (!onSaveCoachLabel) return
+    setCoachLabelMode(IDENTITY_EDITOR_MODE.SAVING)
+    setCoachLabelError('')
+    try {
+      await onSaveCoachLabel('')
+      setSavedCoachLabel('')
+      setCoachLabelMode(IDENTITY_EDITOR_MODE.SAVED)
+      if (coachLabelSavedTimerRef.current) {
+        clearTimeout(coachLabelSavedTimerRef.current)
+      }
+      coachLabelSavedTimerRef.current = setTimeout(() => {
+        setCoachLabelMode(IDENTITY_EDITOR_MODE.VIEW)
+      }, 1400)
+    } catch (error) {
+      setCoachLabelError(error?.message ?? 'Could not remove coach label.')
+      setCoachLabelMode(IDENTITY_EDITOR_MODE.ERROR)
+    }
+  }
+
+  const handleNotesSave = async () => {
+    if (!onSaveNotes) return
+    setNotesSaving(true)
+    setNotesError('')
+    try {
+      onClientNotesChange?.(notesDraft)
+      await onSaveNotes?.(notesDraft)
+      setNotesMode(IDENTITY_EDITOR_MODE.VIEW)
+    } catch (error) {
+      setNotesError(error?.message ?? 'Could not save notes.')
+      setNotesMode(IDENTITY_EDITOR_MODE.ERROR)
+    } finally {
+      setNotesSaving(false)
+    }
+  }
 
   const clientAssignments = useMemo(
     () => assignments.filter((item) => item.athlete_id === client.athlete_id),
@@ -411,44 +511,146 @@ export default function CoachClientProfile({
 
       case 'notes':
         return (
-          <ProfileSection
-            eyebrow="COACH NOTES"
-            title="Private notes"
-            description="Only visible to you — never shown to the athlete."
-            primaryAction={
-              <button
-                type="button"
-                className="gold-button machined coach-primary-action coach-client-profile-section-action"
-                onClick={onSaveNotes}
-              >
-                <PenLine {...ICON} />
-                Save Notes
-              </button>
-            }
-          >
-            <section className="coach-profile-quiet-panel">
-              <p className="coach-profile-notes-preview">
-                {intelligence.notes.preview || 'No private notes yet.'}
-              </p>
-              {notesUpdatedAt && (
-                <small className="client-intelligence-notes-updated">
-                  Updated{' '}
-                  {new Date(notesUpdatedAt).toLocaleDateString([], {
-                    month: 'short',
-                    day: 'numeric',
-                    year: 'numeric',
-                  })}
-                </small>
-              )}
-              <textarea
-                className="coach-field-input coach-profile-notes-input"
-                rows={6}
-                value={clientNotes}
-                onChange={(event) => onClientNotesChange?.(event.target.value)}
-                placeholder="Goals, limitations, check-in notes, programming context…"
+          <>
+            {coachLabelsEnabled ? (
+              <CollapsibleIdentityPanel
+                eyebrow="ROSTER NICKNAME"
+                title="Coach label"
+                hint="Only visible to you."
+                mode={coachLabelMode}
+                canEdit={Boolean(onSaveCoachLabel)}
+                isEmpty={!savedCoachLabel}
+                successMessage="Label saved"
+                errorMessage={coachLabelError}
+                editLabel="Edit"
+                addLabel="Add label"
+                saveLabel="Save label"
+                clearLabel="Remove label"
+                showClear={Boolean(savedCoachLabel)}
+                onEdit={() => {
+                  setCoachLabelDraft(savedCoachLabel)
+                  setCoachLabelError('')
+                  setCoachLabelMode(IDENTITY_EDITOR_MODE.EDITING)
+                }}
+                onCancel={() => {
+                  setCoachLabelDraft(savedCoachLabel)
+                  setCoachLabelError('')
+                  setCoachLabelMode(IDENTITY_EDITOR_MODE.VIEW)
+                }}
+                onSave={handleCoachLabelSave}
+                onClear={handleCoachLabelClear}
+                viewContent={
+                  <>
+                    <div className="identity-summary-row">
+                      <small>Athlete</small>
+                      <strong>{athleteDisplayName}</strong>
+                    </div>
+                    <div className="identity-summary-row">
+                      <small>Roster label</small>
+                      <strong>{savedCoachLabel || 'None set'}</strong>
+                    </div>
+                  </>
+                }
+                editingContent={
+                  <>
+                    <div className="identity-summary-row identity-summary-row--compact">
+                      <small>Athlete</small>
+                      <strong>{athleteDisplayName}</strong>
+                    </div>
+                    <label className="coach-field coach-field--wide">
+                      <span>Coach label</span>
+                      <input
+                        className="coach-field-input"
+                        type="text"
+                        name="coach_label"
+                        value={coachLabelDraft}
+                        disabled={coachLabelMode === IDENTITY_EDITOR_MODE.SAVING}
+                        onChange={(event) =>
+                          setCoachLabelDraft(
+                            sanitizeCoachLabelDraft(event.target.value),
+                          )
+                        }
+                        placeholder="e.g. Jake"
+                        autoComplete="off"
+                      />
+                    </label>
+                  </>
+                }
               />
-            </section>
-          </ProfileSection>
+            ) : (
+              <section className="identity-panel identity-panel--view">
+                <header className="identity-panel-header">
+                  <div>
+                    <span className="eyebrow">ROSTER NICKNAME</span>
+                    <h3>Coach label</h3>
+                    <p>Private labels unlock after the identity migration is applied.</p>
+                  </div>
+                </header>
+                <div className="identity-panel-summary">
+                  <div className="identity-summary-row">
+                    <small>Athlete</small>
+                    <strong>{athleteDisplayName}</strong>
+                  </div>
+                </div>
+              </section>
+            )}
+
+            <CollapsibleIdentityPanel
+              eyebrow="COACH NOTES"
+              title="Private notes"
+              hint="Only visible to you — never shown to the athlete."
+              mode={
+                notesMode === IDENTITY_EDITOR_MODE.ERROR
+                  ? IDENTITY_EDITOR_MODE.ERROR
+                  : notesSaving
+                    ? IDENTITY_EDITOR_MODE.SAVING
+                    : notesMode
+              }
+              canEdit={Boolean(onSaveNotes)}
+              isEmpty={!clientNotes.trim()}
+              errorMessage={notesError}
+              editLabel="Edit notes"
+              addLabel="Add notes"
+              saveLabel="Save notes"
+              onEdit={() => {
+                setNotesDraft(clientNotes)
+                setNotesError('')
+                setNotesMode(IDENTITY_EDITOR_MODE.EDITING)
+              }}
+              onCancel={() => {
+                setNotesDraft(clientNotes)
+                setNotesError('')
+                setNotesMode(IDENTITY_EDITOR_MODE.VIEW)
+              }}
+              onSave={handleNotesSave}
+              viewContent={
+                <>
+                  <p className="coach-profile-notes-preview">
+                    {clientNotes.trim() || 'No private notes yet.'}
+                  </p>
+                  {notesUpdatedAt && (
+                    <small className="client-intelligence-notes-updated">
+                      Updated{' '}
+                      {new Date(notesUpdatedAt).toLocaleDateString([], {
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric',
+                      })}
+                    </small>
+                  )}
+                </>
+              }
+              editingContent={
+                <textarea
+                  className="coach-field-input coach-profile-notes-input"
+                  rows={6}
+                  value={notesDraft}
+                  onChange={(event) => setNotesDraft(event.target.value)}
+                  placeholder="Goals, limitations, check-in notes, programming context…"
+                />
+              }
+            />
+          </>
         )
 
       case 'progress':
@@ -517,7 +719,7 @@ export default function CoachClientProfile({
 
   return (
     <CoachClientProfileShell
-      clientName={displayName(client.athlete_email)}
+      clientName={getClientDisplayName(client)}
       clientEmail={client.athlete_email}
       connectedSince={connectedSince}
       activeSection={activeSection}

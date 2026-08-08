@@ -84,5 +84,8 @@ export function useCoachPortfolio(clients = [], assignments = []) {
     portfolioLoading,
     portfolioError,
     refreshPortfolio,
+    athleteStatesById,
+    weeklyReviewsByAthleteId,
+    nutritionByAthleteId,
   }
 }

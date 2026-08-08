@@ -93,6 +93,131 @@ export const AVA_ACTION_REGISTRY = {
     buildSuccessMessage: () => 'Starting recovery flow.',
     buildFailureMessage: () => "I couldn't start recovery. Try again.",
   },
+  [AVA_ACTION_IDS.OPEN_COACH_HUB]: {
+    id: AVA_ACTION_IDS.OPEN_COACH_HUB,
+    domain: AVA_ACTION_DOMAINS.COACH,
+    description: 'Open Coach Hub.',
+    requiredContext: [],
+    confirmationPolicy: AVA_ACTION_CONFIRMATION.NONE,
+    reversible: false,
+    allowedRoles: ['coach'],
+    buildSuccessMessage: () => 'Opening Coach Hub.',
+    buildFailureMessage: () => "I couldn't open Coach Hub. Try again.",
+  },
+  [AVA_ACTION_IDS.OPEN_CLIENT_PROFILE]: {
+    id: AVA_ACTION_IDS.OPEN_CLIENT_PROFILE,
+    domain: AVA_ACTION_DOMAINS.COACH,
+    description: 'Open an authorized client profile.',
+    requiredContext: ['authorizedClient'],
+    confirmationPolicy: AVA_ACTION_CONFIRMATION.NONE,
+    reversible: false,
+    allowedRoles: ['coach'],
+    buildSuccessMessage: (context = {}) =>
+      context.clientName
+        ? `Opening ${context.clientName}.`
+        : 'Opening client profile.',
+    buildFailureMessage: (context = {}) =>
+      context.reason === 'unauthorized-client'
+        ? "That client isn't in your authorized roster."
+        : "I couldn't open that client profile. Try again.",
+  },
+  [AVA_ACTION_IDS.OPEN_CLIENT_INTELLIGENCE]: {
+    id: AVA_ACTION_IDS.OPEN_CLIENT_INTELLIGENCE,
+    domain: AVA_ACTION_DOMAINS.COACH,
+    description: 'Open client intelligence for an authorized client.',
+    requiredContext: ['authorizedClient'],
+    confirmationPolicy: AVA_ACTION_CONFIRMATION.NONE,
+    reversible: false,
+    allowedRoles: ['coach'],
+    buildSuccessMessage: (context = {}) =>
+      context.clientName
+        ? `Opening ${context.clientName}'s intelligence.`
+        : 'Opening client intelligence.',
+    buildFailureMessage: (context = {}) =>
+      context.reason === 'unauthorized-client'
+        ? "That client isn't in your authorized roster."
+        : "I couldn't open client intelligence. Try again.",
+  },
+  [AVA_ACTION_IDS.OPEN_WEEKLY_REVIEWS]: {
+    id: AVA_ACTION_IDS.OPEN_WEEKLY_REVIEWS,
+    domain: AVA_ACTION_DOMAINS.COACH,
+    description: 'Open weekly reviews.',
+    requiredContext: [],
+    confirmationPolicy: AVA_ACTION_CONFIRMATION.NONE,
+    reversible: false,
+    allowedRoles: ['coach'],
+    buildSuccessMessage: (context = {}) =>
+      context.clientName
+        ? `Opening ${context.clientName}'s weekly review.`
+        : 'Opening weekly reviews.',
+    buildFailureMessage: () => "I couldn't open weekly reviews. Try again.",
+  },
+  [AVA_ACTION_IDS.SHOW_CLIENTS_NEEDING_ATTENTION]: {
+    id: AVA_ACTION_IDS.SHOW_CLIENTS_NEEDING_ATTENTION,
+    domain: AVA_ACTION_DOMAINS.COACH,
+    description: 'Show clients needing attention.',
+    requiredContext: [],
+    confirmationPolicy: AVA_ACTION_CONFIRMATION.NONE,
+    reversible: false,
+    allowedRoles: ['coach'],
+    buildSuccessMessage: () => 'Here are the clients that stand out.',
+    buildFailureMessage: () => "I couldn't load attention signals right now.",
+  },
+  [AVA_ACTION_IDS.SHOW_CLIENTS_MISSING_CHECKIN]: {
+    id: AVA_ACTION_IDS.SHOW_CLIENTS_MISSING_CHECKIN,
+    domain: AVA_ACTION_DOMAINS.COACH,
+    description: 'Show clients missing weekly check-ins.',
+    requiredContext: [],
+    confirmationPolicy: AVA_ACTION_CONFIRMATION.NONE,
+    reversible: false,
+    allowedRoles: ['coach'],
+    buildSuccessMessage: () => 'Here are clients missing check-ins.',
+    buildFailureMessage: () => "I couldn't load check-in status right now.",
+  },
+  [AVA_ACTION_IDS.SHOW_RECOVERY_CONCERNS]: {
+    id: AVA_ACTION_IDS.SHOW_RECOVERY_CONCERNS,
+    domain: AVA_ACTION_DOMAINS.COACH,
+    description: 'Show recovery concerns.',
+    requiredContext: [],
+    confirmationPolicy: AVA_ACTION_CONFIRMATION.NONE,
+    reversible: false,
+    allowedRoles: ['coach'],
+    buildSuccessMessage: () => 'Here are recovery concerns from recent check-ins.',
+    buildFailureMessage: () => "I couldn't load recovery signals right now.",
+  },
+  [AVA_ACTION_IDS.SHOW_TRAINING_CONCERNS]: {
+    id: AVA_ACTION_IDS.SHOW_TRAINING_CONCERNS,
+    domain: AVA_ACTION_DOMAINS.COACH,
+    description: 'Show training concerns.',
+    requiredContext: [],
+    confirmationPolicy: AVA_ACTION_CONFIRMATION.NONE,
+    reversible: false,
+    allowedRoles: ['coach'],
+    buildSuccessMessage: () => 'Here are training concerns from recent activity.',
+    buildFailureMessage: () => "I couldn't load training signals right now.",
+  },
+  [AVA_ACTION_IDS.SHOW_NUTRITION_CONCERNS]: {
+    id: AVA_ACTION_IDS.SHOW_NUTRITION_CONCERNS,
+    domain: AVA_ACTION_DOMAINS.COACH,
+    description: 'Show nutrition concerns.',
+    requiredContext: [],
+    confirmationPolicy: AVA_ACTION_CONFIRMATION.NONE,
+    reversible: false,
+    allowedRoles: ['coach'],
+    buildSuccessMessage: () => 'Here are nutrition logging concerns.',
+    buildFailureMessage: () => "I couldn't load nutrition signals right now.",
+  },
+  [AVA_ACTION_IDS.CLIENT_SUMMARY]: {
+    id: AVA_ACTION_IDS.CLIENT_SUMMARY,
+    domain: AVA_ACTION_DOMAINS.COACH,
+    description: 'Summarize an authorized client from trusted intelligence.',
+    requiredContext: ['authorizedClient'],
+    confirmationPolicy: AVA_ACTION_CONFIRMATION.NONE,
+    reversible: false,
+    allowedRoles: ['coach'],
+    buildSuccessMessage: () => 'Here is a quick client update.',
+    buildFailureMessage: () => "I couldn't build that client summary.",
+  },
 }
 
 export const isRegisteredAvaAction = (actionId = '') =>

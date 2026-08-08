@@ -25,6 +25,7 @@ import {
 } from '../lib/sessionPackages'
 import EmptyState from './ui/EmptyState'
 import CoachScheduleSessionSheet from './CoachScheduleSessionSheet'
+import { getClientDisplayName } from '../lib/clientDisplayName'
 import {
   buildCoachRsvpAlert,
   isRsvpException,
@@ -45,15 +46,6 @@ const mondayOf = (input) => {
 }
 const addDays = (date, days) =>
   new Date(new Date(date).getTime() + days * DAY_MS)
-
-const displayName = (email = '') => {
-  const local = email.split('@')[0] ?? email
-  return local
-    .split(/[._-]+/)
-    .filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(' ')
-}
 
 export default function CoachSessionCalendar({
   clients = [],
@@ -162,7 +154,7 @@ export default function CoachSessionCalendar({
           id: session.id,
           message: buildCoachRsvpAlert(
             session,
-            displayName(clientByAthleteId[session.athleteId]?.athlete_email),
+            getClientDisplayName(clientByAthleteId[session.athleteId] ?? {}),
           ),
         }))
         .filter((entry) => entry.message),
@@ -405,7 +397,7 @@ export default function CoachSessionCalendar({
         onClick={() => setActiveSession(session)}
       >
         <div>
-          <strong>{displayName(client?.athlete_email ?? 'Athlete')}</strong>
+          <strong>{getClientDisplayName(client ?? {})}</strong>
           <span>
             {formatScheduledSessionTime(session)}
             {session.durationMinutes
@@ -535,7 +527,7 @@ export default function CoachSessionCalendar({
             <header>
               <div>
                 <span className="eyebrow">SESSION</span>
-                <h2>{displayName(activeClient?.athlete_email ?? 'Athlete')}</h2>
+                <h2>{getClientDisplayName(activeClient ?? {})}</h2>
               </div>
               <button type="button" onClick={() => { setActiveSession(null); setRescheduleMode(false) }} aria-label="Close">
                 <X {...ICON} />

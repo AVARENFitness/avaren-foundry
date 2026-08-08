@@ -7,6 +7,7 @@ export const AVA_PIPELINE_KIND = {
   ACTION_SUCCESS: 'action_success',
   ACTION_FAILURE: 'action_failure',
   CANCELLED: 'cancelled',
+  COACH_RESULT: 'coach_result',
 }
 
 const FALLBACK_MESSAGE = "I couldn't finish that action. Try that again."
@@ -75,6 +76,7 @@ export const createPipelineOutcome = (partial = {}) => ({
   awaitingRefinement: Boolean(partial.awaitingRefinement),
   suggestions: partial.suggestions ?? [],
   actions: partial.actions ?? [],
+  coachResults: partial.coachResults ?? [],
 })
 
 export const createPipelineFailure = (message = FALLBACK_MESSAGE, raw = null) =>

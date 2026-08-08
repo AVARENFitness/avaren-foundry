@@ -1,6 +1,7 @@
 import { Cloud, Dumbbell, LockKeyhole, Mail } from 'lucide-react'
 import { useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { userProfileBackend } from '../lib/userProfileBackend'
 
 const authReturnUrl = () =>
   import.meta.env.VITE_APP_URL?.trim() ||
@@ -35,6 +36,12 @@ export default function AuthScreen() {
         })
 
         if (error) throw error
+
+        if (data.session?.user) {
+          await userProfileBackend.ensureOwnUserProfileFromSession(data.session.user)
+        } else if (data.user) {
+          await userProfileBackend.ensureOwnUserProfileFromSession(data.user)
+        }
 
         if (!data.session) {
           setStatus(

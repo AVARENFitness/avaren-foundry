@@ -9,6 +9,7 @@ export const logAvaActionDiagnostic = ({
   referentType = null,
   verified = null,
   destination = null,
+  allowed = null,
 } = {}) => {
   if (!import.meta.env?.DEV) return
 
@@ -23,6 +24,7 @@ export const logAvaActionDiagnostic = ({
   if (referentType) payload.referentType = referentType
   if (verified != null) payload.verified = verified
   if (destination) payload.destination = destination
+  if (allowed != null) payload.allowed = allowed
 
   console.debug('[ava-action]', JSON.stringify(payload))
 }

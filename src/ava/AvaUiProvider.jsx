@@ -17,6 +17,8 @@ export function AvaUiProvider({
   actionRuntime = null,
   nutrition = createNutritionState(),
   onNutritionChange,
+  coachContext = null,
+  role = 'athlete',
 }) {
   const [open, setOpen] = useState(false)
   const [assignments, setAssignments] = useState([])
@@ -55,6 +57,10 @@ export function AvaUiProvider({
     sessionRef.current = createAvaSession()
   }, [])
 
+  const dismissAvaSheet = useCallback(() => {
+    setOpen(false)
+  }, [])
+
   useEffect(() => {
     if (!enabled) {
       setOpen(false)
@@ -72,10 +78,11 @@ export function AvaUiProvider({
     () => ({
       openAva,
       closeAva,
+      dismissAvaSheet,
       isOpen: open && enabled,
       packet,
     }),
-    [closeAva, enabled, open, openAva, packet],
+    [closeAva, dismissAvaSheet, enabled, open, openAva, packet],
   )
 
   return (
@@ -87,6 +94,7 @@ export function AvaUiProvider({
       <AvaSheet
         open={open && enabled}
         onClose={closeAva}
+        onDismissAfterNavigation={dismissAvaSheet}
         nutrition={nutrition}
         onNutritionChange={handleNutritionChange}
         packet={packet}
@@ -94,6 +102,8 @@ export function AvaUiProvider({
         appHistory={appState?.history ?? []}
         onAvaAction={onAvaAction}
         actionRuntime={actionRuntime}
+        coachContext={coachContext}
+        role={role}
       />
     </AvaUiContext.Provider>
   )

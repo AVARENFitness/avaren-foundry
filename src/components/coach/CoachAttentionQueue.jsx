@@ -6,7 +6,7 @@ export default function CoachAttentionQueue({
   onViewClient,
   onViewAll,
 }) {
-  const visible = items.slice(0, 5)
+  const visible = items.slice(0, 3)
 
   return (
     <section className="coach-command-panel coach-command-attention">
