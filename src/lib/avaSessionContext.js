@@ -3,6 +3,11 @@ import {
   isSessionConstraintStatement,
   isStateStatement,
 } from './avaConversationalRouter'
+import {
+  referentFromWorkoutContext,
+  setSessionActiveReferent,
+  updateReferentFromConversation,
+} from '../ava/actions/avaActionReferent'
 
 export const AVA_SESSION_MAX_STATEMENTS = 6
 export const AVA_SESSION_MAX_CONSTRAINTS = 4
@@ -75,7 +80,14 @@ export const recordUserTurn = (session, message, { packet } = {}) => {
       workoutName,
       ...(Number.isFinite(minutes) ? { timeConstraintMinutes: minutes } : {}),
     })
+    setSessionActiveReferent(session, referentFromWorkoutContext({ workoutName }))
   }
+
+  updateReferentFromConversation({
+    session,
+    packet,
+    message: text,
+  })
 }
 
 export const recordAvaTurn = (session, text, meta = {}) => {
@@ -87,4 +99,10 @@ export const recordAvaTurn = (session, text, meta = {}) => {
 
   session.add('ava', summary, meta)
   session.setRecommendation(summary)
+
+  updateReferentFromConversation({
+    session,
+    avaMessage: summary,
+    proposedActionId: meta.proposedActionId ?? null,
+  })
 }

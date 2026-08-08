@@ -14,6 +14,7 @@ export function AvaUiProvider({
   appState = null,
   userName = '',
   onAvaAction,
+  actionRuntime = null,
   nutrition = createNutritionState(),
   onNutritionChange,
 }) {
@@ -92,6 +93,7 @@ export function AvaUiProvider({
         session={sessionRef.current}
         appHistory={appState?.history ?? []}
         onAvaAction={onAvaAction}
+        actionRuntime={actionRuntime}
       />
     </AvaUiContext.Provider>
   )

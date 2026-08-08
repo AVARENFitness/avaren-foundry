@@ -19,6 +19,19 @@ import {
   createPipelineOutcome,
   normalizePipelineOutcome,
 } from './avaPipelineOutcome'
+import { AVA_ACTION_OUTCOME_KIND } from './actions/avaActionTypes'
+import {
+  actionResolutionToChip,
+  isExplicitNavigationCommand,
+  isReferentCommand,
+  resolveExplicitAction,
+  resolveReferentAction,
+} from './actions/avaActionResolver'
+import {
+  orchestrateMessageAction,
+  orchestrateModelAction,
+} from './actions/avaActionOrchestrator'
+import { resolveModelProposedAction } from './actions/avaActionResolver'
 
 const PIPELINE_TIMEOUT_MS = 12000
 const FALLBACK_BUSY =
@@ -40,13 +53,73 @@ const withTimeout = (promise, timeoutMs = PIPELINE_TIMEOUT_MS) =>
     }),
   ])
 
-export const shouldRouteNutritionMessage = (message, { session, packet } = {}) =>
+const shouldRouteNutritionPending = (message, { session } = {}) =>
   hasActivePendingTransaction(session) ||
   isAwaitingConfirmation(session) ||
   isCorrectionMessage(message) ||
+  isPendingTransactionReply(message, session)
+
+export const shouldRouteNutritionMessage = (message, { session, packet } = {}) =>
+  shouldRouteNutritionPending(message, { session }) ||
   isNutritionQuery(message) ||
-  isPendingTransactionReply(message, session) ||
   shouldRunNutritionTool(message, { packet, session })
+
+const mapActionOutcomeToPipeline = (actionOutcome) => {
+  if (!actionOutcome) return null
+
+  if (actionOutcome.kind === AVA_ACTION_OUTCOME_KIND.ACTION_SUCCESS) {
+    return createPipelineOutcome({
+      kind: AVA_PIPELINE_KIND.ACTION_SUCCESS,
+      message: actionOutcome.message,
+      actions: [],
+      raw: actionOutcome,
+    })
+  }
+
+  if (actionOutcome.kind === AVA_ACTION_OUTCOME_KIND.ACTION_FAILURE) {
+    return createPipelineOutcome({
+      kind: AVA_PIPELINE_KIND.ACTION_FAILURE,
+      message: actionOutcome.message,
+      raw: actionOutcome,
+    })
+  }
+
+  if (actionOutcome.kind === AVA_ACTION_OUTCOME_KIND.ACTION_READY) {
+    return createPipelineOutcome({
+      kind: AVA_PIPELINE_KIND.ACTION_READY,
+      message: actionOutcome.message,
+      actions: actionOutcome.actions ?? [],
+      raw: actionOutcome,
+    })
+  }
+
+  return null
+}
+
+const sanitizeConversationalActions = (result, packet) => {
+  const actions = Array.isArray(result?.actions) ? result.actions : []
+  if (!actions.length) return result
+
+  const validated = actions
+    .map((action) =>
+      resolveModelProposedAction(
+        {
+          id: action.actionId ?? action.id,
+          type: action.actionId ?? action.id,
+          label: action.label,
+        },
+        { packet },
+      ),
+    )
+    .filter((resolution) => resolution && !resolution.rejected)
+    .map((resolution) => actionResolutionToChip(resolution))
+    .filter(Boolean)
+
+  return {
+    ...result,
+    actions: validated,
+  }
+}
 
 export async function runAvaMessagePipeline({
   message,
@@ -56,6 +129,7 @@ export async function runAvaMessagePipeline({
   appHistory = [],
   routeMessage,
   onNutritionChange,
+  actionRuntime = null,
   options = {},
 } = {}) {
   const text = String(message ?? '').trim()
@@ -66,6 +140,108 @@ export async function runAvaMessagePipeline({
   debugLog('submitted', { message: text })
 
   try {
+    if (shouldRouteNutritionPending(text, { session })) {
+      debugLog('intent-resolved', { route: 'nutrition-pending', pending: session?.pendingAction?.status })
+
+      const flow = processAvaNutritionMessage({
+        message: text,
+        nutrition,
+        session,
+        packet,
+        options,
+      })
+
+      debugLog('transaction-state', {
+        routed: flow.routed,
+        pending: session?.pendingAction?.status ?? 'idle',
+        cancelledPending: flow.cancelledPending ?? false,
+      })
+
+      if (flow.routed) {
+        const execution = flow.result?.data?.execution
+        if (execution?.ok && execution.nutrition && onNutritionChange) {
+          onNutritionChange(execution.nutrition)
+          debugLog('state-refreshed', { source: 'nutrition-write' })
+        }
+
+        if (isConfirmationPositive(text) && flow.result?.data?.executed) {
+          debugLog('confirmation-positive', { executed: true })
+        }
+
+        if (isConfirmationNegative(text) && flow.result?.data?.cancelled) {
+          debugLog('confirmation-negative', { cancelled: true })
+        }
+
+        const clarification = buildClarificationPayload(
+          flow.result?.data?.interpretation,
+          session,
+        )
+
+        if (flow.result?.data?.executed) {
+          debugLog('action-executed', { ok: execution?.ok ?? false })
+        }
+
+        return normalizePipelineOutcome(flow.result, session, {
+          clarificationPayload: clarification,
+        })
+      }
+    }
+
+    const explicitResolution = resolveExplicitAction(text, { session, packet })
+    if (explicitResolution?.actionId && explicitResolution.executeImmediately) {
+      debugLog('action-resolved', {
+        actionId: explicitResolution.actionId,
+        source: explicitResolution.source,
+        route: 'explicit-command',
+      })
+
+      const actionOutcome = await orchestrateMessageAction({
+        message: text,
+        session,
+        packet,
+        runtime: actionRuntime,
+        requestId: `msg-${session?.messages?.length ?? 0}-${text.slice(0, 24)}`,
+      })
+
+      const mapped = mapActionOutcomeToPipeline(actionOutcome)
+      if (mapped) {
+        return mapped
+      }
+    }
+
+    if (isReferentCommand(text)) {
+      const referentResolution = resolveReferentAction(text, { session, packet })
+
+      if (referentResolution?.ambiguous) {
+        return createPipelineOutcome({
+          kind: AVA_PIPELINE_KIND.RESPONSE,
+          message: referentResolution.message,
+          raw: referentResolution,
+        })
+      }
+
+      if (referentResolution?.actionId && referentResolution.executeImmediately) {
+        debugLog('action-resolved', {
+          actionId: referentResolution.actionId,
+          source: referentResolution.source,
+          route: 'referent-command',
+        })
+
+        const actionOutcome = await orchestrateMessageAction({
+          message: text,
+          session,
+          packet,
+          runtime: actionRuntime,
+          requestId: `ref-${session?.messages?.length ?? 0}-${text.slice(0, 24)}`,
+        })
+
+        const mapped = mapActionOutcomeToPipeline(actionOutcome)
+        if (mapped) {
+          return mapped
+        }
+      }
+    }
+
     if (isNutritionQuery(text) && !isCorrectionMessage(text)) {
       debugLog('nutrition-query', { message: text, stage: 'pipeline-priority' })
       const answer = answerNutritionQuery(text, nutrition)
@@ -80,7 +256,7 @@ export async function runAvaMessagePipeline({
       }
     }
 
-    if (shouldRouteNutritionMessage(text, { session, packet })) {
+    if (shouldRouteNutritionMessage(text, { session, packet }) && !isExplicitNavigationCommand(text)) {
       debugLog('intent-resolved', { route: 'nutrition', pending: session?.pendingAction?.status })
 
       if (isAwaitingConfirmation(session)) {
@@ -195,7 +371,31 @@ export async function runAvaMessagePipeline({
 
     debugLog('response-appended', { source: conversational?.source ?? 'unknown' })
 
-    return normalizePipelineOutcome(conversational, session)
+    const sanitized = sanitizeConversationalActions(conversational, packet)
+
+    if (sanitized?.actions?.length) {
+      const modelAction = orchestrateModelAction({
+        suggestedAction: {
+          id: sanitized.actions[0].actionId ?? sanitized.actions[0].id,
+          label: sanitized.actions[0].label,
+        },
+        packet,
+        message: sanitized.summary,
+        session,
+      })
+
+      if (modelAction?.kind === AVA_ACTION_OUTCOME_KIND.ACTION_READY) {
+        return createPipelineOutcome({
+          kind: AVA_PIPELINE_KIND.ACTION_READY,
+          message: sanitized.summary ?? modelAction.message,
+          actions: modelAction.actions ?? sanitized.actions,
+          suggestions: sanitized.suggestions ?? [],
+          raw: sanitized,
+        })
+      }
+    }
+
+    return normalizePipelineOutcome(sanitized, session)
   } catch (error) {
     debugLog('action-failure', { reason: error?.message ?? 'unknown' })
     return createPipelineFailure(

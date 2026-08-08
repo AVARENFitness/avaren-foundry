@@ -2,6 +2,8 @@ export const AVA_PIPELINE_KIND = {
   RESPONSE: 'response',
   CLARIFICATION: 'clarification',
   CONFIRMATION: 'confirmation',
+  ACTION_READY: 'action_ready',
+  ACTION_CONFIRMATION: 'action_confirmation',
   ACTION_SUCCESS: 'action_success',
   ACTION_FAILURE: 'action_failure',
   CANCELLED: 'cancelled',

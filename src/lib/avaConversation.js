@@ -62,6 +62,7 @@ export class AvaSessionMemory {
     this.userStatements = []
     this.pendingAction = null
     this.lastReversibleAction = null
+    this.activeReferent = null
   }
 
   add(role, text, meta = {}) {
@@ -117,6 +118,7 @@ export class AvaSessionMemory {
       userStatements: this.userStatements,
       pendingAction: this.pendingAction,
       lastReversibleAction: this.lastReversibleAction,
+      activeReferent: this.activeReferent,
     }
   }
 }

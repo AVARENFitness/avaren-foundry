@@ -127,7 +127,8 @@ describe('avaModelActions', () => {
       buildPacket(),
     )
 
-    expect(action?.id).toBe('start-workout')
+    expect(action?.id).toBe('START_TODAYS_WORKOUT')
+    expect(action?.actionId).toBe('START_TODAYS_WORKOUT')
     expect(action?.label).toContain('Chest & Back')
   })
 })
@@ -161,7 +162,7 @@ describe('avaChatBackend', () => {
     expect(response.ok).toBe(true)
     expect(response.source).toBe('model')
     expect(response.summary.toLowerCase()).toContain('chest & back')
-    expect(response.actions[0]?.id).toBe('start-workout')
+    expect(response.actions[0]?.id).toBe('START_TODAYS_WORKOUT')
   })
 
   it('CASE 2: soreness stays conversational through model path', async () => {

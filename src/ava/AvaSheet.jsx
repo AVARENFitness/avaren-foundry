@@ -24,6 +24,9 @@ import {
 } from './avaNutritionTransaction'
 import { logCandidateDiagnostics } from './avaFoodRefinement'
 import { AVA_PIPELINE_KIND, runAvaMessagePipeline } from './avaMessagePipeline'
+import { AVA_ACTION_OUTCOME_KIND } from './actions/avaActionTypes'
+import { isNavigationAction } from './actions/avaActionReferent'
+import { orchestrateUiAction } from './actions/avaActionOrchestrator'
 import { recordAvaTurn } from '../lib/avaSessionContext'
 import AvaConfirmationPreview from './AvaConfirmationPreview'
 import { buildConfirmationPreview } from './buildConfirmationPreview'
@@ -46,6 +49,7 @@ export default function AvaSheet({
   session,
   appHistory = [],
   onAvaAction,
+  actionRuntime = null,
 }) {
   const titleId = useId()
   const descriptionId = useId()
@@ -73,6 +77,8 @@ export default function AvaSheet({
   const [undoMessageId, setUndoMessageId] = useState(null)
   const [undoRevision, setUndoRevision] = useState(0)
   const [candidateRevision, setCandidateRevision] = useState(0)
+  const [actionBusyId, setActionBusyId] = useState(null)
+  const [executedActionIds, setExecutedActionIds] = useState([])
 
   const activeClarification = useMemo(() => {
     return syncClarificationFromPending(session) ?? clarification
@@ -202,6 +208,18 @@ export default function AvaSheet({
       setPendingContextLabel(null)
       setShowPreview(false)
       setCandidateRevision((value) => value + 1)
+
+      const actionId = outcome.raw?.actionId
+      const navigated =
+        outcome.raw?.payload?.destination ||
+        outcome.raw?.navigated ||
+        isNavigationAction(actionId)
+
+      if (navigated && actionId) {
+        onClose?.()
+        return
+      }
+
       if (outcome.actionResult?.ok) {
         appUi.toast(outcome.message, 'success')
       }
@@ -253,6 +271,16 @@ export default function AvaSheet({
       return
     }
 
+    if (outcome.kind === AVA_PIPELINE_KIND.ACTION_READY) {
+      appendMessage(
+        createMessage('ava', outcome.message, {
+          actions: outcome.actions ?? [],
+        }),
+      )
+      setSuggestedPrompts(outcome.suggestions ?? [])
+      return
+    }
+
     appendMessage(
       createMessage('ava', outcome.message, {
         actions: outcome.actions ?? [],
@@ -280,6 +308,7 @@ export default function AvaSheet({
       packet,
       appHistory,
       routeMessage,
+      actionRuntime,
       onNutritionChange: (nextNutrition) => {
         nutritionRef.current = nextNutrition
         onNutritionChange?.(nextNutrition)
@@ -447,9 +476,38 @@ export default function AvaSheet({
     appendMessage(createMessage('ava', result.summary))
   }
 
-  const handleAction = (action) => {
-    onAvaAction?.(action.id, action.meta ?? {})
-    onClose?.()
+  const handleAction = async (action, messageId) => {
+    const actionId = action.actionId ?? action.id
+    if (!actionId || actionBusyId) return
+
+    setActionBusyId(actionId)
+
+    try {
+      if (actionRuntime) {
+        const outcome = await orchestrateUiAction({
+          actionId,
+          runtime: actionRuntime,
+          packet,
+          session,
+          requestId: `${messageId ?? 'ui'}-${actionId}`,
+          meta: action.meta ?? {},
+        })
+
+        if (outcome.kind === AVA_ACTION_OUTCOME_KIND.ACTION_SUCCESS) {
+          setExecutedActionIds((current) => [...current, `${messageId}-${actionId}`])
+          onClose?.()
+          return
+        }
+
+        appendMessage(createMessage('ava', outcome.message))
+        return
+      }
+
+      onAvaAction?.(action.id, action.meta ?? {})
+      onClose?.()
+    } finally {
+      setActionBusyId(null)
+    }
   }
 
   if (!open) return null
@@ -521,16 +579,26 @@ export default function AvaSheet({
                 )}
                 {message.actions?.length > 0 && (
                   <div className="ava-chat-actions">
-                    {message.actions.map((action) => (
-                      <button
-                        key={`${message.id}-${action.id}-${action.label}`}
-                        type="button"
-                        className="ava-chat-action"
-                        onClick={() => handleAction(action)}
-                      >
-                        {action.label}
-                      </button>
-                    ))}
+                    {message.actions.map((action) => {
+                      const actionKey = action.actionId ?? action.id
+                      const isExecuted = executedActionIds.includes(`${message.id}-${actionKey}`)
+                      const isBusy = actionBusyId === actionKey
+
+                      if (isExecuted) return null
+
+                      return (
+                        <button
+                          key={`${message.id}-${actionKey}-${action.label}`}
+                          type="button"
+                          className="ava-chat-action"
+                          disabled={Boolean(actionBusyId)}
+                          aria-busy={isBusy}
+                          onClick={() => handleAction(action, message.id)}
+                        >
+                          {isBusy ? 'Opening…' : action.label}
+                        </button>
+                      )
+                    })}
                   </div>
                 )}
               </article>

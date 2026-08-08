@@ -1,4 +1,5 @@
 import { AVA_CONVERSATION_ACTIONS } from './avaConversation'
+import { normalizeAvaActionId } from '../ava/actions/avaActionTypes'
 
 export const AVA_MODEL_ACTION_TYPES = {
   START_WORKOUT: 'START_WORKOUT',
@@ -87,7 +88,8 @@ export const mapModelActionToClientAction = (
   }
 
   return {
-    id: registry.id,
+    id: normalizeAvaActionId(type) ?? registry.id,
+    actionId: normalizeAvaActionId(type) ?? registry.id,
     label,
     meta,
   }

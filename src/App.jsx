@@ -5,6 +5,7 @@ import { useNavigation } from './hooks/useNavigation'
 import { useWorkoutSession } from './hooks/useWorkoutSession'
 import AppShell from './components/AppShell'
 import ErrorBoundary from './components/ErrorBoundary'
+import { createAvaActionRuntime } from './ava/actions/createAvaActionRuntime'
 import { AvaUiProvider } from './ava/AvaUiProvider'
 import { isImmersiveScreen } from './lib/immersiveScreens'
 import { STATE_SCHEMA_VERSION } from './lib/stateSchema'
@@ -726,16 +727,23 @@ function App() {
     switch (actionId) {
       case 'start-workout':
       case 'continue-workout':
+      case 'START_TODAYS_WORKOUT':
         startWorkout()
         return
       case 'open-readiness':
+      case 'OPEN_READINESS':
         setShowReadinessCheckIn(true)
         return
       case 'start-recovery':
+      case 'START_RECOVERY_FLOW':
         openHomeReset()
         return
       case 'open-nutrition':
+      case 'OPEN_NUTRITION':
         navigate('nutrition')
+        return
+      case 'OPEN_RECOVERY':
+        openDailyReset()
         return
       case 'open-progress':
         navigate('progress')
@@ -747,6 +755,64 @@ function App() {
         break
     }
   }
+
+  const avaSnapshotRef = useRef({
+    screen: 'home',
+    activeWorkout: null,
+    showReadinessCheckIn: false,
+  })
+
+  useEffect(() => {
+    avaSnapshotRef.current = {
+      screen,
+      activeWorkout: state.activeWorkout ?? null,
+      showReadinessCheckIn,
+    }
+  }, [screen, state.activeWorkout, showReadinessCheckIn])
+
+  const avaActionRuntime = useMemo(
+    () =>
+      createAvaActionRuntime({
+        startWorkout,
+        navigate,
+        openReadiness: () => {
+          avaSnapshotRef.current = {
+            ...avaSnapshotRef.current,
+            showReadinessCheckIn: true,
+          }
+          setShowReadinessCheckIn(true)
+        },
+        openRecovery: () => {
+          avaSnapshotRef.current = {
+            ...avaSnapshotRef.current,
+            screen: 'mobility',
+          }
+          openDailyReset()
+        },
+        startRecoveryFlow: () => {
+          avaSnapshotRef.current = {
+            ...avaSnapshotRef.current,
+            screen: 'mobility',
+          }
+          openHomeReset()
+        },
+        openNutrition: () => {
+          avaSnapshotRef.current = {
+            ...avaSnapshotRef.current,
+            screen: 'nutrition',
+          }
+          navigate('nutrition')
+        },
+        onNavigateIntent: (destination) => {
+          avaSnapshotRef.current = {
+            ...avaSnapshotRef.current,
+            screen: destination,
+          }
+        },
+        getSnapshot: () => avaSnapshotRef.current,
+      }),
+    [startWorkout, navigate, openDailyReset, openHomeReset],
+  )
 
   const updateMobilityPreferences = (
     patch,
@@ -1496,6 +1562,7 @@ function App() {
         ''
       }
       onAvaAction={handleAvaAction}
+      actionRuntime={avaActionRuntime}
       nutrition={state.nutrition ?? createNutritionState()}
       onNutritionChange={handleNutritionChange}
     >
