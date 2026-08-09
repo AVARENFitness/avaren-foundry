@@ -1,0 +1,305 @@
+/* ===== SPRINT 3 · WORKOUT BUILDER + SUPERSETS ===== */
+
+.builder-screen {
+  padding-bottom: 95px;
+}
+
+.builder-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.builder-header h1 {
+  margin: 6px 0 0;
+  font-size: 31px;
+  letter-spacing: -.05em;
+}
+
+.builder-back {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(255,255,255,.02);
+  color: var(--cream);
+}
+
+.builder-workout-tabs {
+  display: flex;
+  gap: 7px;
+  overflow-x: auto;
+  padding-bottom: 7px;
+  scrollbar-width: none;
+}
+
+.builder-workout-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.builder-workout-tabs button {
+  flex: 0 0 auto;
+  padding: 10px 13px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(255,255,255,.018);
+  color: #7c7871;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.builder-workout-tabs button.active {
+  border-color: rgba(223,195,125,.35);
+  background: rgba(184,149,78,.08);
+  color: var(--gold-bright);
+}
+
+.builder-add-workout {
+  display: grid;
+  place-items: center;
+  width: 39px;
+}
+
+.builder-name-card,
+.builder-exercise-card {
+  margin-top: 12px;
+  padding: 16px;
+  border: 1px solid rgba(248,243,230,.08);
+  border-radius: 20px;
+  background:
+    linear-gradient(145deg, rgba(20,23,27,.98), rgba(8,10,12,.995));
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.025),
+    0 16px 45px rgba(0,0,0,.25);
+}
+
+.builder-name-card label,
+.builder-exercise-card label {
+  display: block;
+  margin: 10px 0 6px;
+  color: #716d66;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .11em;
+  text-transform: uppercase;
+}
+
+.builder-name-card input,
+.builder-exercise-card input,
+.builder-exercise-card select {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid rgba(248,243,230,.08);
+  border-radius: 12px;
+  background: #0b0e12;
+  color: var(--cream);
+}
+
+.builder-name-card > div {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.builder-name-card > div button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex: 1;
+  min-height: 40px;
+  border: 1px solid rgba(248,243,230,.07);
+  border-radius: 11px;
+  background: rgba(255,255,255,.02);
+  color: #918c83;
+}
+
+.builder-delete-workout {
+  color: #ba6a63 !important;
+}
+
+.builder-exercise-list {
+  display: grid;
+  gap: 10px;
+}
+
+.builder-exercise-card.superset-linked {
+  border-color: rgba(184,149,78,.24);
+  box-shadow:
+    inset 3px 0 0 rgba(184,149,78,.45),
+    inset 0 1px 0 rgba(255,255,255,.025),
+    0 16px 45px rgba(0,0,0,.25);
+}
+
+.builder-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.builder-card-top > span {
+  color: var(--gold);
+  font: 800 11px 'Manrope', sans-serif;
+  letter-spacing: .12em;
+}
+
+.builder-order-buttons {
+  display: flex;
+  gap: 6px;
+}
+
+.builder-order-buttons button {
+  display: grid;
+  place-items: center;
+  width: 35px;
+  height: 35px;
+  border: 1px solid rgba(248,243,230,.07);
+  border-radius: 10px;
+  background: rgba(255,255,255,.018);
+  color: #7d7870;
+}
+
+.builder-order-buttons button:disabled {
+  opacity: .28;
+}
+
+.builder-field-grid {
+  display: grid;
+  grid-template-columns: .7fr 1.3fr;
+  gap: 8px;
+}
+
+.builder-superset-control {
+  position: relative;
+}
+
+.builder-superset-control svg {
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  transform: translateY(-50%);
+  color: var(--gold);
+  pointer-events: none;
+}
+
+.builder-superset-control select {
+  padding-right: 40px;
+}
+
+.builder-superset-note {
+  margin: 9px 0 0;
+  color: #9b8350;
+  font-size: 10px;
+}
+
+.builder-add-exercise {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  width: 100%;
+  margin-top: 12px;
+  padding: 14px;
+  border: 1px dashed rgba(184,149,78,.25);
+  border-radius: 15px;
+  background: rgba(184,149,78,.025);
+  color: var(--gold-bright);
+  font-weight: 800;
+}
+
+.builder-save-bar {
+  position: sticky;
+  bottom: 82px;
+  z-index: 30;
+  padding-top: 13px;
+  background: linear-gradient(180deg, transparent, rgba(10,12,15,.98) 38%);
+}
+
+.builder-save-bar .gold-button {
+  margin: 0;
+}
+
+/* ===== PATCH 7.9.26 · BUILDER POLISH ===== */
+
+.builder-header h1 {
+  font-size: var(--type-page, clamp(28px, 7vw, 40px));
+}
+
+.builder-name-card,
+.builder-exercise-card {
+  margin-top: var(--space-3, 12px);
+  padding: var(--space-4, 16px);
+  border: 1px solid var(--border-subtle, rgba(246,242,233,.06));
+  border-radius: var(--radius-md, 16px);
+  background: var(--surface-1, rgba(255,255,255,.012));
+  box-shadow: none;
+}
+
+.builder-name-card label,
+.builder-exercise-card label {
+  margin: var(--space-2, 8px) 0 var(--space-1, 6px);
+  font-size: var(--type-eyebrow, 10px);
+  color: var(--text-metadata, #8a8379);
+}
+
+.builder-name-card input,
+.builder-exercise-card input,
+.builder-exercise-card select {
+  min-height: var(--input-height, 48px);
+  padding: 12px;
+  border: 1px solid var(--border-default, rgba(246,242,233,.08));
+  border-radius: var(--radius-sm, 12px);
+  background: rgba(0,0,0,.22);
+}
+
+.builder-name-card input:focus-visible,
+.builder-exercise-card input:focus-visible,
+.builder-exercise-card select:focus-visible {
+  outline: 2px solid rgba(216,184,109,.28);
+  outline-offset: 1px;
+}
+
+.builder-name-card > div button {
+  min-height: var(--btn-height-sm, 40px);
+  border-color: var(--border-subtle, rgba(246,242,233,.06));
+  color: var(--text-supporting, #948d84);
+}
+
+.builder-card-top > span {
+  color: var(--text-metadata, #8a8379);
+  font-size: var(--type-eyebrow, 10px);
+}
+
+.builder-exercise-card.superset-linked {
+  border-color: var(--gold-border, rgba(216,184,109,.14));
+  box-shadow: inset 3px 0 0 rgba(216,184,109,.35);
+}
+
+.builder-order-buttons button {
+  width: 38px;
+  height: 38px;
+  min-height: 38px;
+}
+
+.builder-add-exercise {
+  border-style: dashed;
+  border-color: var(--border-emphasis, rgba(216,184,109,.14));
+  background: var(--surface-2, rgba(255,255,255,.022));
+  color: var(--text-supporting, #948d84);
+  font-weight: 700;
+}
+
+.builder-workout-tabs button.active {
+  border-color: var(--gold-border, rgba(216,184,109,.14));
+  background: var(--gold-surface, rgba(216,184,109,.06));
+  color: #d9c27f;
+}
+
+@media (max-width: 520px) {
+  .builder-field-grid {
+    grid-template-columns: 1fr;
+  }
+}

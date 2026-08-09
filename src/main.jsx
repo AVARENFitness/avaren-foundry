@@ -5,6 +5,10 @@ import { AvaProvider } from './ava/AvaContext'
 import AppUiProvider from './components/ui/AppUiProvider'
 import ErrorBoundary from './components/ErrorBoundary'
 import './styles.css'
+import './styles/screens/builder.css'
+import './styles/screens/forge.css'
+import './styles/screens/history.css'
+import './styles/screens/coach-hub.css'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>

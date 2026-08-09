@@ -1,0 +1,85 @@
+/* ===== PATCH 7.9.26 · COACH HUB TYPOGRAPHY (canonical) ===== */
+
+.coach-hub-screen {
+  gap: var(--space-4, 16px);
+}
+
+.coach-hub-page-header h1 {
+  margin: var(--space-2, 8px) 0;
+  font-size: var(--type-page, clamp(28px, 7vw, 46px));
+  letter-spacing: -0.05em;
+  line-height: 1.05;
+}
+
+.coach-hub-page-header p,
+.coach-empty-state p,
+.coach-hub-notice {
+  max-width: 520px;
+  margin: 0;
+  color: var(--text-supporting, #948d84);
+  font-size: var(--type-body, 14px);
+  line-height: 1.55;
+}
+
+.coach-hub-count {
+  border-color: var(--border-subtle, rgba(246,242,233,.06));
+  background: var(--surface-1, rgba(255,255,255,.012));
+  color: var(--text-body, #d8cfc2);
+}
+
+.coach-hub-count strong {
+  font-size: 20px;
+  color: var(--cream, #f6f2e8);
+}
+
+.coach-hub-count span {
+  font-size: var(--type-eyebrow, 10px);
+  color: var(--text-metadata, #8a8379);
+}
+
+.coach-invite-card strong,
+.coach-client-copy strong,
+.coach-settings-card strong {
+  font-size: 15px;
+}
+
+.coach-invite-card span,
+.coach-client-copy span,
+.coach-settings-card span,
+.coach-client-status span,
+.coach-pending-list small {
+  font-size: var(--type-meta, 12px);
+  color: var(--text-metadata, #8a8379);
+}
+
+.coach-invite-card,
+.coach-roster-section,
+.coach-pending-section,
+.coach-settings-card,
+.coach-empty-state {
+  padding: var(--space-4, 16px);
+  border-color: var(--border-subtle, rgba(246,242,233,.06));
+  border-radius: var(--radius-md, 16px);
+  background: var(--surface-1, rgba(255,255,255,.012));
+}
+
+.coach-client-list article,
+.coach-pending-list article,
+.coach-assignment-list article,
+.coach-settings-card article {
+  min-height: 66px;
+  padding: 14px;
+}
+
+.coach-command-review-badge.reviewed {
+  color: #9fd0a8;
+  background: rgba(120, 176, 132, .06);
+  border: 1px solid rgba(120, 176, 132, .12);
+}
+
+.coach-weekly-review-status.historical,
+.coach-weekly-review-status.reviewed {
+  color: #b5afa6;
+  border-color: rgba(246,242,233,.08);
+  background: rgba(255,255,255,.02);
+}

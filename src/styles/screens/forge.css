@@ -1,0 +1,491 @@
+/* ===== AVAREN BUILDER v0.6 · THE FORGE UI ===== */
+
+.forge-screen {
+  padding-bottom: 96px;
+}
+
+.forge-hero {
+  position: relative;
+  overflow: hidden;
+  padding: 20px;
+  border: 1px solid rgba(184,149,78,.19);
+  border-radius: 25px;
+  background:
+    radial-gradient(circle at 88% -16%, rgba(202,162,76,.18), transparent 34%),
+    linear-gradient(145deg, rgba(26,23,17,.99), rgba(9,9,7,.995));
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.03),
+    0 25px 75px rgba(0,0,0,.36);
+}
+
+.forge-hero-mark {
+  display: grid;
+  place-items: center;
+  width: 57px;
+  height: 57px;
+  margin-bottom: 16px;
+  border: 1px solid rgba(223,195,125,.28);
+  border-radius: 18px;
+  background: rgba(184,149,78,.055);
+  color: var(--gold-bright);
+  box-shadow: 0 0 45px rgba(184,149,78,.1);
+}
+
+.forge-hero h2 {
+  margin: 7px 0 6px;
+  font-size: clamp(32px, 9vw, 47px);
+  letter-spacing: -.06em;
+}
+
+.forge-hero p {
+  max-width: 500px;
+  margin: 0;
+  color: #7a746b;
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.forge-hero-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.forge-hero-stats article {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid rgba(248,243,230,.065);
+  border-radius: 14px;
+  background: rgba(255,255,255,.016);
+}
+
+.forge-hero-stats svg {
+  color: var(--gold);
+}
+
+.forge-hero-stats span,
+.forge-hero-stats strong {
+  display: block;
+}
+
+.forge-hero-stats span {
+  margin-top: 9px;
+  color: #6d6861;
+  font-size: 7px;
+  font-weight: 900;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+}
+
+.forge-hero-stats strong {
+  margin-top: 4px;
+  font-size: 19px;
+}
+
+.forge-overall-track {
+  height: 5px;
+  overflow: hidden;
+  margin-top: 15px;
+  border-radius: 999px;
+  background: rgba(248,243,230,.055);
+}
+
+.forge-overall-track div {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(
+    90deg,
+    #74531d,
+    var(--gold-bright)
+  );
+}
+
+.forge-closest {
+  margin-top: 20px;
+}
+
+.forge-closest-grid,
+.forge-achievement-grid {
+  display: grid;
+  gap: 9px;
+}
+
+.forge-filter-row {
+  display: flex;
+  gap: 7px;
+  overflow-x: auto;
+  margin: 21px 0 11px;
+  padding-bottom: 3px;
+  scrollbar-width: none;
+}
+
+.forge-filter-row::-webkit-scrollbar {
+  display: none;
+}
+
+.forge-filter-row button {
+  flex: 0 0 auto;
+  padding: 8px 10px;
+  border: 1px solid rgba(248,243,230,.07);
+  border-radius: 999px;
+  background: rgba(255,255,255,.018);
+  color: #706b64;
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.forge-filter-row button.active {
+  border-color: rgba(184,149,78,.27);
+  background: rgba(184,149,78,.06);
+  color: var(--gold-bright);
+}
+
+.forge-achievement-card {
+  padding: 16px;
+  border: 1px solid rgba(248,243,230,.075);
+  border-radius: 18px;
+  background:
+    linear-gradient(
+      145deg,
+      rgba(19,22,26,.98),
+      rgba(8,10,12,.995)
+    );
+}
+
+.forge-achievement-card.unlocked {
+  border-color: rgba(184,149,78,.25);
+  background:
+    radial-gradient(circle at 90% -28%, rgba(184,149,78,.14), transparent 38%),
+    linear-gradient(
+      145deg,
+      rgba(24,21,15,.99),
+      rgba(9,9,7,.995)
+    );
+}
+
+.forge-achievement-card.rarity-rare {
+  border-color: rgba(82,112,141,.19);
+}
+
+.forge-achievement-card.rarity-epic {
+  border-color: rgba(110,86,148,.22);
+}
+
+.forge-achievement-card.rarity-legendary {
+  border-color: rgba(202,162,76,.32);
+  background:
+    radial-gradient(circle at 90% -28%, rgba(202,162,76,.17), transparent 38%),
+    linear-gradient(
+      145deg,
+      rgba(28,23,14,.99),
+      rgba(10,9,6,.995)
+    );
+}
+
+.forge-achievement-card.featured {
+  box-shadow: 0 18px 55px rgba(0,0,0,.27);
+}
+
+.forge-achievement-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.forge-achievement-icon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid rgba(184,149,78,.19);
+  border-radius: 14px;
+  background: rgba(184,149,78,.04);
+  color: var(--gold);
+}
+
+.forge-achievement-card.locked
+  .forge-achievement-icon {
+  color: #68635d;
+}
+
+.forge-achievement-status {
+  text-align: right;
+}
+
+.forge-achievement-status span,
+.forge-achievement-status strong {
+  display: block;
+}
+
+.forge-achievement-status span {
+  color: #6d6861;
+  font-size: 7px;
+  font-weight: 900;
+  letter-spacing: .11em;
+  text-transform: uppercase;
+}
+
+.forge-achievement-status strong {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  margin-top: 4px;
+  color: #8d867c;
+  font-size: 9px;
+}
+
+.forge-achievement-card.unlocked
+  .forge-achievement-status strong {
+  color: var(--gold-bright);
+}
+
+.forge-achievement-copy {
+  margin-top: 14px;
+}
+
+.forge-achievement-copy > span {
+  color: #706b64;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+
+.forge-achievement-copy h3 {
+  margin: 5px 0 4px;
+  font-size: 18px;
+  letter-spacing: -.035em;
+}
+
+.forge-achievement-copy p {
+  margin: 0;
+  color: #78726a;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.forge-progress-copy {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.forge-progress-copy span,
+.forge-progress-copy strong {
+  font-size: 9px;
+}
+
+.forge-progress-copy span {
+  color: #8b847a;
+}
+
+.forge-progress-copy strong {
+  color: #b8af9f;
+}
+
+.forge-progress-track {
+  height: 5px;
+  overflow: hidden;
+  margin-top: 7px;
+  border-radius: 999px;
+  background: rgba(248,243,230,.055);
+}
+
+.forge-progress-track div {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(
+    90deg,
+    #71501b,
+    var(--gold-bright)
+  );
+}
+
+.forge-card-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.forge-card-footer span,
+.forge-card-footer strong {
+  color: #625e58;
+  font-size: 8px;
+}
+
+.forge-card-footer strong {
+  text-align: right;
+}
+
+.forge-journey-note {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  margin-top: 14px;
+  padding: 15px;
+  border: 1px solid rgba(248,243,230,.07);
+  border-radius: 17px;
+  background: rgba(255,255,255,.016);
+  color: var(--cream);
+  text-align: left;
+}
+
+.forge-journey-note strong {
+  display: block;
+  margin-top: 5px;
+  color: #8b847a;
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.forge-journey-note > svg {
+  color: #68635d;
+}
+
+@media (min-width: 720px) {
+  .forge-closest-grid,
+  .forge-achievement-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+.celebration-card.forge {
+  border-color: rgba(202,162,76,.32);
+  background:
+    radial-gradient(circle at 88% -25%, rgba(202,162,76,.2), transparent 38%),
+    linear-gradient(145deg, rgba(29,24,14,.99), rgba(10,9,6,.995));
+}
+
+.celebration-card.forge.rarity-rare {
+  border-color: rgba(82,112,141,.28);
+  background:
+    radial-gradient(circle at 88% -25%, rgba(82,112,141,.18), transparent 38%),
+    linear-gradient(145deg, rgba(15,21,28,.99), rgba(7,9,11,.995));
+}
+
+.celebration-card.forge.rarity-epic {
+  border-color: rgba(113,85,154,.31);
+  background:
+    radial-gradient(circle at 88% -25%, rgba(113,85,154,.2), transparent 38%),
+    linear-gradient(145deg, rgba(22,17,30,.99), rgba(8,7,11,.995));
+}
+
+.celebration-card.forge.rarity-legendary {
+  border-color: rgba(223,183,87,.4);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.04),
+    0 0 55px rgba(184,149,78,.13);
+}
+
+.journey-event.forge {
+  border-color: rgba(202,162,76,.25);
+  background:
+    radial-gradient(circle at 92% -30%, rgba(202,162,76,.13), transparent 40%),
+    linear-gradient(145deg, rgba(24,21,15,.99), rgba(9,9,7,.995));
+}
+
+.journey-event.forge .journey-event-icon {
+  border-color: rgba(202,162,76,.27);
+  color: var(--gold-bright);
+  box-shadow: 0 0 30px rgba(184,149,78,.08);
+}
+
+/* ===== PATCH 7.9.26 · FORGE POLISH ===== */
+
+.forge-hero {
+  border-color: var(--border-default, rgba(246,242,233,.08));
+  background: var(--surface-2, rgba(255,255,255,.022));
+  box-shadow: none;
+}
+
+.forge-hero-mark {
+  width: 48px;
+  height: 48px;
+  margin-bottom: var(--space-3, 12px);
+  border-color: var(--border-subtle, rgba(246,242,233,.06));
+  background: var(--surface-1, rgba(255,255,255,.012));
+  color: var(--text-supporting, #948d84);
+  box-shadow: none;
+}
+
+.forge-hero h2 {
+  font-size: var(--type-page, clamp(28px, 7vw, 42px));
+}
+
+.forge-hero p {
+  font-size: var(--type-body, 14px);
+  color: var(--text-supporting, #948d84);
+}
+
+.forge-hero-stats svg {
+  color: var(--text-supporting, #948d84);
+}
+
+.forge-hero-stats span {
+  font-size: var(--type-eyebrow, 10px);
+}
+
+.forge-hero-stats strong {
+  font-size: 18px;
+}
+
+.forge-filter-row button {
+  min-height: 36px;
+  padding: 8px 12px;
+  font-size: var(--type-meta, 12px);
+}
+
+.forge-filter-row button.active {
+  border-color: var(--gold-border, rgba(216,184,109,.14));
+  background: var(--gold-surface, rgba(216,184,109,.06));
+  color: #d9c27f;
+}
+
+.forge-achievement-card {
+  border-color: var(--border-subtle, rgba(246,242,233,.06));
+  background: var(--surface-1, rgba(255,255,255,.012));
+}
+
+.forge-achievement-card.unlocked {
+  border-color: var(--gold-border, rgba(216,184,109,.14));
+  background: var(--surface-2, rgba(255,255,255,.022));
+}
+
+.forge-achievement-card.locked .forge-achievement-icon {
+  color: var(--text-metadata, #8a8379);
+}
+
+.forge-achievement-card.unlocked .forge-achievement-status strong {
+  color: #c4ad6e;
+}
+
+.forge-achievement-copy > span {
+  font-size: var(--type-eyebrow, 10px);
+}
+
+.forge-achievement-copy h3 {
+  font-size: var(--type-card, 16px);
+}
+
+.forge-achievement-copy p {
+  font-size: var(--type-meta, 12px);
+  line-height: 1.45;
+}
+
+.forge-achievement-card.featured {
+  box-shadow: none;
+}
+
+.journey-event.forge {
+  background: var(--surface-2, rgba(255,255,255,.022));
+}
+
+.journey-event.forge .journey-event-icon {
+  box-shadow: none;
+}
