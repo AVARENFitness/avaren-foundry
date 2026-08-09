@@ -1,7 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { buildCoachPortfolioIntelligence } from '../lib/clientIntelligence'
-import { coachBackend } from '../lib/coachBackend'
-import { normalizeWeeklyReview } from '../lib/weeklyReview'
+import {
+  COACH_PORTFOLIO_STATUS,
+  buildCoachPortfolioBundle,
+  ensureCoachPortfolio,
+  invalidateCoachPortfolioCache,
+  loadCoachPortfolio,
+  loadCoachPortfolioIntelligence,
+  mergeCoachPortfolioBundle,
+  publishCoachPortfolioBundle,
+} from '../lib/coachPortfolioService'
 
 export function useCoachPortfolio(clients = [], assignments = []) {
   const [athleteStatesById, setAthleteStatesById] = useState({})
@@ -17,6 +24,7 @@ export function useCoachPortfolio(clients = [], assignments = []) {
   )
 
   const refreshPortfolio = useCallback(() => {
+    invalidateCoachPortfolioCache()
     setRefreshToken((value) => value + 1)
   }, [])
 
@@ -34,29 +42,16 @@ export function useCoachPortfolio(clients = [], assignments = []) {
     setPortfolioLoading(true)
     setPortfolioError('')
 
-    Promise.all([
-      coachBackend.listAthleteFoundryStates(athleteIds),
-      coachBackend.listAthleteNutritionSnapshots(athleteIds),
-      coachBackend.listCoachWeeklyReviews(),
-    ])
-      .then(([states, nutrition, reviews]) => {
+    loadCoachPortfolioIntelligence({ clients, assignments, force: refreshToken > 0 })
+      .then(({ athleteStatesById: states, nutritionByAthleteId: nutrition, weeklyReviewsByAthleteId: reviews }) => {
         if (!active) return
         setAthleteStatesById(states)
         setNutritionByAthleteId(nutrition)
-        setWeeklyReviewsByAthleteId(
-          Object.fromEntries(
-            (reviews ?? [])
-              .map((row) => normalizeWeeklyReview(row))
-              .filter(Boolean)
-              .map((review) => [review.athleteId, review]),
-          ),
-        )
+        setWeeklyReviewsByAthleteId(reviews)
       })
       .catch((error) => {
         if (!active) return
-        setPortfolioError(
-          error?.message ?? 'Could not load portfolio intelligence.',
-        )
+        setPortfolioError(error?.message ?? 'Could not load portfolio intelligence.')
       })
       .finally(() => {
         if (active) setPortfolioLoading(false)
@@ -65,19 +60,58 @@ export function useCoachPortfolio(clients = [], assignments = []) {
     return () => {
       active = false
     }
-  }, [athleteIds.join('|'), refreshToken])
+  }, [athleteIds.join('|'), assignments, refreshToken, clients])
 
   const portfolio = useMemo(
     () =>
-      buildCoachPortfolioIntelligence({
+      buildCoachPortfolioBundle({
         clients,
         assignments,
         athleteStatesById,
         nutritionByAthleteId,
         weeklyReviewsByAthleteId,
-      }),
-    [clients, assignments, athleteStatesById, nutritionByAthleteId, weeklyReviewsByAthleteId],
+        status: portfolioLoading
+          ? COACH_PORTFOLIO_STATUS.LOADING
+          : portfolioError
+          ? COACH_PORTFOLIO_STATUS.ERROR
+          : COACH_PORTFOLIO_STATUS.READY,
+        error: portfolioError,
+        source: 'hook',
+      }).portfolio,
+    [
+      clients,
+      assignments,
+      athleteStatesById,
+      nutritionByAthleteId,
+      weeklyReviewsByAthleteId,
+      portfolioLoading,
+      portfolioError,
+    ],
   )
+
+  useEffect(() => {
+    if (!clients.length || portfolioLoading) return
+    publishCoachPortfolioBundle(
+      buildCoachPortfolioBundle({
+        clients,
+        assignments,
+        athleteStatesById,
+        nutritionByAthleteId,
+        weeklyReviewsByAthleteId,
+        status: portfolioError ? COACH_PORTFOLIO_STATUS.ERROR : COACH_PORTFOLIO_STATUS.READY,
+        error: portfolioError,
+        source: 'coach-hub',
+      }),
+    )
+  }, [
+    clients,
+    assignments,
+    athleteStatesById,
+    nutritionByAthleteId,
+    weeklyReviewsByAthleteId,
+    portfolioLoading,
+    portfolioError,
+  ])
 
   return {
     portfolio,
@@ -89,3 +123,83 @@ export function useCoachPortfolio(clients = [], assignments = []) {
     nutritionByAthleteId,
   }
 }
+
+export function useCoachPortfolioSession(coachAuthorized = false) {
+  const [bundle, setBundle] = useState(null)
+  const [loading, setLoading] = useState(false)
+
+  const refreshPortfolio = useCallback(async ({ force = true } = {}) => {
+    if (!coachAuthorized) return null
+    setLoading(true)
+    try {
+      const next = await loadCoachPortfolio({ force })
+      setBundle(next)
+      return next
+    } finally {
+      setLoading(false)
+    }
+  }, [coachAuthorized])
+
+  useEffect(() => {
+    if (!coachAuthorized) {
+      setBundle(null)
+      setLoading(false)
+      return
+    }
+
+    let active = true
+    setLoading(true)
+    loadCoachPortfolio()
+      .then((next) => {
+        if (active) setBundle(next)
+      })
+      .catch(() => {
+        if (active) setBundle(null)
+      })
+      .finally(() => {
+        if (active) setLoading(false)
+      })
+
+    return () => {
+      active = false
+    }
+  }, [coachAuthorized])
+
+  const ensurePortfolio = useCallback(
+    async ({ requiredDomains = [], force = false } = {}) => {
+      if (!coachAuthorized) return null
+      setLoading(true)
+      try {
+        const next = await ensureCoachPortfolio({ requiredDomains, force })
+        setBundle(next)
+        return next
+      } finally {
+        setLoading(false)
+      }
+    },
+    [coachAuthorized],
+  )
+
+  const coachContextOverlay = useMemo(() => {
+    if (!coachAuthorized || !bundle) {
+      return {
+        portfolioStatus: coachAuthorized
+          ? loading
+            ? COACH_PORTFOLIO_STATUS.LOADING
+            : COACH_PORTFOLIO_STATUS.IDLE
+          : COACH_PORTFOLIO_STATUS.IDLE,
+      }
+    }
+    return mergeCoachPortfolioBundle({}, bundle)
+  }, [coachAuthorized, bundle, loading])
+
+  return {
+    bundle,
+    loading,
+    refreshPortfolio,
+    ensurePortfolio,
+    coachContextOverlay,
+  }
+}
+
+export { ensureCoachPortfolio, mergeCoachPortfolioBundle }

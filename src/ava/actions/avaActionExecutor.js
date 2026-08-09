@@ -63,16 +63,23 @@ const runActionHandler = async (actionId, runtime = {}, context = {}) => {
       const beforeView = describeCoachView(snapshot)
       const wantsClientList =
         context.focus === 'clients' ||
+        context.focus === 'attention' ||
         context.destination === COACH_HUB_DESTINATIONS.CLIENTS ||
         context.destination === 'coach-clients' ||
         context.meta?.focus === 'clients' ||
+        context.meta?.focus === 'attention' ||
         context.meta?.destination === COACH_HUB_DESTINATIONS.CLIENTS ||
         context.meta?.destination === 'coach-clients'
 
+      const focus =
+        context.focus ??
+        context.meta?.focus ??
+        (wantsClientList ? 'clients' : 'clients')
+
       if (!snapshot.coachHub) {
-        runtime.enterCoachHub?.({ focus: 'clients' })
+        runtime.enterCoachHub?.({ focus })
       } else if (wantsClientList) {
-        runtime.openCoachClientList?.()
+        runtime.openCoachClientList?.({ focus })
       } else {
         runtime.setCoachScreen?.('clients')
       }

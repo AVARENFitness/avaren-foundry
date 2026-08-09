@@ -69,6 +69,7 @@ export function buildBaseCoachAvaContext({
     assignments: rosterContext.assignments ?? [],
     athleteStatesById: rosterContext.athleteStatesById ?? {},
     weeklyReviewsByAthleteId: rosterContext.weeklyReviewsByAthleteId ?? {},
+    nutritionByAthleteId: rosterContext.nutritionByAthleteId ?? {},
     coachScreen: rosterContext.coachScreen ?? 'clients',
     selectedClient: rosterContext.selectedClient ?? null,
     selectedClientId: rosterContext.selectedClientId ?? null,
@@ -76,5 +77,10 @@ export function buildBaseCoachAvaContext({
     profileOpen: Boolean(rosterContext.profileOpen),
     portfolioLoading: Boolean(rosterContext.portfolioLoading),
     portfolioError: rosterContext.portfolioError ?? '',
+    portfolioStatus: rosterContext.portfolioStatus ?? 'idle',
+    portfolioLoadedAt: rosterContext.portfolioLoadedAt ?? null,
+    portfolioMissingDomains: rosterContext.portfolioMissingDomains ?? [],
+    ensureCoachPortfolio: rosterContext.ensureCoachPortfolio ?? null,
+    onCoachContextHydrated: rosterContext.onCoachContextHydrated ?? null,
   }
 }

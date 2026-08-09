@@ -13,6 +13,7 @@ import {
   resolveCoachExplicitCommand,
   isCoachClientNameCommand,
   isCoachPortfolioQueryCommand,
+  isCoachExplainCommand,
   isCoachReferentCommand,
 } from './avaCoachResolver'
 import { AVA_ACTION_IDS } from '../actions/avaActionTypes'
@@ -20,6 +21,19 @@ import { setSessionActiveCoachContext } from './avaCoachContext'
 import {
   buildCoachClientLabel,
 } from './avaCoachClientResolver'
+import {
+  coachContextAuthorizedClientCount,
+  coachContextHasPortfolioData,
+  getRequiredDomainsForQuery,
+  logAvaCoachQueryDiagnostic,
+  matchCoachOperationalQuery,
+  portfolioQueryLoadErrorMessage,
+} from './avaCoachQueryPatterns'
+import {
+  COACH_PORTFOLIO_STATUS,
+  ensureCoachPortfolio,
+  mergeCoachPortfolioBundle,
+} from '../../lib/coachPortfolioService'
 
 const collectCoachActions = (result = {}) => {
   const actions = []
@@ -43,6 +57,18 @@ export const mapCoachQueryToPipeline = (queryOutcome = {}) => {
   const coachResults = result?.items ?? []
   const actions = collectCoachActions(result)
 
+  logAvaCoachQueryDiagnostic({
+    role: 'coach',
+    queryType: queryOutcome.queryType ?? result?.actionId ?? null,
+    matched: true,
+    recognized: true,
+    source: 'deterministic',
+    dataStatus: result?.portfolioStatus ?? COACH_PORTFOLIO_STATUS.READY,
+    authorizedClientCount: result?.authorizedClientCount ?? 0,
+    resultCount: coachResults.length,
+    route: 'deterministic',
+  })
+
   return createPipelineOutcome({
     kind: AVA_PIPELINE_KIND.COACH_RESULT,
     message,
@@ -59,16 +85,68 @@ export async function runCoachPipelineStep({
   coachContext = null,
   actionRuntime = null,
   requestId = 'coach',
+  onCoachContextHydrated = null,
 } = {}) {
   const coachAccess = Boolean(
     coachContext?.coachAccess ?? coachContext?.authorized,
   )
   if (!coachAccess) return null
 
-  const resolution = resolveCoachExplicitCommand(message, {
-    coachContext,
+  const operationalQuery = matchCoachOperationalQuery(message)
+  let activeCoachContext = coachContext
+
+    if (operationalQuery && !coachContextHasPortfolioData(activeCoachContext)) {
+    logAvaCoachQueryDiagnostic({
+      role: 'coach',
+      queryType: operationalQuery.queryType,
+      matched: true,
+      recognized: true,
+      source: 'deterministic',
+      dataStatus: COACH_PORTFOLIO_STATUS.LOADING,
+      route: 'deterministic',
+    })
+
+    const requiredDomains = getRequiredDomainsForQuery(operationalQuery.queryType)
+    const ensurePortfolio =
+      activeCoachContext?.ensureCoachPortfolio ??
+      ((options = {}) => ensureCoachPortfolio(options))
+
+    const bundle = await ensurePortfolio({
+      requiredDomains,
+      force: operationalQuery.queryType === 'missing_checkin',
+    })
+
+    if (bundle?.loadFailed || bundle?.status === COACH_PORTFOLIO_STATUS.ERROR) {
+      return createPipelineOutcome({
+        kind: AVA_PIPELINE_KIND.RESPONSE,
+        message: portfolioQueryLoadErrorMessage(operationalQuery.queryType),
+        readOnly: true,
+      })
+    }
+
+    activeCoachContext = mergeCoachPortfolioBundle(activeCoachContext, bundle)
+    ;(onCoachContextHydrated ?? activeCoachContext?.onCoachContextHydrated)?.(
+      activeCoachContext,
+    )
+  }
+
+  let resolution = resolveCoachExplicitCommand(message, {
+    coachContext: activeCoachContext,
     session,
   })
+
+  if (!resolution && operationalQuery) {
+    const result = runCoachQuery(operationalQuery.actionId, activeCoachContext)
+    resolution = {
+      kind: 'query',
+      actionId: operationalQuery.actionId,
+      queryType: operationalQuery.queryType,
+      result: {
+        ...result,
+        portfolioStatus: activeCoachContext.portfolioStatus ?? COACH_PORTFOLIO_STATUS.READY,
+      },
+    }
+  }
 
   if (!resolution) return null
 
@@ -78,6 +156,7 @@ export async function runCoachPipelineStep({
   const isClientNameCommand = isCoachClientNameCommand(message)
   const isSummaryCommand = /quick update|give me a quick update/i.test(message)
   const isPortfolioQuery = isCoachPortfolioQueryCommand(message)
+  const isExplainCommand = isCoachExplainCommand(message)
   const isReferentCommand = isCoachReferentCommand(message)
 
   if (
@@ -85,6 +164,7 @@ export async function runCoachPipelineStep({
     !isClientNameCommand &&
     !isSummaryCommand &&
     !isPortfolioQuery &&
+    !isExplainCommand &&
     !isReferentCommand &&
     !coachContext?.isCoachMode
   ) {
@@ -93,8 +173,24 @@ export async function runCoachPipelineStep({
 
   const needsRoster =
     !isHubNavigation &&
-    (isClientNameCommand || isSummaryCommand || isPortfolioQuery)
-  if (needsRoster && !(coachContext?.clients?.length ?? 0)) {
+    (isClientNameCommand ||
+      isSummaryCommand ||
+      isPortfolioQuery ||
+      isExplainCommand)
+
+  if (
+    needsRoster &&
+    isPortfolioQuery &&
+    !coachContextHasPortfolioData(activeCoachContext)
+  ) {
+    return createPipelineOutcome({
+      kind: AVA_PIPELINE_KIND.RESPONSE,
+      message: portfolioQueryLoadErrorMessage(operationalQuery?.queryType),
+      readOnly: true,
+    })
+  }
+
+  if (needsRoster && !(activeCoachContext?.clients?.length ?? 0)) {
     return createPipelineOutcome({
       kind: AVA_PIPELINE_KIND.RESPONSE,
       message:
@@ -170,7 +266,16 @@ export async function runCoachPipelineStep({
   }
 
   if (resolution.kind === 'query') {
-    return mapCoachQueryToPipeline(resolution)
+    const enriched = {
+      ...resolution,
+      result: {
+        ...(resolution.result ?? {}),
+        authorizedClientCount: coachContextAuthorizedClientCount(activeCoachContext),
+        portfolioStatus:
+          activeCoachContext.portfolioStatus ?? COACH_PORTFOLIO_STATUS.READY,
+      },
+    }
+    return mapCoachQueryToPipeline(enriched)
   }
 
   if (resolution.kind === 'navigation' && resolution.resolution?.actionId) {
@@ -205,7 +310,7 @@ export async function runCoachPipelineStep({
           clientName:
             resolution.resolution.meta?.clientName ??
             buildCoachClientLabel(
-              coachContext.clients?.find(
+              activeCoachContext.clients?.find(
                 (client) => String(client.athlete_id) === String(athleteId),
               ) ?? {},
             ),

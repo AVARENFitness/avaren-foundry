@@ -162,6 +162,7 @@ export default function CoachScreen({ workspace, setWorkspace, screen='clients',
         setWeeklyReviewClient(client)
         setHistoricalReviewId(reviewId)
       },
+      setAttentionSort: () => setSortKey(COACH_CLIENT_SORT.NEEDS_ATTENTION),
     })
 
     return () => onRegisterCoachScreenApi?.(null)

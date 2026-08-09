@@ -1,24 +1,21 @@
-import { rankClientAttention } from '../../lib/clientIntelligence'
-import { getCoachWeekRange, isDateInWeek } from '../../lib/weeklyReview'
 import { AVA_ACTION_IDS } from '../actions/avaActionTypes'
 import { buildCoachClientLabel } from './avaCoachClientResolver'
 import {
-  ATTENTION_REASON_LABELS,
-  ATTENTION_REASON_PRIORITY,
   ATTENTION_REASON_TYPES,
-  rankCoachAttentionItems,
+  buildCoachAttentionQueue,
+  filterAttentionQueueByReason,
+  formatAttentionEntryHeadline,
+  formatAttentionExplanation,
+  formatPartialDataNote,
+  getAttentionEntryForAthlete,
 } from './avaCoachAttention'
+import {
+  ATHLETE_CHECK_IN_STATUS,
+  resolveAthleteCheckInStatus,
+  summarizeRosterCheckInStatus,
+} from './avaCoachCheckIn'
 
-export const hasWeeklyAthleteCheckIn = (
-  athleteState = null,
-  now = new Date(),
-) => {
-  const weekRange = getCoachWeekRange(now)
-  const entries = athleteState?.readiness?.entries ?? []
-  return entries.some((entry) =>
-    isDateInWeek(entry?.date, weekRange.weekStart, weekRange.weekEnd),
-  )
-}
+const DEFAULT_ATTENTION_DISPLAY = 3
 
 const rosterEntriesFromContext = (coachContext = {}) =>
   coachContext.portfolio?.rosterEntries ??
@@ -28,221 +25,310 @@ const rosterEntriesFromContext = (coachContext = {}) =>
 const athleteStateForEntry = (coachContext = {}, entry = {}) =>
   coachContext.athleteStatesById?.[entry.client?.athlete_id] ?? null
 
-export const queryClientsMissingCheckIn = (coachContext = {}, now = new Date()) => {
-  const entries = rosterEntriesFromContext(coachContext)
-  const missing = entries.filter(
-    (entry) => !hasWeeklyAthleteCheckIn(athleteStateForEntry(coachContext, entry), now),
+const buildClientActions = (entry = {}, { primaryReason = null } = {}) => {
+  const actions = [
+    {
+      actionId: AVA_ACTION_IDS.OPEN_CLIENT_PROFILE,
+      label: `Open ${entry.displayName ?? entry.clientName ?? 'Client'}`,
+      meta: {
+        athleteId: entry.athleteId,
+        clientName: entry.displayName ?? entry.clientName,
+      },
+    },
+  ]
+
+  const reasonTypes = new Set(
+    (entry.reasons ?? []).map((reason) => reason.type),
   )
+  if (
+    primaryReason === ATTENTION_REASON_TYPES.OPEN_COACH_REVIEW ||
+    reasonTypes.has(ATTENTION_REASON_TYPES.OPEN_COACH_REVIEW)
+  ) {
+    actions.push({
+      actionId: AVA_ACTION_IDS.OPEN_WEEKLY_REVIEWS,
+      label: 'Open Review',
+      meta: {
+        athleteId: entry.athleteId,
+        clientName: entry.displayName ?? entry.clientName,
+      },
+    })
+  }
+
+  if (
+    primaryReason === ATTENTION_REASON_TYPES.RECOVERY_CONCERN ||
+    reasonTypes.has(ATTENTION_REASON_TYPES.RECOVERY_CONCERN)
+  ) {
+    actions.push({
+      actionId: AVA_ACTION_IDS.OPEN_CLIENT_INTELLIGENCE,
+      label: 'Open Intelligence',
+      meta: {
+        athleteId: entry.athleteId,
+        clientName: entry.displayName ?? entry.clientName,
+      },
+    })
+  }
+
+  return actions
+}
+
+const mapQueueEntryToResultItem = (entry = {}, { primaryReason = null } = {}) => {
+  const reason =
+    entry.reasons?.find((item) =>
+      primaryReason ? item.type === primaryReason : true,
+    ) ?? entry.reasons?.[0]
+
+  const displayReason =
+    primaryReason === ATTENTION_REASON_TYPES.MISSING_WEEKLY_CHECKIN
+      ? "hasn't submitted this week's check-in"
+      : primaryReason === ATTENTION_REASON_TYPES.RECOVERY_CONCERN
+      ? reason?.evidence ?? reason?.label ?? 'recovery has been lower recently'
+      : reason?.label ?? 'Needs follow-up.'
 
   return {
-    actionId: AVA_ACTION_IDS.SHOW_CLIENTS_MISSING_CHECKIN,
-    items: missing.map((entry) => ({
-      athleteId: entry.client.athlete_id,
-      clientName: entry.clientName ?? buildCoachClientLabel(entry.client),
-      reason: `${entry.clientName ?? buildCoachClientLabel(entry.client)} hasn't checked in this week.`,
-      evidence: 'No readiness check-in logged this week.',
-      type: ATTENTION_REASON_TYPES.WEEKLY_CHECKIN_MISSING,
-      actions: [
-        {
-          actionId: AVA_ACTION_IDS.OPEN_CLIENT_PROFILE,
-          label: `Open ${entry.clientName ?? 'Client'}`,
-          meta: { athleteId: entry.client.athlete_id },
-        },
-        {
-          actionId: AVA_ACTION_IDS.OPEN_WEEKLY_REVIEWS,
-          label: 'Open Weekly Review',
-          meta: { athleteId: entry.client.athlete_id },
-        },
-      ],
-    })),
-    emptyMessage: 'Everyone is checked in this week.',
+    athleteId: entry.athleteId,
+    clientName: entry.displayName,
+    reason: displayReason,
+    evidence: reason?.evidence ?? '',
+    type: reason?.type ?? null,
+    severity: reason?.severity ?? 'medium',
+    priority: entry.priorityScore,
+    actions: buildClientActions(entry, { primaryReason }),
   }
 }
 
-export const queryClientsNeedingAttention = (coachContext = {}, now = new Date()) => {
+export { hasWeeklyAthleteCheckIn } from './avaCoachCheckIn'
+
+export const explainClientAttention = (
+  athleteId = null,
+  coachContext = {},
+  now = new Date(),
+) => {
+  const { queue } = buildCoachAttentionQueue(coachContext, now)
+  const entry = getAttentionEntryForAthlete(queue, athleteId)
+  if (!entry) {
+    const client = (coachContext.clients ?? []).find(
+      (item) => String(item.athlete_id) === String(athleteId),
+    )
+    const name = buildCoachClientLabel(client ?? {})
+    return `Nothing urgent stands out for ${name || 'that client'} right now.`
+  }
+  return formatAttentionExplanation(entry)
+}
+
+const buildUnknownCheckInItems = (checkInSummary = {}, coachContext = {}) => {
   const entries = rosterEntriesFromContext(coachContext)
-  const attentionItems = []
+  const entryByAthleteId = new Map(
+    entries.map((entry) => [String(entry.client?.athlete_id), entry]),
+  )
 
-  entries.forEach((entry) => {
-    if (
-      !hasWeeklyAthleteCheckIn(athleteStateForEntry(coachContext, entry), now)
-    ) {
-      attentionItems.push({
-        athleteId: entry.client.athlete_id,
-        clientName: entry.clientName,
-        type: ATTENTION_REASON_TYPES.WEEKLY_CHECKIN_MISSING,
-        severity: 'watch',
-        reason: `${entry.clientName} hasn't checked in this week.`,
-        evidence: 'No readiness check-in logged this week.',
-        priority:
-          ATTENTION_REASON_PRIORITY[ATTENTION_REASON_TYPES.WEEKLY_CHECKIN_MISSING],
-      })
+  return (checkInSummary.unknown ?? []).map((record) => {
+    const entry = entryByAthleteId.get(String(record.athleteId)) ?? {}
+    const displayName =
+      buildCoachClientLabel(entry.client) ?? entry.clientName ?? 'Client'
+
+    return {
+      athleteId: record.athleteId,
+      clientName: displayName,
+      reason: "current-week check-in couldn't be verified yet",
+      type: 'CHECKIN_UNKNOWN',
+      severity: 'medium',
+      actions: buildClientActions(
+        {
+          athleteId: record.athleteId,
+          displayName,
+          client: entry.client,
+          reasons: [],
+        },
+        {},
+      ),
     }
+  })
+}
 
-    if (entry.weeklyReviewStatus === 'REVIEW DUE') {
-      attentionItems.push({
-        athleteId: entry.client.athlete_id,
-        clientName: entry.clientName,
-        type: ATTENTION_REASON_TYPES.WEEKLY_REVIEW_DUE,
-        severity: 'watch',
-        reason: `${entry.clientName}'s weekly review is still open.`,
-        evidence: 'Coach review not completed for this week.',
-        priority:
-          ATTENTION_REASON_PRIORITY[ATTENTION_REASON_TYPES.WEEKLY_REVIEW_DUE],
-      })
-    }
+const formatUnknownCheckInNote = (unknownItems = []) => {
+  if (!unknownItems.length) return ''
 
-    ;(entry.intelligence?.attention ?? [])
-      .filter((item) => item.id !== 'all-clear' && item.id !== 'performance-up')
-      .forEach((item) => {
-        attentionItems.push({
-          athleteId: entry.client.athlete_id,
-          clientName: entry.clientName,
-          type: item.id,
-          severity: item.severity ?? 'watch',
-          reason:
-            ATTENTION_REASON_LABELS[item.id]?.(entry, item) ??
-            `${entry.clientName} — ${item.title}`,
-          evidence: item.description ?? item.title,
-          priority: ATTENTION_REASON_PRIORITY[item.id] ?? 40,
-        })
-      })
+  if (unknownItems.length === 1) {
+    return `I can't verify the current-week check-in for ${unknownItems[0].clientName} yet.`
+  }
+
+  const names = unknownItems.map((item) => item.clientName)
+  if (names.length === 2) {
+    return `I can't verify the current-week check-in for ${names[0]} or ${names[1]} yet.`
+  }
+
+  return `I can't verify the current-week check-in for ${names.slice(0, -1).join(', ')}, or ${names.at(-1)} yet.`
+}
+
+export const queryClientsMissingCheckIn = (coachContext = {}, now = new Date()) => {
+  const entries = rosterEntriesFromContext(coachContext)
+  const checkInSummary = summarizeRosterCheckInStatus({
+    rosterEntries: entries,
+    athleteStatesById: coachContext.athleteStatesById ?? {},
+    weeklyReviewsByAthleteId: coachContext.weeklyReviewsByAthleteId ?? {},
+    portfolioLoaded: Boolean(
+      coachContext.portfolioStatus === 'ready' ||
+        coachContext.portfolioStatus === 'partial' ||
+        coachContext.portfolioLoadedAt ||
+        Object.keys(coachContext.athleteStatesById ?? {}).length > 0,
+    ),
+    now,
   })
 
-  const ranked = rankCoachAttentionItems(attentionItems, { limit: 8 })
-  const display = ranked.slice(0, 3)
+  if (!entries.length) {
+    return {
+      actionId: AVA_ACTION_IDS.SHOW_CLIENTS_MISSING_CHECKIN,
+      items: [],
+      unknownItems: [],
+      confirmedItems: [],
+      canClaimAllClear: false,
+      emptyMessage:
+        "I don't have your client roster loaded yet, so I can't verify check-ins.",
+      partialDataNote: '',
+    }
+  }
+
+  const { queue } = buildCoachAttentionQueue(coachContext, now)
+  const missing = filterAttentionQueueByReason(
+    queue,
+    ATTENTION_REASON_TYPES.MISSING_WEEKLY_CHECKIN,
+  )
+  const unknownItems = buildUnknownCheckInItems(checkInSummary, coachContext)
+  const confirmedItems = (checkInSummary.submitted ?? []).map((record) => {
+    const entry = entries.find(
+      (item) => String(item.client?.athlete_id) === String(record.athleteId),
+    )
+    return {
+      athleteId: record.athleteId,
+      clientName: buildCoachClientLabel(entry?.client) ?? entry?.clientName ?? 'Client',
+    }
+  })
+
+  const canClaimAllClear = checkInSummary.canClaimAllClear
 
   return {
-    actionId: AVA_ACTION_IDS.SHOW_CLIENTS_NEEDING_ATTENTION,
-    items: display.map((item) => ({
-      ...item,
-      actions: [
-        {
-          actionId: AVA_ACTION_IDS.OPEN_CLIENT_PROFILE,
-          label: `Open ${item.clientName}`,
-          meta: { athleteId: item.athleteId },
+    actionId: AVA_ACTION_IDS.SHOW_CLIENTS_MISSING_CHECKIN,
+    items: missing.map((entry) => {
+      const item = mapQueueEntryToResultItem(entry, {
+        primaryReason: ATTENTION_REASON_TYPES.MISSING_WEEKLY_CHECKIN,
+      })
+      item.actions.push({
+        actionId: AVA_ACTION_IDS.OPEN_WEEKLY_REVIEWS,
+        label: 'View Reviews',
+        meta: {
+          athleteId: entry.athleteId,
+          clientName: entry.displayName,
         },
-      ],
-    })),
-    totalCount: ranked.length,
-    emptyMessage: 'Nothing urgent stands out right now.',
+      })
+      return item
+    }),
+    unknownItems,
+    confirmedItems,
+    canClaimAllClear,
+    checkInSummary,
+    emptyMessage: canClaimAllClear
+      ? 'Everyone is checked in this week.'
+      : unknownItems.length && !missing.length
+      ? formatUnknownCheckInNote(unknownItems)
+      : unknownItems.length
+      ? formatUnknownCheckInNote(unknownItems)
+      : 'Everyone is checked in this week.',
+    partialDataNote: formatUnknownCheckInNote(unknownItems),
     viewAllAction:
-      ranked.length > display.length
+      missing.length > 1
         ? {
             actionId: AVA_ACTION_IDS.OPEN_COACH_HUB,
-            label: 'View All',
-            meta: { focus: 'attention' },
+            label: 'View Reviews',
+            meta: { focus: 'attention', destination: 'coach-clients' },
           }
         : null,
   }
 }
 
-export const queryRecoveryConcerns = (coachContext = {}) => {
-  const entries = rosterEntriesFromContext(coachContext)
-  const items = entries
-    .filter((entry) => {
-      const readiness = entry.intelligence?.readiness
-      return (
-        readiness?.available &&
-        readiness.trend === 'Below recent baseline'
-      )
-    })
-    .map((entry) => ({
-      athleteId: entry.client.athlete_id,
-      clientName: entry.clientName,
-      reason: `${entry.clientName}'s recent recovery is notably lower than their usual range.`,
-      evidence: entry.intelligence.readiness.detail ?? readinessFallback(entry),
-      type: ATTENTION_REASON_TYPES.READINESS_LOW,
-      actions: [
-        {
-          actionId: AVA_ACTION_IDS.OPEN_CLIENT_PROFILE,
-          label: `Open ${entry.clientName}`,
-          meta: { athleteId: entry.client.athlete_id },
-        },
-      ],
-    }))
+export const queryClientsNeedingAttention = (coachContext = {}, now = new Date()) => {
+  const { queue, meta } = buildCoachAttentionQueue(coachContext, now)
+  const display = queue.slice(0, DEFAULT_ATTENTION_DISPLAY)
+
+  return {
+    actionId: AVA_ACTION_IDS.SHOW_CLIENTS_NEEDING_ATTENTION,
+    items: display.map((entry) => mapQueueEntryToResultItem(entry)),
+    totalCount: queue.length,
+    emptyMessage: 'Nothing urgent stands out right now.',
+    partialDataNote: formatPartialDataNote(meta),
+    viewAllAction:
+      queue.length > display.length
+        ? {
+            actionId: AVA_ACTION_IDS.OPEN_COACH_HUB,
+            label: 'View All',
+            meta: { focus: 'attention', destination: 'coach-clients' },
+          }
+        : null,
+  }
+}
+
+export const queryRecoveryConcerns = (coachContext = {}, now = new Date()) => {
+  const { queue, meta } = buildCoachAttentionQueue(coachContext, now)
+  const items = filterAttentionQueueByReason(
+    queue,
+    ATTENTION_REASON_TYPES.RECOVERY_CONCERN,
+  ).map((entry) =>
+    mapQueueEntryToResultItem(entry, {
+      primaryReason: ATTENTION_REASON_TYPES.RECOVERY_CONCERN,
+    }),
+  )
 
   return {
     actionId: AVA_ACTION_IDS.SHOW_RECOVERY_CONCERNS,
     items,
-    emptyMessage: 'No recovery concerns stand out from recent check-ins.',
+    emptyMessage: 'Nothing concerning stands out in recovery right now.',
+    partialDataNote: formatPartialDataNote(meta),
   }
-}
-
-const readinessFallback = (entry) => {
-  const readiness = entry.intelligence?.readiness
-  if (!readiness?.available) return 'Readiness data not available.'
-  if (readiness.score !== null) {
-    return `Latest readiness score: ${readiness.score}.`
-  }
-  return readiness.status ?? 'Recovery signal available.'
 }
 
 export const queryTrainingConcerns = (coachContext = {}, now = new Date()) => {
-  const entries = rosterEntriesFromContext(coachContext)
-  const items = []
-
-  entries.forEach((entry) => {
-    const attention = entry.intelligence?.attention ?? []
-    const trainingItems = attention.filter((item) =>
-      ['inactive', 'frequency-drop', 'overdue-assignment', 'open-assignment'].includes(
-        item.id,
+  const { queue } = buildCoachAttentionQueue(coachContext, now)
+  const items = queue
+    .filter((entry) =>
+      entry.reasons.some((reason) =>
+        [
+          ATTENTION_REASON_TYPES.TRAINING_GAP,
+          ATTENTION_REASON_TYPES.ASSIGNMENT_CONCERN,
+        ].includes(reason.type),
       ),
     )
-
-    trainingItems.forEach((item) => {
-      items.push({
-        athleteId: entry.client.athlete_id,
-        clientName: entry.clientName,
-        reason: `${entry.clientName} — ${item.title.toLowerCase()}.`,
-        evidence: item.description ?? item.title,
-        type: item.id,
-        actions: [
-          {
-            actionId: AVA_ACTION_IDS.OPEN_CLIENT_PROFILE,
-            label: `Open ${entry.clientName}`,
-            meta: { athleteId: entry.client.athlete_id },
-          },
-        ],
-      })
+    .map((entry) => {
+      const primaryReason = entry.reasons.find((reason) =>
+        [
+          ATTENTION_REASON_TYPES.TRAINING_GAP,
+          ATTENTION_REASON_TYPES.ASSIGNMENT_CONCERN,
+        ].includes(reason.type),
+      )?.type
+      return mapQueueEntryToResultItem(entry, { primaryReason })
     })
-  })
 
   return {
     actionId: AVA_ACTION_IDS.SHOW_TRAINING_CONCERNS,
     items,
-    emptyMessage: 'No training gaps flagged from recent sessions or assignments.',
+    emptyMessage:
+      'No training gaps flagged from recent sessions or assignments.',
   }
 }
 
-export const queryNutritionConcerns = (coachContext = {}) => {
+export const queryNutritionConcerns = (coachContext = {}, now = new Date()) => {
+  const { queue } = buildCoachAttentionQueue(coachContext, now)
   const entries = rosterEntriesFromContext(coachContext)
-  const items = entries
-    .filter((entry) => {
-      const nutrition = entry.intelligence?.nutrition
-      return nutrition?.shared && nutrition?.daysLoggedThisWeek !== undefined &&
-        nutrition.daysLoggedThisWeek < 3
-    })
-    .map((entry) => ({
-      athleteId: entry.client.athlete_id,
-      clientName: entry.clientName,
-      reason: `${entry.clientName} has logged fewer than three nutrition days this week.`,
-      evidence:
-        entry.intelligence.nutrition.detail ??
-        'Fewer than three days were logged this week.',
-      type: ATTENTION_REASON_TYPES.NUTRITION_LIGHT,
-      actions: [
-        {
-          actionId: AVA_ACTION_IDS.OPEN_CLIENT_PROFILE,
-          label: `Open ${entry.clientName}`,
-          meta: { athleteId: entry.client.athlete_id },
-        },
-      ],
-    }))
-
   const sharedCount = entries.filter(
     (entry) => entry.intelligence?.nutrition?.shared,
   ).length
+
+  const items = filterAttentionQueueByReason(
+    queue,
+    ATTENTION_REASON_TYPES.NUTRITION_CONCERN,
+  ).map((entry) =>
+    mapQueueEntryToResultItem(entry, {
+      primaryReason: ATTENTION_REASON_TYPES.NUTRITION_CONCERN,
+    }),
+  )
 
   return {
     actionId: AVA_ACTION_IDS.SHOW_NUTRITION_CONCERNS,
@@ -254,35 +340,20 @@ export const queryNutritionConcerns = (coachContext = {}) => {
   }
 }
 
-export const queryWeeklyReviews = (coachContext = {}) => {
-  const reviewQueue =
-    coachContext.portfolio?.reviewQueue ??
-    rankClientAttention(rosterEntriesFromContext(coachContext), { limit: 20 })
-
-  const dueEntries = rosterEntriesFromContext(coachContext).filter(
-    (entry) => entry.weeklyReviewStatus === 'REVIEW DUE',
+export const queryWeeklyReviews = (coachContext = {}, now = new Date()) => {
+  const { queue } = buildCoachAttentionQueue(coachContext, now)
+  const dueEntries = filterAttentionQueueByReason(
+    queue,
+    ATTENTION_REASON_TYPES.OPEN_COACH_REVIEW,
   )
 
   return {
     actionId: AVA_ACTION_IDS.OPEN_WEEKLY_REVIEWS,
-    items: dueEntries.map((entry) => ({
-      athleteId: entry.client.athlete_id,
-      clientName: entry.clientName,
-      reason: `${entry.clientName}'s weekly review is still open.`,
-      evidence: 'Coach review not completed for this week.',
-      actions: [
-        {
-          actionId: AVA_ACTION_IDS.OPEN_WEEKLY_REVIEWS,
-          label: 'Open Weekly Review',
-          meta: { athleteId: entry.client.athlete_id },
-        },
-        {
-          actionId: AVA_ACTION_IDS.OPEN_CLIENT_PROFILE,
-          label: `Open ${entry.clientName}`,
-          meta: { athleteId: entry.client.athlete_id },
-        },
-      ],
-    })),
+    items: dueEntries.map((entry) =>
+      mapQueueEntryToResultItem(entry, {
+        primaryReason: ATTENTION_REASON_TYPES.OPEN_COACH_REVIEW,
+      }),
+    ),
     emptyMessage: 'All weekly reviews are complete for this week.',
     reviewQueueCount: dueEntries.length,
   }
@@ -300,10 +371,23 @@ export const buildClientSummaryFacts = ({
   const training = intelligence.training ?? {}
   const readiness = intelligence.readiness ?? {}
   const nutrition = intelligence.nutrition ?? {}
-  const missingCheckIn = !hasWeeklyAthleteCheckIn(athleteState, now)
+  const missingCheckIn =
+    resolveAthleteCheckInStatus({
+      athleteState,
+      athleteStateLoaded: Object.prototype.hasOwnProperty.call(
+        coachContext.athleteStatesById ?? {},
+        entry.client?.athlete_id,
+      ),
+      now,
+    }).athleteCheckInStatus === ATHLETE_CHECK_IN_STATUS.MISSING
+  const { queue } = buildCoachAttentionQueue(coachContext, now)
+  const attentionEntry = getAttentionEntryForAthlete(
+    queue,
+    entry.client?.athlete_id,
+  )
 
   return {
-    clientName: entry.clientName,
+    clientName: buildCoachClientLabel(entry.client) ?? entry.clientName,
     athleteId: entry.client?.athlete_id,
     trainingSessionsThisWeek: training.workoutsThisWeek ?? 0,
     trainingLabel: training.label ?? null,
@@ -315,6 +399,7 @@ export const buildClientSummaryFacts = ({
     nutritionShared: Boolean(nutrition.shared),
     nutritionDaysLogged: nutrition.daysLoggedThisWeek ?? null,
     assignmentStatus: intelligence.assignment?.active?.title ?? null,
+    attentionReasons: attentionEntry?.reasons ?? [],
     attentionItems: (intelligence.attention ?? [])
       .filter((item) => item.id !== 'all-clear' && item.id !== 'performance-up')
       .map((item) => ({
@@ -365,43 +450,102 @@ export const runCoachQuery = (actionId, coachContext = {}, now = new Date()) => 
     case AVA_ACTION_IDS.SHOW_CLIENTS_MISSING_CHECKIN:
       return queryClientsMissingCheckIn(coachContext, now)
     case AVA_ACTION_IDS.SHOW_RECOVERY_CONCERNS:
-      return queryRecoveryConcerns(coachContext)
+      return queryRecoveryConcerns(coachContext, now)
     case AVA_ACTION_IDS.SHOW_TRAINING_CONCERNS:
       return queryTrainingConcerns(coachContext, now)
     case AVA_ACTION_IDS.SHOW_NUTRITION_CONCERNS:
-      return queryNutritionConcerns(coachContext)
+      return queryNutritionConcerns(coachContext, now)
     case AVA_ACTION_IDS.OPEN_WEEKLY_REVIEWS:
-      return queryWeeklyReviews(coachContext)
+      return queryWeeklyReviews(coachContext, now)
     default:
       return null
   }
 }
 
 export const formatCoachQueryMessage = (result = {}) => {
+  if (result.actionId === AVA_ACTION_IDS.SHOW_CLIENTS_MISSING_CHECKIN) {
+    const partialNote = result.partialDataNote
+      ? `\n\n${result.partialDataNote}`
+      : ''
+
+    if (result.items?.length === 1) {
+      const unknownNote =
+        result.unknownItems?.length && result.partialDataNote
+          ? `\n\n${result.partialDataNote}`
+          : result.unknownItems?.length
+          ? `\n\n${formatUnknownCheckInNote(result.unknownItems)}`
+          : ''
+      return `${result.items[0].clientName} hasn't submitted this week's check-in.${unknownNote}`
+    }
+
+    if (result.items?.length > 1) {
+      const header = `${result.items.length} clients haven't checked in this week:`
+      const lines = result.items.map((item) => item.clientName)
+      return [header, '', ...lines].join('\n') + partialNote
+    }
+
+    if (result.canClaimAllClear) {
+      return result.emptyMessage ?? 'Everyone is checked in this week.'
+    }
+
+    if (result.unknownItems?.length) {
+      if (result.confirmedItems?.length === 1 && result.unknownItems.length) {
+        return `I can confirm ${result.confirmedItems[0].clientName} checked in. ${formatUnknownCheckInNote(result.unknownItems)}`
+      }
+      return formatUnknownCheckInNote(result.unknownItems)
+    }
+
+    return result.emptyMessage ?? "I can't verify check-ins for your roster yet."
+  }
+
   if (!result?.items?.length) {
     return result.emptyMessage ?? 'Nothing to report right now.'
   }
 
+  const partialNote = result.partialDataNote
+    ? `\n\n${result.partialDataNote}`
+    : ''
+
   if (result.actionId === AVA_ACTION_IDS.SHOW_CLIENTS_NEEDING_ATTENTION) {
     const count = result.totalCount ?? result.items.length
     if (count === 1) {
-      return `One client stands out today:\n\n${result.items[0].clientName} — ${result.items[0].reason.replace(/^[^:]+:\s*/, '')}`
+      return `${result.items[0].clientName} — ${result.items[0].reason}${partialNote}`
     }
-    const header = `${Math.min(result.items.length, count)} client${count === 1 ? '' : 's'} stand out today:`
+
+    const header = `${Math.min(result.items.length, count)} client${
+      count === 1 ? '' : 's'
+    } stand out today:`
     const lines = result.items.map(
-      (item) => `${item.clientName} — ${item.reason.replace(/^[^:]+:\s*/, '')}`,
+      (item) => `${item.clientName} — ${item.reason}`,
     )
-    return [header, '', ...lines].join('\n')
+    return [header, '', ...lines].join('\n') + partialNote
+  }
+
+  if (result.actionId === AVA_ACTION_IDS.SHOW_RECOVERY_CONCERNS) {
+    if (result.items.length === 1) {
+      return `${result.items[0].clientName} stands out on recovery today.${partialNote}`
+    }
+  }
+
+  if (result.actionId === AVA_ACTION_IDS.OPEN_WEEKLY_REVIEWS) {
+    if (result.items.length === 1) {
+      return `${result.items[0].clientName}'s weekly review is still open.${partialNote}`
+    }
+    const names = result.items.map((item) => item.clientName)
+    return `${names.join(', ')} still need weekly reviews.${partialNote}`
   }
 
   if (result.items.length === 1) {
-    return result.items[0].reason
+    return formatAttentionEntryHeadline({
+      displayName: result.items[0].clientName,
+      reasons: [{ label: result.items[0].reason }],
+    }) + partialNote
   }
 
   const names = result.items.map((item) => item.clientName)
   if (names.length === 2) {
-    return `${names[0]} and ${names[1]} ${result.actionId === AVA_ACTION_IDS.SHOW_CLIENTS_MISSING_CHECKIN ? "haven't checked in this week." : 'need a look.'}`
+    return `${names[0]} and ${names[1]} need a look.${partialNote}`
   }
 
-  return `${names.slice(0, -1).join(', ')}, and ${names.at(-1)} ${result.actionId === AVA_ACTION_IDS.SHOW_CLIENTS_MISSING_CHECKIN ? "haven't checked in this week." : 'need a look.'}`
+  return `${names.slice(0, -1).join(', ')}, and ${names.at(-1)} need a look.${partialNote}`
 }

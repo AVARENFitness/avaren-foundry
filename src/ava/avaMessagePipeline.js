@@ -33,7 +33,15 @@ import {
 } from './actions/avaActionOrchestrator'
 import { resolveModelProposedAction } from './actions/avaActionResolver'
 import { runCoachPipelineStep } from './coach/avaCoachPipeline'
-import { isOpenCoachHubCommand } from './coach/avaCoachResolver'
+import {
+  matchCoachOperationalQuery,
+  portfolioQueryLoadErrorMessage,
+  logAvaCoachQueryDiagnostic,
+} from './coach/avaCoachQueryPatterns'
+import {
+  isCoachPortfolioQueryCommand,
+  isOpenCoachHubCommand,
+} from './coach/avaCoachResolver'
 import { logAvaRoleDiagnostic } from './coach/avaCoachRole'
 
 const PIPELINE_TIMEOUT_MS = 12000
@@ -164,7 +172,24 @@ export async function runAvaMessagePipeline({
       })
     }
 
+    if (!effectiveCoachAccess && isCoachPortfolioQueryCommand(text)) {
+      logAvaCoachQueryDiagnostic({
+        role: 'athlete',
+        queryType: null,
+        matched: true,
+        source: 'deterministic',
+        authorizedClientCount: 0,
+        resultCount: 0,
+      })
+      return createPipelineOutcome({
+        kind: AVA_PIPELINE_KIND.RESPONSE,
+        message: "That coaching view isn't available on this account.",
+        readOnly: true,
+      })
+    }
+
     if (effectiveCoachAccess) {
+      const operationalQuery = matchCoachOperationalQuery(text)
       const coachOutcome = await runCoachPipelineStep({
         message: text,
         session,
@@ -175,11 +200,28 @@ export async function runAvaMessagePipeline({
         },
         actionRuntime,
         requestId: `coach-${session?.messages?.length ?? 0}-${text.slice(0, 24)}`,
+        onCoachContextHydrated: coachContext?.onCoachContextHydrated,
       })
 
       if (coachOutcome) {
         debugLog('coach-route', { kind: coachOutcome.kind })
         return coachOutcome
+      }
+
+      if (operationalQuery) {
+        logAvaCoachQueryDiagnostic({
+          role: 'coach',
+          queryType: operationalQuery.queryType,
+          recognized: true,
+          portfolioStatus: coachContext?.portfolioStatus ?? 'unknown',
+          resultCount: 0,
+          route: 'deterministic',
+        })
+        return createPipelineOutcome({
+          kind: AVA_PIPELINE_KIND.RESPONSE,
+          message: portfolioQueryLoadErrorMessage(operationalQuery.queryType),
+          readOnly: true,
+        })
       }
     }
 

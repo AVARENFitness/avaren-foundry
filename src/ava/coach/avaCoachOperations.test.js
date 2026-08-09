@@ -253,10 +253,10 @@ describe('ava coach operations', () => {
     expect(athleteIds).not.toContain('mike-1')
 
     const sarahItem = result.items.find((item) => item.athleteId === 'sarah-1')
-    expect(sarahItem.reason).toMatch(/hasn't checked in this week/i)
+    expect(sarahItem.reason).toMatch(/check-in is still missing/i)
 
     const johnItem = result.items.find((item) => item.athleteId === 'john-1')
-    expect(johnItem.reason).toMatch(/recovery has been down recently/i)
+    expect(johnItem.reason).toMatch(/recovery has been lower recently/i)
   })
 
   it('resolves her review to the active coach client referent', () => {

@@ -12,12 +12,21 @@ export { isCoachClientNameCommand } from './avaCoachClientResolver'
 import { resolveCoachActionClient } from './avaCoachContext'
 import {
   buildClientSummaryFacts,
+  explainClientAttention,
   formatClientSummaryMessage,
   runCoachQuery,
 } from './avaCoachQueries'
+import {
+  isCoachOperationalQuery,
+  matchCoachOperationalQuery,
+} from './avaCoachQueryPatterns'
 
 const normalize = (value = '') =>
-  String(value).trim().toLowerCase().replace(/\s+/g, ' ')
+  String(value ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/[\u2018\u2019\u2032]/g, "'")
+    .replace(/\s+/g, ' ')
 
 const COACH_HUB_PATTERNS = [
   /^open coach hub\.?$/,
@@ -39,41 +48,11 @@ export const isOpenCoachHubCommand = (message = '') =>
 export const isCoachClientListCommand = (message = '') =>
   isOpenCoachHubCommand(message)
 
-const WEEKLY_REVIEW_PATTERNS = [
-  /^open weekly reviews?\.?$/,
-  /^show unfinished reviews?\.?$/,
-  /^who do i still need to review\??$/,
-]
-
-const ATTENTION_PATTERNS = [
-  /^who needs my attention(?: today)?\??$/,
-  /^who needs attention(?: today)?\??$/,
-  /^show clients needing attention\.?$/,
-  /^show me clients i need to follow up with\.?$/,
-]
-
-const MISSING_CHECKIN_PATTERNS = [
-  /^who hasn't checked in\??$/,
-  /^who still owes me a check-?in\??$/,
-  /^show missing check-?ins?\.?$/,
-]
-
-const RECOVERY_PATTERNS = [
-  /^who is struggling with recovery\??$/,
-  /^show clients with low recovery\.?$/,
-  /^show recovery concerns?\.?$/,
-]
-
-const TRAINING_PATTERNS = [
-  /^who hasn't trained\??$/,
-  /^who is behind on training\??$/,
-  /^show training concerns?\.?$/,
-]
-
-const NUTRITION_PATTERNS = [
-  /^who hasn't logged nutrition\??$/,
-  /^who is behind on protein\??$/,
-  /^show nutrition concerns?\.?$/,
+const WHY_PATTERNS = [
+  /^why (.+)\??$/,
+  /^why is (.+) flagged\??$/,
+  /^why is (.+) on (?:the list|attention)\??$/,
+  /^what(?:'s| is) going on with (.+)\??$/,
 ]
 
 const COACH_REFERENT_PATTERNS = [
@@ -89,15 +68,14 @@ const matchesAny = (text, patterns = []) =>
 export const isCoachReferentCommand = (message = '') =>
   matchesAny(normalize(message), COACH_REFERENT_PATTERNS)
 
-export const isCoachPortfolioQueryCommand = (message = '') => {
+export const isCoachPortfolioQueryCommand = (message = '') =>
+  isCoachOperationalQuery(message)
+
+export const isCoachExplainCommand = (message = '') => {
   const text = normalize(message)
   return (
-    matchesAny(text, ATTENTION_PATTERNS) ||
-    matchesAny(text, MISSING_CHECKIN_PATTERNS) ||
-    matchesAny(text, RECOVERY_PATTERNS) ||
-    matchesAny(text, TRAINING_PATTERNS) ||
-    matchesAny(text, NUTRITION_PATTERNS) ||
-    matchesAny(text, WEEKLY_REVIEW_PATTERNS)
+    matchesAny(text, WHY_PATTERNS) ||
+    /^what(?:'s| is) going on with this client\??$/.test(text)
   )
 }
 
@@ -227,30 +205,87 @@ export const resolveCoachReferentCommand = (
   }
 }
 
-export const resolveCoachQueryCommand = (message = '', { coachContext = {} } = {}) => {
+export const resolveCoachWhyCommand = (
+  message = '',
+  { coachContext = {}, session = null } = {},
+) => {
   const text = normalize(message)
+  if (!isCoachExplainCommand(message)) return null
 
-  let actionId = null
-  if (matchesAny(text, ATTENTION_PATTERNS)) {
-    actionId = AVA_ACTION_IDS.SHOW_CLIENTS_NEEDING_ATTENTION
-  } else if (matchesAny(text, MISSING_CHECKIN_PATTERNS)) {
-    actionId = AVA_ACTION_IDS.SHOW_CLIENTS_MISSING_CHECKIN
-  } else if (matchesAny(text, RECOVERY_PATTERNS)) {
-    actionId = AVA_ACTION_IDS.SHOW_RECOVERY_CONCERNS
-  } else if (matchesAny(text, TRAINING_PATTERNS)) {
-    actionId = AVA_ACTION_IDS.SHOW_TRAINING_CONCERNS
-  } else if (matchesAny(text, NUTRITION_PATTERNS)) {
-    actionId = AVA_ACTION_IDS.SHOW_NUTRITION_CONCERNS
-  } else if (matchesAny(text, WEEKLY_REVIEW_PATTERNS)) {
-    actionId = AVA_ACTION_IDS.OPEN_WEEKLY_REVIEWS
+  if (/^what(?:'s| is) going on with this client/.test(text)) {
+    const auth = resolveCoachActionClient({ coachContext, session })
+    if (!auth.ok) {
+      return {
+        kind: 'response',
+        message: 'Which client should I explain? Open a client first, or say their name.',
+      }
+    }
+    return {
+      kind: 'response',
+      message: explainClientAttention(auth.client.athlete_id, coachContext),
+    }
   }
 
-  if (!actionId) return null
+  let nameQuery = null
+  for (const pattern of WHY_PATTERNS) {
+    const match = text.match(pattern)
+    if (match?.[1]) {
+      nameQuery = match[1].trim()
+      break
+    }
+  }
 
-  const result = runCoachQuery(actionId, coachContext)
+  if (!nameQuery) return null
+
+  if (/^(him|her|them|this client)$/.test(nameQuery)) {
+    const auth = resolveCoachActionClient({ coachContext, session })
+    if (!auth.ok) {
+      return {
+        kind: 'response',
+        message: 'Which client should I explain? Open a client first, or say their name.',
+      }
+    }
+    return {
+      kind: 'response',
+      message: explainClientAttention(auth.client.athlete_id, coachContext),
+    }
+  }
+
+  const resolution = resolveCoachClientByName(nameQuery, coachContext.clients ?? [])
+  if (resolution.status === 'none') {
+    return {
+      kind: 'response',
+      message: resolution.message,
+    }
+  }
+  if (resolution.status === 'ambiguous') {
+    return {
+      kind: 'disambiguation',
+      message: resolution.message,
+      choices: buildCoachClientChoices(resolution.matches),
+      pendingAction: {
+        actionId: AVA_ACTION_IDS.CLIENT_SUMMARY,
+        query: nameQuery,
+        explainAttention: true,
+      },
+    }
+  }
+
+  return {
+    kind: 'response',
+    message: explainClientAttention(resolution.athleteId, coachContext),
+  }
+}
+
+export const resolveCoachQueryCommand = (message = '', { coachContext = {} } = {}) => {
+  const match = matchCoachOperationalQuery(message)
+  if (!match?.actionId) return null
+
+  const result = runCoachQuery(match.actionId, coachContext)
   return {
     kind: 'query',
-    actionId,
+    actionId: match.actionId,
+    queryType: match.queryType,
     result,
   }
 }
@@ -277,6 +312,9 @@ export const resolveCoachExplicitCommand = (
 
   const referent = resolveCoachReferentCommand(message, context)
   if (referent) return referent
+
+  const why = resolveCoachWhyCommand(message, context)
+  if (why) return why
 
   const query = resolveCoachQueryCommand(message, context)
   if (query) return query
