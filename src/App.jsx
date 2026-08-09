@@ -67,7 +67,10 @@ import {
   readinessEntryForDate,
   saveReadinessEntry,
 } from './lib/readiness'
+import { sanitizeWeeklyCheckInDraft } from './lib/weeklyCheckIn'
+import { useWeeklyCheckInSession } from './hooks/useWeeklyCheckInSession'
 import ReadinessCheckIn from './components/ReadinessCheckIn'
+import WeeklyCheckIn from './components/WeeklyCheckIn'
 import NotificationScreen from './screens/NotificationScreen'
 import ReadinessTrendsScreen from './screens/ReadinessTrendsScreen'
 import OnboardingScreen from './screens/OnboardingScreen'
@@ -79,6 +82,15 @@ import {
   markNotificationRead,
   notificationSnapshot as buildNotificationSnapshot,
 } from './lib/notifications'
+import {
+  resetWeeklyCheckInBackendCache,
+} from './lib/weeklyCheckInBackend'
+import { resetWeeklyCheckInCapabilityCache } from './lib/weeklyCheckInCapability'
+import {
+  devResetCurrentWeeklyCheckIn,
+  restoreWeeklyCheckInNotifications,
+  clearDevWeeklyCheckInDueOverride,
+} from './lib/weeklyCheckInDev'
 
 const createInitialState = (ownerUserId = null) => ({
   ownerUserId,
@@ -139,6 +151,11 @@ function App() {
   const [mobilityFlow, setMobilityFlow] = useState(null)
   const [showReadinessCheckIn, setShowReadinessCheckIn] =
     useState(false)
+  const [showWeeklyCheckIn, setShowWeeklyCheckIn] = useState(false)
+  const [weeklyCheckInRefreshKey, setWeeklyCheckInRefreshKey] = useState(0)
+  const [weeklyCheckInConfirmation, setWeeklyCheckInConfirmation] =
+    useState(false)
+  const weeklyCheckInConfirmationTimerRef = useRef(null)
   const [showOnboarding, setShowOnboarding] =
     useState(false)
   const [isReplayingOnboarding, setIsReplayingOnboarding] =
@@ -175,11 +192,15 @@ function App() {
   }, [])
 
   const handleSignedOut = useCallback(() => {
+    resetWeeklyCheckInBackendCache()
+    resetWeeklyCheckInCapabilityCache()
+    clearDevWeeklyCheckInDueOverride()
     setState(createInitialState())
     sessionBridgeRef.current.resetWorkoutSession?.()
     setMobilityFlow(null)
     setShowOnboarding(false)
     setIsReplayingOnboarding(false)
+    setWeeklyCheckInConfirmation(false)
   }, [])
 
   const handleAccountHydrated = useCallback((hydratedState, decision) => {
@@ -322,6 +343,20 @@ function App() {
 
   const readiness = calculateReadiness(state)
 
+  const {
+    capability: weeklyCheckInCapability,
+    weeklyCheckInStatus,
+    weeklyCheckInRecord,
+    currentWeeklyCheckInState,
+    saveWeeklyCheckIn: persistWeeklyCheckIn,
+    invalidateWeeklyCheckIn,
+    reconcileWeeklyCheckInAfterReset,
+  } = useWeeklyCheckInSession({
+    userId: session?.user?.id ?? null,
+    cloudReady,
+    refreshKey: weeklyCheckInRefreshKey,
+  })
+
   useEffect(() => {
     if (
       !session?.user?.id ||
@@ -378,7 +413,11 @@ function App() {
   })
 
   const localNotificationSnapshot =
-    buildNotificationSnapshot(state)
+    buildNotificationSnapshot({
+      ...state,
+      weeklyCheckInState: currentWeeklyCheckInState,
+      weeklyCheckInCapability,
+    })
   const mappedRemoteNotifications =
     remoteNotifications.map(mapAssignmentNotification)
   const combinedNotifications = [
@@ -480,7 +519,6 @@ function App() {
     }
   }, [notifications.unreadCount])
 
-
   const saveReadinessCheckIn = (values) => {
     setState((current) => ({
       ...current,
@@ -501,6 +539,39 @@ function App() {
     }
   }
 
+  const saveWeeklyCheckIn = async (draft) => {
+    const saved = await persistWeeklyCheckIn(draft)
+    setShowWeeklyCheckIn(false)
+
+    const weekKey =
+      saved?.weekKey ??
+      saved?.weekStart ??
+      weeklyCheckInStatus?.weekKey ??
+      null
+
+    if (weekKey) {
+      updateNotificationState((current) =>
+        markNotificationActedOn(current, {
+          fingerprint: `weekly-checkin:${weekKey}`,
+        }),
+      )
+    }
+
+    setWeeklyCheckInConfirmation(true)
+    if (weeklyCheckInConfirmationTimerRef.current) {
+      window.clearTimeout(weeklyCheckInConfirmationTimerRef.current)
+    }
+    weeklyCheckInConfirmationTimerRef.current = window.setTimeout(() => {
+      setWeeklyCheckInConfirmation(false)
+      weeklyCheckInConfirmationTimerRef.current = null
+    }, 4500)
+    invalidateCoachPortfolioCache()
+    coachPortfolioSession.refreshPortfolio?.().catch(() => {})
+
+    if (navigator.vibrate) {
+      navigator.vibrate([18, 30, 18])
+    }
+  }
 
   const updateNotificationState = (updater) => {
     setState((current) => ({
@@ -600,6 +671,14 @@ function App() {
       NOTIFICATION_ACTIONS.OPEN_READINESS
     ) {
       setShowReadinessCheckIn(true)
+      return
+    }
+
+    if (
+      notification.action ===
+      NOTIFICATION_ACTIONS.OPEN_WEEKLY_CHECKIN
+    ) {
+      setShowWeeklyCheckIn(true)
       return
     }
 
@@ -868,6 +947,91 @@ function App() {
   )
 
   const coachPortfolioSession = useCoachPortfolioSession(coachAuthorized)
+
+  const handleDevResetWeeklyCheckIn = useCallback(async () => {
+    if (!import.meta.env.DEV) return
+
+    const confirmed = await appUi.confirm({
+      message:
+        'Delete your current-week weekly check-in? This removes only your submission for this week and is for development retesting.',
+      tone: 'danger',
+      confirmLabel: 'Reset check-in',
+    })
+    if (!confirmed) return
+
+    try {
+      const resetResult = await devResetCurrentWeeklyCheckIn({
+        athleteId: session?.user?.id ?? null,
+      })
+
+      if (resetResult.rpcAvailable === false) {
+        appUi.toast(
+          resetResult.errorMessage ??
+            'DEV weekly check-in reset RPC is not installed in Supabase.',
+          'error',
+        )
+        return
+      }
+
+      if (resetResult.rowExistedBefore && resetResult.rowExistsAfter) {
+        appUi.toast(
+          resetResult.deleteBlockedByRls
+            ? 'Reset could not delete the current-week row. Apply AVAREN_DEV_WEEKLY_CHECKIN_RESET_7_9_19.sql in Supabase.'
+            : 'Reset failed: the current-week check-in row still exists.',
+          'error',
+        )
+        return
+      }
+
+      if (!resetResult.deleted) {
+        appUi.toast(
+          resetResult.rowExistedBefore
+            ? 'Reset failed: the current-week check-in row still exists.'
+            : 'No current-week weekly check-in was found to reset.',
+          'info',
+        )
+        return
+      }
+
+      invalidateWeeklyCheckIn()
+      await reconcileWeeklyCheckInAfterReset()
+      setWeeklyCheckInConfirmation(false)
+      setState((current) => ({
+        ...current,
+        notifications: restoreWeeklyCheckInNotifications(
+          current.notifications ?? {
+            read: [],
+            dismissed: [],
+            actedOn: [],
+          },
+          resetResult.weekStart,
+        ),
+      }))
+      setWeeklyCheckInRefreshKey((current) => current + 1)
+      invalidateCoachPortfolioCache()
+      coachPortfolioSession.refreshPortfolio?.().catch(() => {})
+
+      if (!resetResult.hasCoach) {
+        appUi.toast(
+          'Weekly check-in reset, but no active coach relationship was found for this account.',
+          'info',
+        )
+        return
+      }
+
+      appUi.toast('Weekly check-in reset for this week.', 'success')
+    } catch (error) {
+      appUi.toast(
+        error?.message ?? 'Could not reset weekly check-in.',
+        'error',
+      )
+    }
+  }, [
+    coachPortfolioSession,
+    invalidateWeeklyCheckIn,
+    reconcileWeeklyCheckInAfterReset,
+    session?.user?.id,
+  ])
 
   const hydrateCoachAvaContext = useCallback((hydratedContext = {}) => {
     setCoachAvaContext((current) => {
@@ -1611,6 +1775,12 @@ function App() {
           )}
           onEnterCoachMode={enterCoachMode}
           onStartCoachAssignment={startCoachAssignment}
+          onDevResetWeeklyCheckIn={
+            import.meta.env.DEV ? handleDevResetWeeklyCheckIn : null
+          }
+          weeklyCheckInDevResetEnabled={
+            import.meta.env.DEV && weeklyCheckInCapability?.schemaAvailable !== false
+          }
         />
       )
     }
@@ -1634,6 +1804,10 @@ function App() {
           onOpenReadiness={() =>
             setShowReadinessCheckIn(true)
           }
+          weeklyCheckInStatus={weeklyCheckInStatus}
+          currentWeeklyCheckInState={currentWeeklyCheckInState}
+          onOpenWeeklyCheckIn={() => setShowWeeklyCheckIn(true)}
+          weeklyCheckInConfirmation={weeklyCheckInConfirmation}
           onOpenReadinessTrends={() =>
             navigate('readiness-trends')
           }
@@ -1846,6 +2020,30 @@ function App() {
             onSave={saveReadinessCheckIn}
             onClose={() =>
               setShowReadinessCheckIn(false)
+            }
+          />
+        )}
+        {showWeeklyCheckIn && (
+          <WeeklyCheckIn
+            initialDraft={
+              weeklyCheckInRecord
+                ? sanitizeWeeklyCheckInDraft({
+                    training_rating: weeklyCheckInRecord.trainingRating,
+                    recovery_rating: weeklyCheckInRecord.recoveryRating,
+                    nutrition_rating: weeklyCheckInRecord.nutritionRating,
+                    pain_or_issue: weeklyCheckInRecord.painOrIssue,
+                    pain_note: weeklyCheckInRecord.painNote,
+                    weekly_win: weeklyCheckInRecord.weeklyWin,
+                    coach_note: weeklyCheckInRecord.coachNote,
+                  })
+                : undefined
+            }
+            onSubmit={saveWeeklyCheckIn}
+            onClose={() => setShowWeeklyCheckIn(false)}
+            userName={
+              session?.user?.user_metadata?.display_name ??
+              session?.user?.email?.split('@')[0] ??
+              ''
             }
           />
         )}

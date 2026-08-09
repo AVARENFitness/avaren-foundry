@@ -1,6 +1,7 @@
 import {
   ArrowRight,
   BriefcaseBusiness,
+  CalendarCheck2,
   Check,
   ChevronRight,
   HeartPulse,
@@ -15,9 +16,10 @@ import AvaDailyBriefing from '../components/AvaDailyBriefing'
 import { buildAvaDailyBriefing } from '../lib/avaIntelligence'
 import { AVA_ACTION_TYPES } from '../lib/avaActions'
 import { coachBackend } from '../lib/coachBackend'
+import { resolveActiveCoachAssignment } from '../lib/coachAssignments'
 import { recentPRs, sessionVolume } from '../lib/metrics'
 import { resolveTodayWorkoutContext } from '../lib/todayWorkout'
-import { resolveActiveCoachAssignment } from '../lib/coachAssignments'
+import { isWeeklyCheckInDue } from '../lib/weeklyCheckIn'
 
 const DAY_MS = 86400000
 
@@ -55,6 +57,10 @@ export default function HomeScreen({
   nutritionSummary,
   showCoachHubShortcut = false,
   onOpenCoachHub,
+  weeklyCheckInStatus = null,
+  currentWeeklyCheckInState = null,
+  onOpenWeeklyCheckIn,
+  weeklyCheckInConfirmation = false,
 }) {
   const { openAva } = useAvaUi()
   const [assignments, setAssignments] = useState([])
@@ -77,8 +83,9 @@ export default function HomeScreen({
         assignments,
         activeCoachAssignment,
         userName,
+        weeklyCheckInState: currentWeeklyCheckInState,
       }),
-    [state, assignments, activeCoachAssignment, userName],
+    [state, assignments, activeCoachAssignment, userName, currentWeeklyCheckInState],
   )
 
   const dashboard = useMemo(() => {
@@ -128,7 +135,7 @@ export default function HomeScreen({
     : recoveryIntelligence?.score ?? 0
   const readinessLabel = readiness?.completed
     ? readiness.status ?? 'Ready'
-    : 'Check in'
+    : "Complete today's readiness"
   const movementDone = completedToday(
     state.mobility?.completed,
     'daily-reset',
@@ -144,6 +151,9 @@ export default function HomeScreen({
       : 'Readiness pending',
     `${nutritionSummary?.calories || 0} cal logged`,
   ].join(' · ')
+
+  const weeklyCheckInDue = isWeeklyCheckInDue(currentWeeklyCheckInState)
+  const readinessDue = !readiness?.completed
 
   const handleAvaAction = (action) => {
     if (!action) return
@@ -168,6 +178,9 @@ export default function HomeScreen({
       case AVA_ACTION_TYPES.CHECK_READINESS:
       case AVA_ACTION_TYPES.BUILD_BASELINE:
         onOpenReadiness()
+        return
+      case AVA_ACTION_TYPES.OPEN_WEEKLY_CHECKIN:
+        onOpenWeeklyCheckIn?.()
         return
       case AVA_ACTION_TYPES.VIEW_PLAN:
         setScreen('train')
@@ -245,6 +258,49 @@ export default function HomeScreen({
           onStartAssignment={onStartCoachAssignment}
         />
       </div>
+
+      {weeklyCheckInConfirmation && (
+        <p className="home-weekly-checkin-confirmation" role="status">
+          Weekly check-in sent
+        </p>
+      )}
+
+      {(readinessDue || weeklyCheckInDue) && (
+        <section className="home-reminders" aria-label="Essentials">
+          {readinessDue && (
+            <button
+              type="button"
+              className="home-reminder-row home-reminder-row--daily"
+              onClick={onOpenReadiness}
+            >
+              <HeartPulse size={18} strokeWidth={1.75} />
+              <div>
+                <span className="home-reminder-eyebrow">DAILY READINESS</span>
+                <strong>How are you today?</strong>
+                <span>Quick check-in for today&apos;s training context.</span>
+              </div>
+              <ChevronRight size={16} strokeWidth={1.75} />
+            </button>
+          )}
+
+          {weeklyCheckInDue && (
+            <div className="home-reminder-row home-reminder-row--weekly">
+              <CalendarCheck2 size={18} strokeWidth={1.75} />
+              <div>
+                <span className="home-reminder-eyebrow">WEEKLY CHECK-IN</span>
+                <strong>Give your coach a quick read on your week.</strong>
+              </div>
+              <button
+                type="button"
+                className="home-reminder-action"
+                onClick={onOpenWeeklyCheckIn}
+              >
+                Check In
+              </button>
+            </div>
+          )}
+        </section>
+      )}
 
       <details className="foundry-disclosure home-daily-panel">
         <summary>

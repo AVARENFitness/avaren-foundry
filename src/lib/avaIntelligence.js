@@ -158,6 +158,7 @@ export const buildAvaContext = (state = {}, context = {}) => {
     lastSession: lastWorkoutSession(history),
     mobilityResetDone: mobilityCompletedToday(state, 'daily-reset', now),
     recoveryFlowDone: mobilityCompletedToday(state, 'recovery-flow', now),
+    weeklyCheckInState: context.weeklyCheckInState ?? null,
   }
 }
 
@@ -518,7 +519,7 @@ export const buildAvaEvidence = (ctx, dailyState) => {
     evidence.push({
       category: 'Readiness',
       label: 'Not logged',
-      detail: 'Complete today’s check-in for personalized guidance',
+      detail: 'Complete today’s readiness check-in for personalized guidance',
     })
   }
 

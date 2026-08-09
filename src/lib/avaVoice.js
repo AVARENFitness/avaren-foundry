@@ -257,8 +257,15 @@ export const phraseAvaCardMessage = (briefing, { now = new Date() } = {}) => {
 
   if (primaryType === 'check-readiness') {
     return {
-      headline: `Check in for today.`,
+      headline: `Complete today's readiness.`,
       summary: phraseAvaSummary(briefing, { now }),
+    }
+  }
+
+  if (primaryType === 'open-weekly-checkin') {
+    return {
+      headline: `Complete your weekly check-in.`,
+      summary: `Give your coach a quick read on how the week went.`,
     }
   }
 

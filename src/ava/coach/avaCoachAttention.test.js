@@ -97,10 +97,22 @@ const buildEntry = (client, athleteState, extra = {}) =>
     ...extra,
   })
 
+const submittedWeeklyCheckIn = (athleteId) => ({
+  athleteId,
+  weekStart: weekRange.weekStart,
+  weekEnd: weekRange.weekEnd,
+  status: 'submitted',
+  trainingRating: 4,
+  recoveryRating: 4,
+  nutritionRating: 4,
+  submittedAt: `${weekRange.weekStart}T12:00:00.000Z`,
+})
+
 const buildCoachContext = ({
   clients = [jake, sarah, mike],
   athleteStatesById = {},
   weeklyReviewStatusById = {},
+  weeklyCheckInsByAthleteId = {},
 } = {}) => {
   const rosterEntries = clients.map((client) => {
     const entry = buildEntry(
@@ -121,6 +133,9 @@ const buildCoachContext = ({
     rosterEntries,
     portfolio: { rosterEntries },
     athleteStatesById,
+    weeklyCheckInsByAthleteId,
+    portfolioStatus: 'ready',
+    portfolioLoadedAt: Date.now(),
   }
 }
 
@@ -135,6 +150,9 @@ describe('ava coach attention engine 7.9.7', () => {
       athleteStatesById: {
         'jake-1': jakeStateMissingCheckIn,
         'sarah-1': sarahStateCheckedIn,
+      },
+      weeklyCheckInsByAthleteId: {
+        'sarah-1': submittedWeeklyCheckIn('sarah-1'),
       },
     })
 
@@ -152,6 +170,10 @@ describe('ava coach attention engine 7.9.7', () => {
         'jake-1': jakeStateMissingCheckIn,
         'sarah-1': sarahStateCheckedIn,
         'mike-1': mikeStateCheckedIn,
+      },
+      weeklyCheckInsByAthleteId: {
+        'sarah-1': submittedWeeklyCheckIn('sarah-1'),
+        'mike-1': submittedWeeklyCheckIn('mike-1'),
       },
     })
 
@@ -205,6 +227,9 @@ describe('ava coach attention engine 7.9.7', () => {
     const coachContext = buildCoachContext({
       clients: [mike],
       athleteStatesById: { 'mike-1': mikeStateCheckedIn },
+      weeklyCheckInsByAthleteId: {
+        'mike-1': submittedWeeklyCheckIn('mike-1'),
+      },
     })
 
     const result = queryClientsNeedingAttention(coachContext, now)
@@ -216,6 +241,9 @@ describe('ava coach attention engine 7.9.7', () => {
     const coachContext = buildCoachContext({
       clients: [mike],
       athleteStatesById: { 'mike-1': mikeStateCheckedIn },
+      weeklyCheckInsByAthleteId: {
+        'mike-1': submittedWeeklyCheckIn('mike-1'),
+      },
     })
 
     const entry = coachContext.rosterEntries[0]

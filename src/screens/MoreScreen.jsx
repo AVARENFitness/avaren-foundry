@@ -101,6 +101,8 @@ export default function MoreScreen({
   mobilityMinutes = 5,
   notificationCount = 0,
   session,
+  onDevResetWeeklyCheckIn = null,
+  weeklyCheckInDevResetEnabled = false,
 }) {
   const [activeSection, setActiveSection] = useState('Overview')
   const [shareMessage, setShareMessage] = useState('')
@@ -428,6 +430,17 @@ export default function MoreScreen({
                 location.reload()
               }
             }} />
+            {import.meta.env.DEV && weeklyCheckInDevResetEnabled && typeof onDevResetWeeklyCheckIn === 'function' ? (
+              <MoreItem
+                icon={RefreshCcw}
+                title="Reset weekly check-in (dev)"
+                description="Delete this week's submission for lifecycle retesting"
+                danger
+                onClick={() => {
+                  void onDevResetWeeklyCheckIn()
+                }}
+              />
+            ) : null}
           </div>
         </section>
       )}

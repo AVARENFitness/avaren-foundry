@@ -30,6 +30,7 @@ export default function CoachClientCard({ entry, onSelect }) {
     hasWin,
     winLabel,
     weeklyReviewStatus,
+    athleteCheckInStatus,
   } = entry
 
   return (
@@ -45,9 +46,18 @@ export default function CoachClientCard({ entry, onSelect }) {
           <span className={`coach-command-status ${statusClass(status)}`}>
             {status}
           </span>
+          {athleteCheckInStatus && (
+            <span
+              className={`coach-command-review-badge ${
+                athleteCheckInStatus === 'submitted' ? 'reviewed' : 'due'
+              }`}
+            >
+              Check-in {athleteCheckInStatus === 'submitted' ? 'Submitted' : 'Missing'}
+            </span>
+          )}
           {weeklyReviewStatus && (
             <span className={`coach-command-review-badge ${weeklyReviewStatus === 'REVIEWED' ? 'reviewed' : 'due'}`}>
-              {weeklyReviewStatus}
+              Review {weeklyReviewStatus === 'REVIEWED' ? 'Done' : 'Open'}
             </span>
           )}
         </div>

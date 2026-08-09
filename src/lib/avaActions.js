@@ -13,6 +13,7 @@ const DAILY_STATE = {
 export const AVA_ACTION_TYPES = {
   CONTINUE_WORKOUT: 'continue-workout',
   CHECK_READINESS: 'check-readiness',
+  OPEN_WEEKLY_CHECKIN: 'open-weekly-checkin',
   START_WORKOUT: 'start-workout',
   MORNING_MOVEMENT: 'morning-movement',
   RECOVERY_FLOW: 'recovery-flow',
@@ -80,6 +81,11 @@ export const shouldSuggestMorningMovement = (ctx, dailyState) => {
   return loadAdjusted || concernFactors.length > 0
 }
 
+const weeklyCheckInActionable = (ctx) => {
+  const weekly = ctx.weeklyCheckInState
+  return Boolean(weekly?.due && !weekly?.loading && weekly?.status !== 'loading')
+}
+
 export const selectPrimaryAvaAction = (ctx, dailyState) => {
   const {
     state,
@@ -87,7 +93,6 @@ export const selectPrimaryAvaAction = (ctx, dailyState) => {
     workoutContext,
     assignmentDueToday: assignment,
     hasHistory,
-    trainingRecommendation,
   } = ctx
 
   const workoutName = workoutContext?.displayName ?? null
@@ -119,13 +124,26 @@ export const selectPrimaryAvaAction = (ctx, dailyState) => {
     })
   }
 
+  if (weeklyCheckInActionable(ctx) && readiness.completed) {
+    return buildAction({
+      type: AVA_ACTION_TYPES.OPEN_WEEKLY_CHECKIN,
+      focusAction: FOCUS_ACTIONS.VIEW_TODAY,
+      eyebrow: 'WEEKLY CHECK-IN',
+      label: 'Complete Weekly Check-In',
+      detail: null,
+      meta: {
+        weekKey: ctx.weeklyCheckInState?.weekKey ?? null,
+      },
+    })
+  }
+
   if (!readiness.completed) {
     if (!hasHistory) {
       return buildAction({
         type: AVA_ACTION_TYPES.BUILD_BASELINE,
         focusAction: FOCUS_ACTIONS.CHECK_IN,
-        eyebrow: 'BUILD BASELINE',
-        label: 'Check Readiness',
+        eyebrow: 'DAILY READINESS',
+        label: "Complete Today's Readiness",
         detail: null,
         meta: {},
       })
@@ -134,8 +152,8 @@ export const selectPrimaryAvaAction = (ctx, dailyState) => {
     return buildAction({
       type: AVA_ACTION_TYPES.CHECK_READINESS,
       focusAction: FOCUS_ACTIONS.CHECK_IN,
-      eyebrow: 'CHECK-IN',
-      label: 'Check Readiness',
+      eyebrow: 'DAILY READINESS',
+      label: "Complete Today's Readiness",
       detail: null,
       meta: {},
     })
@@ -194,8 +212,8 @@ export const selectPrimaryAvaAction = (ctx, dailyState) => {
     return buildAction({
       type: AVA_ACTION_TYPES.BUILD_BASELINE,
       focusAction: FOCUS_ACTIONS.CHECK_IN,
-      eyebrow: 'BUILD BASELINE',
-      label: 'Check Readiness',
+      eyebrow: 'DAILY READINESS',
+      label: "Complete Today's Readiness",
       detail: null,
       meta: {},
     })
@@ -249,6 +267,22 @@ export const selectSecondaryAvaAction = (ctx, dailyState, primaryAction) => {
       label: 'Morning Movement',
       detail: null,
       meta: { flowId: 'daily-reset' },
+    })
+  }
+
+  if (
+    primaryAction.type === AVA_ACTION_TYPES.CHECK_READINESS &&
+    weeklyCheckInActionable(ctx)
+  ) {
+    return buildAction({
+      type: AVA_ACTION_TYPES.OPEN_WEEKLY_CHECKIN,
+      focusAction: FOCUS_ACTIONS.VIEW_TODAY,
+      eyebrow: null,
+      label: 'Complete Weekly Check-In',
+      detail: null,
+      meta: {
+        weekKey: ctx.weeklyCheckInState?.weekKey ?? null,
+      },
     })
   }
 

@@ -15,10 +15,8 @@ import {
   getClientDisplayName as resolveClientDisplayName,
   emailPrefixFallback,
 } from './clientDisplayName'
-import {
-  getCoachWeekRange,
-  isDateInWeek,
-} from './weeklyReview'
+import { getCoachWeekRange, isDateInWeek } from './weeklyReview'
+import { isSubmittedWeeklyCheckIn } from './weeklyCheckIn'
 
 const DAY_MS = 86400000
 
@@ -1290,6 +1288,7 @@ export const buildCoachPortfolioIntelligence = ({
   athleteStatesById = {},
   nutritionByAthleteId = {},
   weeklyReviewsByAthleteId = {},
+  weeklyCheckInsByAthleteId = {},
   now = new Date(),
 } = {}) => {
   const weekRange = getCoachWeekRange(now)
@@ -1304,13 +1303,19 @@ export const buildCoachPortfolioIntelligence = ({
       now,
     })
     const currentReview = weeklyReviewsByAthleteId[client.athlete_id] ?? null
+    const currentCheckIn = weeklyCheckInsByAthleteId[client.athlete_id] ?? null
     const reviewedThisWeek =
       currentReview?.weekStart === weekRange.weekStart
+    const athleteCheckInStatus = isSubmittedWeeklyCheckIn(currentCheckIn, now)
+      ? 'submitted'
+      : 'missing'
 
     return {
       ...entry,
       weeklyReviewStatus: reviewedThisWeek ? 'REVIEWED' : 'REVIEW DUE',
+      athleteCheckInStatus,
       currentWeeklyReview: currentReview,
+      currentWeeklyCheckIn: currentCheckIn,
     }
   })
 

@@ -27,6 +27,10 @@ import {
   normalizeWeeklyReview,
 } from '../lib/weeklyReview'
 import {
+  formatWeeklyCheckInSummary,
+} from '../lib/weeklyCheckIn'
+import { weeklyCheckInBackend } from '../lib/weeklyCheckInBackend'
+import {
   emptySessionPackage,
   formatPackageDate,
   normalizeSessionPackage,
@@ -97,6 +101,7 @@ export default function CoachClientProfile({
   const [intelligenceLoading, setIntelligenceLoading] = useState(true)
   const [intelligenceError, setIntelligenceError] = useState('')
   const [currentWeekReview, setCurrentWeekReview] = useState(null)
+  const [currentWeeklyCheckIn, setCurrentWeeklyCheckIn] = useState(null)
   const [coachLabelDraft, setCoachLabelDraft] = useState(() =>
     sanitizeCoachLabelDraft(client.coach_label ?? ''),
   )
@@ -277,13 +282,15 @@ export default function CoachClientProfile({
       coachBackend.getAthleteFoundryState(client.athlete_id),
       coachBackend.getAthleteNutritionSnapshot(client.athlete_id),
       coachBackend.getClientWeeklyReview(client.athlete_id),
+      weeklyCheckInBackend.getClientWeeklyCheckIn(client.athlete_id),
     ])
-      .then(([state, nutrition, review]) => {
+      .then(([state, nutrition, review, weeklyCheckIn]) => {
         if (!active) return
         setAthleteState(state)
         setNutritionProfile(nutrition.profile)
         setNutritionDays(nutrition.days)
         setCurrentWeekReview(normalizeWeeklyReview(review))
+        setCurrentWeeklyCheckIn(weeklyCheckIn)
       })
       .catch((error) => {
         if (!active) return
@@ -343,6 +350,11 @@ export default function CoachClientProfile({
     [currentWeekReview],
   )
 
+  const weeklyCheckInSummary = useMemo(
+    () => formatWeeklyCheckInSummary(currentWeeklyCheckIn),
+    [currentWeeklyCheckIn],
+  )
+
   const weeklyReviewAction = (
     <div className="coach-weekly-review-entry">
       <div>
@@ -356,6 +368,42 @@ export default function CoachClientProfile({
         onClick={onOpenWeeklyReview}
       >
         {weeklyReviewStatus.actionLabel}
+      </button>
+    </div>
+  )
+
+  const weeklyCheckInPanel = (
+    <div className="coach-weekly-checkin-entry">
+      <div>
+        <span className="eyebrow">WEEKLY CHECK-IN</span>
+        {weeklyCheckInSummary ? (
+          <>
+            <strong>Athlete submission received</strong>
+            <small>
+              Training {weeklyCheckInSummary.training} · Recovery{' '}
+              {weeklyCheckInSummary.recovery} · Nutrition{' '}
+              {weeklyCheckInSummary.nutrition}
+            </small>
+            {weeklyCheckInSummary.issue !== 'No issues' && (
+              <small>Issue: {weeklyCheckInSummary.issue}</small>
+            )}
+            {weeklyCheckInSummary.win && (
+              <small>Win: {weeklyCheckInSummary.win}</small>
+            )}
+          </>
+        ) : (
+          <>
+            <strong>No submission yet this week</strong>
+            <small>Waiting on the athlete weekly check-in.</small>
+          </>
+        )}
+      </div>
+      <button
+        type="button"
+        className="gold-button machined"
+        onClick={onOpenWeeklyReview}
+      >
+        Review
       </button>
     </div>
   )
@@ -726,6 +774,7 @@ export default function CoachClientProfile({
       onSectionChange={setActiveSection}
       onBack={onBack}
       weeklyReviewAction={weeklyReviewAction}
+      weeklyCheckInPanel={weeklyCheckInPanel}
     >
       {renderSection()}
       {notice && <p className="coach-hub-notice">{notice}</p>}

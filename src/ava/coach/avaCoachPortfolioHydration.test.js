@@ -26,8 +26,27 @@ vi.mock('../../lib/coachBackend', () => ({
   },
 }))
 
+vi.mock('../../lib/weeklyCheckInBackend', () => ({
+  weeklyCheckInBackend: {
+    listCoachWeeklyCheckIns: vi.fn(),
+  },
+}))
+
+import { weeklyCheckInBackend } from '../../lib/weeklyCheckInBackend'
+
 const now = new Date('2026-08-07T12:00:00.000Z')
 const weekRange = getCoachWeekRange(now)
+
+const submittedWeeklyCheckIn = (athleteId) => ({
+  athleteId,
+  weekStart: weekRange.weekStart,
+  weekEnd: weekRange.weekEnd,
+  status: 'submitted',
+  trainingRating: 4,
+  recoveryRating: 4,
+  nutritionRating: 4,
+  submittedAt: `${weekRange.weekStart}T12:00:00.000Z`,
+})
 
 const jake = {
   athlete_id: 'jake-1',
@@ -94,6 +113,9 @@ const mockPortfolioLoad = () => {
   coachBackend.listAthleteFoundryStates.mockResolvedValue(athleteStatesById)
   coachBackend.listAthleteNutritionSnapshots.mockResolvedValue({})
   coachBackend.listCoachWeeklyReviews.mockResolvedValue([])
+  weeklyCheckInBackend.listCoachWeeklyCheckIns.mockResolvedValue({
+    'sarah-1': submittedWeeklyCheckIn('sarah-1'),
+  })
 
   return buildCoachPortfolioBundle({
     clients,
@@ -101,6 +123,9 @@ const mockPortfolioLoad = () => {
     athleteStatesById,
     nutritionByAthleteId: {},
     weeklyReviewsByAthleteId: {},
+    weeklyCheckInsByAthleteId: {
+      'sarah-1': submittedWeeklyCheckIn('sarah-1'),
+    },
   })
 }
 
@@ -193,6 +218,9 @@ describe('ava coach portfolio hydration 7.9.9', () => {
     })
     coachBackend.listAthleteNutritionSnapshots.mockResolvedValue({})
     coachBackend.listCoachWeeklyReviews.mockResolvedValue([])
+    weeklyCheckInBackend.listCoachWeeklyCheckIns.mockResolvedValue({
+      'sarah-1': submittedWeeklyCheckIn('sarah-1'),
+    })
 
     const coachContext = buildFreshCoachContext()
     const outcome = await runCoachPipelineStep({

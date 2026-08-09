@@ -1,7 +1,7 @@
-import { findCurrentWeekAthleteCheckInEntry } from '../ava/coach/avaCoachCheckIn'
 import { buildCoachPortfolioIntelligence } from './clientIntelligence'
 import { coachBackend } from './coachBackend'
-import { normalizeWeeklyReview } from './weeklyReview'
+import { weeklyCheckInBackend } from './weeklyCheckInBackend'
+import { normalizeWeeklyReview, getCoachWeekRange } from './weeklyReview'
 
 export const COACH_PORTFOLIO_STATUS = {
   IDLE: 'idle',
@@ -63,6 +63,7 @@ const computeMissingDomains = ({
   athleteStatesById = {},
   nutritionByAthleteId = {},
   weeklyReviewsByAthleteId = {},
+  weeklyCheckInsByAthleteId = {},
 } = {}) => {
   const missing = new Set()
   if (!clients.length) {
@@ -70,32 +71,18 @@ const computeMissingDomains = ({
     return [...missing]
   }
 
-  let missingCheckIn = 0
   let missingRecovery = 0
   clients.forEach((client) => {
     const athleteId = client.athlete_id
     const state = athleteStatesById[athleteId]
-    if (!Object.prototype.hasOwnProperty.call(athleteStatesById, athleteId)) {
-      missingCheckIn += 1
-      missingRecovery += 1
-      return
-    }
     if (!state) {
-      missingCheckIn += 1
       missingRecovery += 1
       return
-    }
-    if (!findCurrentWeekAthleteCheckInEntry(state)) {
-      missingCheckIn += 1
     }
     if (!state.readiness) {
       missingRecovery += 1
     }
   })
-
-  if (missingCheckIn === clients.length) {
-    missing.add(COACH_PORTFOLIO_DOMAINS.CHECK_IN)
-  }
   if (missingRecovery === clients.length) {
     missing.add(COACH_PORTFOLIO_DOMAINS.RECOVERY)
   }
@@ -118,6 +105,7 @@ export const buildCoachPortfolioBundle = ({
   athleteStatesById = {},
   nutritionByAthleteId = {},
   weeklyReviewsByAthleteId = {},
+  weeklyCheckInsByAthleteId = {},
   status = COACH_PORTFOLIO_STATUS.READY,
   error = '',
   source = 'network',
@@ -129,6 +117,7 @@ export const buildCoachPortfolioBundle = ({
     athleteStatesById,
     nutritionByAthleteId,
     weeklyReviewsByAthleteId,
+    weeklyCheckInsByAthleteId,
   })
 
   const missingDomains = computeMissingDomains({
@@ -136,6 +125,7 @@ export const buildCoachPortfolioBundle = ({
     athleteStatesById,
     nutritionByAthleteId,
     weeklyReviewsByAthleteId,
+    weeklyCheckInsByAthleteId,
   })
 
   const resolvedStatus =
@@ -150,6 +140,7 @@ export const buildCoachPortfolioBundle = ({
     athleteStatesById,
     nutritionByAthleteId,
     weeklyReviewsByAthleteId,
+    weeklyCheckInsByAthleteId,
     portfolio,
     rosterEntries: portfolio.rosterEntries ?? [],
     loadedAt: Date.now(),
@@ -182,6 +173,10 @@ export const mergeCoachPortfolioBundle = (coachContext = {}, bundle = {}) => ({
   weeklyReviewsByAthleteId:
     bundle.weeklyReviewsByAthleteId ??
     coachContext.weeklyReviewsByAthleteId ??
+    {},
+  weeklyCheckInsByAthleteId:
+    bundle.weeklyCheckInsByAthleteId ??
+    coachContext.weeklyCheckInsByAthleteId ??
     {},
   portfolio: bundle.portfolio ?? coachContext.portfolio ?? null,
   rosterEntries:
@@ -275,14 +270,18 @@ const fetchPortfolioIntelligence = async (athleteIds = []) => {
       athleteStatesById: {},
       nutritionByAthleteId: {},
       weeklyReviewsByAthleteId: {},
+      weeklyCheckInsByAthleteId: {},
     }
   }
 
-  const [athleteStatesById, nutritionByAthleteId, reviews] = await Promise.all([
-    coachBackend.listAthleteFoundryStates(athleteIds),
-    coachBackend.listAthleteNutritionSnapshots(athleteIds),
-    coachBackend.listCoachWeeklyReviews(),
-  ])
+  const weekStart = getCoachWeekRange().weekStart
+  const [athleteStatesById, nutritionByAthleteId, reviews, weeklyCheckInsByAthleteId] =
+    await Promise.all([
+      coachBackend.listAthleteFoundryStates(athleteIds),
+      coachBackend.listAthleteNutritionSnapshots(athleteIds),
+      coachBackend.listCoachWeeklyReviews(),
+      weeklyCheckInBackend.listCoachWeeklyCheckIns(athleteIds, weekStart),
+    ])
 
   const weeklyReviewsByAthleteId = Object.fromEntries(
     (reviews ?? [])
@@ -295,6 +294,7 @@ const fetchPortfolioIntelligence = async (athleteIds = []) => {
     athleteStatesById,
     nutritionByAthleteId,
     weeklyReviewsByAthleteId,
+    weeklyCheckInsByAthleteId,
   }
 }
 
@@ -408,6 +408,7 @@ export async function loadCoachPortfolioIntelligence({
       athleteStatesById: cache.bundle.athleteStatesById,
       nutritionByAthleteId: cache.bundle.nutritionByAthleteId,
       weeklyReviewsByAthleteId: cache.bundle.weeklyReviewsByAthleteId,
+      weeklyCheckInsByAthleteId: cache.bundle.weeklyCheckInsByAthleteId,
       cacheHit: true,
     }
   }

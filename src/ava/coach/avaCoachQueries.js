@@ -164,13 +164,13 @@ export const queryClientsMissingCheckIn = (coachContext = {}, now = new Date()) 
   const entries = rosterEntriesFromContext(coachContext)
   const checkInSummary = summarizeRosterCheckInStatus({
     rosterEntries: entries,
-    athleteStatesById: coachContext.athleteStatesById ?? {},
+    weeklyCheckInsByAthleteId: coachContext.weeklyCheckInsByAthleteId ?? {},
     weeklyReviewsByAthleteId: coachContext.weeklyReviewsByAthleteId ?? {},
     portfolioLoaded: Boolean(
       coachContext.portfolioStatus === 'ready' ||
         coachContext.portfolioStatus === 'partial' ||
         coachContext.portfolioLoadedAt ||
-        Object.keys(coachContext.athleteStatesById ?? {}).length > 0,
+        Object.keys(coachContext.weeklyCheckInsByAthleteId ?? {}).length > 0,
     ),
     now,
   })
@@ -373,10 +373,17 @@ export const buildClientSummaryFacts = ({
   const nutrition = intelligence.nutrition ?? {}
   const missingCheckIn =
     resolveAthleteCheckInStatus({
-      athleteState,
-      athleteStateLoaded: Object.prototype.hasOwnProperty.call(
-        coachContext.athleteStatesById ?? {},
-        entry.client?.athlete_id,
+      weeklyCheckIn:
+        coachContext.weeklyCheckInsByAthleteId?.[entry.client?.athlete_id] ??
+        null,
+      weeklyCheckInLoaded: Boolean(
+        coachContext.portfolioStatus === 'ready' ||
+          coachContext.portfolioStatus === 'partial' ||
+          coachContext.portfolioLoadedAt ||
+          Object.prototype.hasOwnProperty.call(
+            coachContext.weeklyCheckInsByAthleteId ?? {},
+            entry.client?.athlete_id,
+          ),
       ),
       now,
     }).athleteCheckInStatus === ATHLETE_CHECK_IN_STATUS.MISSING

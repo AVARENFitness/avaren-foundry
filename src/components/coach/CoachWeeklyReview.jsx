@@ -14,7 +14,10 @@ import {
   WEEKLY_REVIEW_STATUS,
 } from '../../lib/weeklyReview'
 
-import { getClientDisplayName } from '../../lib/clientDisplayName'
+import {
+  formatWeeklyCheckInSummary,
+} from '../../lib/weeklyCheckIn'
+import { weeklyCheckInBackend } from '../../lib/weeklyCheckInBackend'
 
 const ICON = { size: 18, strokeWidth: 1.75 }
 
@@ -45,6 +48,7 @@ export default function CoachWeeklyReview({
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [viewingHistorical, setViewingHistorical] = useState(null)
+  const [athleteWeeklyCheckIn, setAthleteWeeklyCheckIn] = useState(null)
 
   const intelligence = useMemo(
     () =>
@@ -78,12 +82,21 @@ export default function CoachWeeklyReview({
     [currentReview, viewingHistorical, weekRange],
   )
 
+  const athleteCheckInSummary = useMemo(
+    () => formatWeeklyCheckInSummary(athleteWeeklyCheckIn),
+    [athleteWeeklyCheckIn],
+  )
+
   const loadReviews = async () => {
-    const [review, history, state, nutrition] = await Promise.all([
+    const [review, history, state, nutrition, weeklyCheckIn] = await Promise.all([
       coachBackend.getClientWeeklyReview(client.athlete_id, weekRange.weekStart),
       coachBackend.listClientWeeklyReviews(client.athlete_id),
       coachBackend.getAthleteFoundryState(client.athlete_id),
       coachBackend.getAthleteNutritionSnapshot(client.athlete_id),
+      weeklyCheckInBackend.getClientWeeklyCheckIn(
+        client.athlete_id,
+        weekRange.weekStart,
+      ),
     ])
 
     const normalizedCurrent = normalizeWeeklyReview(review)
@@ -94,6 +107,7 @@ export default function CoachWeeklyReview({
     setAthleteState(state)
     setNutritionProfile(nutrition.profile)
     setNutritionDays(nutrition.days)
+    setAthleteWeeklyCheckIn(weeklyCheckIn)
 
     if (initialReviewId) {
       const historical = normalizedHistory.find((item) => item.id === initialReviewId)
@@ -239,6 +253,35 @@ export default function CoachWeeklyReview({
               </button>
             </div>
           )}
+
+          <section className="coach-weekly-review-panel">
+            <header>
+              <span className="eyebrow">ATHLETE CHECK-IN</span>
+              <h2>Weekly submission</h2>
+            </header>
+            {athleteCheckInSummary ? (
+              <div className="coach-weekly-checkin-summary">
+                <p>
+                  Training {athleteCheckInSummary.training} · Recovery{' '}
+                  {athleteCheckInSummary.recovery} · Nutrition{' '}
+                  {athleteCheckInSummary.nutrition}
+                </p>
+                {athleteCheckInSummary.issue !== 'No issues' && (
+                  <p>Issue: {athleteCheckInSummary.issue}</p>
+                )}
+                {athleteCheckInSummary.win && (
+                  <p>Win: {athleteCheckInSummary.win}</p>
+                )}
+                {athleteCheckInSummary.coachNote && (
+                  <p>Note: {athleteCheckInSummary.coachNote}</p>
+                )}
+              </div>
+            ) : (
+              <p className="coach-weekly-checkin-empty">
+                The athlete has not submitted this week&apos;s check-in yet.
+              </p>
+            )}
+          </section>
 
           <section className="coach-weekly-review-panel">
             <header>

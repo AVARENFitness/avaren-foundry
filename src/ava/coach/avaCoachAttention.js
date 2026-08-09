@@ -162,7 +162,7 @@ export const buildCoachAttentionQueue = (coachContext = {}, now = new Date()) =>
   )
   const checkInSummary = summarizeRosterCheckInStatus({
     rosterEntries: entries,
-    athleteStatesById,
+    weeklyCheckInsByAthleteId: coachContext.weeklyCheckInsByAthleteId ?? {},
     weeklyReviewsByAthleteId,
     portfolioLoaded,
     now,
@@ -203,7 +203,7 @@ export const buildCoachAttentionQueue = (coachContext = {}, now = new Date()) =>
           buildReason({
             type: ATTENTION_REASON_TYPES.MISSING_WEEKLY_CHECKIN,
             severity: 'high',
-            evidence: 'No current-week athlete check-in on record.',
+            evidence: 'No current-week weekly check-in submission on record.',
           }),
         )
       }

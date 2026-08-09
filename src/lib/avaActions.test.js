@@ -98,7 +98,7 @@ describe('avaActions', () => {
     const action = selectPrimaryAvaAction(ctx, AVA_DAILY_STATES.INSUFFICIENT_DATA)
 
     expect(action.type).toBe(AVA_ACTION_TYPES.CHECK_READINESS)
-    expect(action.label).toBe('Check Readiness')
+    expect(action.label).toBe("Complete Today's Readiness")
   })
 
   it('CASE 2: ready athlete + canonical workout starts that workout', () => {
@@ -245,7 +245,7 @@ describe('avaActions', () => {
     )
 
     expect(briefing.primaryAction.type).toBe(AVA_ACTION_TYPES.BUILD_BASELINE)
-    expect(briefing.primaryAction.label).toBe('Check Readiness')
+    expect(briefing.primaryAction.label).toBe("Complete Today's Readiness")
   })
 
   it('CASE 6: performance PR exists but Home briefing omits win analytics', () => {

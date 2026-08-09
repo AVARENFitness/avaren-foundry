@@ -1,9 +1,11 @@
 import { forgeSnapshot } from './forge'
 import { calculateReadiness } from './readiness'
 import { buildTrainingWeek } from './trainingWeek'
+import { isWeeklyCheckInDue } from './weeklyCheckIn'
 
 export const NOTIFICATION_TYPES = {
   READINESS: 'readiness',
+  WEEKLY_CHECKIN: 'weekly-checkin',
   WORKOUT: 'workout',
   RECOVERY: 'recovery',
   MISSED: 'missed',
@@ -13,6 +15,7 @@ export const NOTIFICATION_TYPES = {
 
 export const NOTIFICATION_ACTIONS = {
   OPEN_READINESS: 'open-readiness',
+  OPEN_WEEKLY_CHECKIN: 'open-weekly-checkin',
   START_WORKOUT: 'start-workout',
   START_RECOVERY: 'start-recovery',
   OPEN_PLANNER: 'open-planner',
@@ -73,6 +76,48 @@ const withinHours = (value, hours) => {
     Number.isFinite(time) &&
     Date.now() - time <= hours * 3600000
   )
+}
+
+const weeklyCheckInNotifications = (state) => {
+  const capability = state.weeklyCheckInCapability
+  if (
+    capability &&
+    (capability.schemaAvailable === false ||
+      capability.status === 'checking' ||
+      capability.status === 'unavailable')
+  ) {
+    return []
+  }
+
+  const weeklyState = state.weeklyCheckInState
+  if (!weeklyState || weeklyState.loading || weeklyState.status === 'loading') {
+    return []
+  }
+
+  if (!isWeeklyCheckInDue(weeklyState)) {
+    return []
+  }
+
+  const weekKey = weeklyState.weekKey ?? weeklyState.weekStart ?? isoDate()
+  const overdue = weeklyState.status === 'overdue'
+
+  return [
+    makeNotification({
+      id: `weekly-checkin-${weekKey}`,
+      type: NOTIFICATION_TYPES.WEEKLY_CHECKIN,
+      priority: overdue ? 88 : 76,
+      title: 'Weekly check-in',
+      body: overdue
+        ? 'Recap your week for your coach before the week closes.'
+        : 'Take a minute to recap your week for your coach.',
+      action: NOTIFICATION_ACTIONS.OPEN_WEEKLY_CHECKIN,
+      actionLabel: 'Check In',
+      fingerprint: `weekly-checkin:${weekKey}`,
+      expiresAt: weeklyState.weekEnd
+        ? `${weeklyState.weekEnd}T23:59:59`
+        : null,
+    }),
+  ]
 }
 
 const readinessNotifications = (state) => {
@@ -282,6 +327,7 @@ const mergeState = (
 
 export const buildNotifications = (state = {}) => {
   const generated = [
+    ...weeklyCheckInNotifications(state),
     ...readinessNotifications(state),
     ...workoutNotifications(state),
     ...recoveryNotifications(state),

@@ -70,9 +70,23 @@ const sarahStateCheckedIn = {
   history: [{ id: 's1', date: weekRange.weekStart, name: 'Lower', sets: [] }],
 }
 
+const submittedWeeklyCheckIn = (athleteId) => ({
+  athleteId,
+  weekStart: weekRange.weekStart,
+  weekEnd: weekRange.weekEnd,
+  status: 'submitted',
+  trainingRating: 4,
+  recoveryRating: 4,
+  nutritionRating: 4,
+  submittedAt: `${weekRange.weekStart}T12:00:00.000Z`,
+})
+
 const buildCoachContext = ({
   clients = [jake, sarah],
   athleteStatesById = {},
+  weeklyCheckInsByAthleteId = {
+    'sarah-1': submittedWeeklyCheckIn('sarah-1'),
+  },
 } = {}) => {
   const rosterEntries = clients.map((client) => ({
     ...buildClientRosterEntry({
@@ -95,6 +109,9 @@ const buildCoachContext = ({
       rosterEntries,
       portfolio: { rosterEntries },
       athleteStatesById,
+      weeklyCheckInsByAthleteId,
+      portfolioStatus: 'ready',
+      portfolioLoadedAt: Date.now(),
     },
   })
 }

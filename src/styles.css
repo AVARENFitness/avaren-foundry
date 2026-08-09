@@ -18911,3 +18911,31 @@ input, textarea, select {
     margin: 10vh auto;
   }
 }
+
+.home-weekly-checkin-card{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:0 0 18px;padding:16px 18px;border:1px solid rgba(216,184,109,.16);border-radius:18px;background:linear-gradient(145deg,rgba(20,23,26,.92),rgba(8,10,12,.98))}
+.home-weekly-checkin-card strong{display:block;margin-top:4px;font-size:14px;line-height:1.35}
+.home-weekly-checkin-card.is-complete{color:#9f988f}
+.home-reminders{display:flex;flex-direction:column;gap:10px;margin:0 0 18px}
+.home-reminder-row{display:flex;align-items:center;gap:14px;padding:14px 16px;border:1px solid rgba(255,255,255,.06);border-radius:16px;background:rgba(12,14,16,.72);color:inherit;text-align:left}
+.home-reminder-row--daily{width:100%;cursor:pointer;transition:border-color .18s ease,background .18s ease}
+.home-reminder-row--daily:hover{border-color:rgba(216,184,109,.18);background:rgba(16,18,20,.88)}
+.home-reminder-row--weekly{justify-content:space-between}
+.home-reminder-row svg{flex:0 0 auto;color:#9f988f}
+.home-reminder-row div{flex:1;min-width:0}
+.home-reminder-eyebrow{display:block;font-size:10px;letter-spacing:.12em;color:#8d8478;margin-bottom:2px}
+.home-reminder-row strong{display:block;font-size:14px;line-height:1.35;font-weight:600}
+.home-reminder-row span{display:block;margin-top:3px;font-size:12px;line-height:1.35;color:#9f988f}
+.home-reminder-action{flex:0 0 auto;padding:8px 14px;border:1px solid rgba(216,184,109,.28);border-radius:999px;background:transparent;color:#d8b86d;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap}
+.home-reminder-action:hover{border-color:rgba(216,184,109,.48);background:rgba(216,184,109,.08)}
+.home-weekly-checkin-confirmation{margin:0 0 14px;padding:10px 14px;border-radius:12px;background:rgba(216,184,109,.08);border:1px solid rgba(216,184,109,.16);color:#d8b86d;font-size:13px;text-align:center}
+.weekly-checkin-choices{display:grid;gap:10px;margin-top:18px}
+.weekly-checkin-choices button{padding:14px 16px;border:1px solid rgba(246,242,233,.08);border-radius:14px;background:rgba(255,255,255,.02);color:#d9d2c7;text-align:left}
+.weekly-checkin-choices button.selected,.weekly-checkin-choices button:hover{border-color:rgba(216,184,109,.28);background:rgba(216,184,109,.05);color:#f2d992}
+.weekly-checkin-note{width:100%;min-height:96px;margin-top:16px;padding:14px;border:1px solid rgba(246,242,233,.08);border-radius:14px;background:rgba(255,255,255,.02);color:#f6f2e9;resize:vertical}
+.weekly-checkin-error{margin:12px 0 0;color:#d88a7d;font-size:11px;text-align:center}
+.coach-weekly-checkin-entry,.coach-weekly-checkin-summary{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin:0 0 14px;padding:14px 16px;border:1px solid rgba(246,242,233,.06);border-radius:16px;background:rgba(255,255,255,.015)}
+.coach-weekly-checkin-entry small,.coach-weekly-checkin-summary p{display:block;margin-top:6px;color:#8a8379;font-size:11px;line-height:1.45}
+.coach-weekly-checkin-empty{color:#8a8379;font-size:12px;line-height:1.5}
+.morning-ritual-progress span:nth-child(n+5){display:none}
+.weekly-checkin .morning-ritual-progress{grid-template-columns:repeat(6,1fr)}
+.weekly-checkin .morning-ritual-progress span{display:block}

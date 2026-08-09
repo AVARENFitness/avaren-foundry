@@ -102,9 +102,21 @@ const buildEntry = (client, athleteState, extra = {}) =>
     ...extra,
   })
 
+const submittedWeeklyCheckIn = (athleteId) => ({
+  athleteId,
+  weekStart: weekRange.weekStart,
+  weekEnd: weekRange.weekEnd,
+  status: 'submitted',
+  trainingRating: 4,
+  recoveryRating: 4,
+  nutritionRating: 4,
+  submittedAt: `${weekRange.weekStart}T12:00:00.000Z`,
+})
+
 const buildCoachContext = ({
   clients = [sarah, john, mike],
   athleteStatesById = {},
+  weeklyCheckInsByAthleteId = {},
 } = {}) => {
   const rosterEntries = clients.map((client) =>
     buildEntry(client, athleteStatesById[client.athlete_id] ?? null),
@@ -120,6 +132,9 @@ const buildCoachContext = ({
       reviewQueue: rosterEntries.filter((entry) => entry.weeklyReviewStatus === 'REVIEW DUE'),
     },
     athleteStatesById,
+    weeklyCheckInsByAthleteId,
+    portfolioStatus: 'ready',
+    portfolioLoadedAt: Date.now(),
     coachScreen: 'clients',
   }
 }
@@ -204,10 +219,13 @@ describe('ava coach operations', () => {
         'sarah-1': sarahStateMissingCheckIn,
         'mike-1': mikeStateCheckedIn,
       },
+      weeklyCheckInsByAthleteId: {
+        'mike-1': submittedWeeklyCheckIn('mike-1'),
+      },
     })
 
-    expect(hasWeeklyAthleteCheckIn(mikeStateCheckedIn, now)).toBe(true)
-    expect(hasWeeklyAthleteCheckIn(sarahStateMissingCheckIn, now)).toBe(false)
+    expect(hasWeeklyAthleteCheckIn(submittedWeeklyCheckIn('mike-1'), now)).toBe(true)
+    expect(hasWeeklyAthleteCheckIn(null, now)).toBe(false)
 
     const result = queryClientsMissingCheckIn(coachContext, now)
     expect(result.items).toHaveLength(1)
@@ -221,6 +239,10 @@ describe('ava coach operations', () => {
         'sarah-1': sarahStateMissingCheckIn,
         'john-1': johnRecoveryState,
         'mike-1': mikeStateCheckedIn,
+      },
+      weeklyCheckInsByAthleteId: {
+        'john-1': submittedWeeklyCheckIn('john-1'),
+        'mike-1': submittedWeeklyCheckIn('mike-1'),
       },
     })
 
@@ -302,6 +324,9 @@ describe('ava coach operations', () => {
     const coachContext = buildCoachContext({
       clients: [mike],
       athleteStatesById: { 'mike-1': mikeStateCheckedIn },
+      weeklyCheckInsByAthleteId: {
+        'mike-1': submittedWeeklyCheckIn('mike-1'),
+      },
     })
 
     const result = queryClientsMissingCheckIn(coachContext, now)

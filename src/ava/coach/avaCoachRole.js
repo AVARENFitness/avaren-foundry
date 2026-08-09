@@ -69,6 +69,7 @@ export function buildBaseCoachAvaContext({
     assignments: rosterContext.assignments ?? [],
     athleteStatesById: rosterContext.athleteStatesById ?? {},
     weeklyReviewsByAthleteId: rosterContext.weeklyReviewsByAthleteId ?? {},
+    weeklyCheckInsByAthleteId: rosterContext.weeklyCheckInsByAthleteId ?? {},
     nutritionByAthleteId: rosterContext.nutritionByAthleteId ?? {},
     coachScreen: rosterContext.coachScreen ?? 'clients',
     selectedClient: rosterContext.selectedClient ?? null,

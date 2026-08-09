@@ -1,4 +1,8 @@
-import { getCoachWeekRange, isDateInWeek } from '../../lib/weeklyReview'
+import { getCoachWeekRange } from '../../lib/weeklyReview'
+import {
+  isSubmittedWeeklyCheckIn,
+  normalizeWeeklyCheckIn,
+} from '../../lib/weeklyCheckIn'
 
 export const ATHLETE_CHECK_IN_STATUS = {
   SUBMITTED: 'submitted',
@@ -11,35 +15,6 @@ export const COACH_REVIEW_STATUS = {
   OPEN: 'open',
   REVIEWED: 'reviewed',
   NOT_APPLICABLE: 'not_applicable',
-}
-
-const CHECK_IN_FIELDS = ['sleep', 'energy', 'soreness', 'stress']
-
-export const isValidAthleteCheckInEntry = (entry = null) => {
-  if (!entry?.date) return false
-
-  return CHECK_IN_FIELDS.every(
-    (field) =>
-      entry[field] !== undefined &&
-      entry[field] !== null &&
-      Number.isFinite(Number(entry[field])),
-  )
-}
-
-export const findCurrentWeekAthleteCheckInEntry = (
-  athleteState = null,
-  now = new Date(),
-) => {
-  const weekRange = getCoachWeekRange(now)
-  const entries = athleteState?.readiness?.entries ?? []
-
-  return (
-    entries.find(
-      (entry) =>
-        isValidAthleteCheckInEntry(entry) &&
-        isDateInWeek(entry.date, weekRange.weekStart, weekRange.weekEnd),
-    ) ?? null
-  )
 }
 
 export const resolveCoachReviewStatus = ({
@@ -72,13 +47,13 @@ export const resolveCoachReviewStatus = ({
 }
 
 export const resolveAthleteCheckInStatus = ({
-  athleteState = null,
-  athleteStateLoaded = true,
+  weeklyCheckIn = null,
+  weeklyCheckInLoaded = true,
   now = new Date(),
 } = {}) => {
   const weekRange = getCoachWeekRange(now)
 
-  if (!athleteStateLoaded) {
+  if (!weeklyCheckInLoaded) {
     return {
       athleteCheckInStatus: ATHLETE_CHECK_IN_STATUS.UNKNOWN,
       weekKey: weekRange.weekStart,
@@ -87,23 +62,14 @@ export const resolveAthleteCheckInStatus = ({
     }
   }
 
-  if (!athleteState?.readiness) {
-    return {
-      athleteCheckInStatus: ATHLETE_CHECK_IN_STATUS.UNKNOWN,
-      weekKey: weekRange.weekStart,
-      currentWeekCheckInRecord: false,
-      athleteSubmitted: false,
-    }
-  }
-
-  const currentWeekEntry = findCurrentWeekAthleteCheckInEntry(athleteState, now)
-  if (currentWeekEntry) {
+  if (isSubmittedWeeklyCheckIn(weeklyCheckIn, now)) {
+    const normalized = normalizeWeeklyCheckIn(weeklyCheckIn)
     return {
       athleteCheckInStatus: ATHLETE_CHECK_IN_STATUS.SUBMITTED,
       weekKey: weekRange.weekStart,
       currentWeekCheckInRecord: true,
       athleteSubmitted: true,
-      submittedDate: currentWeekEntry.date,
+      submittedAt: normalized.submittedAt,
     }
   }
 
@@ -117,14 +83,14 @@ export const resolveAthleteCheckInStatus = ({
 
 export const resolveClientWeeklyCheckInRecord = ({
   athleteId = null,
-  athleteState = null,
-  athleteStateLoaded = true,
+  weeklyCheckIn = null,
+  weeklyCheckInLoaded = true,
   weeklyReview = null,
   now = new Date(),
 } = {}) => {
   const athlete = resolveAthleteCheckInStatus({
-    athleteState,
-    athleteStateLoaded,
+    weeklyCheckIn,
+    weeklyCheckInLoaded,
     now,
   })
   const coach = resolveCoachReviewStatus({ weeklyReview, now })
@@ -143,25 +109,22 @@ export const resolveClientWeeklyCheckInRecord = ({
 
 export const summarizeRosterCheckInStatus = ({
   rosterEntries = [],
-  athleteStatesById = {},
+  weeklyCheckInsByAthleteId = {},
   weeklyReviewsByAthleteId = {},
   portfolioLoaded = true,
   now = new Date(),
 } = {}) => {
   const weekRange = getCoachWeekRange(now)
-  const statesMap = athleteStatesById ?? {}
+  const checkInsMap = weeklyCheckInsByAthleteId ?? {}
 
   const records = rosterEntries.map((entry) => {
     const athleteId = entry.client?.athlete_id
-    const athleteStateLoaded =
-      portfolioLoaded &&
-      athleteId &&
-      Object.prototype.hasOwnProperty.call(statesMap, athleteId)
+    const weeklyCheckInLoaded = portfolioLoaded && Boolean(athleteId)
 
     return resolveClientWeeklyCheckInRecord({
       athleteId,
-      athleteState: statesMap[athleteId] ?? null,
-      athleteStateLoaded,
+      weeklyCheckIn: checkInsMap[athleteId] ?? null,
+      weeklyCheckInLoaded,
       weeklyReview: weeklyReviewsByAthleteId?.[athleteId] ?? null,
       now,
     })
@@ -224,30 +187,14 @@ export const logAvaCheckInDiagnostic = ({
 }
 
 export const hasWeeklyAthleteCheckIn = (
-  athleteState = null,
+  weeklyCheckIn = null,
   now = new Date(),
-) =>
-  resolveAthleteCheckInStatus({
-    athleteState,
-    athleteStateLoaded: true,
-    now,
-  }).athleteCheckInStatus === ATHLETE_CHECK_IN_STATUS.SUBMITTED
+) => isSubmittedWeeklyCheckIn(weeklyCheckIn, now)
 
 export const athleteHasPriorWeekCheckInOnly = (
-  athleteState = null,
+  weeklyCheckIn = null,
+  priorWeekCheckIn = null,
   now = new Date(),
-) => {
-  const weekRange = getCoachWeekRange(now)
-  const entries = (athleteState?.readiness?.entries ?? []).filter(
-    isValidAthleteCheckInEntry,
-  )
-
-  const hasCurrentWeek = entries.some((entry) =>
-    isDateInWeek(entry.date, weekRange.weekStart, weekRange.weekEnd),
-  )
-  if (hasCurrentWeek) return false
-
-  return entries.some(
-    (entry) => !isDateInWeek(entry.date, weekRange.weekStart, weekRange.weekEnd),
-  )
-}
+) =>
+  !isSubmittedWeeklyCheckIn(weeklyCheckIn, now) &&
+  Boolean(normalizeWeeklyCheckIn(priorWeekCheckIn))
