@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { buildAvaContextPacket } from '../lib/avaContext'
 import { createAvaSession } from '../lib/avaConversation'
+import {
+  preserveCoachSessionContext,
+  restoreCoachSessionContext,
+} from './avaRuntimeContext'
 import { createNutritionState } from '../lib/nutrition'
 import { coachBackend } from '../lib/coachBackend'
 import AvaEntryButton from './AvaEntryButton'
@@ -54,7 +58,10 @@ export function AvaUiProvider({
 
   const closeAva = useCallback(() => {
     setOpen(false)
-    sessionRef.current = createAvaSession()
+    const preservedCoachContext = preserveCoachSessionContext(sessionRef.current)
+    const nextSession = createAvaSession()
+    restoreCoachSessionContext(nextSession, preservedCoachContext)
+    sessionRef.current = nextSession
   }, [])
 
   const dismissAvaSheet = useCallback(() => {

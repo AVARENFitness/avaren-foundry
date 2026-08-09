@@ -7,6 +7,12 @@ import {
   buildAvaSuggestedPrompts,
 } from '../lib/avaConversation'
 import {
+  ATHLETE_AVA_CONTEXT_FALLBACK,
+  buildCoachAvaOpeningMessage,
+  buildCoachSuggestedPrompts,
+  isCoachAvaAccess,
+} from './avaRuntimeContext'
+import {
   canUndoLastReversibleAction,
   AVA_TX_STATUS,
   hasActivePendingTransaction,
@@ -158,6 +164,14 @@ export default function AvaSheet({
     if (openedRef.current) return
     openedRef.current = true
 
+    if (isCoachAvaAccess({ role, coachContext })) {
+      setMessages([
+        createMessage('ava', buildCoachAvaOpeningMessage(coachContext ?? {})),
+      ])
+      setSuggestedPrompts(buildCoachSuggestedPrompts())
+      return
+    }
+
     if (packet) {
       const opening = buildAvaOpeningMessage(packet)
       setMessages([createMessage('ava', opening)])
@@ -165,14 +179,9 @@ export default function AvaSheet({
       return
     }
 
-    setMessages([
-      createMessage(
-        'ava',
-        "I can't load your full training context right now, but I can still help with general questions.",
-      ),
-    ])
+    setMessages([createMessage('ava', ATHLETE_AVA_CONTEXT_FALLBACK)])
     setSuggestedPrompts([])
-  }, [open, packet])
+  }, [open, packet, role, coachContext])
 
   useEffect(() => {
     if (!transcriptRef.current) return

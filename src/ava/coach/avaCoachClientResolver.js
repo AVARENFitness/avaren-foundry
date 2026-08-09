@@ -9,15 +9,26 @@ import {
 } from '../../lib/clientDisplayName'
 
 const normalize = (value = '') =>
-  String(value ?? '').trim().toLowerCase().replace(/\s+/g, ' ')
+  String(value ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/[\u2018\u2019\u2032]/g, "'")
+    .replace(/\s+/g, ' ')
 
 export const COACH_CLIENT_COMMAND_PATTERNS = [
   /^open ([a-z][a-z\s'-]{1,40})\.?$/,
   /^show me ([a-z][a-z\s'-]+?)(?:'?s profile)?\.?$/,
   /^show ([a-z][a-z\s'-]+?)(?:'?s profile)?\.?$/,
   /^take me to ([a-z][a-z\s'-]+?)(?:'?s client page)?\.?$/,
+  /^give me an update on ([a-z][a-z\s'-]{1,40})\.?$/,
   /^give me a quick update on ([a-z][a-z\s'-]{1,40})\.?$/,
   /^quick update on ([a-z][a-z\s'-]{1,40})\.?$/,
+  /^update on ([a-z][a-z\s'-]{1,40})\.?$/,
+]
+
+export const COACH_CLIENT_REVIEW_PATTERNS = [
+  /^(?:show me|show|open|pull up)\s+([a-z][a-z\s'-]{1,40})(?:'s|s)?\s+review\.?$/,
+  /^(?:show me|show|open|pull up)\s+([a-z][a-z\s'-]{1,40})'s\s+review\.?$/,
 ]
 
 const RESERVED_CLIENT_QUERIES =
@@ -29,16 +40,80 @@ export const isCoachClientNameCommand = (message = '') =>
 const stripClientQuerySuffix = (value = '') =>
   String(value ?? '')
     .trim()
-    .replace(/(?:'s| profile| client page)+$/i, '')
+    .replace(/(?:'s| profile| client page| review)+$/i, '')
     .trim()
 
+export const normalizePossessiveClientQuery = (query = '') => {
+  let value = String(query ?? '').trim()
+  if (!value) return ''
+
+  value = value.replace(/[\u2018\u2019\u2032]/g, "'")
+
+  const apostropheMatch = value.match(/^(.+?)'s$/i)
+  if (apostropheMatch?.[1]) {
+    return apostropheMatch[1].trim()
+  }
+
+  const trailingApostropheMatch = value.match(/^(.+?)s'$/i)
+  if (trailingApostropheMatch?.[1]) {
+    return trailingApostropheMatch[1].trim()
+  }
+
+  return value
+}
+
+export const possessiveLookupVariants = (query = '') => {
+  const stripped = normalizePossessiveClientQuery(query)
+  const normalized = normalize(stripped)
+  const variants = new Set([normalized, stripped.trim().toLowerCase()].filter(Boolean))
+
+  const lower = normalized.toLowerCase()
+  if (/^[a-z]{3,}s$/.test(lower) && !lower.endsWith('ss')) {
+    variants.add(lower.slice(0, -1))
+  }
+
+  return [...variants]
+}
+
+export const extractClientReviewTarget = (message = '') => {
+  const text = normalize(message)
+
+  for (const pattern of COACH_CLIENT_REVIEW_PATTERNS) {
+    const match = text.match(pattern)
+    if (match?.[1]) {
+      const candidate = normalizePossessiveClientQuery(stripClientQuerySuffix(match[1]))
+      if (candidate && !RESERVED_CLIENT_QUERIES.test(candidate)) {
+        return candidate
+      }
+    }
+  }
+
+  return null
+}
+
+export const isCoachClientReviewCommand = (message = '') =>
+  Boolean(extractClientReviewTarget(message))
+
+export const isCoachClientUpdateCommand = (message = '') => {
+  const text = normalize(message)
+  return (
+    /give me an update on /.test(text) ||
+    /give me a quick update on /.test(text) ||
+    /quick update on /.test(text) ||
+    /^update on /.test(text)
+  )
+}
+
 export const extractClientNameFromMessage = (message = '') => {
+  const reviewTarget = extractClientReviewTarget(message)
+  if (reviewTarget) return reviewTarget
+
   const text = normalize(message)
 
   for (const pattern of COACH_CLIENT_COMMAND_PATTERNS) {
     const match = text.match(pattern)
     if (match?.[1]) {
-      const candidate = stripClientQuerySuffix(match[1])
+      const candidate = normalizePossessiveClientQuery(stripClientQuerySuffix(match[1]))
       if (candidate && !RESERVED_CLIENT_QUERIES.test(candidate)) {
         return candidate
       }
@@ -97,12 +172,13 @@ export const logAvaCoachResolveDiagnostic = ({
 }
 
 export const resolveAuthorizedCoachClient = (query = '', clients = []) => {
-  const normalizedQuery = normalize(query)
   const records = (clients ?? [])
     .filter((client) => client?.athlete_id)
     .map(buildCoachClientResolutionRecord)
 
-  if (!normalizedQuery) {
+  const lookupVariants = possessiveLookupVariants(query)
+
+  if (!lookupVariants.length || lookupVariants.every((item) => !item)) {
     return {
       status: 'none',
       matches: [],
@@ -123,90 +199,94 @@ export const resolveAuthorizedCoachClient = (query = '', clients = []) => {
     { field: 'emailPrefix', source: 'legacy' },
   ]
 
-  for (const { field, source } of precedence) {
-    const matches = exactFieldMatches(records, field, normalizedQuery)
-    if (matches.length === 1) {
+  for (const normalizedQuery of lookupVariants) {
+    for (const { field, source } of precedence) {
+      const matches = exactFieldMatches(records, field, normalizedQuery)
+      if (matches.length === 1) {
+        logAvaCoachResolveDiagnostic({
+          authorizedClientCount: records.length,
+          matchCount: 1,
+          matchSource: source,
+          ambiguous: false,
+        })
+        return {
+          status: 'resolved',
+          record: matches[0],
+          matches,
+          matchSource: source,
+        }
+      }
+      if (matches.length > 1) {
+        logAvaCoachResolveDiagnostic({
+          authorizedClientCount: records.length,
+          matchCount: matches.length,
+          matchSource: source,
+          ambiguous: true,
+        })
+        return {
+          status: 'ambiguous',
+          records: matches,
+          matches,
+          matchSource: source,
+          message: `Which ${String(query).trim()} did you mean?`,
+        }
+      }
+    }
+  }
+
+  for (const normalizedQuery of lookupVariants) {
+    const tokens = normalizedQuery.split(/\s+/).filter(Boolean)
+    const partialMatches = records.filter((record) => {
+      const haystacks = [
+        record.coachLabel,
+        record.preferredName,
+        record.fullName,
+        record.displayName,
+        record.firstName,
+        record.lastName,
+        record.canonicalDisplayName,
+        record.legacyName,
+        record.emailPrefix,
+      ]
+        .filter(Boolean)
+        .map((value) => normalize(value))
+
+      return tokens.every((token) =>
+        haystacks.some(
+          (haystack) => haystack.includes(token) || token.includes(haystack),
+        ),
+      )
+    })
+
+    if (partialMatches.length === 1) {
       logAvaCoachResolveDiagnostic({
         authorizedClientCount: records.length,
         matchCount: 1,
-        matchSource: source,
+        matchSource: 'partial_name',
         ambiguous: false,
       })
       return {
         status: 'resolved',
-        record: matches[0],
-        matches,
-        matchSource: source,
+        record: partialMatches[0],
+        matches: partialMatches,
+        matchSource: 'partial_name',
       }
     }
-    if (matches.length > 1) {
+
+    if (partialMatches.length > 1) {
       logAvaCoachResolveDiagnostic({
         authorizedClientCount: records.length,
-        matchCount: matches.length,
-        matchSource: source,
+        matchCount: partialMatches.length,
+        matchSource: 'partial_name',
         ambiguous: true,
       })
       return {
         status: 'ambiguous',
-        records: matches,
-        matches,
-        matchSource: source,
+        records: partialMatches,
+        matches: partialMatches,
+        matchSource: 'partial_name',
         message: `Which ${String(query).trim()} did you mean?`,
       }
-    }
-  }
-
-  const tokens = normalizedQuery.split(/\s+/).filter(Boolean)
-  const partialMatches = records.filter((record) => {
-    const haystacks = [
-      record.coachLabel,
-      record.preferredName,
-      record.fullName,
-      record.displayName,
-      record.firstName,
-      record.lastName,
-      record.canonicalDisplayName,
-      record.legacyName,
-      record.emailPrefix,
-    ]
-      .filter(Boolean)
-      .map((value) => normalize(value))
-
-    return tokens.every((token) =>
-      haystacks.some(
-        (haystack) => haystack.includes(token) || token.includes(haystack),
-      ),
-    )
-  })
-
-  if (partialMatches.length === 1) {
-    logAvaCoachResolveDiagnostic({
-      authorizedClientCount: records.length,
-      matchCount: 1,
-      matchSource: 'partial_name',
-      ambiguous: false,
-    })
-    return {
-      status: 'resolved',
-      record: partialMatches[0],
-      matches: partialMatches,
-      matchSource: 'partial_name',
-    }
-  }
-
-  if (partialMatches.length > 1) {
-    logAvaCoachResolveDiagnostic({
-      authorizedClientCount: records.length,
-      matchCount: partialMatches.length,
-      matchSource: 'partial_name',
-      ambiguous: true,
-    })
-    return {
-      status: 'ambiguous',
-      records: partialMatches,
-      matches: partialMatches,
-      matchSource: 'partial_name',
-      message: `Which ${String(query).trim()} did you mean?`,
     }
   }
 

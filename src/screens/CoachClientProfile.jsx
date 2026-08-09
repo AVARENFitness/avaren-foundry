@@ -356,56 +356,85 @@ export default function CoachClientProfile({
   )
 
   const weeklyReviewAction = (
-    <div className="coach-weekly-review-entry">
-      <div>
+    <article className="coach-profile-status-card coach-profile-status-card--review">
+      <div className="coach-profile-status-card-copy">
         <span className="eyebrow">WEEKLY REVIEW</span>
-        <strong>{formatWeekRangeLabel(weeklyReviewStatus.weekRange.weekStart, weeklyReviewStatus.weekRange.weekEnd)}</strong>
-        <small>{weeklyReviewStatus.status}</small>
+        <strong className="coach-profile-status-card-title">
+          {formatWeekRangeLabel(
+            weeklyReviewStatus.weekRange.weekStart,
+            weeklyReviewStatus.weekRange.weekEnd,
+          )}
+        </strong>
+        <p
+          className={`coach-profile-status-badge ${
+            weeklyReviewStatus.status === 'REVIEWED'
+              ? 'coach-profile-status-badge--complete'
+              : 'coach-profile-status-badge--open'
+          }`}
+        >
+          {weeklyReviewStatus.status === 'REVIEWED' ? '✓ Reviewed' : 'Review open'}
+        </p>
       </div>
       <button
         type="button"
-        className="gold-button machined"
+        className={
+          weeklyReviewStatus.status === 'REVIEWED'
+            ? 'coach-secondary-button coach-profile-status-action'
+            : 'gold-button machined coach-profile-status-action'
+        }
         onClick={onOpenWeeklyReview}
       >
-        {weeklyReviewStatus.actionLabel}
+        {weeklyReviewStatus.status === 'REVIEWED' ? 'View Review' : 'Review This Week'}
       </button>
-    </div>
+    </article>
   )
 
   const weeklyCheckInPanel = (
-    <div className="coach-weekly-checkin-entry">
-      <div>
+    <article className="coach-profile-status-card coach-profile-status-card--checkin">
+      <div className="coach-profile-status-card-copy">
         <span className="eyebrow">WEEKLY CHECK-IN</span>
         {weeklyCheckInSummary ? (
           <>
-            <strong>Athlete submission received</strong>
-            <small>
+            <strong className="coach-profile-status-card-title">
+              Athlete submission received
+            </strong>
+            <p className="coach-profile-status-card-meta">
               Training {weeklyCheckInSummary.training} · Recovery{' '}
               {weeklyCheckInSummary.recovery} · Nutrition{' '}
               {weeklyCheckInSummary.nutrition}
-            </small>
+            </p>
             {weeklyCheckInSummary.issue !== 'No issues' && (
-              <small>Issue: {weeklyCheckInSummary.issue}</small>
+              <p className="coach-profile-status-card-note">
+                Issue: {weeklyCheckInSummary.issue}
+              </p>
             )}
             {weeklyCheckInSummary.win && (
-              <small>Win: {weeklyCheckInSummary.win}</small>
+              <p className="coach-profile-status-card-note">
+                Win: {weeklyCheckInSummary.win}
+              </p>
             )}
           </>
         ) : (
           <>
-            <strong>No submission yet this week</strong>
-            <small>Waiting on the athlete weekly check-in.</small>
+            <strong className="coach-profile-status-card-title">
+              No submission yet this week
+            </strong>
+            <p className="coach-profile-status-card-meta">
+              Waiting on the athlete weekly check-in.
+            </p>
           </>
         )}
       </div>
-      <button
-        type="button"
-        className="gold-button machined"
-        onClick={onOpenWeeklyReview}
-      >
-        Review
-      </button>
-    </div>
+      {weeklyCheckInSummary && (
+        <button
+          type="button"
+          className="coach-secondary-button coach-profile-status-action"
+          onClick={onOpenWeeklyReview}
+        >
+          Review
+        </button>
+      )}
+    </article>
   )
 
   const renderSection = () => {

@@ -1,5 +1,5 @@
 import { getAvaActionDefinition } from './avaActionRegistry'
-import { logAvaActionDiagnostic } from './avaActionDiagnostics'
+import { logAvaActionDiagnostic, logAvaCoachActionDiagnostic } from './avaActionDiagnostics'
 import { clearSessionActiveReferent } from './avaActionReferent'
 import { verifyAvaActionAsync } from './avaActionVerification'
 import {
@@ -285,6 +285,13 @@ export async function executeAvaAction({
     })
 
     if (!verification.ok) {
+      if (isCoachAvaAction(normalizedId)) {
+        logAvaCoachActionDiagnostic({
+          actionType: normalizedId,
+          resolved: true,
+          verified: false,
+        })
+      }
       logAvaActionDiagnostic({
         actionId: normalizedId,
         source,
@@ -318,6 +325,11 @@ export async function executeAvaAction({
         beforeView: null,
         afterView: describeCoachView(runtime.getSnapshot?.() ?? {}),
         sheetClosed: false,
+        verified: true,
+      })
+      logAvaCoachActionDiagnostic({
+        actionType: normalizedId,
+        resolved: true,
         verified: true,
       })
     }

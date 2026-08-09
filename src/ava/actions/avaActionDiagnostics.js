@@ -29,6 +29,23 @@ export const logAvaActionDiagnostic = ({
   console.debug('[ava-action]', JSON.stringify(payload))
 }
 
+export const logAvaCoachActionDiagnostic = ({
+  actionType = null,
+  resolved = null,
+  verified = null,
+} = {}) => {
+  if (!import.meta.env?.DEV) return
+
+  console.debug(
+    '[ava-coach-action]',
+    JSON.stringify({
+      actionType,
+      resolved,
+      verified,
+    }),
+  )
+}
+
 export const logReferentDiagnostic = ({
   verb = null,
   resolvedType = null,

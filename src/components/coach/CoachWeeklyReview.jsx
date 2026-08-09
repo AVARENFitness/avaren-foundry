@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { appUi } from '../../lib/appUi'
 import { buildClientIntelligence, buildWeeklyReviewSnapshot } from '../../lib/clientIntelligence'
 import { coachBackend } from '../../lib/coachBackend'
+import { getClientDisplayName } from '../../lib/clientDisplayName'
 import {
   formatWeekRangeLabel,
   getCoachWeekRange,

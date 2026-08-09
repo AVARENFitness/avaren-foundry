@@ -12,10 +12,12 @@ import {
   resolveCoachDisambiguationSelection,
   resolveCoachExplicitCommand,
   isCoachClientNameCommand,
+  isCoachClientUpdateCommand,
   isCoachPortfolioQueryCommand,
   isCoachExplainCommand,
   isCoachReferentCommand,
 } from './avaCoachResolver'
+import { isCoachClientReviewCommand } from './avaCoachClientResolver'
 import { AVA_ACTION_IDS } from '../actions/avaActionTypes'
 import { setSessionActiveCoachContext } from './avaCoachContext'
 import {
@@ -154,29 +156,20 @@ export async function runCoachPipelineStep({
     resolution.kind === 'navigation' &&
     resolution.resolution?.actionId === AVA_ACTION_IDS.OPEN_COACH_HUB
   const isClientNameCommand = isCoachClientNameCommand(message)
-  const isSummaryCommand = /quick update|give me a quick update/i.test(message)
+  const isSummaryCommand = isCoachClientUpdateCommand(message)
+  const isReviewCommand = isCoachClientReviewCommand(message)
   const isPortfolioQuery = isCoachPortfolioQueryCommand(message)
   const isExplainCommand = isCoachExplainCommand(message)
-  const isReferentCommand = isCoachReferentCommand(message)
-
-  if (
-    !isHubNavigation &&
-    !isClientNameCommand &&
-    !isSummaryCommand &&
-    !isPortfolioQuery &&
-    !isExplainCommand &&
-    !isReferentCommand &&
-    !coachContext?.isCoachMode
-  ) {
-    return null
-  }
+  const isReferentCommandMatch = isCoachReferentCommand(message)
 
   const needsRoster =
     !isHubNavigation &&
     (isClientNameCommand ||
       isSummaryCommand ||
+      isReviewCommand ||
       isPortfolioQuery ||
-      isExplainCommand)
+      isExplainCommand ||
+      isReferentCommandMatch)
 
   if (
     needsRoster &&

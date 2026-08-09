@@ -17,6 +17,10 @@ import {
 } from './clientDisplayName'
 import { getCoachWeekRange, isDateInWeek } from './weeklyReview'
 import { isSubmittedWeeklyCheckIn } from './weeklyCheckIn'
+import {
+  buildCoachAttentionQueue,
+  mapAttentionQueueToHubItems,
+} from '../ava/coach/avaCoachAttention'
 
 const DAY_MS = 86400000
 
@@ -1324,32 +1328,23 @@ export const buildCoachPortfolioIntelligence = ({
     assignments,
     now,
   })
-  let attentionQueue = rankClientAttention(
-    rosterEntries.map((entry) => ({
-      client: entry.client,
-      intelligence: entry.intelligence,
-    })),
-    { limit: 8 },
+
+  const { queue: attentionCandidates } = buildCoachAttentionQueue(
+    {
+      rosterEntries,
+      portfolio: { rosterEntries },
+      athleteStatesById,
+      weeklyReviewsByAthleteId,
+      weeklyCheckInsByAthleteId,
+      portfolioStatus: 'ready',
+      portfolioLoadedAt: Date.now(),
+    },
+    now,
   )
-
-  const reviewAttention = rosterEntries
-    .filter((entry) => entry.weeklyReviewStatus === 'REVIEW DUE')
-    .map((entry) => ({
-      client: entry.client,
-      clientName: entry.clientName,
-      item: {
-        id: 'weekly-review-due',
-        title: 'Weekly review not completed',
-        description: `Review ${entry.clientName}'s week while context is still fresh.`,
-        severity: ATTENTION_SEVERITY.WATCH,
-      },
-      priority: 30,
-      actionLabel: 'Review Client',
-    }))
-
-  attentionQueue = [...attentionQueue, ...reviewAttention]
-    .sort((first, second) => second.priority - first.priority)
-    .slice(0, 8)
+  const attentionQueue = mapAttentionQueueToHubItems(attentionCandidates).slice(
+    0,
+    8,
+  )
 
   const activityFeed = buildCoachActivityFeed({
     rosterEntries,

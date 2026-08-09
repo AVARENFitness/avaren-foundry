@@ -8,7 +8,6 @@ import ErrorBoundary from './components/ErrorBoundary'
 import { createAvaActionRuntime } from './ava/actions/createAvaActionRuntime'
 import { createAvaCoachActionRuntime } from './ava/coach/createAvaCoachActionRuntime'
 import {
-  buildBaseCoachAvaContext,
   resolveAvaRole,
 } from './ava/coach/avaCoachRole'
 import { AvaUiProvider } from './ava/AvaUiProvider'
@@ -23,7 +22,7 @@ import { canShowCoachHubShortcut } from './config/coachAccess'
 import { registerPushWorker, syncPushSubscription } from './lib/pushNotifications'
 import { coachBackend } from './lib/coachBackend'
 import { COACH_CLIENT_SORT } from './lib/clientIntelligence'
-import { useCoachPortfolioSession } from './hooks/useCoachPortfolio'
+import { useCoachAvaRuntime } from './hooks/useCoachAvaRuntime'
 import { invalidateCoachPortfolioCache } from './lib/coachPortfolioService'
 import {
   assignmentNotificationBackend,
@@ -251,6 +250,13 @@ function App() {
     authorized: coachAuthorized,
     loading: coachAccessLoading,
   } = useCoachAccess(session)
+
+  const {
+    coachAvaContext,
+    coachAvaContextRef,
+    hydrateCoachAvaContext,
+    coachPortfolioSession,
+  } = useCoachAvaRuntime({ session, coachAuthorized })
 
   const {
     screen,
@@ -867,18 +873,6 @@ function App() {
     activeWorkout: null,
     showReadinessCheckIn: false,
   })
-  const coachAvaContextRef = useRef({
-    isCoachMode: false,
-    authorized: false,
-    clients: [],
-  })
-  const [coachAvaContext, setCoachAvaContext] = useState(() =>
-    buildBaseCoachAvaContext({
-      session: null,
-      coachAuthorized: false,
-      isCoachMode: false,
-    }),
-  )
   const coachAvaSnapshotRef = useRef({
     coachHub: false,
     coachScreen: 'clients',
@@ -945,8 +939,6 @@ function App() {
     () => resolveAvaRole({ session, coachAuthorized }),
     [session, coachAuthorized],
   )
-
-  const coachPortfolioSession = useCoachPortfolioSession(coachAuthorized)
 
   const handleDevResetWeeklyCheckIn = useCallback(async () => {
     if (!import.meta.env.DEV) return
@@ -1032,49 +1024,6 @@ function App() {
     reconcileWeeklyCheckInAfterReset,
     session?.user?.id,
   ])
-
-  const hydrateCoachAvaContext = useCallback((hydratedContext = {}) => {
-    setCoachAvaContext((current) => {
-      const merged = buildBaseCoachAvaContext({
-        session,
-        coachAuthorized,
-        isCoachMode: screen === 'coach-hub',
-        rosterContext: {
-          ...current,
-          ...hydratedContext,
-          ensureCoachPortfolio: coachPortfolioSession.ensurePortfolio,
-        },
-      })
-      coachAvaContextRef.current = merged
-      return merged
-    })
-  }, [session, coachAuthorized, screen, coachPortfolioSession.ensurePortfolio])
-
-  useEffect(() => {
-    if (!coachAuthorized) return
-    hydrateCoachAvaContext(coachPortfolioSession.coachContextOverlay)
-  }, [
-    coachAuthorized,
-    coachPortfolioSession.coachContextOverlay,
-    hydrateCoachAvaContext,
-  ])
-
-  useEffect(() => {
-    setCoachAvaContext((current) => {
-      const merged = buildBaseCoachAvaContext({
-        session,
-        coachAuthorized,
-        isCoachMode: screen === 'coach-hub',
-        rosterContext: {
-          ...current,
-          ensureCoachPortfolio: coachPortfolioSession.ensurePortfolio,
-          onCoachContextHydrated: hydrateCoachAvaContext,
-        },
-      })
-      coachAvaContextRef.current = merged
-      return merged
-    })
-  }, [session, coachAuthorized, screen, coachPortfolioSession.ensurePortfolio, hydrateCoachAvaContext])
 
   const ensureCoachHubNavigation = useCallback(
     ({ focus = 'clients' } = {}) => {
@@ -1193,28 +1142,19 @@ function App() {
   }, [screen, coachScreen, selectedCoachClient])
 
   const handleCoachAvaContextChange = useCallback((nextContext = {}) => {
-    const merged = buildBaseCoachAvaContext({
-      session,
-      coachAuthorized,
-      isCoachMode: screen === 'coach-hub',
-      rosterContext: {
-        ...coachPortfolioSession.coachContextOverlay,
-        ...nextContext,
-        ensureCoachPortfolio: coachPortfolioSession.ensurePortfolio,
-        onCoachContextHydrated: hydrateCoachAvaContext,
-      },
+    hydrateCoachAvaContext({
+      ...coachPortfolioSession.coachContextOverlay,
+      ...nextContext,
     })
 
-    coachAvaContextRef.current = merged
-    setCoachAvaContext(merged)
     coachAvaSnapshotRef.current = {
       coachHub: screen === 'coach-hub',
-      coachScreen: merged.coachScreen ?? coachScreen,
-      selectedClientId: merged.selectedClientId ?? null,
-      weeklyReviewOpen: Boolean(merged.weeklyReviewOpen),
-      profileOpen: Boolean(merged.profileOpen),
+      coachScreen: nextContext.coachScreen ?? coachScreen,
+      selectedClientId: nextContext.selectedClientId ?? null,
+      weeklyReviewOpen: Boolean(nextContext.weeklyReviewOpen),
+      profileOpen: Boolean(nextContext.profileOpen),
     }
-  }, [session, coachAuthorized, screen, coachScreen, coachPortfolioSession.coachContextOverlay, coachPortfolioSession.ensurePortfolio, hydrateCoachAvaContext])
+  }, [session, coachAuthorized, screen, coachScreen, coachPortfolioSession.coachContextOverlay, hydrateCoachAvaContext])
 
   const handleRegisterCoachScreenApi = useCallback((api = null) => {
     coachScreenApiRef.current = api

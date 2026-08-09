@@ -4,18 +4,24 @@ import {
   ATTENTION_REASON_TYPES,
   buildCoachAttentionQueue,
   filterAttentionQueueByReason,
+  filterAttentionQueueByRecovery,
   formatAttentionEntryHeadline,
   formatAttentionExplanation,
   formatPartialDataNote,
   getAttentionEntryForAthlete,
+  isRecoveryAttentionReason,
 } from './avaCoachAttention'
 import {
   ATHLETE_CHECK_IN_STATUS,
   resolveAthleteCheckInStatus,
   summarizeRosterCheckInStatus,
 } from './avaCoachCheckIn'
+import {
+  WEEKLY_CHECK_IN_PAIN,
+  normalizeWeeklyCheckIn,
+} from '../../lib/weeklyCheckIn'
 
-const DEFAULT_ATTENTION_DISPLAY = 3
+const DEFAULT_ATTENTION_DISPLAY = 5
 
 const rosterEntriesFromContext = (coachContext = {}) =>
   coachContext.portfolio?.rosterEntries ??
@@ -56,7 +62,11 @@ const buildClientActions = (entry = {}, { primaryReason = null } = {}) => {
 
   if (
     primaryReason === ATTENTION_REASON_TYPES.RECOVERY_CONCERN ||
-    reasonTypes.has(ATTENTION_REASON_TYPES.RECOVERY_CONCERN)
+    primaryReason === ATTENTION_REASON_TYPES.RECOVERY_DECLINE ||
+    primaryReason === ATTENTION_REASON_TYPES.LOW_RECOVERY ||
+    reasonTypes.has(ATTENTION_REASON_TYPES.RECOVERY_CONCERN) ||
+    reasonTypes.has(ATTENTION_REASON_TYPES.RECOVERY_DECLINE) ||
+    reasonTypes.has(ATTENTION_REASON_TYPES.LOW_RECOVERY)
   ) {
     actions.push({
       actionId: AVA_ACTION_IDS.OPEN_CLIENT_INTELLIGENCE,
@@ -78,10 +88,21 @@ const mapQueueEntryToResultItem = (entry = {}, { primaryReason = null } = {}) =>
     ) ?? entry.reasons?.[0]
 
   const displayReason =
+    reason?.type === ATTENTION_REASON_TYPES.MISSING_WEEKLY_CHECKIN ||
     primaryReason === ATTENTION_REASON_TYPES.MISSING_WEEKLY_CHECKIN
       ? "hasn't submitted this week's check-in"
-      : primaryReason === ATTENTION_REASON_TYPES.RECOVERY_CONCERN
-      ? reason?.evidence ?? reason?.label ?? 'recovery has been lower recently'
+      : reason?.type === ATTENTION_REASON_TYPES.OPEN_COACH_REVIEW ||
+        primaryReason === ATTENTION_REASON_TYPES.OPEN_COACH_REVIEW
+      ? 'review still open'
+      : reason?.type === ATTENTION_REASON_TYPES.COACH_FOLLOWUP_NEEDED ||
+        primaryReason === ATTENTION_REASON_TYPES.COACH_FOLLOWUP_NEEDED
+      ? 'flagged something in their weekly check-in'
+      : isRecoveryAttentionReason(primaryReason) ||
+        isRecoveryAttentionReason(reason?.type)
+      ? 'recovery concern'
+      : reason?.type === ATTENTION_REASON_TYPES.TRAINING_GAP ||
+        primaryReason === ATTENTION_REASON_TYPES.TRAINING_GAP
+      ? reason?.evidence ?? reason?.label ?? 'training gap'
       : reason?.label ?? 'Needs follow-up.'
 
   return {
@@ -268,14 +289,12 @@ export const queryClientsNeedingAttention = (coachContext = {}, now = new Date()
 
 export const queryRecoveryConcerns = (coachContext = {}, now = new Date()) => {
   const { queue, meta } = buildCoachAttentionQueue(coachContext, now)
-  const items = filterAttentionQueueByReason(
-    queue,
-    ATTENTION_REASON_TYPES.RECOVERY_CONCERN,
-  ).map((entry) =>
-    mapQueueEntryToResultItem(entry, {
-      primaryReason: ATTENTION_REASON_TYPES.RECOVERY_CONCERN,
-    }),
-  )
+  const items = filterAttentionQueueByRecovery(queue).map((entry) => {
+    const primaryReason =
+      entry.reasons.find((reason) => isRecoveryAttentionReason(reason.type))
+        ?.type ?? ATTENTION_REASON_TYPES.RECOVERY_DECLINE
+    return mapQueueEntryToResultItem(entry, { primaryReason })
+  })
 
   return {
     actionId: AVA_ACTION_IDS.SHOW_RECOVERY_CONCERNS,
@@ -371,11 +390,12 @@ export const buildClientSummaryFacts = ({
   const training = intelligence.training ?? {}
   const readiness = intelligence.readiness ?? {}
   const nutrition = intelligence.nutrition ?? {}
+  const weeklyCheckIn =
+    coachContext.weeklyCheckInsByAthleteId?.[entry.client?.athlete_id] ?? null
+  const normalizedCheckIn = normalizeWeeklyCheckIn(weeklyCheckIn)
   const missingCheckIn =
     resolveAthleteCheckInStatus({
-      weeklyCheckIn:
-        coachContext.weeklyCheckInsByAthleteId?.[entry.client?.athlete_id] ??
-        null,
+      weeklyCheckIn,
       weeklyCheckInLoaded: Boolean(
         coachContext.portfolioStatus === 'ready' ||
           coachContext.portfolioStatus === 'partial' ||
@@ -399,6 +419,10 @@ export const buildClientSummaryFacts = ({
     trainingSessionsThisWeek: training.workoutsThisWeek ?? 0,
     trainingLabel: training.label ?? null,
     missingWeeklyCheckIn: missingCheckIn,
+    weeklyCheckInSubmitted: Boolean(normalizedCheckIn),
+    coachFollowupNeeded:
+      normalizedCheckIn?.painOrIssue === WEEKLY_CHECK_IN_PAIN.COACH_SHOULD_KNOW,
+    weeklyRecoveryRating: normalizedCheckIn?.recoveryRating ?? null,
     weeklyReviewStatus: entry.weeklyReviewStatus ?? null,
     readinessAvailable: Boolean(readiness.available),
     readinessTrend: readiness.trend ?? null,
@@ -422,32 +446,42 @@ export const formatClientSummaryMessage = (facts = {}) => {
     return "I couldn't build a summary for that client."
   }
 
-  const parts = []
+  const bullets = []
 
   if (facts.trainingSessionsThisWeek > 0) {
-    parts.push(
-      `${facts.clientName} trained ${facts.trainingSessionsThisWeek} time${facts.trainingSessionsThisWeek === 1 ? '' : 's'} this week`,
+    bullets.push(
+      `Trained ${facts.trainingSessionsThisWeek} time${facts.trainingSessionsThisWeek === 1 ? '' : 's'} this week`,
     )
+  } else if (facts.trainingLabel) {
+    bullets.push(facts.trainingLabel)
   } else {
-    parts.push(`No completed sessions are recorded for ${facts.clientName} this week`)
+    bullets.push('No completed sessions recorded this week')
   }
 
   if (facts.missingWeeklyCheckIn) {
-    parts.push("hasn't submitted a weekly check-in")
+    bullets.push("Weekly check-in not submitted yet")
+  } else if (facts.weeklyCheckInSubmitted) {
+    bullets.push('Weekly check-in submitted')
+    if (facts.coachFollowupNeeded) {
+      bullets.push('Flagged something for you in their check-in')
+    }
   }
 
   if (facts.readinessAvailable && facts.readinessTrend === 'Below recent baseline') {
-    parts.push('recovery has been lower over recent entries')
+    bullets.push('Recovery below recent baseline')
   } else if (facts.readinessAvailable && facts.readinessTrend) {
-    parts.push(`recovery is ${facts.readinessTrend.toLowerCase()}`)
+    bullets.push(`Recovery: ${facts.readinessTrend}`)
   }
 
   if (facts.weeklyReviewStatus === 'REVIEW DUE') {
-    parts.push("this week's coach review is still open")
+    bullets.push('Weekly coach review still open')
   }
 
-  const lead = parts.join(', ')
-  return `${lead.charAt(0).toUpperCase()}${lead.slice(1)}. I'd check in before changing programming.`
+  if (!bullets.length) {
+    return `Nothing notable to report for ${facts.clientName} right now.`
+  }
+
+  return bullets.map((line) => `• ${line}`).join('\n')
 }
 
 export const runCoachQuery = (actionId, coachContext = {}, now = new Date()) => {
@@ -519,9 +553,7 @@ export const formatCoachQueryMessage = (result = {}) => {
       return `${result.items[0].clientName} — ${result.items[0].reason}${partialNote}`
     }
 
-    const header = `${Math.min(result.items.length, count)} client${
-      count === 1 ? '' : 's'
-    } stand out today:`
+    const header = `${count} client${count === 1 ? '' : 's'} stand out today:`
     const lines = result.items.map(
       (item) => `${item.clientName} — ${item.reason}`,
     )

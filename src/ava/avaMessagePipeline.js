@@ -43,6 +43,10 @@ import {
   isOpenCoachHubCommand,
 } from './coach/avaCoachResolver'
 import { logAvaRoleDiagnostic } from './coach/avaCoachRole'
+import {
+  buildAvaRuntimeContext,
+  buildCoachAvaFallbackMessage,
+} from './avaRuntimeContext'
 
 const PIPELINE_TIMEOUT_MS = 12000
 const FALLBACK_BUSY =
@@ -162,6 +166,19 @@ export async function runAvaMessagePipeline({
     coachAccess: effectiveCoachAccess,
     source: coachContext?.roleSource ?? (effectiveCoachAccess ? 'coach-access' : 'athlete'),
   })
+
+  if (import.meta.env?.DEV) {
+    console.debug(
+      '[ava-runtime-context]',
+      JSON.stringify(
+        buildAvaRuntimeContext({
+          session,
+          coachAuthorized: effectiveCoachAccess,
+          coachContext,
+        }),
+      ),
+    )
+  }
 
   try {
     if (isOpenCoachHubCommand(text) && !effectiveCoachAccess) {
@@ -445,6 +462,14 @@ export async function runAvaMessagePipeline({
     }
 
     debugLog('intent-resolved', { route: 'conversation' })
+
+    if (effectiveCoachAccess) {
+      return createPipelineOutcome({
+        kind: AVA_PIPELINE_KIND.RESPONSE,
+        message: buildCoachAvaFallbackMessage(coachContext ?? {}),
+        readOnly: true,
+      })
+    }
 
     const conversational = await withTimeout(
       routeMessage(text, {

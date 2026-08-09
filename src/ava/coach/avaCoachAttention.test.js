@@ -10,6 +10,7 @@ import {
   ATTENTION_REASON_TYPES,
   buildCoachAttentionQueue,
   computeAttentionPriorityScore,
+  isRecoveryAttentionReason,
 } from './avaCoachAttention'
 import {
   explainClientAttention,
@@ -213,7 +214,7 @@ describe('ava coach attention engine 7.9.7', () => {
     const sarahAttention = queue.find((entry) => entry.athleteId === 'sarah-1')
     expect(
       sarahAttention.reasons.some(
-        (reason) => reason.type === ATTENTION_REASON_TYPES.RECOVERY_CONCERN,
+        (reason) => reason.type === ATTENTION_REASON_TYPES.RECOVERY_DECLINE,
       ),
     ).toBe(true)
 
@@ -261,7 +262,7 @@ describe('ava coach attention engine 7.9.7', () => {
     expect(
       queue.every((item) =>
         item.reasons.every(
-          (reason) => reason.type !== ATTENTION_REASON_TYPES.RECOVERY_CONCERN,
+          (reason) => !isRecoveryAttentionReason(reason.type),
         ),
       ),
     ).toBe(true)
@@ -275,8 +276,8 @@ describe('ava coach attention engine 7.9.7', () => {
         severity: 'high',
       },
       {
-        type: ATTENTION_REASON_TYPES.RECOVERY_CONCERN,
-        severity: 'medium',
+        type: ATTENTION_REASON_TYPES.RECOVERY_DECLINE,
+        severity: 'high',
       },
     ])
 
@@ -288,6 +289,34 @@ describe('ava coach attention engine 7.9.7', () => {
         },
       ]),
     )
+    expect(score).toBeGreaterThan(95)
+  })
+
+  it('ranks recovery above missing check-in in the attention queue', () => {
+    const coachContext = buildCoachContext({
+      clients: [jake, sarah],
+      athleteStatesById: {
+        'jake-1': jakeStateMissingCheckIn,
+        'sarah-1': sarahStateCheckedIn,
+      },
+      weeklyCheckInsByAthleteId: {
+        'sarah-1': submittedWeeklyCheckIn('sarah-1'),
+      },
+    })
+
+    const sarahEntry = coachContext.rosterEntries.find(
+      (entry) => entry.client.athlete_id === 'sarah-1',
+    )
+    sarahEntry.intelligence.readiness = {
+      available: true,
+      trend: 'Below recent baseline',
+      detail: 'Recent readiness is lower than the prior two-week average.',
+      score: 42,
+      status: 'Manage load',
+    }
+
+    const { queue } = buildCoachAttentionQueue(coachContext, now)
+    expect(queue.map((entry) => entry.athleteId)).toEqual(['sarah-1', 'jake-1'])
   })
 
   it('explains deterministic attention reasons for a named client', () => {

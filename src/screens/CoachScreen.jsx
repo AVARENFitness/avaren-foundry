@@ -10,6 +10,7 @@ import { appUi } from '../lib/appUi'
 import { assignmentNotificationBackend } from '../lib/assignmentNotifications'
 import { COACH_CLIENT_SORT, sortCoachClients } from '../lib/clientIntelligence'
 import { enrichCoachClientRecord, getClientDisplayName, sanitizeCoachLabelDraft } from '../lib/clientDisplayName'
+import { openClientReview } from '../lib/coachReviewNavigation'
 import { coachClientLabelsBackend } from '../lib/coachClientLabelsBackend'
 import { getIdentityCapabilities, probeIdentityCapabilities } from '../lib/identityCapabilities'
 import { useCoachPortfolio } from '../hooks/useCoachPortfolio'
@@ -137,10 +138,19 @@ export default function CoachScreen({ workspace, setWorkspace, screen='clients',
   const designer = showDesigner ? <CoachWorkoutDesigner clients={clients} program={program} templates={templates} initialClientId={selectedClient?.athlete_id??''} initialTemplate={designerTemplate} onClose={()=>{setShowDesigner(false);setDesignerTemplate(null)}} onSaveTemplate={saveTemplate} onAssign={assignCustom}/> : null
 
   const openWeeklyReview = (client, reviewId = null) => {
-    if (!client) return
-    setSelectedClient(client)
-    setWeeklyReviewClient(client)
-    setHistoricalReviewId(reviewId)
+    const result = openClientReview({
+      client,
+      reviewId,
+      openWeeklyReview: (nextClient, nextReviewId) => {
+        if (!nextClient) return
+        setSelectedClient(nextClient)
+        setWeeklyReviewClient(nextClient)
+        setHistoricalReviewId(nextReviewId)
+      },
+    })
+    if (!result.ok) {
+      setNotice(result.message)
+    }
   }
 
   useEffect(() => {

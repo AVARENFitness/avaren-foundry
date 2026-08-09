@@ -6,6 +6,13 @@ import {
 const todayKey = (date = new Date()) =>
   new Date(date).toISOString().slice(0, 10)
 
+const normalizeWorkoutName = (value) => {
+  if (!value) return null
+  if (typeof value === 'string') return value
+  if (typeof value === 'object' && value.name) return String(value.name)
+  return null
+}
+
 export const WORKOUT_SOURCE = {
   ACTIVE: 'active',
   COACH_ASSIGNMENT: 'coach-assignment',
@@ -87,9 +94,9 @@ export const resolveTodayWorkoutContext = (state = {}, context = {}) => {
   }
 
   const name =
-    state.selectedWorkout ||
+    normalizeWorkoutName(state.selectedWorkout) ||
     (scheduled && scheduled !== 'Rest' ? scheduled : null) ||
-    state.program?.nextWorkout ||
+    normalizeWorkoutName(state.program?.nextWorkout) ||
     null
 
   let source = WORKOUT_SOURCE.NONE
@@ -100,7 +107,7 @@ export const resolveTodayWorkoutContext = (state = {}, context = {}) => {
       source = WORKOUT_SOURCE.SCHEDULED
     } else if (
       state.program?.nextWorkout &&
-      name === state.program.nextWorkout
+      name === normalizeWorkoutName(state.program.nextWorkout)
     ) {
       source = WORKOUT_SOURCE.PROGRAM
     } else {

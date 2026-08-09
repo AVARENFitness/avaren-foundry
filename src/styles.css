@@ -14016,6 +14016,49 @@ textarea::placeholder {
   --black: #0d1116;
   --panel: #151a20;
   --panel-soft: #11161b;
+
+  /* 7.9.24 · shared design tokens */
+  --space-1: 6px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 28px;
+
+  --radius-sm: 12px;
+  --radius-md: 16px;
+  --radius-lg: 20px;
+  --radius-pill: 999px;
+
+  --surface-0: rgba(255,255,255,.008);
+  --surface-1: rgba(255,255,255,.012);
+  --surface-2: rgba(255,255,255,.022);
+  --surface-panel: rgba(25,31,38,.78);
+
+  --border-subtle: rgba(246,242,233,.06);
+  --border-default: rgba(246,242,233,.08);
+  --border-emphasis: rgba(216,184,109,.14);
+
+  --text-body: #d8cfc2;
+  --text-supporting: #948d84;
+  --text-metadata: #8a8379;
+
+  --gold-surface: rgba(216,184,109,.06);
+  --gold-border: rgba(216,184,109,.14);
+
+  --btn-height: 48px;
+  --btn-height-sm: 40px;
+  --input-height: 48px;
+
+  --content-max: 760px;
+  --shadow-panel: 0 16px 44px rgba(0,0,0,.18);
+
+  --type-page: clamp(28px, 7vw, 46px);
+  --type-section: clamp(20px, 4.5vw, 24px);
+  --type-card: 16px;
+  --type-body: 14px;
+  --type-meta: 12px;
+  --type-eyebrow: 10px;
 }
 body {
   background:
@@ -14443,8 +14486,8 @@ input, textarea, select {
 .train-hub-header h1,
 .nutrition-preview-screen > header h1 {
   margin: 6px 0 8px;
-  font-size: clamp(32px, 8vw, 54px);
-  letter-spacing: -.055em;
+  font-size: clamp(28px, 7vw, 46px);
+  letter-spacing: -.05em;
 }
 
 .home-3-header p,
@@ -14462,90 +14505,32 @@ input, textarea, select {
   display: grid;
   grid-template-columns: 1fr auto;
   align-items: center;
-  gap: 18px;
-  padding: 20px;
-  border: 1px solid rgba(216,184,109,.18);
-  border-radius: 20px;
-  background: radial-gradient(circle at 100% 0%, rgba(216,184,109,.12), transparent 35%), rgba(255,255,255,.035);
+  gap: var(--space-4);
+  padding: 18px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
 }
 
-.home-3-workout h2,
 .train-hub-hero h2,
 .nutrition-preview-hero h2 {
   margin: 6px 0;
-  font-size: clamp(24px, 6vw, 36px);
+  font-size: clamp(22px, 5.5vw, 32px);
 }
 
-.home-3-workout p,
 .train-hub-hero p,
 .nutrition-preview-hero p {
   margin: 0;
-  color: #aaa39a;
+  color: var(--text-supporting);
 }
 
-.home-3-dashboard {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.home-3-dashboard-card {
-  display: grid;
-  gap: 8px;
-  min-height: 132px;
-  padding: 14px;
-  border: 1px solid rgba(246,242,233,.09);
-  border-radius: 16px;
-  background: rgba(255,255,255,.035);
-  color: #eee7dc;
-  text-align: left;
-}
-
-.home-3-dashboard-card > div {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  color: #ccb66f;
-}
-
-.home-3-dashboard-card strong { font-size: 19px !important; }
-.home-3-dashboard-card small { color: #a59e95; }
-.home-3-dashboard-card.done { border-color: rgba(104,164,121,.24); }
-
-.home-3-week {
-  padding: 18px;
-  border: 1px solid rgba(246,242,233,.08);
-  border-radius: 18px;
-  background: rgba(255,255,255,.025);
-}
-
-.home-3-week header,
-.home-3-next,
 .train-hub-card,
 .nutrition-preview-note {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--space-3);
 }
-
-.home-3-week h2 { margin: 5px 0 0; }
-.home-3-week header button { border: 0; background: transparent; color: #d8c17a; }
-.home-3-week > div { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin-top: 14px; }
-.home-3-week article { padding: 12px; border-radius: 12px; background: rgba(0,0,0,.18); }
-.home-3-week article strong,.home-3-week article span { display:block; }
-.home-3-week article strong { font-size: 20px !important; }
-.home-3-week article span { color:#a49d94; margin-top:4px; }
-
-.home-3-next {
-  justify-content: flex-start;
-  padding: 14px 16px;
-  border-radius: 14px;
-  background: rgba(216,184,109,.05);
-  color: #cdb874;
-}
-.home-3-next strong,.home-3-next span { display:block; }
-.home-3-next span { margin-top:3px; color:#a39c93; }
 
 .train-hub-grid,
 .nutrition-preview-grid {
@@ -14557,16 +14542,23 @@ input, textarea, select {
 .train-hub-card {
   min-height: 88px;
   padding: 14px;
-  border: 1px solid rgba(246,242,233,.08);
+  border: 1px solid rgba(246,242,233,.07);
   border-radius: 15px;
-  background: rgba(255,255,255,.03);
+  background: rgba(255,255,255,.022);
   color: #eee7dc;
   text-align:left;
+  box-shadow: none;
 }
 .train-hub-card > span:nth-child(2) { flex:1; }
 .train-hub-card strong,.train-hub-card small { display:block; }
 .train-hub-card small { margin-top:4px; color:#a59e95; }
-.train-hub-card-icon { color:#d4bd78; }
+
+.train-hub-card.primary {
+  border-color: rgba(216,184,109,.14);
+  background: rgba(216,184,109,.04);
+}
+
+.train-hub-card-icon { color: #c4ad6e; }
 
 .nutrition-preview-ring {
   display:grid;
@@ -14588,9 +14580,8 @@ input, textarea, select {
 .nutrition-preview-note span { flex:1; color:#b2aaa0; }
 
 @media (max-width: 680px) {
-  .home-3-dashboard { grid-template-columns: repeat(2, 1fr); }
-  .home-3-workout,.train-hub-hero,.nutrition-preview-hero { grid-template-columns: 1fr; }
-  .home-3-workout .gold-button,.train-hub-hero .gold-button { width:100%; }
+  .train-hub-hero,.nutrition-preview-hero { grid-template-columns: 1fr; }
+  .train-hub-hero .gold-button { width:100%; }
 }
 
 @media (max-width: 480px) {
@@ -14800,6 +14791,11 @@ input, textarea, select {
   padding-bottom: 4px;
 }
 
+.nutrition-screen-header h1 {
+  font-size: clamp(28px, 7vw, 44px) !important;
+  letter-spacing: -.05em;
+}
+
 .nutrition-screen-header p {
   max-width: 520px;
   line-height: 1.55;
@@ -14994,19 +14990,6 @@ input, textarea, select {
 }
 
 .nutrition-history-disclosure summary::-webkit-details-marker { display:none; }
-
-.home-3-dashboard-card {
-  box-shadow: none;
-}
-
-.home-3-dashboard-card:not(.nutrition):not(.readiness) {
-  background: rgba(255,255,255,.018);
-  border-color: rgba(246,242,233,.06);
-}
-
-.home-3-next {
-  opacity: .72;
-}
 
 @media (max-width: 720px) {
   .nutrition-insight-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
@@ -15294,14 +15277,12 @@ input, textarea, select {
   display: grid;
   grid-template-columns: auto 1fr auto;
   align-items: center;
-  gap: 14px;
+  gap: var(--space-3);
   width: 100%;
-  padding: 16px 18px;
-  border-radius: 16px;
-  border: 1px solid rgba(216,184,109,.16);
-  background:
-    radial-gradient(circle at 100% 0%, rgba(216,184,109,.08), transparent 42%),
-    rgba(255,255,255,.02);
+  padding: var(--space-4) 18px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-default);
+  background: var(--surface-1);
   color: var(--cream);
   text-align: left;
 }
@@ -15311,9 +15292,9 @@ input, textarea, select {
   place-items: center;
   width: 40px;
   height: 40px;
-  border-radius: 12px;
-  background: rgba(216,184,109,.08);
-  color: var(--gold-bright);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--text-supporting);
 }
 
 .home-coach-hub-shortcut-copy strong,
@@ -15327,34 +15308,24 @@ input, textarea, select {
 }
 
 .home-coach-hub-shortcut-copy span {
-  margin-top: 4px;
+  margin-top: var(--space-1);
   color: var(--muted);
-  font-size: 12px;
+  font-size: var(--type-meta);
   line-height: 1.4;
 }
 
 .home-coach-hub-shortcut > svg:last-child {
-  color: #b9a56a;
+  color: var(--text-metadata);
 }
 
 .home-coach-hub-shortcut:hover {
-  border-color: rgba(216,184,109,.24);
-  background:
-    radial-gradient(circle at 100% 0%, rgba(216,184,109,.12), transparent 42%),
-    rgba(255,255,255,.028);
+  border-color: var(--border-emphasis);
+  background: var(--surface-2);
 }
 
 .home-coach-hub-shortcut:focus-visible {
   outline: 2px solid rgba(216,184,109,.35);
   outline-offset: 2px;
-}
-
-.home-3-workout--hero {
-  padding: 24px;
-  border-color: rgba(216,184,109,.24);
-  box-shadow:
-    inset 0 1px 0 rgba(255,255,255,.03),
-    0 18px 48px rgba(0,0,0,.22);
 }
 
 /* ===== THE FORGE · TODAY'S FOCUS ===== */
@@ -15643,7 +15614,7 @@ input, textarea, select {
 
 .progress-summary-hero h1 {
   margin: 8px 0 6px;
-  font-size: clamp(30px, 8vw, 46px);
+  font-size: clamp(28px, 7vw, 42px);
   letter-spacing: -.05em;
 }
 
@@ -15708,14 +15679,6 @@ input, textarea, select {
 }
 
 @media (max-width: 560px) {
-  .home-3-workout--hero {
-    grid-template-columns: 1fr;
-  }
-
-  .home-3-workout--hero .gold-button {
-    width: 100%;
-  }
-
   .home-week-stats {
     grid-template-columns: 1fr;
   }
@@ -15750,18 +15713,18 @@ input, textarea, select {
 .ava-sheet--conversation {
   display: grid;
   grid-template-rows: auto auto minmax(0, 1fr) auto;
-  max-height: min(88vh, 760px);
+  max-height: min(86vh, 720px);
   overflow: hidden;
 }
 
 .ava-sheet-body {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
   min-height: 0;
   overflow-x: hidden;
   overflow-y: auto;
-  padding-top: 2px;
+  padding-top: 0;
   -webkit-overflow-scrolling: touch;
 }
 
@@ -15771,7 +15734,7 @@ input, textarea, select {
 }
 
 .ava-sheet-context {
-  margin: 0 0 4px;
+  margin: 0 0 8px;
   color: #948d84;
   font-size: 13px;
   line-height: 1.45;
@@ -15779,20 +15742,20 @@ input, textarea, select {
 
 .ava-chat-transcript {
   display: grid;
-  gap: 14px;
+  gap: 16px;
   align-content: start;
-  flex: 0 1 auto;
-  min-height: 120px;
-  max-height: min(34vh, 260px);
+  flex: 1 1 auto;
+  min-height: 140px;
+  max-height: min(42vh, 320px);
   overflow: auto;
-  padding: 4px 2px 8px;
+  padding: 6px 4px 10px;
   -webkit-overflow-scrolling: touch;
 }
 
 .ava-chat-message {
   display: grid;
-  gap: 6px;
-  max-width: 92%;
+  gap: 5px;
+  max-width: min(92%, 34rem);
 }
 
 .ava-chat-message--user {
@@ -15862,7 +15825,8 @@ input, textarea, select {
   margin: 0;
   color: #d8cfc2;
   font-size: 14px;
-  line-height: 1.55;
+  line-height: 1.6;
+  max-width: 34rem;
 }
 
 .ava-chat-message--user p {
@@ -15873,7 +15837,8 @@ input, textarea, select {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  padding-top: 4px;
+  padding-top: 8px;
+  margin-top: 2px;
 }
 
 .ava-chat-action {
@@ -15895,16 +15860,16 @@ input, textarea, select {
 .ava-sheet-backdrop {
   align-items: end;
   padding:
-    max(12px, env(safe-area-inset-top))
+    max(10px, env(safe-area-inset-top))
     12px
-    max(12px, env(safe-area-inset-bottom));
+    max(10px, env(safe-area-inset-bottom));
 }
 
 .ava-sheet {
   width: min(760px, 100%);
-  max-height: min(88vh, 760px);
+  max-height: min(86vh, 720px);
   margin: 0 auto;
-  padding: 18px 18px calc(18px + env(safe-area-inset-bottom));
+  padding: 16px 16px calc(14px + env(safe-area-inset-bottom));
   border: 1px solid rgba(216,184,109,.16);
   border-radius: 24px 24px 18px 18px;
   background:
@@ -15920,7 +15885,7 @@ input, textarea, select {
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 10px;
+  margin-bottom: 6px;
 }
 
 .ava-sheet-title {
@@ -15951,6 +15916,7 @@ input, textarea, select {
   place-items: center;
   width: 40px;
   height: 40px;
+  margin-top: 2px;
   border: 0;
   border-radius: 12px;
   background: rgba(255,255,255,.04);
@@ -15958,7 +15924,7 @@ input, textarea, select {
 }
 
 .ava-sheet-intro {
-  margin: 0 0 14px;
+  margin: 0 0 12px;
   color: #9b948b;
   font-size: 14px;
   line-height: 1.55;
@@ -16030,7 +15996,8 @@ input, textarea, select {
 .ava-sheet-form {
   display: grid;
   gap: 10px;
-  padding-top: 4px;
+  padding-top: 10px;
+  margin-top: 4px;
   border-top: 1px solid rgba(246,242,233,.06);
 }
 
@@ -17257,6 +17224,88 @@ input, textarea, select {
   gap: 20px;
 }
 
+.coach-client-profile-status-stack {
+  display: grid;
+  gap: 12px;
+}
+
+.coach-profile-status-card {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 18px;
+  border: 1px solid rgba(246,242,233,.06);
+  border-radius: 16px;
+  background: rgba(255,255,255,.012);
+}
+
+.coach-profile-status-card--review {
+  border-color: rgba(246,242,233,.05);
+  background: rgba(255,255,255,.008);
+}
+
+.coach-profile-status-card-copy {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.coach-profile-status-card-copy .eyebrow {
+  display: block;
+  margin: 0 0 2px;
+}
+
+.coach-profile-status-card-title {
+  display: block;
+  margin: 0;
+  font-size: 16px;
+  font-weight: 650;
+  line-height: 1.35;
+  color: #f1ebe1;
+}
+
+.coach-profile-status-card-meta,
+.coach-profile-status-card-note {
+  display: block;
+  margin: 0;
+  color: #8a8379;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.coach-profile-status-badge {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  margin: 2px 0 0;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+}
+
+.coach-profile-status-badge--complete {
+  color: #b5afa6;
+  background: rgba(255,255,255,.03);
+  border: 1px solid rgba(246,242,233,.06);
+}
+
+.coach-profile-status-badge--open {
+  color: #ddc57f;
+  background: rgba(216,184,109,.06);
+  border: 1px solid rgba(216,184,109,.14);
+}
+
+.coach-profile-status-action {
+  flex: 0 0 auto;
+  min-height: 40px;
+  align-self: center;
+  padding-inline: 14px;
+  white-space: nowrap;
+}
+
 .coach-client-profile-shell-header .coach-back-link {
   display: inline-flex;
   align-items: center;
@@ -17267,10 +17316,10 @@ input, textarea, select {
 
 .coach-client-profile-section-nav {
   display: flex;
-  gap: 8px;
+  gap: 10px;
   overflow-x: auto;
-  padding-bottom: 4px;
-  margin: 0 -4px;
+  padding: 4px 0 8px;
+  margin: 4px -4px 0;
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
 }
@@ -17282,13 +17331,13 @@ input, textarea, select {
 .coach-client-profile-section-nav button {
   flex: 0 0 auto;
   min-height: 44px;
-  padding: 10px 16px;
+  padding: 10px 18px;
   border: 1px solid rgba(246,242,233,.06);
   border-radius: 999px;
   background: rgba(255,255,255,.012);
   color: #9a9389;
-  font-size: 13px;
-  font-weight: 650;
+  font-size: 14px;
+  font-weight: 600;
   letter-spacing: 0.01em;
   white-space: nowrap;
   transition: color .18s ease, border-color .18s ease, background .18s ease;
@@ -18331,34 +18380,6 @@ input, textarea, select {
 
 /* ===== SPRINT 7.5 · COACH WEEKLY REVIEWS ===== */
 
-.coach-weekly-review-entry {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 18px 20px;
-  border-radius: 16px;
-  border: 1px solid rgba(216,184,109,.16);
-  background: rgba(216,184,109,.04);
-}
-
-.coach-weekly-review-entry strong,
-.coach-weekly-review-entry small {
-  display: block;
-}
-
-.coach-weekly-review-entry strong {
-  margin-top: 6px;
-  color: #f1ebe1;
-}
-
-.coach-weekly-review-entry small {
-  margin-top: 6px;
-  color: #9a9389;
-  font-size: 12px;
-  letter-spacing: 0.04em;
-}
-
 .coach-weekly-review-screen {
   gap: 28px;
 }
@@ -18395,9 +18416,11 @@ input, textarea, select {
   letter-spacing: 0.04em;
 }
 
-.coach-weekly-review-status.historical {
+.coach-weekly-review-status.historical,
+.coach-weekly-review-status.reviewed {
   color: #b5afa6;
   border-color: rgba(246,242,233,.08);
+  background: rgba(255,255,255,.02);
 }
 
 .coach-weekly-review-panel {
@@ -18571,15 +18594,6 @@ input, textarea, select {
 }
 
 @media (max-width: 639px) {
-  .coach-weekly-review-entry {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .coach-weekly-review-entry button {
-    width: 100%;
-  }
-
   .coach-weekly-review-banner {
     flex-direction: column;
     align-items: stretch;
@@ -18629,34 +18643,28 @@ input, textarea, select {
 
 .ava-daily-briefing {
   display: grid;
-  gap: 18px;
-  padding: 22px 20px;
-  border-radius: 20px;
-  border: 1px solid rgba(216,184,109,.18);
-  background:
-    radial-gradient(circle at 0% 0%, rgba(216,184,109,.1), transparent 42%),
-    rgba(255,255,255,.025);
-  box-shadow:
-    inset 0 1px 0 rgba(255,255,255,.03),
-    0 16px 44px rgba(0,0,0,.18);
+  gap: var(--space-4);
+  padding: var(--space-5) 18px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-default);
+  background: var(--surface-2);
+  box-shadow: none;
 }
 
 .ava-daily-briefing--recovery-priority,
 .ava-daily-briefing--manage-load {
-  border-color: rgba(104,164,121,.2);
-  background:
-    radial-gradient(circle at 0% 0%, rgba(104,164,121,.1), transparent 42%),
-    rgba(255,255,255,.022);
+  border-color: rgba(104,164,121,.16);
+  background: rgba(104,164,121,.04);
 }
 
 .ava-daily-briefing--insufficient-data {
-  border-color: rgba(246,242,233,.1);
+  border-color: var(--border-default);
 }
 
 .ava-daily-briefing-header {
   display: grid;
   grid-template-columns: auto 1fr;
-  gap: 14px;
+  gap: var(--space-3);
   align-items: start;
 }
 
@@ -18665,9 +18673,9 @@ input, textarea, select {
   place-items: center;
   width: 38px;
   height: 38px;
-  border-radius: 12px;
-  background: rgba(216,184,109,.1);
-  color: var(--gold-bright);
+  border-radius: var(--radius-sm);
+  background: var(--surface-1);
+  color: var(--text-supporting);
 }
 
 .ava-daily-briefing-header h2 {
@@ -18939,3 +18947,389 @@ input, textarea, select {
 .morning-ritual-progress span:nth-child(n+5){display:none}
 .weekly-checkin .morning-ritual-progress{grid-template-columns:repeat(6,1fr)}
 .weekly-checkin .morning-ritual-progress span{display:block}
+
+/* ===== PATCH 7.9.24 · DESIGN SYSTEM CONSOLIDATION ===== */
+
+/* Button hierarchy */
+.ui-btn-secondary,
+.coach-secondary-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: var(--btn-height-sm);
+  padding: 0 var(--space-3);
+  border: 1px solid var(--border-emphasis);
+  border-radius: var(--radius-sm);
+  background: var(--gold-surface);
+  color: #d9c27f;
+  font-weight: 750;
+}
+
+.ui-btn-tertiary {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: var(--btn-height-sm);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-supporting);
+  font-size: var(--type-body);
+  font-weight: 650;
+}
+
+.ui-btn-tertiary:hover {
+  color: var(--cream);
+}
+
+.ui-btn-destructive,
+.coach-unassign-button {
+  border-color: rgba(191,103,92,.22);
+  background: rgba(191,103,92,.045);
+  color: #d79a90;
+}
+
+/* Typography rhythm */
+.eyebrow {
+  display: block;
+  margin: 0 0 var(--space-1);
+  font-size: var(--type-eyebrow);
+  letter-spacing: .16em;
+}
+
+.screen h1,
+.home-3-header h1,
+.train-hub-header h1,
+.coach-hub-page-header h1,
+.coach-client-profile-header h1,
+.nutrition-screen-header h1 {
+  font-size: var(--type-page);
+  letter-spacing: -.05em;
+  line-height: 1.05;
+}
+
+/* Home · calmer hierarchy */
+.foundry-disclosure {
+  border-color: var(--border-subtle);
+  background: var(--surface-1);
+}
+
+.home-today-plan {
+  gap: var(--space-2);
+  padding: var(--space-4) 2px var(--space-1);
+}
+
+.home-today-plan-link {
+  color: var(--text-supporting);
+}
+
+.home-today-plan-link:hover {
+  color: var(--cream);
+}
+
+.home-reminder-row {
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-color: var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--surface-1);
+}
+
+.home-reminder-row--daily:hover {
+  border-color: var(--border-default);
+  background: var(--surface-2);
+}
+
+.home-reminder-eyebrow {
+  margin-bottom: var(--space-1);
+  letter-spacing: .14em;
+}
+
+.home-reminder-row strong {
+  line-height: 1.4;
+}
+
+.home-reminder-row span {
+  margin-top: var(--space-1);
+  line-height: 1.4;
+}
+
+.home-reminder-action {
+  border-color: var(--gold-border);
+  color: #d9c27f;
+}
+
+.home-weekly-checkin-confirmation {
+  background: var(--surface-2);
+  border-color: var(--border-subtle);
+  color: var(--text-supporting);
+}
+
+.home-daily-row {
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-2);
+}
+
+.home-daily-row span {
+  margin-top: var(--space-1);
+}
+
+/* Coach Hub · scan-friendly density */
+.coach-hub-screen {
+  gap: var(--space-4);
+}
+
+.coach-hub-page-header h1 {
+  margin: var(--space-2) 0;
+  font-size: var(--type-page) !important;
+}
+
+.coach-hub-page-header p {
+  font-size: var(--type-body) !important;
+  line-height: 1.55 !important;
+  color: var(--text-supporting) !important;
+}
+
+.coach-hub-count {
+  border-color: var(--border-subtle);
+  background: var(--surface-1);
+  color: var(--text-body);
+}
+
+.coach-hub-count strong {
+  font-size: 20px;
+  color: var(--cream);
+}
+
+.coach-hub-count span {
+  font-size: var(--type-eyebrow);
+  color: var(--text-metadata);
+}
+
+.coach-invite-card,
+.coach-roster-section,
+.coach-pending-section,
+.coach-settings-card,
+.coach-empty-state {
+  padding: var(--space-4);
+  border-color: var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--surface-1);
+}
+
+.coach-command-review-badge.reviewed {
+  color: #9fd0a8;
+  background: rgba(120, 176, 132, .06);
+  border: 1px solid rgba(120, 176, 132, .12);
+}
+
+/* Client Profile · finish polish */
+.coach-client-profile-shell-header {
+  gap: var(--space-5);
+  padding-bottom: var(--space-2);
+}
+
+.coach-client-profile-header {
+  gap: var(--space-2);
+  padding: var(--space-2) 0 var(--space-1);
+}
+
+.coach-client-profile-header h1 {
+  font-size: clamp(30px, 7vw, 44px);
+}
+
+.coach-client-profile-header p {
+  line-height: 1.45;
+}
+
+.coach-client-profile-header small {
+  display: block;
+  margin-top: var(--space-1);
+  line-height: 1.4;
+}
+
+.coach-client-profile-status-stack {
+  gap: var(--space-3);
+}
+
+.coach-profile-status-card {
+  padding: var(--space-4) 18px;
+  border-color: var(--border-subtle);
+  background: var(--surface-1);
+}
+
+.coach-profile-status-card-copy {
+  gap: var(--space-1);
+}
+
+.coach-profile-status-card-title {
+  line-height: 1.4;
+}
+
+.coach-profile-status-card-meta,
+.coach-profile-status-card-note {
+  margin-top: var(--space-1);
+}
+
+.coach-client-profile-section-nav {
+  gap: var(--space-2);
+  padding: var(--space-2) 0 var(--space-3);
+  margin-top: var(--space-1);
+  scroll-padding-inline: var(--space-2);
+}
+
+.coach-client-profile-section-nav button {
+  min-height: var(--btn-height-sm);
+  padding: 10px var(--space-4);
+  border-color: var(--border-subtle);
+  background: var(--surface-1);
+}
+
+.coach-client-profile-section-nav button.active {
+  border-color: var(--gold-border);
+  background: var(--gold-surface);
+}
+
+.coach-client-profile-shell,
+.coach-client-profile-shell-body {
+  padding-bottom: calc(var(--space-6) + env(safe-area-inset-bottom));
+}
+
+/* Ask AVA · rhythm refinements */
+.ava-entry-button {
+  border-color: var(--border-emphasis);
+  background: rgba(12,14,17,.94);
+  color: #c9b77f;
+  box-shadow: var(--shadow-panel);
+}
+
+.ava-chat-transcript {
+  scroll-padding-bottom: var(--space-4);
+}
+
+.ava-chat-message--pending p {
+  letter-spacing: 0.01em;
+}
+
+.ava-sheet-input {
+  min-height: 88px;
+  font-size: var(--type-body);
+}
+
+/* Nutrition · consolidate luxury overrides */
+.nutrition-calorie-hero strong {
+  font-size: clamp(40px, 10vw, 52px) !important;
+}
+
+.nutrition-quick-grid button:first-child {
+  border-color: var(--border-emphasis);
+  background: var(--gold-surface);
+}
+
+.nutrition-panel,
+.nutrition-food-log,
+.nutrition-hydration-card,
+.nutrition-calorie-hero {
+  border-color: var(--border-subtle);
+  background: var(--surface-1);
+}
+
+.nutrition-food-log article,
+.nutrition-recipe-list article,
+.nutrition-history-list article {
+  padding: var(--space-3) 0;
+}
+
+.nutrition-macro-grid article {
+  border-color: var(--border-subtle);
+  background: var(--surface-1);
+}
+
+.nutrition-notice {
+  border: 1px solid rgba(105,170,121,.14);
+}
+
+/* Train · CTA hierarchy */
+.train-hub-screen {
+  gap: var(--space-4);
+}
+
+.train-hub-header h1 {
+  margin-bottom: var(--space-2);
+}
+
+.train-hub-card.primary {
+  border-color: var(--gold-border);
+}
+
+.train-hub-card-icon {
+  color: var(--text-supporting);
+}
+
+.train-hub-card.primary .train-hub-card-icon {
+  color: #c4ad6e;
+}
+
+/* Progress · section rhythm */
+.progress-summary-hero {
+  padding: var(--space-1) 2px var(--space-3);
+}
+
+.progress-chart-panel,
+.progress-details-panel {
+  border-color: var(--border-subtle);
+  background: var(--surface-1);
+}
+
+.progress-readiness-entry--quiet {
+  border-color: var(--border-subtle);
+  background: var(--surface-1);
+}
+
+/* Responsive · avoid overlap and clipping */
+@media (max-width: 680px) {
+  .coach-client-profile-section-nav {
+    margin-inline: -2px;
+    padding-bottom: var(--space-2);
+  }
+
+  .coach-client-profile-section-nav button {
+    padding-inline: var(--space-3);
+    font-size: 13px;
+  }
+
+  .ava-sheet {
+    max-height: min(92vh, 720px);
+  }
+
+  .ava-chat-transcript {
+    max-height: min(46vh, 340px);
+  }
+
+  .nutrition-tabs {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 480px) {
+  .ava-entry-button {
+    right: 12px;
+    bottom: calc(98px + env(safe-area-inset-bottom));
+  }
+
+  .coach-client-profile-shell-header {
+    gap: var(--space-4);
+  }
+
+  .coach-profile-status-card {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-3);
+  }
+
+  .coach-profile-status-action {
+    align-self: stretch;
+    width: 100%;
+  }
+}

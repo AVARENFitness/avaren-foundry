@@ -7,16 +7,30 @@ import {
   resolveCoachReviewStatus,
   summarizeRosterCheckInStatus,
 } from './avaCoachCheckIn'
+import {
+  WEEKLY_CHECK_IN_PAIN,
+  normalizeWeeklyCheckIn,
+} from '../../lib/weeklyCheckIn'
 
 export { hasWeeklyAthleteCheckIn } from './avaCoachCheckIn'
 
 export const ATTENTION_REASON_TYPES = {
   MISSING_WEEKLY_CHECKIN: 'MISSING_WEEKLY_CHECKIN',
-  OPEN_COACH_REVIEW: 'OPEN_COACH_REVIEW',
+  LOW_RECOVERY: 'LOW_RECOVERY',
+  RECOVERY_DECLINE: 'RECOVERY_DECLINE',
   RECOVERY_CONCERN: 'RECOVERY_CONCERN',
+  COACH_FOLLOWUP_NEEDED: 'COACH_FOLLOWUP_NEEDED',
   TRAINING_GAP: 'TRAINING_GAP',
+  OPEN_COACH_REVIEW: 'OPEN_COACH_REVIEW',
   ASSIGNMENT_CONCERN: 'ASSIGNMENT_CONCERN',
   NUTRITION_CONCERN: 'NUTRITION_CONCERN',
+}
+
+export const ATTENTION_PRIORITY_TIER = {
+  CRITICAL: 'critical',
+  HIGH: 'high',
+  MEDIUM: 'medium',
+  LOW: 'low',
 }
 
 /** @deprecated use ATTENTION_REASON_TYPES */
@@ -31,8 +45,14 @@ export const ATTENTION_REASON_TYPES_LEGACY = {
   NUTRITION_LIGHT: 'nutrition-light',
 }
 
+const RECOVERY_REASON_TYPES = new Set([
+  ATTENTION_REASON_TYPES.RECOVERY_CONCERN,
+  ATTENTION_REASON_TYPES.LOW_RECOVERY,
+  ATTENTION_REASON_TYPES.RECOVERY_DECLINE,
+])
+
 const LEGACY_ATTENTION_MAP = {
-  'readiness-low': ATTENTION_REASON_TYPES.RECOVERY_CONCERN,
+  'readiness-low': ATTENTION_REASON_TYPES.RECOVERY_DECLINE,
   inactive: ATTENTION_REASON_TYPES.TRAINING_GAP,
   'frequency-drop': ATTENTION_REASON_TYPES.TRAINING_GAP,
   'overdue-assignment': ATTENTION_REASON_TYPES.ASSIGNMENT_CONCERN,
@@ -41,21 +61,26 @@ const LEGACY_ATTENTION_MAP = {
 }
 
 export const REASON_BASE_PRIORITY = {
-  [ATTENTION_REASON_TYPES.ASSIGNMENT_CONCERN]: 92,
-  [ATTENTION_REASON_TYPES.MISSING_WEEKLY_CHECKIN]: 85,
-  [ATTENTION_REASON_TYPES.RECOVERY_CONCERN]: 80,
-  [ATTENTION_REASON_TYPES.TRAINING_GAP]: 68,
-  [ATTENTION_REASON_TYPES.OPEN_COACH_REVIEW]: 55,
-  [ATTENTION_REASON_TYPES.NUTRITION_CONCERN]: 45,
+  [ATTENTION_REASON_TYPES.RECOVERY_DECLINE]: 95,
+  [ATTENTION_REASON_TYPES.LOW_RECOVERY]: 92,
+  [ATTENTION_REASON_TYPES.RECOVERY_CONCERN]: 90,
+  [ATTENTION_REASON_TYPES.COACH_FOLLOWUP_NEEDED]: 88,
+  [ATTENTION_REASON_TYPES.ASSIGNMENT_CONCERN]: 82,
+  [ATTENTION_REASON_TYPES.TRAINING_GAP]: 72,
+  [ATTENTION_REASON_TYPES.MISSING_WEEKLY_CHECKIN]: 58,
+  [ATTENTION_REASON_TYPES.OPEN_COACH_REVIEW]: 50,
+  [ATTENTION_REASON_TYPES.NUTRITION_CONCERN]: 40,
 }
 
 export const REASON_SHORT_LABELS = {
   [ATTENTION_REASON_TYPES.MISSING_WEEKLY_CHECKIN]:
-    'check-in is still missing',
-  [ATTENTION_REASON_TYPES.OPEN_COACH_REVIEW]:
-    'your weekly review is still open',
-  [ATTENTION_REASON_TYPES.RECOVERY_CONCERN]:
-    'recovery has been lower recently',
+    'weekly check-in missing',
+  [ATTENTION_REASON_TYPES.OPEN_COACH_REVIEW]: 'review still open',
+  [ATTENTION_REASON_TYPES.RECOVERY_DECLINE]: 'recovery concern',
+  [ATTENTION_REASON_TYPES.LOW_RECOVERY]: 'recovery concern',
+  [ATTENTION_REASON_TYPES.RECOVERY_CONCERN]: 'recovery concern',
+  [ATTENTION_REASON_TYPES.COACH_FOLLOWUP_NEEDED]:
+    'flagged something in their weekly check-in',
   [ATTENTION_REASON_TYPES.TRAINING_GAP]:
     'no recent completed session is recorded',
   [ATTENTION_REASON_TYPES.ASSIGNMENT_CONCERN]:
@@ -63,6 +88,14 @@ export const REASON_SHORT_LABELS = {
   [ATTENTION_REASON_TYPES.NUTRITION_CONCERN]:
     'nutrition logging has been light this week',
 }
+
+const HUB_SEVERITY = {
+  high: 'alert',
+  medium: 'watch',
+  low: 'info',
+}
+
+const WEEKLY_RECOVERY_RATING_LOW = 2
 
 const rosterEntriesFromContext = (coachContext = {}) =>
   coachContext.portfolio?.rosterEntries ??
@@ -75,16 +108,49 @@ const severityRank = (severity = 'medium') => {
   return 1
 }
 
+export const resolvePriorityTier = (score = 0) => {
+  if (score >= 90) return ATTENTION_PRIORITY_TIER.CRITICAL
+  if (score >= 75) return ATTENTION_PRIORITY_TIER.HIGH
+  if (score >= 55) return ATTENTION_PRIORITY_TIER.MEDIUM
+  return ATTENTION_PRIORITY_TIER.LOW
+}
+
+export const isRecoveryAttentionReason = (type = null) =>
+  RECOVERY_REASON_TYPES.has(type)
+
+export const logAvaCoachAttentionDiagnostic = ({
+  authorizedClientCount = 0,
+  candidateCount = 0,
+  returnedCount = 0,
+  topReasonCodes = [],
+  dataStatus = 'ready',
+} = {}) => {
+  if (!import.meta.env?.DEV) return
+
+  console.debug(
+    '[ava-coach-attention]',
+    JSON.stringify({
+      authorizedClientCount,
+      candidateCount,
+      returnedCount,
+      topReasonCodes,
+      dataStatus,
+    }),
+  )
+}
+
 const buildReason = ({
   type,
   severity = 'medium',
   evidence = '',
   recency = 'current',
+  weekContext = null,
 } = {}) => ({
   type,
   severity,
   evidence,
   recency,
+  weekContext,
   label: REASON_SHORT_LABELS[type] ?? evidence,
 })
 
@@ -112,28 +178,50 @@ export const computeAttentionPriorityScore = (reasons = []) => {
   const types = new Set(reasons.map((reason) => reason.type))
   if (
     types.has(ATTENTION_REASON_TYPES.MISSING_WEEKLY_CHECKIN) &&
-    types.has(ATTENTION_REASON_TYPES.RECOVERY_CONCERN)
+    [...types].some((type) => isRecoveryAttentionReason(type))
   ) {
-    score += 15
+    score += 10
   }
 
   if (reasons.some((reason) => reason.severity === 'high')) {
-    score += 8
-  }
-
-  if (
-    types.has(ATTENTION_REASON_TYPES.MISSING_WEEKLY_CHECKIN) &&
-    types.has(ATTENTION_REASON_TYPES.OPEN_COACH_REVIEW)
-  ) {
-    score += 6
+    score += 5
   }
 
   return score
 }
 
-const mapLegacyAttentionItem = (item = {}) => {
-  const type = LEGACY_ATTENTION_MAP[item.id]
+const weeklyCheckInSupportingContext = (checkIn = null) => {
+  const normalized = normalizeWeeklyCheckIn(checkIn)
+  if (!normalized) return null
+  if (normalized.recoveryRating <= WEEKLY_RECOVERY_RATING_LOW) {
+    return `reported low recovery (${normalized.recoveryRating}/5) in this week's check-in`
+  }
+  return null
+}
+
+const coachFollowupFromCheckIn = (checkIn = null) => {
+  const normalized = normalizeWeeklyCheckIn(checkIn)
+  if (!normalized) return null
+  if (normalized.painOrIssue !== WEEKLY_CHECK_IN_PAIN.COACH_SHOULD_KNOW) {
+    return null
+  }
+  return {
+    evidence: normalized.painNote
+      ? 'Flagged an issue in this week\'s check-in.'
+      : 'Flagged something for you in this week\'s weekly check-in.',
+  }
+}
+
+const mapLegacyAttentionItem = (item = {}, readiness = {}) => {
+  let type = LEGACY_ATTENTION_MAP[item.id]
   if (!type) return null
+
+  if (item.id === 'readiness-low') {
+    type =
+      readiness.trend === 'Below recent baseline'
+        ? ATTENTION_REASON_TYPES.RECOVERY_DECLINE
+        : ATTENTION_REASON_TYPES.LOW_RECOVERY
+  }
 
   const severity =
     item.severity === 'alert'
@@ -150,10 +238,32 @@ const mapLegacyAttentionItem = (item = {}) => {
   })
 }
 
+export const mapAttentionQueueToHubItems = (queue = []) =>
+  queue.map((entry) => {
+    const primary = entry.reasons?.[0]
+    const isReview =
+      primary?.type === ATTENTION_REASON_TYPES.OPEN_COACH_REVIEW
+
+    return {
+      client: entry.client,
+      clientName: entry.displayName,
+      item: {
+        id: primary?.type?.toLowerCase().replace(/_/g, '-') ?? 'attention',
+        title: primary?.label ?? 'Needs attention',
+        description: primary?.evidence ?? primary?.label ?? '',
+        severity: HUB_SEVERITY[primary?.severity] ?? 'watch',
+      },
+      priority: entry.priorityScore,
+      priorityTier: entry.priorityTier,
+      actionLabel: isReview ? 'Review Client' : 'View Client',
+    }
+  })
+
 export const buildCoachAttentionQueue = (coachContext = {}, now = new Date()) => {
   const entries = rosterEntriesFromContext(coachContext)
   const athleteStatesById = coachContext.athleteStatesById ?? {}
   const weeklyReviewsByAthleteId = coachContext.weeklyReviewsByAthleteId ?? {}
+  const weeklyCheckInsByAthleteId = coachContext.weeklyCheckInsByAthleteId ?? {}
   const portfolioLoaded = Boolean(
     coachContext.portfolioStatus === 'ready' ||
       coachContext.portfolioStatus === 'partial' ||
@@ -162,7 +272,7 @@ export const buildCoachAttentionQueue = (coachContext = {}, now = new Date()) =>
   )
   const checkInSummary = summarizeRosterCheckInStatus({
     rosterEntries: entries,
-    weeklyCheckInsByAthleteId: coachContext.weeklyCheckInsByAthleteId ?? {},
+    weeklyCheckInsByAthleteId,
     weeklyReviewsByAthleteId,
     portfolioLoaded,
     now,
@@ -194,6 +304,8 @@ export const buildCoachAttentionQueue = (coachContext = {}, now = new Date()) =>
       const readiness = intelligence.readiness ?? {}
       const reasons = []
       const checkInRecord = checkInByAthleteId.get(String(athleteId))
+      const weeklyCheckIn = weeklyCheckInsByAthleteId[athleteId] ?? null
+      const weekContext = checkInSummary.weekKey ?? null
 
       if (
         checkInRecord?.athleteCheckInStatus ===
@@ -204,6 +316,19 @@ export const buildCoachAttentionQueue = (coachContext = {}, now = new Date()) =>
             type: ATTENTION_REASON_TYPES.MISSING_WEEKLY_CHECKIN,
             severity: 'high',
             evidence: 'No current-week weekly check-in submission on record.',
+            weekContext,
+          }),
+        )
+      }
+
+      const followup = coachFollowupFromCheckIn(weeklyCheckIn)
+      if (followup) {
+        reasons.push(
+          buildReason({
+            type: ATTENTION_REASON_TYPES.COACH_FOLLOWUP_NEEDED,
+            severity: 'high',
+            evidence: followup.evidence,
+            weekContext,
           }),
         )
       }
@@ -222,21 +347,27 @@ export const buildCoachAttentionQueue = (coachContext = {}, now = new Date()) =>
             type: ATTENTION_REASON_TYPES.OPEN_COACH_REVIEW,
             severity: 'medium',
             evidence: 'Coach review not completed for this week.',
+            weekContext,
           }),
         )
       }
 
       if (readiness.available) {
+        const supporting = weeklyCheckInSupportingContext(weeklyCheckIn)
         if (readiness.trend === 'Below recent baseline') {
+          const baseEvidence =
+            readiness.detail ??
+            (readiness.score !== null && readiness.score !== undefined
+              ? `Latest readiness score: ${readiness.score}.`
+              : 'Recent recovery is below their usual range.')
           reasons.push(
             buildReason({
-              type: ATTENTION_REASON_TYPES.RECOVERY_CONCERN,
-              severity: 'medium',
-              evidence:
-                readiness.detail ??
-                (readiness.score !== null && readiness.score !== undefined
-                  ? `Latest readiness score: ${readiness.score}.`
-                  : 'Recent recovery is below their usual range.'),
+              type: ATTENTION_REASON_TYPES.RECOVERY_DECLINE,
+              severity: 'high',
+              evidence: supporting
+                ? `${baseEvidence} They also ${supporting}.`
+                : baseEvidence,
+              weekContext,
             }),
           )
         }
@@ -247,14 +378,12 @@ export const buildCoachAttentionQueue = (coachContext = {}, now = new Date()) =>
       ;(intelligence.attention ?? []).forEach((item) => {
         if (item.id === 'all-clear' || item.id === 'performance-up') return
 
-        const mapped = mapLegacyAttentionItem(item)
+        const mapped = mapLegacyAttentionItem(item, readiness)
         if (!mapped) return
 
         if (
-          mapped.type === ATTENTION_REASON_TYPES.RECOVERY_CONCERN &&
-          reasons.some(
-            (reason) => reason.type === ATTENTION_REASON_TYPES.RECOVERY_CONCERN,
-          )
+          isRecoveryAttentionReason(mapped.type) &&
+          reasons.some((reason) => isRecoveryAttentionReason(reason.type))
         ) {
           return
         }
@@ -292,13 +421,20 @@ export const buildCoachAttentionQueue = (coachContext = {}, now = new Date()) =>
       const deduped = dedupeReasonsByType(reasons)
       if (!deduped.length) return null
 
+      const priorityScore = computeAttentionPriorityScore(deduped)
+
       return {
         athleteId,
         displayName,
         client: entry.client,
         entry,
-        reasons: deduped,
-        priorityScore: computeAttentionPriorityScore(deduped),
+        reasons: deduped.sort(
+          (first, second) =>
+            (REASON_BASE_PRIORITY[second.type] ?? 0) -
+            (REASON_BASE_PRIORITY[first.type] ?? 0),
+        ),
+        priorityScore,
+        priorityTier: resolvePriorityTier(priorityScore),
       }
     })
     .filter(Boolean)
@@ -308,12 +444,29 @@ export const buildCoachAttentionQueue = (coachContext = {}, now = new Date()) =>
         first.displayName.localeCompare(second.displayName),
     )
 
+  const dataStatus = portfolioLoaded
+    ? clientsMissingRecoveryData > 0
+      ? 'partial'
+      : 'ready'
+    : 'unloaded'
+
+  logAvaCoachAttentionDiagnostic({
+    authorizedClientCount: entries.length,
+    candidateCount: queue.length,
+    returnedCount: queue.length,
+    topReasonCodes: queue
+      .slice(0, 5)
+      .flatMap((entry) => entry.reasons.slice(0, 1).map((reason) => reason.type)),
+    dataStatus,
+  })
+
   return {
     queue,
     meta: {
       authorizedClientCount: entries.length,
       clientsMissingRecoveryData,
       checkInSummary,
+      dataStatus,
     },
   }
 }
@@ -321,6 +474,11 @@ export const buildCoachAttentionQueue = (coachContext = {}, now = new Date()) =>
 export const filterAttentionQueueByReason = (queue = [], reasonType = null) =>
   queue.filter((entry) =>
     entry.reasons.some((reason) => reason.type === reasonType),
+  )
+
+export const filterAttentionQueueByRecovery = (queue = []) =>
+  queue.filter((entry) =>
+    entry.reasons.some((reason) => isRecoveryAttentionReason(reason.type)),
   )
 
 export const getAttentionEntryForAthlete = (queue = [], athleteId = null) =>
@@ -332,9 +490,50 @@ export const formatAttentionEntryHeadline = (entry = {}) => {
   return `${entry.displayName} — ${primary.label}`
 }
 
+const possessive = (name = 'They') => {
+  if (!name || name === 'Client') return 'Their'
+  return name.endsWith('s') ? `${name}'` : `${name}'s`
+}
+
 export const formatAttentionExplanation = (entry = {}) => {
   if (!entry?.reasons?.length) {
     return `Nothing urgent stands out for ${entry?.displayName ?? 'that client'} right now.`
+  }
+
+  const name = entry.displayName ?? 'that client'
+  const poss = possessive(name)
+  const types = new Set(entry.reasons.map((reason) => reason.type))
+
+  const hasRecoveryDecline =
+    types.has(ATTENTION_REASON_TYPES.RECOVERY_DECLINE) ||
+    types.has(ATTENTION_REASON_TYPES.LOW_RECOVERY) ||
+    types.has(ATTENTION_REASON_TYPES.RECOVERY_CONCERN)
+  const hasCoachFollowup = types.has(ATTENTION_REASON_TYPES.COACH_FOLLOWUP_NEEDED)
+  const hasMissingCheckIn = types.has(
+    ATTENTION_REASON_TYPES.MISSING_WEEKLY_CHECKIN,
+  )
+  const hasOpenReview = types.has(ATTENTION_REASON_TYPES.OPEN_COACH_REVIEW)
+
+  if (hasRecoveryDecline && hasCoachFollowup) {
+    return `${poss} readiness is lower than their recent baseline and they flagged an issue in this week's check-in.`
+  }
+
+  if (hasRecoveryDecline) {
+    const recoveryReason = entry.reasons.find((reason) =>
+      isRecoveryAttentionReason(reason.type),
+    )
+    if (recoveryReason?.evidence) {
+      return `${name}: ${recoveryReason.evidence}`
+    }
+    return `${poss} readiness is lower than their recent baseline.`
+  }
+
+  if (hasCoachFollowup) {
+    return `${name} flagged something for you in this week's check-in.`
+  }
+
+  if (hasMissingCheckIn && hasOpenReview) {
+    return `${poss} weekly check-in is still missing and your weekly review is still open.`
   }
 
   const parts = entry.reasons.map((reason) => {
@@ -348,11 +547,11 @@ export const formatAttentionExplanation = (entry = {}) => {
   })
 
   if (parts.length === 1) {
-    return `${entry.displayName}'s ${parts[0]}.`
+    return `${poss} ${parts[0]}.`
   }
 
   const last = parts.pop()
-  return `${entry.displayName}'s ${parts.join(', ')}, and ${last}.`
+  return `${poss} ${parts.join(', ')}, and ${last}.`
 }
 
 export const formatPartialDataNote = (meta = {}) => {

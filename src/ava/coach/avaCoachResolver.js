@@ -6,9 +6,15 @@ import { buildActionResolution } from '../actions/avaActionResolver'
 import {
   buildCoachClientChoices,
   extractClientNameFromMessage,
+  extractClientReviewTarget,
+  isCoachClientReviewCommand,
+  isCoachClientUpdateCommand,
   resolveCoachClientByName,
 } from './avaCoachClientResolver'
-export { isCoachClientNameCommand } from './avaCoachClientResolver'
+export {
+  isCoachClientNameCommand,
+  isCoachClientUpdateCommand,
+} from './avaCoachClientResolver'
 import { resolveCoachActionClient } from './avaCoachContext'
 import {
   buildClientSummaryFacts,
@@ -103,7 +109,10 @@ export const resolveCoachClientCommand = (
   message = '',
   { coachContext = {}, session = null } = {},
 ) => {
-  const nameQuery = extractClientNameFromMessage(message)
+  const isReview = isCoachClientReviewCommand(message)
+  const nameQuery = isReview
+    ? extractClientReviewTarget(message)
+    : extractClientNameFromMessage(message)
   if (!nameQuery) return null
 
   const resolution = resolveCoachClientByName(nameQuery, coachContext.clients ?? [])
@@ -111,7 +120,9 @@ export const resolveCoachClientCommand = (
   if (resolution.status === 'none') {
     return {
       kind: 'response',
-      message: resolution.message,
+      message: isReview
+        ? `I couldn't open ${nameQuery}'s review right now.`
+        : resolution.message,
     }
   }
 
@@ -121,13 +132,15 @@ export const resolveCoachClientCommand = (
       message: resolution.message,
       choices: buildCoachClientChoices(resolution.matches),
       pendingAction: {
-        actionId: AVA_ACTION_IDS.OPEN_CLIENT_PROFILE,
+        actionId: isReview
+          ? AVA_ACTION_IDS.OPEN_WEEKLY_REVIEWS
+          : AVA_ACTION_IDS.OPEN_CLIENT_PROFILE,
         query: nameQuery,
       },
     }
   }
 
-  const isSummary = /quick update|give me a quick update/.test(normalize(message))
+  const isSummary = !isReview && isCoachClientUpdateCommand(message)
 
   if (isSummary) {
     const entry = rosterEntryForAthlete(coachContext, resolution.athleteId)
@@ -138,6 +151,18 @@ export const resolveCoachClientCommand = (
       facts,
       athleteId: resolution.athleteId,
       clientName: resolution.clientName,
+    }
+  }
+
+  if (isReview) {
+    return {
+      kind: 'navigation',
+      resolution: buildClientNavigationResolution({
+        actionId: AVA_ACTION_IDS.OPEN_WEEKLY_REVIEWS,
+        athleteId: resolution.athleteId,
+        clientName: resolution.clientName,
+        label: `Open ${resolution.clientName}'s review`,
+      }),
     }
   }
 

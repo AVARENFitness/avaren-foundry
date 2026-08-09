@@ -45,7 +45,7 @@ describe('CoachClientProfileShell', () => {
       </CoachClientProfileShell>,
     )
 
-    await user.click(screen.getByRole('button', { name: 'Coach Notes' }))
+    await user.click(screen.getByRole('button', { name: 'Notes' }))
 
     expect(onSectionChange).toHaveBeenCalledWith('notes')
   })
@@ -79,5 +79,51 @@ describe('CoachClientProfileShell', () => {
     expect(screen.getByRole('button', { name: 'Today' })).not.toHaveAttribute(
       'aria-current',
     )
+  })
+
+  it('separates weekly check-in eyebrow from title in status cards', () => {
+    render(
+      <CoachClientProfileShell
+        {...baseProps}
+        weeklyCheckInPanel={
+          <article className="coach-profile-status-card coach-profile-status-card--checkin">
+            <div className="coach-profile-status-card-copy">
+              <span className="eyebrow">WEEKLY CHECK-IN</span>
+              <strong className="coach-profile-status-card-title">
+                Athlete submission received
+              </strong>
+              <p className="coach-profile-status-card-meta">
+                Training 3/5 · Recovery 2/5 · Nutrition 4/5
+              </p>
+            </div>
+          </article>
+        }
+        weeklyReviewAction={
+          <article className="coach-profile-status-card coach-profile-status-card--review">
+            <div className="coach-profile-status-card-copy">
+              <span className="eyebrow">WEEKLY REVIEW</span>
+              <strong className="coach-profile-status-card-title">Aug 3 – 9</strong>
+              <p className="coach-profile-status-badge coach-profile-status-badge--complete">
+                ✓ Reviewed
+              </p>
+            </div>
+            <button type="button" className="coach-secondary-button coach-profile-status-action">
+              View Review
+            </button>
+          </article>
+        }
+      >
+        <p>Section content</p>
+      </CoachClientProfileShell>,
+    )
+
+    expect(screen.getByText('WEEKLY CHECK-IN')).toBeInTheDocument()
+    expect(screen.getByText('Athlete submission received')).toBeInTheDocument()
+    expect(screen.getByText(/Training 3\/5/)).toBeInTheDocument()
+    expect(screen.getByText('✓ Reviewed')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'View Review' })).toHaveClass(
+      'coach-secondary-button',
+    )
+    expect(screen.queryByRole('button', { name: 'Reviewed' })).not.toBeInTheDocument()
   })
 })

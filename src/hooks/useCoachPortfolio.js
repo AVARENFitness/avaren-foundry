@@ -14,6 +14,7 @@ export function useCoachPortfolio(clients = [], assignments = []) {
   const [athleteStatesById, setAthleteStatesById] = useState({})
   const [nutritionByAthleteId, setNutritionByAthleteId] = useState({})
   const [weeklyReviewsByAthleteId, setWeeklyReviewsByAthleteId] = useState({})
+  const [weeklyCheckInsByAthleteId, setWeeklyCheckInsByAthleteId] = useState({})
   const [portfolioLoading, setPortfolioLoading] = useState(false)
   const [portfolioError, setPortfolioError] = useState('')
   const [refreshToken, setRefreshToken] = useState(0)
@@ -33,6 +34,7 @@ export function useCoachPortfolio(clients = [], assignments = []) {
       setAthleteStatesById({})
       setNutritionByAthleteId({})
       setWeeklyReviewsByAthleteId({})
+      setWeeklyCheckInsByAthleteId({})
       setPortfolioLoading(false)
       setPortfolioError('')
       return
@@ -43,11 +45,12 @@ export function useCoachPortfolio(clients = [], assignments = []) {
     setPortfolioError('')
 
     loadCoachPortfolioIntelligence({ clients, assignments, force: refreshToken > 0 })
-      .then(({ athleteStatesById: states, nutritionByAthleteId: nutrition, weeklyReviewsByAthleteId: reviews }) => {
+      .then(({ athleteStatesById: states, nutritionByAthleteId: nutrition, weeklyReviewsByAthleteId: reviews, weeklyCheckInsByAthleteId: checkIns }) => {
         if (!active) return
         setAthleteStatesById(states)
         setNutritionByAthleteId(nutrition)
         setWeeklyReviewsByAthleteId(reviews)
+        setWeeklyCheckInsByAthleteId(checkIns ?? {})
       })
       .catch((error) => {
         if (!active) return
@@ -70,6 +73,7 @@ export function useCoachPortfolio(clients = [], assignments = []) {
         athleteStatesById,
         nutritionByAthleteId,
         weeklyReviewsByAthleteId,
+        weeklyCheckInsByAthleteId,
         status: portfolioLoading
           ? COACH_PORTFOLIO_STATUS.LOADING
           : portfolioError
@@ -84,6 +88,7 @@ export function useCoachPortfolio(clients = [], assignments = []) {
       athleteStatesById,
       nutritionByAthleteId,
       weeklyReviewsByAthleteId,
+      weeklyCheckInsByAthleteId,
       portfolioLoading,
       portfolioError,
     ],
@@ -98,6 +103,7 @@ export function useCoachPortfolio(clients = [], assignments = []) {
         athleteStatesById,
         nutritionByAthleteId,
         weeklyReviewsByAthleteId,
+        weeklyCheckInsByAthleteId,
         status: portfolioError ? COACH_PORTFOLIO_STATUS.ERROR : COACH_PORTFOLIO_STATUS.READY,
         error: portfolioError,
         source: 'coach-hub',
@@ -109,6 +115,7 @@ export function useCoachPortfolio(clients = [], assignments = []) {
     athleteStatesById,
     nutritionByAthleteId,
     weeklyReviewsByAthleteId,
+    weeklyCheckInsByAthleteId,
     portfolioLoading,
     portfolioError,
   ])
@@ -121,6 +128,7 @@ export function useCoachPortfolio(clients = [], assignments = []) {
     athleteStatesById,
     weeklyReviewsByAthleteId,
     nutritionByAthleteId,
+    weeklyCheckInsByAthleteId,
   }
 }
 

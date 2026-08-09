@@ -128,6 +128,40 @@ describe('ava coach client resolution 7.9.6', () => {
     expect(extractClientNameFromMessage("Show Jake's profile")).toBe('jake')
     expect(extractClientNameFromMessage('Take me to Jacob Corell')).toBe('jacob corell')
     expect(extractClientNameFromMessage('Give me a quick update on Jake')).toBe('jake')
+    expect(extractClientNameFromMessage('Give me an update on Jake')).toBe('jake')
+  })
+
+  it('extracts possessive review targets before client lookup', () => {
+    expect(extractClientNameFromMessage('show me jakes review')).toBe('jakes')
+    expect(extractClientNameFromMessage("show me Jake's review")).toBe('jake')
+    expect(extractClientNameFromMessage('open sarahs review')).toBe('sarahs')
+  })
+
+  it('resolves show me jakes review to Jake weekly review navigation', () => {
+    const coachContext = buildCoachContext()
+    const resolution = resolveCoachExplicitCommand('show me jakes review', {
+      coachContext,
+    })
+
+    expect(resolution.kind).toBe('navigation')
+    expect(resolution.resolution.actionId).toBe(AVA_ACTION_IDS.OPEN_WEEKLY_REVIEWS)
+    expect(resolution.resolution.meta.athleteId).toBe('jacob-1')
+  })
+
+  it('resolves show me Jake\'s review to the same Jake review navigation', () => {
+    const coachContext = buildCoachContext()
+    const apostropheResolution = resolveCoachExplicitCommand("show me Jake's review", {
+      coachContext,
+    })
+    const informalResolution = resolveCoachExplicitCommand('show me jakes review', {
+      coachContext,
+    })
+
+    expect(apostropheResolution.resolution.meta.athleteId).toBe('jacob-1')
+    expect(informalResolution.resolution.meta.athleteId).toBe('jacob-1')
+    expect(apostropheResolution.resolution.actionId).toBe(
+      AVA_ACTION_IDS.OPEN_WEEKLY_REVIEWS,
+    )
   })
 
   it('resolves coach_label Jake to Jacob Corell with precedence', () => {
@@ -194,6 +228,24 @@ describe('ava coach client resolution 7.9.6', () => {
 
     expect(resolution.kind).toBe('disambiguation')
     expect(resolution.choices).toHaveLength(2)
+  })
+
+  it('returns trusted client summary for give me an update on Jake outside coach hub', async () => {
+    const coachContext = buildCoachContext({ isCoachMode: false })
+    const runtime = createCoachRuntime(coachContext)
+    const session = createAvaSession()
+
+    const outcome = await runCoachPipelineStep({
+      message: 'Give me an update on Jake',
+      session,
+      coachContext,
+      actionRuntime: runtime,
+    })
+
+    expect(outcome.kind).toBe(AVA_PIPELINE_KIND.COACH_RESULT)
+    expect(outcome.message).toMatch(/check-in|trained|review|recovery/i)
+    expect(outcome.message).not.toMatch(/Chest & Back/i)
+    expect(session.activeCoachContext?.athleteId).toBe('jacob-1')
   })
 
   it('returns trusted client summary for quick update on Jake', async () => {

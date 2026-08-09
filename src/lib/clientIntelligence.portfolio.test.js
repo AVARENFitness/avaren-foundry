@@ -129,14 +129,21 @@ describe('coach portfolio intelligence', () => {
     expect(portfolio.rosterEntries[0].status).toBe(
       CLIENT_ROSTER_STATUS.INACTIVE,
     )
+    expect(portfolio.attentionQueue.length).toBeGreaterThan(0)
     expect(
-      portfolio.attentionQueue.some((item) => item.item.id === 'inactive'),
+      portfolio.attentionQueue.some((item) =>
+        [
+          'training-gap',
+          'assignment-concern',
+          'missing-weekly-checkin',
+        ].includes(item.item.id),
+      ),
     ).toBe(true)
     expect(
-      portfolio.attentionQueue.some(
-        (item) =>
-          item.item.id === 'open-assignment' ||
-          item.item.id === 'overdue-assignment',
+      portfolio.attentionQueue.some((item) =>
+        ['assignment-concern', 'open-assignment', 'overdue-assignment'].includes(
+          item.item.id,
+        ),
       ),
     ).toBe(true)
   })

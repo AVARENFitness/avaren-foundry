@@ -3,8 +3,8 @@ import { ArrowLeft } from 'lucide-react'
 export const CLIENT_PROFILE_SECTIONS = [
   { id: 'today', label: 'Today' },
   { id: 'training', label: 'Training' },
-  { id: 'business', label: 'Coaching Business' },
-  { id: 'notes', label: 'Coach Notes' },
+  { id: 'business', label: 'Business' },
+  { id: 'notes', label: 'Notes' },
   { id: 'progress', label: 'Progress' },
 ]
 
@@ -36,8 +36,10 @@ export default function CoachClientProfileShell({
           {connectedSince && <small>{connectedSince}</small>}
         </div>
 
-        {weeklyCheckInPanel}
-        {weeklyReviewAction}
+        <div className="coach-client-profile-status-stack">
+          {weeklyCheckInPanel}
+          {weeklyReviewAction}
+        </div>
 
         <nav
           className="coach-client-profile-section-nav"
