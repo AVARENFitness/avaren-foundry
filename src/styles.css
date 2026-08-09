@@ -14310,8 +14310,8 @@ input, textarea, select {
   top: 0;
   z-index: 12;
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 6px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
   padding: 8px;
   border: 1px solid rgba(246,242,233,.08);
   border-radius: 16px;
@@ -14322,13 +14322,14 @@ input, textarea, select {
 .profile-section-nav button {
   position: relative;
   min-height: 42px;
-  padding: 8px 6px;
+  padding: 8px 8px;
   border: 0;
   border-radius: 10px;
   background: transparent;
   color: #8f8981;
-  font-size: 11px !important;
+  font-size: 12px !important;
   font-weight: 850;
+  letter-spacing: 0.01em;
 }
 
 .profile-section-nav button.active {
@@ -14393,12 +14394,15 @@ input, textarea, select {
 
 @media (max-width: 620px) {
   .profile-section-nav {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
+    padding: 7px;
   }
 
-  .profile-section-nav button:nth-child(4),
-  .profile-section-nav button:nth-child(5) {
-    grid-column: span 1;
+  .profile-section-nav button {
+    min-height: 40px;
+    padding: 8px 4px;
+    font-size: 11px !important;
   }
 }
 

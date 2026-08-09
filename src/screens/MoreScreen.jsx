@@ -42,6 +42,12 @@ import {
   importState,
   lastBackupAt,
 } from '../lib/storage'
+import {
+  ACCOUNT_SECTIONS,
+  DEFAULT_ACCOUNT_SECTION,
+  normalizeAccountSection,
+  resolveInitialAccountSection,
+} from '../lib/accountSectionNav'
 
 const formatTime = (value) =>
   value
@@ -77,7 +83,7 @@ const MoreItem = ({
   </button>
 )
 
-const sections = ['Overview', 'Training', 'Recovery', 'Account', 'Support']
+const sections = ACCOUNT_SECTIONS
 
 export default function MoreScreen({
   state,
@@ -104,7 +110,12 @@ export default function MoreScreen({
   onDevResetWeeklyCheckIn = null,
   weeklyCheckInDevResetEnabled = false,
 }) {
-  const [activeSection, setActiveSection] = useState('Overview')
+  const [activeSection, setActiveSection] = useState(() =>
+    resolveInitialAccountSection(),
+  )
+  const selectSection = (section) => {
+    setActiveSection(normalizeAccountSection(section))
+  }
   const [shareMessage, setShareMessage] = useState('')
   const [profileDraft, setProfileDraft] = useState(() =>
     sanitizeOwnProfileDraft(profileSeedFromAuthUser(session?.user ?? {})),
@@ -243,7 +254,7 @@ export default function MoreScreen({
           <button
             key={section}
             className={activeSection === section ? 'active' : ''}
-            onClick={() => setActiveSection(section)}
+            onClick={() => selectSection(section)}
           >
             {section}
             {section === 'Account' && notificationCount > 0 && (
@@ -253,7 +264,7 @@ export default function MoreScreen({
         ))}
       </nav>
 
-      {activeSection === 'Overview' && (
+      {activeSection === 'Training' && (
         <div className="profile-section-panel">
           <section className="more-primary-card">
             <div className="more-primary-copy">
@@ -268,19 +279,16 @@ export default function MoreScreen({
           <AthleteSessionPackageCard />
           <AthleteScheduledSessions />
           <AthleteCoachPanel onStartAssignment={onStartCoachAssignment}/>
+          <section className="more-section">
+            <header className="more-section-heading"><span>Training</span><small>Plan, build, and review</small></header>
+            <div className="more-destination-list">
+              <MoreItem icon={CalendarDays} title="Weekly Program" description="Organize the training week" onClick={onOpenPlanner}/>
+              <MoreItem icon={Settings2} title="Workout Builder" description="Create and edit workouts" onClick={onOpenBuilder}/>
+              <MoreItem icon={Hammer} title="The Forge" description="Achievements and milestones" onClick={onOpenForge}/>
+              <MoreItem icon={Zap} title="Readiness Trends" description="See how recovery changes over time" onClick={onOpenReadinessTrends}/>
+            </div>
+          </section>
         </div>
-      )}
-
-      {activeSection === 'Training' && (
-        <section className="more-section profile-section-panel">
-          <header className="more-section-heading"><span>Training</span><small>Plan, build, and review</small></header>
-          <div className="more-destination-list">
-            <MoreItem icon={CalendarDays} title="Weekly Program" description="Organize the training week" onClick={onOpenPlanner}/>
-            <MoreItem icon={Settings2} title="Workout Builder" description="Create and edit workouts" onClick={onOpenBuilder}/>
-            <MoreItem icon={Hammer} title="The Forge" description="Achievements and milestones" onClick={onOpenForge}/>
-            <MoreItem icon={Zap} title="Readiness Trends" description="See how recovery changes over time" onClick={onOpenReadinessTrends}/>
-          </div>
-        </section>
       )}
 
       {activeSection === 'Recovery' && (
