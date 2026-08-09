@@ -1,5 +1,6 @@
 import { buildTrainingWeek, startOfWeekSunday } from '../../lib/trainingWeek'
 import { resolveTodayWorkoutContext, WORKOUT_SOURCE } from '../../lib/todayWorkout'
+import { buildPlanningOwnership } from '../../lib/planOwnership'
 import { CONSTRAINT_SOURCE, CONSTRAINT_TYPES, DAY_STATUS } from './avaPlanTypes'
 
 const isoDate = (value = new Date()) =>
@@ -30,11 +31,43 @@ const summarizeReadiness = (entry) => {
 export const snapshotWeeklySchedule = (weeklySchedule = {}) =>
   JSON.stringify(weeklySchedule ?? {})
 
-export const buildPlanSnapshot = ({ weeklySchedule = {}, now = new Date() } = {}) => ({
+export const buildPlanSnapshot = ({
+  weeklySchedule = {},
+  now = new Date(),
+  assignmentId = null,
+} = {}) => ({
   weekStart: weekStartKey(now),
   weeklyScheduleHash: snapshotWeeklySchedule(weeklySchedule),
+  assignmentId,
   capturedAt: new Date(now).toISOString(),
 })
+
+const resolveWorkoutExercises = (state = {}, todayWorkout = {}, assignment = null) => {
+  const fromPayload = assignment?.workout_payload?.exercises
+  const fromSanitized = assignment?.exercises
+  const exerciseList =
+    fromPayload?.length ? fromPayload : fromSanitized?.length ? fromSanitized : null
+
+  if (exerciseList?.length) {
+    return exerciseList.map((item) => ({
+      name: item.name ?? item.exercise ?? 'Exercise',
+      sets: item.sets ?? null,
+      muscle: item.muscle ?? null,
+    }))
+  }
+
+  const workoutName = todayWorkout?.name
+  const programExercises = state.program?.workouts?.[workoutName]
+  if (Array.isArray(programExercises) && programExercises.length) {
+    return programExercises.map((item) => ({
+      name: item.name ?? item.exercise ?? 'Exercise',
+      sets: item.sets ?? null,
+      muscle: item.muscle ?? null,
+    }))
+  }
+
+  return []
+}
 
 export const buildPlanningContext = ({
   state = {},
@@ -44,10 +77,31 @@ export const buildPlanningContext = ({
   now = new Date(),
   message = '',
 } = {}) => {
+  const activeAssignment =
+    packet?.assignment ??
+    assignments.find((item) => ['assigned', 'started'].includes(item.status)) ??
+    null
+
+  const planningAssignments = assignments.map((item) => {
+    if (item?.workout_payload || item?.due_date || item?.scheduled_date) {
+      return item
+    }
+    return {
+      ...item,
+      workout_payload: item.workoutName
+        ? {
+            name: item.workoutName,
+            exercises: item.exercises ?? [],
+          }
+        : { exercises: item.exercises ?? [] },
+      due_date: item.dueDate ?? item.due_date ?? null,
+    }
+  })
+
   const todayContext = resolveTodayWorkoutContext(state, {
     assignments,
     now,
-    activeCoachAssignment: packet?.assignment ?? null,
+    activeCoachAssignment: activeAssignment,
   })
 
   const trainingWeek = buildTrainingWeek(state, now)
@@ -56,6 +110,25 @@ export const buildPlanningContext = ({
 
   const missedDays = trainingWeek.filter((day) => day.status === 'missed')
   const todayDay = trainingWeek.find((day) => day.isToday) ?? null
+  const workoutExercises = resolveWorkoutExercises(
+    state,
+    todayContext,
+    activeAssignment ??
+      planningAssignments.find((item) =>
+        ['assigned', 'started'].includes(item.status),
+      ),
+  )
+  const hasCoachRelationship = Boolean(assignments?.length)
+  const ownership = buildPlanningOwnership({
+    todayWorkout: todayContext,
+    activeAssignment,
+    hasCoachRelationship,
+  })
+
+  const persistedExecutionPlan =
+    state.sessionExecutionPlan ??
+    session?.sessionExecutionPlan ??
+    null
 
   return {
     now,
@@ -69,16 +142,24 @@ export const buildPlanningContext = ({
     readiness: readinessEntry,
     readinessSummary,
     activeWorkout: state.activeWorkout ?? null,
-    assignments: assignments ?? [],
-    coachAssignedToday: todayContext.coachAssigned === true,
-    coachProgramProtected: todayContext.coachAssigned === true,
+    assignments: planningAssignments ?? [],
+    activeAssignment,
+    workoutExercises,
+    ownership,
+    coachAssignedToday: ownership.coachAssigned === true,
+    coachProgramProtected: ownership.coachAssigned === true,
+    scheduleControlledByCoach: ownership.scheduleControlledByCoach === true,
     missedDays,
     todayDay,
     sessionConstraints: session?.userConstraints ?? [],
-    sessionExecutionPlan: session?.sessionExecutionPlan ?? null,
+    sessionExecutionPlan: persistedExecutionPlan,
     constraints: [],
     message: String(message ?? '').trim(),
-    planSnapshot: buildPlanSnapshot({ weeklySchedule: state.weeklySchedule, now }),
+    planSnapshot: buildPlanSnapshot({
+      weeklySchedule: state.weeklySchedule,
+      now,
+      assignmentId: activeAssignment?.id ?? null,
+    }),
   }
 }
 

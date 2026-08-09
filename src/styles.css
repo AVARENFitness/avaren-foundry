@@ -21,10 +21,29 @@
 }
 
 * { box-sizing: border-box; }
-body { margin: 0; min-width: 320px; min-height: 100vh; background: radial-gradient(circle at top, #17191c, #080a0d 50%); }
+html {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: clip;
+}
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: clip;
+  background: radial-gradient(circle at top, #17191c, #080a0d 50%);
+}
+#root {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: clip;
+}
 button, input, select { font: inherit; }
 
 .app-shell {
+  width: 100%;
   max-width: 760px;
   min-height: 100vh;
   margin: 0 auto;
@@ -164,13 +183,19 @@ h1, h2, strong { font-family: 'Manrope', sans-serif; }
 .bottom-nav {
   position: fixed;
   z-index: 50;
-  left: 50%;
+  left: 0;
+  right: 0;
   bottom: 0;
-  transform: translateX(-50%);
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  width: min(760px, 100%);
-  padding: 8px 8px calc(9px + env(safe-area-inset-bottom));
+  width: 100%;
+  max-width: 760px;
+  margin: 0 auto;
+  padding:
+    8px
+    max(8px, env(safe-area-inset-right))
+    calc(9px + env(safe-area-inset-bottom))
+    max(8px, env(safe-area-inset-left));
   border-top: 1px solid var(--line);
   background: rgba(8,10,13,.94);
   backdrop-filter: blur(18px);
@@ -13185,7 +13210,7 @@ input, textarea, select {
 
 .coach-schedule-composer,
 .coach-program-editor {
-  width: min(600px, calc(100vw - 28px));
+  width: min(600px, calc(100% - 28px));
   max-height: calc(100dvh - 36px);
   overflow-y: auto;
   display:grid;
@@ -13678,7 +13703,7 @@ input, textarea, select {
 }
 
 .nutrition-fab {
-  right: max(14px, calc((100vw - 920px) / 2 + 14px));
+  right: max(14px, env(safe-area-inset-right));
   bottom: calc(82px + env(safe-area-inset-bottom));
   min-width: 0;
   min-height: 44px;
@@ -13949,6 +13974,7 @@ input, textarea, select {
   display: flex;
   align-items: flex-end;
   justify-content: center;
+  overflow: hidden;
   padding: 16px;
   padding-bottom: calc(16px + env(safe-area-inset-bottom));
   background: rgba(0, 0, 0, 0.72);
@@ -14625,7 +14651,7 @@ input, textarea, select {
 .ava-entry-button {
   position: fixed;
   z-index: 45;
-  right: max(16px, calc((100vw - 760px) / 2 + 16px));
+  right: max(16px, env(safe-area-inset-right));
   bottom: calc(112px + env(safe-area-inset-bottom));
   display: inline-flex;
   align-items: center;
@@ -14647,21 +14673,28 @@ input, textarea, select {
 }
 
 .ava-sheet--conversation {
-  display: grid;
-  grid-template-rows: auto auto minmax(0, 1fr) auto;
-  max-height: min(86vh, 720px);
+  display: flex;
+  flex-direction: column;
+  max-height: min(86dvh, 720px);
   overflow: hidden;
 }
 
 .ava-sheet-body {
   display: flex;
+  flex: 1 1 auto;
   flex-direction: column;
   gap: 10px;
   min-height: 0;
-  overflow-x: hidden;
-  overflow-y: auto;
+  overflow: hidden;
   padding-top: 0;
-  -webkit-overflow-scrolling: touch;
+}
+
+.ava-sheet-aux {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
 }
 
 .ava-tool-result,
@@ -14674,6 +14707,7 @@ input, textarea, select {
   color: #948d84;
   font-size: 13px;
   line-height: 1.45;
+  flex: 0 0 auto;
 }
 
 .ava-chat-transcript {
@@ -14681,11 +14715,13 @@ input, textarea, select {
   gap: 16px;
   align-content: start;
   flex: 1 1 auto;
-  min-height: 140px;
-  max-height: min(42vh, 320px);
-  overflow: auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
   padding: 6px 4px 10px;
   -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  scroll-padding-bottom: 12px;
 }
 
 .ava-chat-message {
@@ -14797,13 +14833,14 @@ input, textarea, select {
   align-items: end;
   padding:
     max(10px, env(safe-area-inset-top))
-    12px
-    max(10px, env(safe-area-inset-bottom));
+    max(12px, env(safe-area-inset-right))
+    max(10px, env(safe-area-inset-bottom))
+    max(12px, env(safe-area-inset-left));
 }
 
 .ava-sheet {
   width: min(760px, 100%);
-  max-height: min(86vh, 720px);
+  max-height: min(86dvh, 720px);
   margin: 0 auto;
   padding: 16px 16px calc(14px + env(safe-area-inset-bottom));
   border: 1px solid rgba(216,184,109,.16);
@@ -14812,7 +14849,7 @@ input, textarea, select {
     radial-gradient(circle at 100% 0%, rgba(216,184,109,.1), transparent 36%),
     linear-gradient(180deg, rgba(18,20,24,.99), rgba(8,10,13,.995));
   box-shadow: 0 -24px 80px rgba(0,0,0,.45);
-  overflow: auto;
+  overflow: hidden;
   animation: modalRise 0.28s cubic-bezier(0.18, 0.8, 0.2, 1) both;
 }
 
@@ -14997,6 +15034,95 @@ input, textarea, select {
   font-weight: 700;
 }
 
+.ava-plan-coach-protected,
+.ava-plan-focus-accessories {
+  margin: 0;
+  color: var(--text-supporting, #948d84);
+  font-size: var(--type-meta, 12px);
+  line-height: 1.45;
+}
+
+.ava-plan-focus-detail {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.ava-plan-focus-headline {
+  display: grid;
+  gap: 2px;
+}
+
+.ava-plan-focus-headline span {
+  color: var(--text-supporting, #948d84);
+  font-size: var(--type-meta, 12px);
+}
+
+.ava-plan-focus-priority ul {
+  margin: 4px 0 0;
+  padding-left: 18px;
+}
+
+.home-coach-ownership,
+.train-coach-ownership {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--gold-muted, #c4a574);
+}
+
+.home-execution-focus,
+.train-execution-focus {
+  margin: 0 0 6px;
+  color: var(--gold-muted, #c4a574);
+  font-size: var(--type-meta, 12px);
+  font-weight: 600;
+}
+
+.gym-execution-focus-banner {
+  margin: 0 16px 12px;
+  padding: 12px 14px;
+  border: 1px solid rgba(196,165,116,.18);
+  border-radius: var(--radius-sm, 12px);
+  background: rgba(196,165,116,.06);
+}
+
+.gym-execution-focus-banner p {
+  margin: 6px 0 0;
+  font-size: 14px;
+}
+
+.gym-execution-focus-banner small {
+  display: block;
+  margin-top: 4px;
+  color: var(--text-supporting, #948d84);
+  font-size: var(--type-meta, 12px);
+}
+
+.gym-coach-protected {
+  margin-top: 6px;
+}
+
+.execution-role-badge {
+  display: inline-flex;
+  margin-top: 6px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.execution-role-badge--priority {
+  background: rgba(196,165,116,.14);
+  color: var(--gold-muted, #c4a574);
+}
+
+.execution-role-badge--accessory {
+  background: rgba(148,141,132,.12);
+  color: var(--text-supporting, #948d84);
+}
+
 .ava-sheet-suggestions {
   margin: 10px 0 0;
   padding-left: 18px;
@@ -15008,9 +15134,15 @@ input, textarea, select {
 .ava-sheet-form {
   display: grid;
   gap: 10px;
+  flex: 0 0 auto;
   padding-top: 10px;
   margin-top: 4px;
   border-top: 1px solid rgba(246,242,233,.06);
+}
+
+.ava-sheet-composer {
+  background:
+    linear-gradient(180deg, rgba(8,10,13,.02), rgba(8,10,13,.94));
 }
 
 .ava-sheet-input-label {
@@ -15023,7 +15155,8 @@ input, textarea, select {
 
 .ava-sheet-input {
   width: 100%;
-  min-height: 96px;
+  min-height: 52px;
+  max-height: calc(1.5em * 5 + 28px);
   padding: 14px;
   border: 1px solid rgba(246,242,233,.09);
   border-radius: 16px;
@@ -15031,7 +15164,8 @@ input, textarea, select {
   color: var(--cream);
   font-size: 16px;
   line-height: 1.5;
-  resize: vertical;
+  resize: none;
+  overflow-y: auto;
 }
 
 .ava-sheet-send {
@@ -18177,8 +18311,8 @@ input, textarea, select {
 }
 
 .ava-sheet-input {
-  min-height: 88px;
-  font-size: var(--type-body);
+  min-height: 52px;
+  font-size: 16px;
 }
 
 /* Nutrition · consolidate luxury overrides */
@@ -18263,12 +18397,38 @@ input, textarea, select {
     font-size: 13px;
   }
 
+  .ava-sheet-backdrop {
+    top: var(--ava-vv-offset-top, 0px);
+    height: var(--ava-vv-height, 100dvh);
+    min-height: 0;
+    align-items: flex-end;
+  }
+
+  .ava-sheet-backdrop--keyboard {
+    padding-bottom: 6px;
+  }
+
+  .ava-sheet--conversation,
   .ava-sheet {
-    max-height: min(92vh, 720px);
+    max-height: var(--ava-sheet-max-height, min(92dvh, 720px));
+  }
+
+  .ava-sheet--keyboard {
+    padding-bottom: 8px;
+  }
+
+  .ava-sheet-header {
+    padding-bottom: 2px;
+  }
+
+  .ava-sheet-context {
+    margin-bottom: 4px;
+    font-size: 12px;
+    line-height: 1.35;
   }
 
   .ava-chat-transcript {
-    max-height: min(46vh, 340px);
+    max-height: none;
   }
 
   .nutrition-tabs {
@@ -18295,5 +18455,31 @@ input, textarea, select {
   .coach-profile-status-action {
     align-self: stretch;
     width: 100%;
+  }
+}
+
+/* ===== PATCH 8.1.1 · MOBILE VIEWPORT + AVA KEYBOARD ===== */
+
+@media (min-width: 776px) {
+  .ava-entry-button {
+    right: calc(50% - 380px + 16px);
+  }
+
+  .nutrition-fab {
+    right: calc(50% - 460px + 14px);
+  }
+}
+
+@media (max-width: 680px) {
+  .ava-sheet-input,
+  .nutrition-recipe-search input,
+  .nutrition-food-search input,
+  .builder-screen input,
+  .builder-screen textarea,
+  .builder-screen select,
+  .confirmation-dialog input,
+  .confirmation-dialog textarea,
+  .confirmation-dialog select {
+    font-size: 16px !important;
   }
 }

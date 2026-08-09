@@ -70,6 +70,19 @@ export const EXECUTION_FOCUS_PRIORITY = {
   PRIORITY_MOVEMENTS: 'priority_movements',
 }
 
+export const PRIORITY_MODE = {
+  FULL_SESSION: 'full_session',
+  MAIN_WORK: 'main_work',
+  MINIMUM_EFFECTIVE: 'minimum_effective_session',
+}
+
+export const ALLOWED_APPLY_ACTIONS = {
+  SET_SESSION_EXECUTION_FOCUS: 'SET_SESSION_EXECUTION_FOCUS',
+  MOVE_SESSION_DATE: 'MOVE_SESSION_DATE',
+  MARK_EXECUTION_RECOVERY_DAY: 'MARK_EXECUTION_RECOVERY_DAY',
+  CLEAR_SESSION_EXECUTION_FOCUS: 'CLEAR_SESSION_EXECUTION_FOCUS',
+}
+
 export const createEmptyDailyPlan = (date = null) => ({
   date,
   primaryAction: null,

@@ -160,6 +160,9 @@ export const buildAvaContextPacket = (state = {}, options = {}) => {
       ),
     },
     assignment: sanitizeAssignment(activeCoachAssignment),
+    assignments: assignments
+      .map((item) => sanitizeAssignment(item))
+      .filter(Boolean),
     briefing: {
       dailyState: briefing.dailyState,
       headline: briefing.headline,

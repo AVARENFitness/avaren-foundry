@@ -5,6 +5,7 @@ export const verifyPlanApplied = ({
   proposal = {},
   weeklySchedule = {},
   session = null,
+  sessionExecutionPlan = null,
 } = {}) => {
   const moveChanges = (proposal.changes ?? []).filter(
     (change) => change.action === PLAN_CHANGE_ACTIONS.MOVE_SESSION,
@@ -47,7 +48,9 @@ export const verifyPlanApplied = ({
   }
 
   const focusChange = (proposal.changes ?? []).find(
-    (change) => change.action === PLAN_CHANGE_ACTIONS.SET_SESSION_EXECUTION_FOCUS,
+    (change) =>
+      change.action === PLAN_CHANGE_ACTIONS.SET_SESSION_EXECUTION_FOCUS ||
+      change.action === PLAN_CHANGE_ACTIONS.SHORTEN_SESSION,
   )
 
   if (focusChange) {
@@ -55,7 +58,9 @@ export const verifyPlanApplied = ({
       typeof focusChange.value === 'number'
         ? focusChange.value
         : focusChange.value?.maxMinutes
-    const actualMinutes = session?.sessionExecutionPlan?.maxMinutes ?? null
+    const actualPlan =
+      sessionExecutionPlan ?? session?.sessionExecutionPlan ?? null
+    const actualMinutes = actualPlan?.maxMinutes ?? null
     if (expectedMinutes != null && actualMinutes !== expectedMinutes) {
       return {
         ok: false,
@@ -84,6 +89,14 @@ export const buildApplySuccessMessage = (proposal = {}, verification = {}) => {
   const diff = proposal.diff ?? []
   if (!diff.length) {
     return 'Done — your plan stays as-is, with today focused on the main work.'
+  }
+
+  const shorten = diff.find((entry) => entry.kind === 'shorten')
+  if (shorten) {
+    const coachNote = proposal.coachProgramProtected
+      ? ' Your coach\u2019s program stays unchanged.'
+      : ''
+    return `Done \u2014 today\u2019s session is now set to a ${shorten.to}.${coachNote}`
   }
 
   const parts = diff.map((entry) => {

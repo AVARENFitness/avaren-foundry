@@ -69,6 +69,7 @@ export default function FocusExercise({
   onUndoSkip,
   onSetCompleted,
   navigationDirection,
+  executionRole = 'standard',
 }) {
   const [showPrevious, setShowPrevious] =
     useState(false)
@@ -186,6 +187,17 @@ export default function FocusExercise({
         </span>
 
         <h1>{exercise.name}</h1>
+
+        {executionRole === 'priority' ? (
+          <span className="execution-role-badge execution-role-badge--priority">
+            Priority
+          </span>
+        ) : null}
+        {executionRole === 'accessory' ? (
+          <span className="execution-role-badge execution-role-badge--accessory">
+            If time allows
+          </span>
+        ) : null}
 
         <button
           className={`previous-session-toggle lift-reference ${

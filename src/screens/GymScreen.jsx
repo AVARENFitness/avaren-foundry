@@ -24,6 +24,10 @@ const MUSCLE_LIGHTS = {
   Other: '#6c6a65',
 }
 import { recentExerciseSets } from '../lib/metrics'
+import {
+  exerciseExecutionRole,
+  isExecutionPlanCurrent,
+} from '../lib/sessionExecutionPlan'
 
 export default function GymScreen({
   state,
@@ -75,6 +79,13 @@ export default function GymScreen({
     )
   }
   const workout = state.activeWorkout
+  const executionPlan = isExecutionPlanCurrent(state.sessionExecutionPlan)
+    ? state.sessionExecutionPlan
+    : null
+  const currentExerciseRole = exerciseExecutionRole(
+    executionPlan,
+    workout?.exercises?.[activeExercise]?.name ?? workout?.exercises?.[0]?.name,
+  )
 
   useEffect(() => {
     if (!workout?.startedAt) return
@@ -243,6 +254,23 @@ export default function GymScreen({
         <ProgressRing value={progress} />
       </section>
 
+      {executionPlan?.maxMinutes ? (
+        <section className="gym-execution-focus-banner" aria-label="Session execution focus">
+          <span className="eyebrow">{executionPlan.maxMinutes}-MINUTE FOCUS</span>
+          {executionPlan.priorityExerciseNames?.length ? (
+            <p>
+              Priority: {executionPlan.priorityExerciseNames.join(' · ')}
+            </p>
+          ) : null}
+          {executionPlan.accessoryExerciseNames?.length ? (
+            <small>Accessory work if time allows</small>
+          ) : null}
+          {executionPlan.coachAssigned ? (
+            <small className="gym-coach-protected">Coach program stays unchanged</small>
+          ) : null}
+        </section>
+      ) : null}
+
       <section className="lift-session-notes">
         <button
           className="lift-session-notes-toggle"
@@ -340,6 +368,7 @@ export default function GymScreen({
           exerciseIndex={activeExercise}
           totalExercises={workout.exercises.length}
           previousSets={recentExerciseSets(state.history, currentExercise.name)}
+          executionRole={currentExerciseRole}
           onSetChange={(setIndex, key, value) =>
             onSetChange(activeExercise, setIndex, key, value)
           }

@@ -20,6 +20,11 @@ import { resolveActiveCoachAssignment } from '../lib/coachAssignments'
 import { recentPRs, sessionVolume } from '../lib/metrics'
 import { resolveTodayWorkoutContext } from '../lib/todayWorkout'
 import { isWeeklyCheckInDue } from '../lib/weeklyCheckIn'
+import { buildPlanningOwnership, coachOwnershipLabel } from '../lib/planOwnership'
+import {
+  executionPlanSummaryLabel,
+  isExecutionPlanCurrent,
+} from '../lib/sessionExecutionPlan'
 
 const DAY_MS = 86400000
 
@@ -115,6 +120,15 @@ export default function HomeScreen({
         7 * DAY_MS,
     )
 
+    const coachOwnership = buildPlanningOwnership({
+      todayWorkout: workoutContext,
+      activeAssignment: activeCoachAssignment,
+      hasCoachRelationship: Boolean(assignments.length),
+    })
+    const executionFocusLabel = isExecutionPlanCurrent(state.sessionExecutionPlan)
+      ? executionPlanSummaryLabel(state.sessionExecutionPlan)
+      : null
+
     return {
       greeting: `${greetingForHour(now.getHours())}${firstName ? `, ${firstName}` : ''}`,
       date: now.toLocaleDateString([], {
@@ -124,6 +138,8 @@ export default function HomeScreen({
       }),
       workoutName,
       isRestDay,
+      coachLabel: coachOwnershipLabel(coachOwnership),
+      executionFocusLabel,
       workouts: workoutsThisWeek.length,
       volume: Math.round(weeklyVolume),
       prs: weeklyPRs.length,
@@ -229,10 +245,16 @@ export default function HomeScreen({
           </>
         ) : dashboard.workoutName ? (
           <>
+            {dashboard.coachLabel ? (
+              <span className="home-coach-ownership eyebrow">{dashboard.coachLabel}</span>
+            ) : null}
             <h2>{dashboard.workoutName}</h2>
+            {dashboard.executionFocusLabel ? (
+              <p className="home-execution-focus">{dashboard.executionFocusLabel} active</p>
+            ) : null}
             <p>
               {activeCoachAssignment
-                ? 'Coach-assigned session on your calendar.'
+                ? 'Your coach programmed this session.'
                 : 'Scheduled on your weekly plan.'}
             </p>
           </>

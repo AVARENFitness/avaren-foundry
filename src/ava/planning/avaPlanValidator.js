@@ -41,6 +41,20 @@ export const validatePlanChange = (change = {}, context = {}) => {
       return { ok: false, reason: 'destination_collision' }
     }
 
+    if (context.scheduleControlledByCoach && change.fromDayIndex != null) {
+      const fromDay = context.trainingWeek?.find(
+        (day) => day.dayIndex === change.fromDayIndex,
+      )
+      if (fromDay?.dateKey === context.todayKey || context.ownership?.coachScheduled) {
+        return {
+          ok: false,
+          reason: 'coach_locked_schedule',
+          message:
+            'That session is coach-scheduled. I can suggest another day, but your coach would need to confirm the move.',
+        }
+      }
+    }
+
     if (context.coachAssignedToday && change.fromDayIndex === context.todayDay?.dayIndex) {
       return {
         ok: false,
@@ -94,7 +108,14 @@ export const isStaleProposal = (proposal = {}, context = {}) => {
   if (!proposal?.currentPlanSnapshot) return false
 
   const currentHash = snapshotWeeklySchedule(context.weeklySchedule)
-  return proposal.currentPlanSnapshot.weeklyScheduleHash !== currentHash
+  const scheduleChanged =
+    proposal.currentPlanSnapshot.weeklyScheduleHash !== currentHash
+
+  const assignmentChanged =
+    proposal.currentPlanSnapshot.assignmentId !=
+    (context.activeAssignment?.id ?? null)
+
+  return scheduleChanged || assignmentChanged
 }
 
 export const rejectUnknownProposalActions = (changes = []) => {

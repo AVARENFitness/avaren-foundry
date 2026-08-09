@@ -1,4 +1,6 @@
 import { AVA_ACTION_IDS } from './actions/avaActionTypes'
+import { coachProgramProtectedCopy } from '../lib/planOwnership'
+import { PRIORITY_MODE } from '../lib/sessionExecutionPlan'
 
 const formatWorkout = (name) =>
   name ? String(name).replace(/\s*\+\s*/g, ' · ') : null
@@ -10,7 +12,7 @@ const renderDiffRows = (diff = []) => {
     if (entry.kind === 'shorten') {
       return (
         <div key={`${entry.kind}-${index}`} className="ava-plan-diff-row">
-          <span className="ava-plan-diff-label">Shorten</span>
+          <span className="ava-plan-diff-label">Focus</span>
           <strong>{formatWorkout(entry.workout)}</strong>
           <span className="ava-plan-diff-change">
             {entry.from} → {entry.to}
@@ -48,6 +50,37 @@ const renderDiffRows = (diff = []) => {
   })
 }
 
+const renderExecutionFocus = (daily = {}) => {
+  const plan = daily.sessionExecutionPlan
+  if (!plan?.maxMinutes) return null
+
+  return (
+    <div className="ava-plan-focus-detail">
+      <div className="ava-plan-focus-headline">
+        <strong>{plan.maxMinutes}-minute focus</strong>
+        <span>
+          {plan.priorityMode === PRIORITY_MODE.MINIMUM_EFFECTIVE
+            ? 'Minimum-effective mode'
+            : 'Keep main work'}
+        </span>
+      </div>
+      {plan.priorityExerciseNames?.length ? (
+        <div className="ava-plan-focus-priority">
+          <span className="ava-plan-why-label">Priority</span>
+          <ul>
+            {plan.priorityExerciseNames.map((name) => (
+              <li key={name}>{name}</li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+      {plan.accessoryExerciseNames?.length ? (
+        <p className="ava-plan-focus-accessories">Then accessory work if time allows</p>
+      ) : null}
+    </div>
+  )
+}
+
 const renderPreviewDays = (proposal = {}) => {
   const days = proposal.proposedPlan?.week?.days ?? []
   const highlights = days.filter(
@@ -59,12 +92,8 @@ const renderPreviewDays = (proposal = {}) => {
     return (
       <div className="ava-plan-preview-day">
         <span>Today</span>
-        <strong>
-          {formatWorkout(daily.workout)}
-          {daily.sessionExecutionPlan?.maxMinutes
-            ? ` · ${daily.sessionExecutionPlan.maxMinutes} min focus`
-            : ''}
-        </strong>
+        <strong>{formatWorkout(daily.workout)}</strong>
+        {renderExecutionFocus(daily)}
       </div>
     )
   }
@@ -92,6 +121,8 @@ export default function AvaPlanProposalCard({
 }) {
   if (!proposal) return null
 
+  const daily = proposal.proposedPlan?.daily ?? {}
+  const isExecutionFocus = Boolean(daily.sessionExecutionPlan?.maxMinutes)
   const why =
     proposal.evidence?.slice(0, 3).join(' ') ??
     proposal.rationale?.slice(0, 2).join(' ')
@@ -99,7 +130,9 @@ export default function AvaPlanProposalCard({
   return (
     <section className="ava-plan-card" aria-label="AVA plan proposal">
       <header className="ava-plan-card-header">
-        <span className="eyebrow">AVA PLAN</span>
+        <span className="eyebrow">
+          {isExecutionFocus ? "TODAY'S ADJUSTMENT" : 'AVA PLAN'}
+        </span>
         {proposal.summary ? <p>{proposal.summary}</p> : null}
       </header>
 
@@ -107,6 +140,10 @@ export default function AvaPlanProposalCard({
 
       {proposal.diff?.length ? (
         <div className="ava-plan-diff">{renderDiffRows(proposal.diff)}</div>
+      ) : null}
+
+      {proposal.coachProgramProtected ? (
+        <p className="ava-plan-coach-protected">{coachProgramProtectedCopy}</p>
       ) : null}
 
       {why ? (
@@ -124,7 +161,7 @@ export default function AvaPlanProposalCard({
             disabled={busy}
             onClick={() => onApply?.(AVA_ACTION_IDS.APPLY_PLAN_PROPOSAL)}
           >
-            Apply plan
+            {isExecutionFocus ? 'Apply focus' : 'Apply plan'}
           </button>
           <button
             type="button"
@@ -132,7 +169,7 @@ export default function AvaPlanProposalCard({
             disabled={busy}
             onClick={() => onKeepCurrent?.(AVA_ACTION_IDS.CANCEL_PLAN_PROPOSAL)}
           >
-            Keep current plan
+            {isExecutionFocus ? 'Keep full session' : 'Keep current plan'}
           </button>
         </div>
       ) : null}

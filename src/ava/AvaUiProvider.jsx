@@ -35,6 +35,11 @@ export function AvaUiProvider({
       .catch(() => {})
   }, [])
 
+  useEffect(() => {
+    if (!open || !appState?.sessionExecutionPlan) return
+    sessionRef.current.sessionExecutionPlan = appState.sessionExecutionPlan
+  }, [open, appState?.sessionExecutionPlan])
+
   const packet = useMemo(() => {
     if (!appState) return null
 

@@ -8,6 +8,13 @@ import {
   ListChecks,
   Settings2,
 } from 'lucide-react'
+import { useMemo } from 'react'
+import { buildPlanningOwnership, coachOwnershipLabel } from '../lib/planOwnership'
+import {
+  executionPlanSummaryLabel,
+  isExecutionPlanCurrent,
+} from '../lib/sessionExecutionPlan'
+import { resolveTodayWorkoutContext } from '../lib/todayWorkout'
 
 const ActionCard = ({ icon: Icon, title, description, onClick, primary = false }) => (
   <button
@@ -25,7 +32,27 @@ const ActionCard = ({ icon: Icon, title, description, onClick, primary = false }
 
 export default function TrainHubScreen({ state, onStart, navigate }) {
   const activeWorkout = state.activeWorkout
-  const nextWorkout = activeWorkout?.name || state.selectedWorkout || state.program?.nextWorkout
+  const todayContext = useMemo(
+    () => resolveTodayWorkoutContext(state),
+    [state],
+  )
+  const coachLabel = useMemo(
+    () =>
+      coachOwnershipLabel(
+        buildPlanningOwnership({ todayWorkout: todayContext }),
+      ),
+    [todayContext],
+  )
+  const executionFocusLabel = useMemo(() => {
+    if (!isExecutionPlanCurrent(state.sessionExecutionPlan)) return null
+    return executionPlanSummaryLabel(state.sessionExecutionPlan)
+  }, [state.sessionExecutionPlan])
+
+  const nextWorkout =
+    activeWorkout?.name ||
+    todayContext.displayName ||
+    state.selectedWorkout ||
+    state.program?.nextWorkout
 
   return (
     <div className="train-hub-screen">
@@ -38,7 +65,13 @@ export default function TrainHubScreen({ state, onStart, navigate }) {
       <section className="train-hub-hero">
         <div>
           <span className="eyebrow">{activeWorkout ? 'IN PROGRESS' : 'UP NEXT'}</span>
+          {coachLabel ? (
+            <span className="train-coach-ownership eyebrow">{coachLabel}</span>
+          ) : null}
           <h2>{nextWorkout}</h2>
+          {executionFocusLabel ? (
+            <p className="train-execution-focus">{executionFocusLabel} active</p>
+          ) : null}
           <p>{activeWorkout ? 'Continue exactly where you left off.' : 'Your selected workout is ready when you are.'}</p>
         </div>
         <button className="gold-button machined" onClick={onStart}>

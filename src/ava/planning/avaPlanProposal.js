@@ -8,11 +8,18 @@ import {
   PLAN_TYPES,
   PROPOSAL_STATUS,
   PROPOSAL_TYPES,
+  PRIORITY_MODE,
 } from './avaPlanTypes'
 import {
   dayNameToIndex,
   mapWeekDayToPlanDay,
 } from './avaPlanningContext'
+import { coachProgramProtectedCopy } from '../../lib/planOwnership'
+import {
+  createSessionExecutionPlan,
+  deriveExercisePriority,
+  resolvePriorityMode,
+} from '../../lib/sessionExecutionPlan'
 
 const proposalId = () =>
   `plan-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
@@ -185,20 +192,31 @@ export const buildAdaptiveChanges = (context = {}, proposedWeek = null, proposed
         const targetDayIndex = findMoveTargetDay(context.trainingWeek, unavailableDayIndex)
 
         if (targetDayIndex != null && sessionName && sessionName !== 'Rest') {
-          changes.push({
-            action: PLAN_CHANGE_ACTIONS.MOVE_SESSION,
-            targetSessionName: sessionName,
-            fromDayIndex: unavailableDayIndex,
-            toDayIndex: targetDayIndex,
-            fromDate: weekDay.date ?? weekDay.dateKey,
-            toDate:
-              context.trainingWeek?.find((day) => day.dayIndex === targetDayIndex)?.dateKey ??
-              null,
-            meta: {
-              reason: constraint.type,
-              scheduleOnly: true,
-            },
-          })
+          if (context.scheduleControlledByCoach) {
+            changes.push({
+              action: PLAN_CHANGE_ACTIONS.KEEP_PLAN_AS_IS,
+              meta: {
+                coachLockedSchedule: true,
+                unavailableDay: weekDay.dayName ?? null,
+                sessionName,
+              },
+            })
+          } else {
+            changes.push({
+              action: PLAN_CHANGE_ACTIONS.MOVE_SESSION,
+              targetSessionName: sessionName,
+              fromDayIndex: unavailableDayIndex,
+              toDayIndex: targetDayIndex,
+              fromDate: weekDay.date ?? weekDay.dateKey,
+              toDate:
+                context.trainingWeek?.find((day) => day.dayIndex === targetDayIndex)?.dateKey ??
+                null,
+              meta: {
+                reason: constraint.type,
+                scheduleOnly: true,
+              },
+            })
+          }
         } else if (sessionName && sessionName !== 'Rest') {
           changes.push({
             action: PLAN_CHANGE_ACTIONS.MARK_RECOVERY_DAY,
@@ -303,7 +321,7 @@ export const applyChangesToWeekPlan = (weekPlan = {}, changes = []) => {
   return next
 }
 
-export const applyChangesToDailyPlan = (dailyPlan = {}, changes = []) => {
+export const applyChangesToDailyPlan = (dailyPlan = {}, changes = [], context = {}) => {
   const next = { ...dailyPlan }
   const shorten = changes.find(
     (change) =>
@@ -314,15 +332,37 @@ export const applyChangesToDailyPlan = (dailyPlan = {}, changes = []) => {
   if (shorten?.value?.maxMinutes || typeof shorten?.value === 'number') {
     const maxMinutes =
       typeof shorten.value === 'number' ? shorten.value : shorten.value.maxMinutes
-    next.timeConstraint = maxMinutes
-    next.sessionExecutionPlan = {
+    const priority = deriveExercisePriority({
+      exercises: context.workoutExercises ?? [],
       maxMinutes,
-      priority:
-        shorten.value?.priority ?? EXECUTION_FOCUS_PRIORITY.MAIN_WORK,
+    })
+
+    next.timeConstraint = maxMinutes
+    next.sessionExecutionPlan = createSessionExecutionPlan({
+      workoutId: context.todayWorkout?.id ?? next.workout,
       workoutName: next.workout,
+      date: context.todayKey,
+      maxMinutes,
+      priorityMode: priority.priorityMode,
+      exercises: context.workoutExercises ?? [],
+      programmingOwner: context.ownership?.programmingOwner,
+      coachAssigned: context.ownership?.coachAssigned,
+      now: context.now,
+    })
+    next.priorityExercises = priority.priorityExerciseNames
+    next.accessoryExercises = priority.accessoryExerciseNames
+
+    if (priority.priorityMode === PRIORITY_MODE.MINIMUM_EFFECTIVE) {
+      next.rationale.push(
+        `Minimum-effective mode: keep ${priority.priorityExerciseNames.slice(0, 2).join(' and ') || 'the first priority movements'}.`,
+      )
+    } else {
+      next.rationale.push(`User only has ${maxMinutes} minutes.`)
     }
-    next.rationale.push(`User only has ${maxMinutes} minutes.`)
     next.rationale.push('Keep the main work and trim extras.')
+    if (context.ownership?.coachAssigned) {
+      next.rationale.push(coachProgramProtectedCopy)
+    }
   }
 
   return next
@@ -378,11 +418,21 @@ export const buildDailyPlanMessage = (dailyPlan = {}, context = {}) => {
   }
 
   if (dailyPlan.sessionExecutionPlan?.maxMinutes) {
-    return `You've got ${workout} today. With ${dailyPlan.sessionExecutionPlan.maxMinutes} minutes, I'd keep the main work and cut the extras.`
+    const priority = dailyPlan.priorityExercises?.length
+      ? dailyPlan.priorityExercises.join(' and ')
+      : 'the main work'
+    const coachNote = context.ownership?.coachAssigned
+      ? ` ${coachProgramProtectedCopy}`
+      : ''
+    return `You've only got ${dailyPlan.sessionExecutionPlan.maxMinutes} minutes. Keep ${priority} as the priority and trim accessories if time runs out.${coachNote}`
   }
 
   if (context.readinessSummary === 'caution') {
     return `I'd still train ${workout}, but keep it focused on the main work.`
+  }
+
+  if (context.ownership?.coachAssigned) {
+    return `You've got ${workout} from your coach today. Start there and keep the session intentional.`
   }
 
   return `You've got ${workout} today. Start there and keep the session intentional.`
@@ -420,7 +470,7 @@ export const buildPlanProposal = ({
   const currentWeek = buildWeekPlan(context)
   const changes = buildAdaptiveChanges(context, currentWeek, currentDaily)
 
-  const proposedDaily = applyChangesToDailyPlan(currentDaily, changes)
+  const proposedDaily = applyChangesToDailyPlan(currentDaily, changes, context)
   const proposedWeek = applyChangesToWeekPlan(currentWeek, changes)
   const diff = buildPlanDiff(
     { daily: currentDaily, week: currentWeek },
@@ -443,6 +493,11 @@ export const buildPlanProposal = ({
       ? buildWeekPlanMessage(proposedWeek, diff)
       : buildDailyPlanMessage(proposedDaily, context)
 
+  const coachLockedChange = changes.find((change) => change.meta?.coachLockedSchedule)
+  const resolvedMessage = coachLockedChange
+    ? `That session is coach-scheduled for ${coachLockedChange.meta.unavailableDay ?? 'that day'}. I can suggest another day, but your coach would need to confirm the move.`
+    : message
+
   const summary =
     diff.length > 0
       ? diff
@@ -461,7 +516,7 @@ export const buildPlanProposal = ({
     planType: type === PROPOSAL_TYPES.WEEK ? PLAN_TYPES.WEEK : PLAN_TYPES.DAILY,
     status: hasMutation ? PROPOSAL_STATUS.AWAITING_CONFIRMATION : PROPOSAL_STATUS.DRAFT,
     summary,
-    message,
+    message: resolvedMessage,
     currentPlan: {
       daily: currentDaily,
       week: currentWeek,
@@ -478,6 +533,12 @@ export const buildPlanProposal = ({
     createdAt: new Date(context.now ?? Date.now()).toISOString(),
     allowedRoles: ['athlete'],
     coachProgramProtected: context.coachProgramProtected === true,
+    coachProgramProtectedCopy: context.ownership?.coachAssigned
+      ? coachProgramProtectedCopy
+      : null,
+    priorityExercises: proposedDaily.priorityExercises ?? [],
+    accessoryExercises: proposedDaily.accessoryExercises ?? [],
+    ownership: context.ownership ?? null,
     requiresConfirmation: hasMutation,
   }
 }

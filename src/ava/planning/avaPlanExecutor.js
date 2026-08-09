@@ -1,4 +1,5 @@
 import { PLAN_CHANGE_ACTIONS, PROPOSAL_STATUS } from './avaPlanTypes'
+import { createSessionExecutionPlan } from '../../lib/sessionExecutionPlan'
 
 export const applyWeeklyScheduleMove = ({
   weeklySchedule = {},
@@ -47,23 +48,49 @@ export const applyRecoveryDay = ({ weeklySchedule = {}, targetDayIndex }) => {
   }
 }
 
-export const applyExecutionFocus = ({ session, change = {}, workoutName = null }) => {
-  if (!session) return { ok: false, reason: 'missing_session' }
+export const applyExecutionFocus = ({
+  session,
+  change = {},
+  workoutName = null,
+  context = {},
+  proposalPlan = null,
+} = {}) => {
+  if (proposalPlan) {
+    if (session) {
+      session.sessionExecutionPlan = proposalPlan
+    }
+    return {
+      ok: true,
+      sessionExecutionPlan: proposalPlan,
+      rollback: {
+        action: PLAN_CHANGE_ACTIONS.SET_SESSION_EXECUTION_FOCUS,
+        previousExecutionPlan: null,
+      },
+    }
+  }
 
   const value = change.value ?? {}
   const maxMinutes =
     typeof change.value === 'number' ? change.value : value.maxMinutes ?? null
 
-  session.sessionExecutionPlan = {
-    maxMinutes,
-    priority: value.priority ?? 'main_work',
+  const plan = createSessionExecutionPlan({
+    workoutId: context.todayWorkout?.id ?? workoutName,
     workoutName: workoutName ?? change.sessionName ?? null,
-    appliedAt: new Date().toISOString(),
+    date: context.todayKey,
+    maxMinutes,
+    exercises: context.workoutExercises ?? [],
+    programmingOwner: context.ownership?.programmingOwner,
+    coachAssigned: context.ownership?.coachAssigned,
+    now: context.now,
+  })
+
+  if (session) {
+    session.sessionExecutionPlan = plan
   }
 
   return {
     ok: true,
-    sessionExecutionPlan: session.sessionExecutionPlan,
+    sessionExecutionPlan: plan,
     rollback: {
       action: PLAN_CHANGE_ACTIONS.SET_SESSION_EXECUTION_FOCUS,
       previousExecutionPlan: null,
@@ -75,6 +102,7 @@ export const applyPlanProposal = ({
   proposal = {},
   session = null,
   weeklySchedule = {},
+  context = {},
 } = {}) => {
   if (!proposal?.changes?.length) {
     return {
@@ -124,14 +152,21 @@ export const applyPlanProposal = ({
       change.action === PLAN_CHANGE_ACTIONS.SET_SESSION_EXECUTION_FOCUS ||
       (change.action === PLAN_CHANGE_ACTIONS.SHORTEN_SESSION && change.meta?.executionOnly !== false)
     ) {
+      const previousExecutionPlan =
+        sessionExecutionPlan ?? context.sessionExecutionPlan ?? null
       const result = applyExecutionFocus({
         session,
         change,
         workoutName: proposal.proposedPlan?.daily?.workout,
+        context,
+        proposalPlan: proposal.proposedPlan?.daily?.sessionExecutionPlan ?? null,
       })
       if (!result.ok) return result
       sessionExecutionPlan = result.sessionExecutionPlan
-      rollbacks.push(result.rollback)
+      rollbacks.push({
+        ...result.rollback,
+        previousExecutionPlan,
+      })
       appliedChanges.push(change)
     }
   }

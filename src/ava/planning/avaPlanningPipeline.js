@@ -29,6 +29,13 @@ import { canApplyProposal, validateProposal } from './avaPlanValidator'
 import { buildApplySuccessMessage, verifyPlanApplied } from './avaPlanVerification'
 import { PROPOSAL_STATUS } from './avaPlanTypes'
 import { hasActivePendingTransaction, isAwaitingConfirmation } from '../avaTransactionState'
+import {
+  buildCoachRequiredResponse,
+  buildPainExecutionResponse,
+  extractMentionedExercise,
+  isCoachProgramMutationRequest,
+  isPainExecutionRequest,
+} from './avaPlanPolicy'
 
 const planningStateFromRuntime = (runtime = null) => {
   const snapshot = runtime?.getPlanningState?.() ?? {}
@@ -38,6 +45,8 @@ const planningStateFromRuntime = (runtime = null) => {
     history: snapshot.history ?? [],
     readiness: snapshot.readiness ?? {},
     activeWorkout: snapshot.activeWorkout ?? null,
+    sessionExecutionPlan: snapshot.sessionExecutionPlan ?? null,
+    assignments: snapshot.assignments ?? [],
   }
 }
 
@@ -52,20 +61,53 @@ export async function runPlanningPipelineStep({
   if (hasActivePendingTransaction(session) || isAwaitingConfirmation(session)) {
     return null
   }
-  if (!shouldRoutePlanningMessage(message, session)) return null
-
-  const intent = resolvePlanningIntent(message, session)
-  if (!intent) return null
 
   const state = planningStateFromRuntime(actionRuntime)
   let context = buildPlanningContext({
     state,
     packet,
     session,
-    assignments: packet?.assignments ?? [],
+    assignments: packet?.assignments ?? state.assignments ?? [],
     message,
   })
   context = attachSessionConstraints(context, session, message)
+
+  if (
+    isCoachProgramMutationRequest(message) &&
+    context.ownership?.coachAssigned
+  ) {
+    const response = buildCoachRequiredResponse({
+      exerciseName: extractMentionedExercise(message, context.workoutExercises),
+      ownership: context.ownership,
+    })
+    return createPipelineOutcome({
+      kind: AVA_PIPELINE_KIND.RESPONSE,
+      message: response.message,
+      readOnly: true,
+      raw: response,
+    })
+  }
+
+  if (
+    isPainExecutionRequest(message, context.workoutExercises) &&
+    context.workoutExercises?.length
+  ) {
+    const response = buildPainExecutionResponse({
+      exerciseName: extractMentionedExercise(message, context.workoutExercises),
+      ownership: context.ownership,
+    })
+    return createPipelineOutcome({
+      kind: AVA_PIPELINE_KIND.RESPONSE,
+      message: response.message,
+      readOnly: true,
+      raw: response,
+    })
+  }
+
+  if (!shouldRoutePlanningMessage(message, session)) return null
+
+  const intent = resolvePlanningIntent(message, session)
+  if (!intent) return null
 
   if (intent.intent === 'undo_plan') {
     const undo = undoLastPlanChange({
@@ -130,8 +172,9 @@ export async function runPlanningPipelineStep({
         clearActivePlanProposal(session)
         return createPipelineOutcome({
           kind: AVA_PIPELINE_KIND.RESPONSE,
-          message:
-            'Your plan changed since I made that suggestion. Let me refresh it.',
+          message: context.ownership?.coachAssigned
+            ? 'Your coach updated the plan since I made that suggestion. I\'ll use the new plan instead.'
+            : 'Your plan changed since I made that suggestion. Let me refresh it.',
           readOnly: true,
           raw: { stale: true },
         })
@@ -150,6 +193,7 @@ export async function runPlanningPipelineStep({
       proposal,
       session,
       weeklySchedule: state.weeklySchedule,
+      context,
     })
 
     if (!execution.ok) {
@@ -169,6 +213,7 @@ export async function runPlanningPipelineStep({
       proposal,
       weeklySchedule: execution.weeklySchedule,
       session,
+      sessionExecutionPlan: execution.sessionExecutionPlan,
     })
 
     logAvaPlanApplyDiagnostic({
@@ -268,8 +313,18 @@ export async function runPlanningPipelineStep({
     message: proposal.message,
     planProposal: proposal,
     actions: [
-      { id: 'APPLY_PLAN_PROPOSAL', label: 'Apply plan' },
-      { id: 'CANCEL_PLAN_PROPOSAL', label: 'Keep current plan' },
+      {
+        id: 'APPLY_PLAN_PROPOSAL',
+        label: proposal.proposedPlan?.daily?.sessionExecutionPlan?.maxMinutes
+          ? 'Apply focus'
+          : 'Apply plan',
+      },
+      {
+        id: 'CANCEL_PLAN_PROPOSAL',
+        label: proposal.proposedPlan?.daily?.sessionExecutionPlan?.maxMinutes
+          ? 'Keep full session'
+          : 'Keep current plan',
+      },
     ],
     readOnly: true,
     raw: { proposal },

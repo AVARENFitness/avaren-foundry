@@ -40,6 +40,12 @@ import AvaPlanProposalCard from './AvaPlanProposalCard'
 import { buildConfirmationPreview } from './buildConfirmationPreview'
 import { useAva } from './useAva'
 import { useFocusTrap } from './useFocusTrap'
+import { useBodyScrollLock } from './useBodyScrollLock'
+import { useAvaSheetViewport } from './useAvaSheetViewport'
+import {
+  isNearTranscriptBottom,
+  scrollTranscriptToBottom,
+} from './avaSheetScroll'
 
 const createMessage = (role, text, extras = {}) => ({
   id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -65,10 +71,12 @@ export default function AvaSheet({
   const titleId = useId()
   const descriptionId = useId()
   const inputRef = useRef(null)
+  const backdropRef = useRef(null)
   const panelRef = useRef(null)
   const transcriptRef = useRef(null)
   const submitLockRef = useRef(false)
   const openedRef = useRef(false)
+  const stickToBottomRef = useRef(true)
   const nutritionRef = useRef(nutrition)
   const { routeMessage } = useAva()
   const dismissAfterNavigation = onDismissAfterNavigation ?? onClose
@@ -123,13 +131,15 @@ export default function AvaSheet({
   }, [nutrition, undoRevision, session, open])
 
   useFocusTrap(panelRef, open)
+  useBodyScrollLock(open)
+  const { keyboardOpen } = useAvaSheetViewport({
+    open,
+    backdropRef,
+    panelRef,
+  })
 
   useEffect(() => {
     if (!open) return undefined
-
-    const previousOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    inputRef.current?.focus()
 
     const onKeyDown = (event) => {
       if (event.key === 'Escape') {
@@ -140,7 +150,6 @@ export default function AvaSheet({
 
     window.addEventListener('keydown', onKeyDown)
     return () => {
-      document.body.style.overflow = previousOverflow
       window.removeEventListener('keydown', onKeyDown)
     }
   }, [open, onClose])
@@ -164,6 +173,19 @@ export default function AvaSheet({
 
     if (openedRef.current) return
     openedRef.current = true
+    stickToBottomRef.current = true
+
+    requestAnimationFrame(() => {
+      scrollTranscriptToBottom(transcriptRef.current, 'auto')
+    })
+
+    const preferDesktopFocus =
+      typeof window !== 'undefined' &&
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia('(min-width: 681px)').matches
+    if (preferDesktopFocus) {
+      inputRef.current?.focus({ preventScroll: true })
+    }
 
     if (isCoachAvaAccess({ role, coachContext })) {
       setMessages([
@@ -185,9 +207,20 @@ export default function AvaSheet({
   }, [open, packet, role, coachContext])
 
   useEffect(() => {
-    if (!transcriptRef.current) return
-    transcriptRef.current.scrollTop = transcriptRef.current.scrollHeight
+    if (!stickToBottomRef.current) return
+    scrollTranscriptToBottom(transcriptRef.current, 'auto')
   }, [messages, loading, showPreview, activeClarification, showUndo])
+
+  const handleTranscriptScroll = () => {
+    stickToBottomRef.current = isNearTranscriptBottom(transcriptRef.current)
+  }
+
+  const handleComposerFocus = () => {
+    stickToBottomRef.current = true
+    requestAnimationFrame(() => {
+      scrollTranscriptToBottom(transcriptRef.current, 'auto')
+    })
+  }
 
   const syncCandidatesFromPending = () => {
     const payload = syncClarificationFromPending(session)
@@ -370,6 +403,7 @@ export default function AvaSheet({
     if (!message || loading || submitLockRef.current) return
 
     submitLockRef.current = true
+    stickToBottomRef.current = true
     appendMessage(createMessage('user', message))
     setPendingUserMessage(message)
     setInput('')
@@ -399,6 +433,7 @@ export default function AvaSheet({
     if (loading || submitLockRef.current) return
 
     submitLockRef.current = true
+    stickToBottomRef.current = true
     appendMessage(createMessage('user', prompt))
     setSuggestedPrompts([])
     setLoading(true)
@@ -626,13 +661,14 @@ export default function AvaSheet({
 
   return createPortal(
     <div
-      className="ava-sheet-backdrop app-ui-backdrop"
+      ref={backdropRef}
+      className={`ava-sheet-backdrop app-ui-backdrop${keyboardOpen ? ' ava-sheet-backdrop--keyboard' : ''}`}
       role="presentation"
       onClick={onClose}
     >
       <section
         ref={panelRef}
-        className="ava-sheet ava-sheet--conversation"
+        className={`ava-sheet ava-sheet--conversation${keyboardOpen ? ' ava-sheet--keyboard' : ''}`}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
@@ -668,7 +704,12 @@ export default function AvaSheet({
         </p>
 
         <div className="ava-sheet-body">
-          <div ref={transcriptRef} className="ava-chat-transcript" aria-live="polite">
+          <div
+            ref={transcriptRef}
+            className="ava-chat-transcript"
+            aria-live="polite"
+            onScroll={handleTranscriptScroll}
+          >
             {messages.map((message) => (
               <article
                 key={message.id}
@@ -767,6 +808,7 @@ export default function AvaSheet({
             )}
           </div>
 
+          <div className="ava-sheet-aux">
           {suggestedPrompts.length > 0 && !loading && !hasUserMessages && (
             <div className="ava-sheet-examples" aria-label="Suggested prompts">
               {suggestedPrompts.map((prompt) => (
@@ -832,9 +874,10 @@ export default function AvaSheet({
               />
             </div>
           )}
+          </div>
         </div>
 
-        <form className="ava-sheet-form" onSubmit={handleSubmit}>
+        <form className="ava-sheet-form ava-sheet-composer" onSubmit={handleSubmit}>
           <label className="ava-sheet-input-label" htmlFor="ava-sheet-input">
             Your message
           </label>
@@ -842,10 +885,11 @@ export default function AvaSheet({
             id="ava-sheet-input"
             ref={inputRef}
             className="ava-sheet-input"
-            rows={3}
+            rows={2}
             value={input}
             placeholder="Ask about today's workout, readiness, recovery, or nutrition."
             onChange={(event) => setInput(event.target.value)}
+            onFocus={handleComposerFocus}
             disabled={loading}
           />
 

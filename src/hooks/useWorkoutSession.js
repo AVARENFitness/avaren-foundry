@@ -9,6 +9,10 @@ import {
   TRAINING_RECOMMENDATIONS,
 } from '../lib/trainingRecommendations'
 import { resolveTodayWorkoutContext } from '../lib/todayWorkout'
+import {
+  attachExecutionMetadataToSession,
+  isExecutionPlanCurrent,
+} from '../lib/sessionExecutionPlan'
 
 const makeSet = (number, type = 'Working') => ({
   id: crypto.randomUUID(),
@@ -520,17 +524,22 @@ export function useWorkoutSession({
     const currentIndex = rotation.indexOf(workout.name)
     const nextWorkout = rotation[(currentIndex + 1) % rotation.length]
 
-    const completedWorkoutSession = {
-      id: workout.id,
-      name: workout.name,
-      date: workout.date,
-      startedAt: workout.startedAt,
-      finishedAt: new Date().toISOString(),
-      intent: workout.intent ?? '',
-      notes: workout.notes ?? '',
-      reflection: workout.reflection ?? '',
-      sets,
-    }
+    const completedWorkoutSession = attachExecutionMetadataToSession(
+      {
+        id: workout.id,
+        name: workout.name,
+        date: workout.date,
+        startedAt: workout.startedAt,
+        finishedAt: new Date().toISOString(),
+        intent: workout.intent ?? '',
+        notes: workout.notes ?? '',
+        reflection: workout.reflection ?? '',
+        sets,
+      },
+      isExecutionPlanCurrent(state.sessionExecutionPlan)
+        ? state.sessionExecutionPlan
+        : null,
+    )
 
     const completionPayload = { session: completedWorkoutSession, nextWorkout }
     setCompletedSession(completionPayload)
@@ -582,6 +591,7 @@ export function useWorkoutSession({
         program: { ...current.program, nextWorkout },
         selectedWorkout: nextWorkout,
         activeWorkout: null,
+        sessionExecutionPlan: null,
         history: [...current.history, completedWorkoutSession],
         achievements:
           current.history.length === 0
@@ -608,7 +618,7 @@ export function useWorkoutSession({
 
     if (navigator.vibrate) navigator.vibrate([25, 40, 35])
     navigate('complete')
-  }, [isFinishing, state.activeWorkout, state.program.rotation, state.history, state.achievements, navigate, setState])
+  }, [isFinishing, state.activeWorkout, state.program.rotation, state.history, state.achievements, state.sessionExecutionPlan, navigate, setState])
 
   const saveSessionReflection = useCallback((
     sessionId,

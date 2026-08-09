@@ -2,6 +2,7 @@ import {
   STATE_SCHEMA_VERSION,
   migrateStoredState,
 } from './stateSchema'
+import { clearExpiredExecutionPlan } from './sessionExecutionPlan'
 
 const STORAGE_PREFIX = 'avaren-foundry-user'
 const BACKUP_META_PREFIX = 'avaren-foundry-last-backup'
@@ -88,6 +89,9 @@ const normalizeState = (value, fallback, userId = null) => {
         [],
     },
     lastSavedAt: migrated?.lastSavedAt ?? null,
+    sessionExecutionPlan: clearExpiredExecutionPlan(
+      migrated?.sessionExecutionPlan ?? fallback.sessionExecutionPlan ?? null,
+    ),
   }
 }
 

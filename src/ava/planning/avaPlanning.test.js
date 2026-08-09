@@ -75,6 +75,7 @@ const buildRuntime = (state, applySpy = vi.fn()) => ({
     history: state.history,
     readiness: state.readiness,
     activeWorkout: state.activeWorkout ?? null,
+    sessionExecutionPlan: state.sessionExecutionPlan ?? null,
   }),
   applyPlanningChanges: applySpy,
 })

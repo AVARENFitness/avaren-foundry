@@ -139,6 +139,7 @@ const createInitialState = (ownerUserId = null) => ({
     completedAt: null,
   },
   nutrition: createNutritionState(),
+  sessionExecutionPlan: null,
 })
 
 
@@ -937,23 +938,19 @@ function App() {
           history: state.history,
           readiness: state.readiness,
           activeWorkout: state.activeWorkout ?? null,
+          sessionExecutionPlan: state.sessionExecutionPlan ?? null,
         }),
         applyPlanningChanges: async ({ weeklySchedule, sessionExecutionPlan }) => {
-          if (weeklySchedule) {
-            setState((current) => ({
-              ...current,
-              weeklySchedule,
-            }))
-          }
-          if (sessionExecutionPlan !== undefined) {
-            avaSnapshotRef.current = {
-              ...avaSnapshotRef.current,
-              sessionExecutionPlan,
-            }
-          }
+          setState((current) => ({
+            ...current,
+            ...(weeklySchedule ? { weeklySchedule } : {}),
+            ...(sessionExecutionPlan !== undefined
+              ? { sessionExecutionPlan }
+              : {}),
+          }))
         },
       }),
-    [startWorkout, navigate, openDailyReset, openHomeReset, state.weeklySchedule, state.program, state.history, state.readiness, state.activeWorkout],
+    [startWorkout, navigate, openDailyReset, openHomeReset, state.weeklySchedule, state.program, state.history, state.readiness, state.activeWorkout, state.sessionExecutionPlan],
   )
 
   const avaRoleState = useMemo(
