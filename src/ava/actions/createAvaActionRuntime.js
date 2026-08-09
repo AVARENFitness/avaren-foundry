@@ -10,6 +10,8 @@ export function createAvaActionRuntime({
   startRecoveryFlow,
   openNutrition,
   getSnapshot,
+  getPlanningState,
+  applyPlanningChanges,
   onNavigateIntent,
 } = {}) {
   return {
@@ -26,6 +28,10 @@ export function createAvaActionRuntime({
           ? () => navigate('nutrition')
           : null,
     getSnapshot: typeof getSnapshot === 'function' ? getSnapshot : () => ({}),
+    getPlanningState:
+      typeof getPlanningState === 'function' ? getPlanningState : () => ({}),
+    applyPlanningChanges:
+      typeof applyPlanningChanges === 'function' ? applyPlanningChanges : null,
     onNavigateIntent:
       typeof onNavigateIntent === 'function' ? onNavigateIntent : null,
   }

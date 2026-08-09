@@ -14921,6 +14921,82 @@ input, textarea, select {
   line-height: 1.55;
 }
 
+/* AVA adaptive planning proposal (Sprint 8.0) */
+.ava-plan-card {
+  display: grid;
+  gap: var(--space-3, 12px);
+  margin-top: var(--space-3, 12px);
+  padding: var(--space-4, 16px);
+  border: 1px solid var(--border-subtle, rgba(246,242,233,.06));
+  border-radius: var(--radius-md, 16px);
+  background: var(--surface-1, rgba(255,255,255,.012));
+}
+
+.ava-plan-card-header p {
+  margin: var(--space-1, 6px) 0 0;
+  color: var(--text-supporting, #948d84);
+  font-size: var(--type-meta, 12px);
+  line-height: 1.45;
+}
+
+.ava-plan-preview,
+.ava-plan-diff {
+  display: grid;
+  gap: var(--space-2, 8px);
+}
+
+.ava-plan-preview-day,
+.ava-plan-diff-row {
+  display: grid;
+  gap: 2px;
+}
+
+.ava-plan-preview-day span,
+.ava-plan-diff-label,
+.ava-plan-why-label {
+  color: var(--text-metadata, #8a8379);
+  font-size: var(--type-eyebrow, 10px);
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+.ava-plan-preview-day strong,
+.ava-plan-diff-row strong {
+  font-size: var(--type-card, 16px);
+}
+
+.ava-plan-diff-change {
+  color: var(--text-supporting, #948d84);
+  font-size: var(--type-meta, 12px);
+}
+
+.ava-plan-why p {
+  margin: 4px 0 0;
+  color: var(--text-supporting, #948d84);
+  font-size: var(--type-meta, 12px);
+  line-height: 1.45;
+}
+
+.ava-plan-actions {
+  display: grid;
+  gap: var(--space-2, 8px);
+}
+
+.ava-plan-apply {
+  min-height: var(--btn-height, 48px);
+  margin: 0;
+}
+
+.ava-plan-keep {
+  min-height: 40px;
+  border: 1px solid var(--border-subtle, rgba(246,242,233,.06));
+  border-radius: var(--radius-sm, 12px);
+  background: transparent;
+  color: var(--text-supporting, #948d84);
+  font-size: var(--type-meta, 12px);
+  font-weight: 700;
+}
+
 .ava-sheet-suggestions {
   margin: 10px 0 0;
   padding-left: 18px;

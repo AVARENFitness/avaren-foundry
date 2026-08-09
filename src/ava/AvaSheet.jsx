@@ -30,12 +30,13 @@ import {
 } from './avaNutritionTransaction'
 import { logCandidateDiagnostics } from './avaFoodRefinement'
 import { AVA_PIPELINE_KIND, runAvaMessagePipeline } from './avaMessagePipeline'
-import { AVA_ACTION_OUTCOME_KIND } from './actions/avaActionTypes'
+import { AVA_ACTION_OUTCOME_KIND, AVA_ACTION_IDS } from './actions/avaActionTypes'
 import { isNavigationAction } from './actions/avaActionReferent'
 import { orchestrateUiAction } from './actions/avaActionOrchestrator'
 import { runCoachDisambiguationStep } from './coach/avaCoachPipeline'
 import { recordAvaTurn } from '../lib/avaSessionContext'
 import AvaConfirmationPreview from './AvaConfirmationPreview'
+import AvaPlanProposalCard from './AvaPlanProposalCard'
 import { buildConfirmationPreview } from './buildConfirmationPreview'
 import { useAva } from './useAva'
 import { useFocusTrap } from './useFocusTrap'
@@ -306,6 +307,16 @@ export default function AvaSheet({
       return
     }
 
+    if (outcome.kind === AVA_PIPELINE_KIND.PLAN_PROPOSAL) {
+      appendMessage(
+        createMessage('ava', outcome.message, {
+          planProposal: outcome.planProposal,
+          actions: outcome.actions ?? [],
+        }),
+      )
+      return
+    }
+
     if (outcome.kind === AVA_PIPELINE_KIND.ACTION_READY) {
       appendMessage(
         createMessage('ava', outcome.message, {
@@ -527,9 +538,59 @@ export default function AvaSheet({
     appendMessage(createMessage('ava', result.summary))
   }
 
+  const handlePlanApply = async (messageId) => {
+    if (loading || actionBusyId) return
+    setActionBusyId(AVA_ACTION_IDS.APPLY_PLAN_PROPOSAL)
+    setLoading(true)
+    try {
+      const outcome = await runMessage('apply it')
+      applyPipelineOutcome(outcome)
+      setExecutedActionIds((current) => [
+        ...current,
+        `${messageId}-${AVA_ACTION_IDS.APPLY_PLAN_PROPOSAL}`,
+      ])
+    } finally {
+      setActionBusyId(null)
+      setLoading(false)
+    }
+  }
+
+  const handlePlanKeepCurrent = async (messageId) => {
+    if (loading || actionBusyId) return
+    setActionBusyId(AVA_ACTION_IDS.CANCEL_PLAN_PROPOSAL)
+    setLoading(true)
+    try {
+      const outcome = await runMessage('keep current plan')
+      applyPipelineOutcome(outcome)
+      setExecutedActionIds((current) => [
+        ...current,
+        `${messageId}-${AVA_ACTION_IDS.CANCEL_PLAN_PROPOSAL}`,
+      ])
+    } finally {
+      setActionBusyId(null)
+      setLoading(false)
+    }
+  }
+
   const handleAction = async (action, messageId) => {
     const actionId = action.actionId ?? action.id
     if (!actionId || actionBusyId) return
+
+    if (actionId === AVA_ACTION_IDS.APPLY_PLAN_PROPOSAL) {
+      await handlePlanApply(messageId)
+      return
+    }
+
+    if (actionId === AVA_ACTION_IDS.CANCEL_PLAN_PROPOSAL) {
+      await handlePlanKeepCurrent(messageId)
+      return
+    }
+
+    if (actionId === 'OPEN_PLANNER') {
+      actionRuntime?.navigate?.('planner')
+      closeSheetAfterNavigation()
+      return
+    }
 
     setActionBusyId(actionId)
 
@@ -620,6 +681,17 @@ export default function AvaSheet({
                   <span className="ava-chat-label ava-chat-label--user">You</span>
                 )}
                 <p>{message.text}</p>
+                {message.planProposal ? (
+                  <AvaPlanProposalCard
+                    proposal={message.planProposal}
+                    busy={Boolean(actionBusyId)}
+                    applied={executedActionIds.some((entry) =>
+                      entry.startsWith(`${message.id}-${AVA_ACTION_IDS.APPLY_PLAN_PROPOSAL}`),
+                    )}
+                    onApply={() => handlePlanApply(message.id)}
+                    onKeepCurrent={() => handlePlanKeepCurrent(message.id)}
+                  />
+                ) : null}
                 {message.coachResults?.length > 0 && (
                   <div className="ava-coach-results">
                     {message.coachResults.map((item) => (

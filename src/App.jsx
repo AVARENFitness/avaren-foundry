@@ -931,8 +931,29 @@ function App() {
           }
         },
         getSnapshot: () => avaSnapshotRef.current,
+        getPlanningState: () => ({
+          weeklySchedule: state.weeklySchedule,
+          program: state.program,
+          history: state.history,
+          readiness: state.readiness,
+          activeWorkout: state.activeWorkout ?? null,
+        }),
+        applyPlanningChanges: async ({ weeklySchedule, sessionExecutionPlan }) => {
+          if (weeklySchedule) {
+            setState((current) => ({
+              ...current,
+              weeklySchedule,
+            }))
+          }
+          if (sessionExecutionPlan !== undefined) {
+            avaSnapshotRef.current = {
+              ...avaSnapshotRef.current,
+              sessionExecutionPlan,
+            }
+          }
+        },
       }),
-    [startWorkout, navigate, openDailyReset, openHomeReset],
+    [startWorkout, navigate, openDailyReset, openHomeReset, state.weeklySchedule, state.program, state.history, state.readiness, state.activeWorkout],
   )
 
   const avaRoleState = useMemo(

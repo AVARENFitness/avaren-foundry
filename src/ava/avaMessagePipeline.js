@@ -33,6 +33,7 @@ import {
 } from './actions/avaActionOrchestrator'
 import { resolveModelProposedAction } from './actions/avaActionResolver'
 import { runCoachPipelineStep } from './coach/avaCoachPipeline'
+import { runPlanningPipelineStep } from './planning/avaPlanningPipeline'
 import {
   matchCoachOperationalQuery,
   portfolioQueryLoadErrorMessage,
@@ -308,6 +309,21 @@ export async function runAvaMessagePipeline({
       const mapped = mapActionOutcomeToPipeline(actionOutcome)
       if (mapped) {
         return mapped
+      }
+    }
+
+    if (!effectiveCoachAccess && !shouldRouteNutritionPending(text, { session })) {
+      const planningOutcome = await runPlanningPipelineStep({
+        message: text,
+        session,
+        packet,
+        actionRuntime,
+        role,
+      })
+
+      if (planningOutcome) {
+        debugLog('plan-route', { kind: planningOutcome.kind })
+        return planningOutcome
       }
     }
 
