@@ -12,6 +12,7 @@ export function createAvaActionRuntime({
   getSnapshot,
   getPlanningState,
   applyPlanningChanges,
+  submitCoachFollowUp,
   onNavigateIntent,
 } = {}) {
   return {
@@ -32,6 +33,8 @@ export function createAvaActionRuntime({
       typeof getPlanningState === 'function' ? getPlanningState : () => ({}),
     applyPlanningChanges:
       typeof applyPlanningChanges === 'function' ? applyPlanningChanges : null,
+    submitCoachFollowUp:
+      typeof submitCoachFollowUp === 'function' ? submitCoachFollowUp : null,
     onNavigateIntent:
       typeof onNavigateIntent === 'function' ? onNavigateIntent : null,
   }

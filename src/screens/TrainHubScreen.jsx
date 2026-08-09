@@ -14,6 +14,7 @@ import {
   executionPlanSummaryLabel,
   isExecutionPlanCurrent,
 } from '../lib/sessionExecutionPlan'
+import { sessionModeLabel } from '../lib/sessionMode'
 import { resolveTodayWorkoutContext } from '../lib/todayWorkout'
 
 const ActionCard = ({ icon: Icon, title, description, onClick, primary = false }) => (
@@ -36,13 +37,13 @@ export default function TrainHubScreen({ state, onStart, navigate }) {
     () => resolveTodayWorkoutContext(state),
     [state],
   )
-  const coachLabel = useMemo(
-    () =>
-      coachOwnershipLabel(
-        buildPlanningOwnership({ todayWorkout: todayContext }),
-      ),
-    [todayContext],
-  )
+  const coachLabel = useMemo(() => {
+    const fromSession = sessionModeLabel(activeWorkout?.sessionMode)
+    if (fromSession) return fromSession
+    return coachOwnershipLabel(
+      buildPlanningOwnership({ todayWorkout: todayContext }),
+    )
+  }, [activeWorkout?.sessionMode, todayContext])
   const executionFocusLabel = useMemo(() => {
     if (!isExecutionPlanCurrent(state.sessionExecutionPlan)) return null
     return executionPlanSummaryLabel(state.sessionExecutionPlan)
@@ -76,7 +77,7 @@ export default function TrainHubScreen({ state, onStart, navigate }) {
         </div>
         <button className="gold-button machined" onClick={onStart}>
           <Dumbbell size={18} />
-          {activeWorkout ? 'Continue Workout' : 'Start Workout'}
+          {activeWorkout ? 'Continue Session' : 'Start Session'}
           <ArrowRight size={17} />
         </button>
       </section>

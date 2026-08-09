@@ -189,3 +189,35 @@ These are not rejected forever — they are deferred until the core loop is perf
 | 2.0 | Motion Studio, ecosystem integrations |
 
 Detailed release notes: `docs/AVAREN_OS/RELEASE_NOTES.md` and `docs/AVAREN_OS/releases/`.
+
+---
+
+## Sprint 8.2 — In-Person Coaching + Coach Handoff (Architecture Note)
+
+**Shipped in app (pending SQL migration for cross-device follow-ups):**
+
+- Canonical `sessionMode`: `solo` | `coach_assigned` | `in_person_coached` on active/completed sessions
+- Athlete Home/Train/Gym coached-session clarity; Gym Mode coach/in-person banner
+- Structured **Coach Follow-Up** domain (allowlisted reason types, `open` | `reviewed` | `resolved`)
+- AVA athlete handoff: pain/schedule/program requests → confirmation card → persist (no raw transcript)
+- Coach attention queue ingests open follow-ups alongside weekly check-in flags
+- Client Profile quiet **Needs Attention** panel when open follow-ups exist
+
+**Proposed SQL (not auto-run):** `docs/supabase/AVAREN_COACH_CLIENT_FOLLOWUPS_8_2.sql`
+
+### Recommended post-8.2 domain order (AVAREN OS)
+
+Priority by daily coaching value and dependency:
+
+1. **Appointment scheduling** — separates calendar appointments from workout assignments (foundation partially exists via `coach_scheduled_sessions`)
+2. **Attendance** — `scheduled` → `started` → `completed` | `missed` | `cancelled` (session mode + completion data already captured)
+3. **Client onboarding** — intake, goals, coach relationship setup
+4. **Forms / waivers** — liability before in-person training at scale
+5. **Packages / session credits** — ties attendance to commercial packages (partial package UI exists)
+6. **Billing / subscriptions** — after attendance and packages are trustworthy
+7. **Messaging / communication** — lightweight thread after follow-ups prove structured handoff works
+8. **Staff permissions** — multi-coach businesses
+9. **Business analytics** — after operational data is reliable
+10. **Lead / client CRM** — acquisition layer, not daily session execution
+
+**Explicitly still deferred:** full CRM, billing automation, native messaging, ticketing.

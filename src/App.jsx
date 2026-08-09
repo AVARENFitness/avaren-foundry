@@ -140,6 +140,7 @@ const createInitialState = (ownerUserId = null) => ({
   },
   nutrition: createNutritionState(),
   sessionExecutionPlan: null,
+  athleteFollowUps: [],
 })
 
 
@@ -949,6 +950,26 @@ function App() {
               : {}),
           }))
         },
+        submitCoachFollowUp: async (proposal = {}) => {
+          const saved = await coachBackend.createClientFollowUp({
+            reasonType: proposal.reasonType,
+            summary: proposal.summary,
+            sourceType: proposal.sourceType,
+            sessionId: proposal.sessionId,
+            assignmentId: proposal.assignmentId,
+          })
+          setState((current) => ({
+            ...current,
+            athleteFollowUps: [
+              saved,
+              ...(current.athleteFollowUps ?? []).filter(
+                (item) => item.id !== saved.id,
+              ),
+            ],
+          }))
+          invalidateCoachPortfolioCache()
+          return saved
+        },
       }),
     [startWorkout, navigate, openDailyReset, openHomeReset, state.weeklySchedule, state.program, state.history, state.readiness, state.activeWorkout, state.sessionExecutionPlan],
   )
@@ -1522,6 +1543,9 @@ function App() {
           recentPrs={completionPrs}
           milestones={earnedMilestones}
           forgeAchievements={earnedForgeAchievements}
+          openCoachFollowUpCount={(state.athleteFollowUps ?? []).filter(
+            (item) => item.status === 'open',
+          ).length}
           onSaveReflection={saveSessionReflection}
           onDone={() => {
             setCompletedSession(null)

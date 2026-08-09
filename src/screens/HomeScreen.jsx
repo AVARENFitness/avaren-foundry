@@ -25,6 +25,11 @@ import {
   executionPlanSummaryLabel,
   isExecutionPlanCurrent,
 } from '../lib/sessionExecutionPlan'
+import {
+  hasScheduledInPersonToday,
+  resolveSessionMode,
+  sessionModeLabel,
+} from '../lib/sessionMode'
 
 const DAY_MS = 86400000
 
@@ -69,11 +74,16 @@ export default function HomeScreen({
 }) {
   const { openAva } = useAvaUi()
   const [assignments, setAssignments] = useState([])
+  const [scheduledSessions, setScheduledSessions] = useState([])
 
   useEffect(() => {
     coachBackend
       .listAthleteAssignments()
       .then(setAssignments)
+      .catch(() => {})
+    coachBackend
+      .listAthleteScheduledSessions()
+      .then(setScheduledSessions)
       .catch(() => {})
   }, [])
 
@@ -128,6 +138,13 @@ export default function HomeScreen({
     const executionFocusLabel = isExecutionPlanCurrent(state.sessionExecutionPlan)
       ? executionPlanSummaryLabel(state.sessionExecutionPlan)
       : null
+    const inPersonToday = hasScheduledInPersonToday(scheduledSessions)
+    const sessionMode = resolveSessionMode({
+      assignmentId: activeCoachAssignment?.id ?? null,
+      coachAssigned: Boolean(activeCoachAssignment),
+      inPersonToday,
+    })
+    const coachedSessionLabel = sessionModeLabel(sessionMode)
 
     return {
       greeting: `${greetingForHour(now.getHours())}${firstName ? `, ${firstName}` : ''}`,
@@ -138,13 +155,15 @@ export default function HomeScreen({
       }),
       workoutName,
       isRestDay,
-      coachLabel: coachOwnershipLabel(coachOwnership),
+      coachLabel: coachedSessionLabel ?? coachOwnershipLabel(coachOwnership),
+      inPersonToday,
+      sessionMode,
       executionFocusLabel,
       workouts: workoutsThisWeek.length,
       volume: Math.round(weeklyVolume),
       prs: weeklyPRs.length,
     }
-  }, [state, userName, assignments, activeCoachAssignment])
+  }, [state, userName, assignments, activeCoachAssignment, scheduledSessions])
 
   const readinessScore = readiness?.completed
     ? readiness.score
@@ -237,7 +256,7 @@ export default function HomeScreen({
       />
 
       <section className="home-today-plan">
-        <span className="eyebrow">TODAY&apos;S PLAN</span>
+        <span className="eyebrow">TODAY</span>
         {dashboard.isRestDay && !activeCoachAssignment ? (
           <>
             <h2>Rest day</h2>
@@ -249,6 +268,9 @@ export default function HomeScreen({
               <span className="home-coach-ownership eyebrow">{dashboard.coachLabel}</span>
             ) : null}
             <h2>{dashboard.workoutName}</h2>
+            {dashboard.inPersonToday ? (
+              <p className="home-in-person-note">In-person session today</p>
+            ) : null}
             {dashboard.executionFocusLabel ? (
               <p className="home-execution-focus">{dashboard.executionFocusLabel} active</p>
             ) : null}
@@ -257,6 +279,21 @@ export default function HomeScreen({
                 ? 'Your coach programmed this session.'
                 : 'Scheduled on your weekly plan.'}
             </p>
+            {(activeCoachAssignment || state.activeWorkout) && (
+              <button
+                type="button"
+                className="gold-button machined home-start-session"
+                onClick={() => {
+                  if (activeCoachAssignment) {
+                    onStartCoachAssignment?.(activeCoachAssignment)
+                    return
+                  }
+                  onStart()
+                }}
+              >
+                {state.activeWorkout ? 'Continue Session' : 'Start Session'}
+              </button>
+            )}
           </>
         ) : (
           <>
@@ -275,10 +312,12 @@ export default function HomeScreen({
       </section>
 
       <div className="home-assignment-slot">
-        <AthleteAssignmentHome
-          compact
-          onStartAssignment={onStartCoachAssignment}
-        />
+        {!activeCoachAssignment && (
+          <AthleteAssignmentHome
+            compact
+            onStartAssignment={onStartCoachAssignment}
+          />
+        )}
       </div>
 
       {weeklyCheckInConfirmation && (

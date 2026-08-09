@@ -24,6 +24,7 @@ vi.mock('../../lib/coachBackend', () => ({
     listAthleteFoundryStates: vi.fn(),
     listAthleteNutritionSnapshots: vi.fn(),
     listCoachWeeklyReviews: vi.fn(),
+    listCoachClientFollowUps: vi.fn(),
   },
 }))
 

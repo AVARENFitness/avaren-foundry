@@ -33,10 +33,15 @@ import { AVA_PIPELINE_KIND, runAvaMessagePipeline } from './avaMessagePipeline'
 import { AVA_ACTION_OUTCOME_KIND, AVA_ACTION_IDS } from './actions/avaActionTypes'
 import { isNavigationAction } from './actions/avaActionReferent'
 import { orchestrateUiAction } from './actions/avaActionOrchestrator'
+import {
+  clearPendingCoachFollowUp,
+  setPendingCoachFollowUp,
+} from './coach/avaCoachFollowUpSession'
 import { runCoachDisambiguationStep } from './coach/avaCoachPipeline'
 import { recordAvaTurn } from '../lib/avaSessionContext'
 import AvaConfirmationPreview from './AvaConfirmationPreview'
 import AvaPlanProposalCard from './AvaPlanProposalCard'
+import AvaFollowUpProposalCard from './AvaFollowUpProposalCard'
 import { buildConfirmationPreview } from './buildConfirmationPreview'
 import { useAva } from './useAva'
 import { useFocusTrap } from './useFocusTrap'
@@ -350,6 +355,18 @@ export default function AvaSheet({
       return
     }
 
+    if (outcome.kind === AVA_PIPELINE_KIND.FOLLOW_UP_PROPOSAL) {
+      if (outcome.followUpProposal) {
+        setPendingCoachFollowUp(session, outcome.followUpProposal)
+      }
+      appendMessage(
+        createMessage('ava', outcome.message, {
+          followUpProposal: outcome.followUpProposal,
+        }),
+      )
+      return
+    }
+
     if (outcome.kind === AVA_PIPELINE_KIND.ACTION_READY) {
       appendMessage(
         createMessage('ava', outcome.message, {
@@ -607,6 +624,33 @@ export default function AvaSheet({
     }
   }
 
+  const handleFollowUpSend = async (messageId, proposal) => {
+    if (loading || actionBusyId) return
+    setActionBusyId('SEND_COACH_FOLLOWUP')
+    setLoading(true)
+    try {
+      setPendingCoachFollowUp(session, proposal)
+      const outcome = await runMessage('send to coach')
+      applyPipelineOutcome(outcome)
+      setExecutedActionIds((current) => [
+        ...current,
+        `${messageId}-SEND_COACH_FOLLOWUP`,
+      ])
+    } finally {
+      setActionBusyId(null)
+      setLoading(false)
+    }
+  }
+
+  const handleFollowUpCancel = (messageId) => {
+    clearPendingCoachFollowUp(session)
+    setExecutedActionIds((current) => [
+      ...current,
+      `${messageId}-CANCEL_COACH_FOLLOWUP`,
+    ])
+    appendMessage(createMessage('ava', 'Follow-up cancelled.'))
+  }
+
   const handleAction = async (action, messageId) => {
     const actionId = action.actionId ?? action.id
     if (!actionId || actionBusyId) return
@@ -722,6 +766,21 @@ export default function AvaSheet({
                   <span className="ava-chat-label ava-chat-label--user">You</span>
                 )}
                 <p>{message.text}</p>
+                {message.followUpProposal &&
+                !executedActionIds.some(
+                  (entry) =>
+                    entry.startsWith(`${message.id}-SEND_COACH_FOLLOWUP`) ||
+                    entry.startsWith(`${message.id}-CANCEL_COACH_FOLLOWUP`),
+                ) ? (
+                  <AvaFollowUpProposalCard
+                    proposal={message.followUpProposal}
+                    busy={Boolean(actionBusyId)}
+                    onSend={() =>
+                      handleFollowUpSend(message.id, message.followUpProposal)
+                    }
+                    onCancel={() => handleFollowUpCancel(message.id)}
+                  />
+                ) : null}
                 {message.planProposal ? (
                   <AvaPlanProposalCard
                     proposal={message.planProposal}

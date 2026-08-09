@@ -20,6 +20,7 @@ import {
   WEEKLY_CHECK_IN_PAIN,
   normalizeWeeklyCheckIn,
 } from '../../lib/weeklyCheckIn'
+import { isOpenFollowUp } from '../../lib/coachFollowUp'
 
 const DEFAULT_ATTENTION_DISPLAY = 5
 
@@ -96,7 +97,7 @@ const mapQueueEntryToResultItem = (entry = {}, { primaryReason = null } = {}) =>
       ? 'review still open'
       : reason?.type === ATTENTION_REASON_TYPES.COACH_FOLLOWUP_NEEDED ||
         primaryReason === ATTENTION_REASON_TYPES.COACH_FOLLOWUP_NEEDED
-      ? 'flagged something in their weekly check-in'
+      ? reason?.evidence ?? 'flagged something for follow-up'
       : isRecoveryAttentionReason(primaryReason) ||
         isRecoveryAttentionReason(reason?.type)
       ? 'recovery concern'
@@ -107,7 +108,7 @@ const mapQueueEntryToResultItem = (entry = {}, { primaryReason = null } = {}) =>
 
   return {
     athleteId: entry.athleteId,
-    clientName: entry.displayName,
+    clientName: entry.displayName || entry.clientName || 'Client',
     reason: displayReason,
     evidence: reason?.evidence ?? '',
     type: reason?.type ?? null,
@@ -378,6 +379,26 @@ export const queryWeeklyReviews = (coachContext = {}, now = new Date()) => {
   }
 }
 
+export const queryClientFollowUps = (coachContext = {}, now = new Date()) => {
+  const { queue, meta } = buildCoachAttentionQueue(coachContext, now)
+  const items = filterAttentionQueueByReason(
+    queue,
+    ATTENTION_REASON_TYPES.COACH_FOLLOWUP_NEEDED,
+  ).map((entry) =>
+    mapQueueEntryToResultItem(entry, {
+      primaryReason: ATTENTION_REASON_TYPES.COACH_FOLLOWUP_NEEDED,
+    }),
+  )
+
+  return {
+    actionId: AVA_ACTION_IDS.SHOW_CLIENT_FOLLOWUPS,
+    items,
+    totalCount: items.length,
+    emptyMessage: 'No open client follow-ups right now.',
+    partialDataNote: formatPartialDataNote(meta),
+  }
+}
+
 export const buildClientSummaryFacts = ({
   entry = null,
   coachContext = {},
@@ -412,6 +433,9 @@ export const buildClientSummaryFacts = ({
     queue,
     entry.client?.athlete_id,
   )
+  const openFollowUps = (
+    coachContext.coachFollowUpsByAthleteId?.[entry.client?.athlete_id] ?? []
+  ).filter(isOpenFollowUp)
 
   return {
     clientName: buildCoachClientLabel(entry.client) ?? entry.clientName,
@@ -431,6 +455,10 @@ export const buildClientSummaryFacts = ({
     nutritionDaysLogged: nutrition.daysLoggedThisWeek ?? null,
     assignmentStatus: intelligence.assignment?.active?.title ?? null,
     attentionReasons: attentionEntry?.reasons ?? [],
+    openFollowUps: openFollowUps.map((item) => ({
+      summary: item.summary,
+      reasonType: item.reasonType,
+    })),
     attentionItems: (intelligence.attention ?? [])
       .filter((item) => item.id !== 'all-clear' && item.id !== 'performance-up')
       .map((item) => ({
@@ -477,6 +505,12 @@ export const formatClientSummaryMessage = (facts = {}) => {
     bullets.push('Weekly coach review still open')
   }
 
+  if (facts.openFollowUps?.length) {
+    facts.openFollowUps.forEach((item) => {
+      bullets.push(`Follow-up: ${item.summary}`)
+    })
+  }
+
   if (!bullets.length) {
     return `Nothing notable to report for ${facts.clientName} right now.`
   }
@@ -498,6 +532,8 @@ export const runCoachQuery = (actionId, coachContext = {}, now = new Date()) => 
       return queryNutritionConcerns(coachContext, now)
     case AVA_ACTION_IDS.OPEN_WEEKLY_REVIEWS:
       return queryWeeklyReviews(coachContext, now)
+    case AVA_ACTION_IDS.SHOW_CLIENT_FOLLOWUPS:
+      return queryClientFollowUps(coachContext, now)
     default:
       return null
   }
@@ -546,6 +582,21 @@ export const formatCoachQueryMessage = (result = {}) => {
   const partialNote = result.partialDataNote
     ? `\n\n${result.partialDataNote}`
     : ''
+
+  if (result.actionId === AVA_ACTION_IDS.SHOW_CLIENT_FOLLOWUPS) {
+    if (result.items.length === 1) {
+      return `${result.items[0].clientName} — ${result.items[0].reason}${partialNote}`
+    }
+
+    const count = result.totalCount ?? result.items.length
+    if (count > 1) {
+      const header = `${count} open client follow-ups:`
+      const lines = result.items.map(
+        (item) => `${item.clientName} — ${item.reason}`,
+      )
+      return [header, '', ...lines].join('\n') + partialNote
+    }
+  }
 
   if (result.actionId === AVA_ACTION_IDS.SHOW_CLIENTS_NEEDING_ATTENTION) {
     const count = result.totalCount ?? result.items.length

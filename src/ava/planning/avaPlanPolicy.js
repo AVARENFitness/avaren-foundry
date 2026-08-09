@@ -46,7 +46,13 @@ export const extractMentionedExercise = (message = '', exercises = []) => {
     .filter(Boolean)
 
   for (const name of names) {
-    if (text.includes(name.toLowerCase())) return name
+    const lower = name.toLowerCase()
+    if (text.includes(lower)) return name
+
+    const tokens = lower.split(/\s+/).filter((token) => token.length > 3)
+    for (const token of tokens) {
+      if (text.includes(token)) return name
+    }
   }
 
   const match = text.match(
@@ -60,6 +66,14 @@ export const buildCoachRequiredResponse = ({
   ownership = {},
 } = {}) => {
   const target = exerciseName ? `${exerciseName}` : 'that movement'
+
+  if (ownership.inPersonCoached) {
+    return {
+      kind: 'coach_required',
+      message: `${target} is part of your coach's programmed session. Your coach can adjust that during the session.`,
+      readOnly: true,
+    }
+  }
 
   return {
     kind: 'coach_required',
@@ -76,12 +90,22 @@ export const buildPainExecutionResponse = ({
 } = {}) => {
   const target = exerciseName ? `${exerciseName}` : 'that movement'
 
+  if (ownership.inPersonCoached) {
+    return {
+      kind: 'pain_guidance',
+      message: `Stop ${target} if pain is sharp — don't force it. Your coach can adjust the session in person.`,
+      readOnly: true,
+      offerFollowUp: true,
+    }
+  }
+
   return {
     kind: 'pain_guidance',
     message: ownership.coachAssigned
       ? `If ${target} is bothering you, stop if pain is sharp and avoid forcing it today. ${coachProgramProtectedCopy} Tell your coach so they can adjust the plan if needed.`
       : `If ${target} is bothering you, stop if pain is sharp and avoid forcing it today. I can help you trim the session around it without rewriting your workout.`,
     readOnly: true,
+    offerFollowUp: Boolean(ownership.coachAssigned || ownership.hasCoachRelationship),
   }
 }
 

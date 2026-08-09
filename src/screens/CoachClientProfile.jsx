@@ -14,6 +14,7 @@ import CollapsibleIdentityPanel, {
   IDENTITY_EDITOR_MODE,
 } from '../components/ui/CollapsibleIdentityPanel'
 import { coachBackend } from '../lib/coachBackend'
+import { invalidateCoachPortfolioCache } from '../lib/coachPortfolioService'
 import { buildClientIntelligence } from '../lib/clientIntelligence'
 import {
   getAthleteDisplayName,
@@ -30,6 +31,7 @@ import {
   formatWeeklyCheckInSummary,
 } from '../lib/weeklyCheckIn'
 import { weeklyCheckInBackend } from '../lib/weeklyCheckInBackend'
+import { isOpenFollowUp, normalizeCoachFollowUp } from '../lib/coachFollowUp'
 import {
   emptySessionPackage,
   formatPackageDate,
@@ -115,6 +117,26 @@ export default function CoachClientProfile({
   const [notesDraft, setNotesDraft] = useState(clientNotes)
   const [notesError, setNotesError] = useState('')
   const [notesSaving, setNotesSaving] = useState(false)
+  const [clientFollowUps, setClientFollowUps] = useState([])
+  const [followUpBusyId, setFollowUpBusyId] = useState(null)
+
+  const updateFollowUpStatus = async (followUpId, status) => {
+    setFollowUpBusyId(followUpId)
+    try {
+      const updated = await coachBackend.updateClientFollowUpStatus(
+        followUpId,
+        status,
+      )
+      setClientFollowUps((current) =>
+        current
+          .map((row) => (row.id === followUpId ? updated : row))
+          .filter(isOpenFollowUp),
+      )
+      invalidateCoachPortfolioCache()
+    } finally {
+      setFollowUpBusyId(null)
+    }
+  }
 
   useEffect(() => {
     return () => {
@@ -307,6 +329,30 @@ export default function CoachClientProfile({
     }
   }, [client.athlete_id])
 
+  useEffect(() => {
+    let active = true
+    coachBackend
+      .listCoachClientFollowUps()
+      .then((rows) => {
+        if (!active) return
+        setClientFollowUps(
+          (rows ?? [])
+            .map(normalizeCoachFollowUp)
+            .filter(
+              (item) =>
+                item.athleteId === client.athlete_id && isOpenFollowUp(item),
+            ),
+        )
+      })
+      .catch(() => {
+        if (active) setClientFollowUps([])
+      })
+
+    return () => {
+      active = false
+    }
+  }, [client.athlete_id])
+
   const handleRecordSession = () => {
     setActiveSection('business')
     requestAnimationFrame(() => {
@@ -441,14 +487,47 @@ export default function CoachClientProfile({
     switch (activeSection) {
       case 'today':
         return (
-          <ClientIntelligenceDashboard
-            intelligence={intelligence}
-            loading={intelligenceLoading}
-            error={intelligenceError}
-            onSectionAction={handleSectionAction}
-            onAssignWorkout={onAssignWorkout}
-            onSaveNotes={() => setActiveSection('notes')}
-          />
+          <>
+            {clientFollowUps.length > 0 && (
+              <section className="coach-client-followup-panel">
+                <span className="eyebrow">NEEDS ATTENTION</span>
+                {clientFollowUps.map((item) => (
+                  <article key={item.id} className="coach-client-followup-card">
+                    <div>
+                      <strong>{item.summary}</strong>
+                      <small>{item.reasonType.replace(/_/g, ' ').toLowerCase()}</small>
+                    </div>
+                    <div className="coach-client-followup-actions">
+                      <button
+                        type="button"
+                        className="coach-secondary-button"
+                        disabled={followUpBusyId === item.id}
+                        onClick={() => updateFollowUpStatus(item.id, 'reviewed')}
+                      >
+                        Review
+                      </button>
+                      <button
+                        type="button"
+                        className="coach-secondary-button"
+                        disabled={followUpBusyId === item.id}
+                        onClick={() => updateFollowUpStatus(item.id, 'resolved')}
+                      >
+                        Resolve
+                      </button>
+                    </div>
+                  </article>
+                ))}
+              </section>
+            )}
+            <ClientIntelligenceDashboard
+              intelligence={intelligence}
+              loading={intelligenceLoading}
+              error={intelligenceError}
+              onSectionAction={handleSectionAction}
+              onAssignWorkout={onAssignWorkout}
+              onSaveNotes={() => setActiveSection('notes')}
+            />
+          </>
         )
 
       case 'training':

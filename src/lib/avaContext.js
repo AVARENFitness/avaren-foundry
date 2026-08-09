@@ -5,6 +5,12 @@ import {
   buildAvaEvidence,
 } from './avaIntelligence'
 import { resolveActiveCoachAssignment } from './coachAssignments'
+import { buildPlanningOwnership } from './planOwnership'
+import { resolveTodayWorkoutContext } from './todayWorkout'
+import {
+  executionPlanSummaryLabel,
+  isExecutionPlanCurrent,
+} from './sessionExecutionPlan'
 import { selectAvaPerformanceWin } from './metrics'
 import { nutritionDateKey, nutritionTotals } from './nutrition'
 import { extractFirstName } from './avaVoice'
@@ -125,6 +131,19 @@ export const buildAvaContextPacket = (state = {}, options = {}) => {
   const recentWorkouts = recentSessions(history, 7, now)
   const performanceWin = selectAvaPerformanceWin(history, now)
   const workoutName = briefing.workout?.displayName ?? null
+  const todayWorkout = resolveTodayWorkoutContext(state, {
+    now,
+    assignments,
+    activeCoachAssignment,
+  })
+  const planningOwnership = buildPlanningOwnership({
+    todayWorkout,
+    activeAssignment: activeCoachAssignment,
+    hasCoachRelationship: Boolean(assignments.length),
+  })
+  const executionFocusLabel = isExecutionPlanCurrent(state.sessionExecutionPlan)
+    ? executionPlanSummaryLabel(state.sessionExecutionPlan)
+    : null
   const nutritionDay = state.nutrition?.days?.[nutritionDateKey(now)] ?? null
   const nutritionTotalsToday = nutritionTotals(nutritionDay)
   const proteinGoal = Number(state.nutrition?.goals?.protein ?? 170)
@@ -138,6 +157,15 @@ export const buildAvaContextPacket = (state = {}, options = {}) => {
         (!flowId || item?.flowId === flowId)
       )
     })
+
+  const sanitizedTodayWorkout = todayWorkout
+    ? {
+        ...todayWorkout,
+        assignment: sanitizeAssignment(
+          todayWorkout.assignment ?? activeCoachAssignment,
+        ),
+      }
+    : null
 
   return {
     generatedAt: now.toISOString(),
@@ -225,6 +253,16 @@ export const buildAvaContextPacket = (state = {}, options = {}) => {
       canonicalWorkout: workoutName,
       canonicalWorkoutFormatted: formatWorkoutName(workoutName),
     },
+    todayWorkout: sanitizedTodayWorkout,
+    planningOwnership,
+    hasCoachRelationship: Boolean(assignments.length),
+    activeWorkout: state.activeWorkout ?? null,
+    executionFocusLabel,
+    todayWorkoutExercises: resolveWorkoutExercises(
+      state,
+      workoutName,
+      activeCoachAssignment,
+    ),
   }
 }
 

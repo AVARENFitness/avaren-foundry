@@ -28,6 +28,7 @@ import {
   exerciseExecutionRole,
   isExecutionPlanCurrent,
 } from '../lib/sessionExecutionPlan'
+import { sessionModeLabel } from '../lib/sessionMode'
 
 export default function GymScreen({
   state,
@@ -82,6 +83,7 @@ export default function GymScreen({
   const executionPlan = isExecutionPlanCurrent(state.sessionExecutionPlan)
     ? state.sessionExecutionPlan
     : null
+  const sessionModeBanner = sessionModeLabel(workout?.sessionMode)
   const currentExerciseRole = exerciseExecutionRole(
     executionPlan,
     workout?.exercises?.[activeExercise]?.name ?? workout?.exercises?.[0]?.name,
@@ -253,6 +255,15 @@ export default function GymScreen({
         </div>
         <ProgressRing value={progress} />
       </section>
+
+      {sessionModeBanner ? (
+        <section className="gym-coach-session-banner" aria-label="Session type">
+          <span className="eyebrow">{sessionModeBanner}</span>
+          {workout.coachNotes ? (
+            <p>{workout.coachNotes}</p>
+          ) : null}
+        </section>
+      ) : null}
 
       {executionPlan?.maxMinutes ? (
         <section className="gym-execution-focus-banner" aria-label="Session execution focus">

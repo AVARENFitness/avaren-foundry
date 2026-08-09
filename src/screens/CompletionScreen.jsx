@@ -78,6 +78,7 @@ export default function CompletionScreen({
   milestones = [],
   forgeAchievements = [],
   onSaveReflection,
+  openCoachFollowUpCount = 0,
 }) {
   const [reflection, setReflection] = useState(
     session?.reflection ?? '',
@@ -251,7 +252,7 @@ export default function CompletionScreen({
           AVAREN · THE FOUNDRY
         </span>
 
-        <h1>Workout forged.</h1>
+        <h1>Session complete</h1>
         <p>{session.name}</p>
 
         <div className="sprint5-hero-stats">
@@ -287,6 +288,13 @@ export default function CompletionScreen({
             </div>
           </article>
         </div>
+
+        <p className="completion-coach-followup-note">
+          Coach follow-up:{' '}
+          {openCoachFollowUpCount > 0
+            ? `${openCoachFollowUpCount} item${openCoachFollowUpCount === 1 ? '' : 's'} flagged for coach`
+            : 'None'}
+        </p>
       </header>
 
       {victoryCount > 0 && (
@@ -669,7 +677,7 @@ export default function CompletionScreen({
         className="gold-button machined sprint5-done-button"
         onClick={onDone}
       >
-        Continue Home
+        Done
         <ArrowRight size={18} />
       </button>
     </section>

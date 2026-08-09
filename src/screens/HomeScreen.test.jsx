@@ -19,6 +19,7 @@ vi.mock('../ava/useAvaUi', () => ({
 vi.mock('../lib/coachBackend', () => ({
   coachBackend: {
     listAthleteAssignments: vi.fn().mockResolvedValue([]),
+    listAthleteScheduledSessions: vi.fn().mockResolvedValue([]),
   },
 }))
 

@@ -2,6 +2,7 @@ import { buildCoachPortfolioIntelligence } from './clientIntelligence'
 import { coachBackend } from './coachBackend'
 import { weeklyCheckInBackend } from './weeklyCheckInBackend'
 import { normalizeWeeklyReview, getCoachWeekRange } from './weeklyReview'
+import { isOpenFollowUp, normalizeCoachFollowUp } from './coachFollowUp'
 
 export const COACH_PORTFOLIO_STATUS = {
   IDLE: 'idle',
@@ -106,6 +107,7 @@ export const buildCoachPortfolioBundle = ({
   nutritionByAthleteId = {},
   weeklyReviewsByAthleteId = {},
   weeklyCheckInsByAthleteId = {},
+  coachFollowUpsByAthleteId = {},
   status = COACH_PORTFOLIO_STATUS.READY,
   error = '',
   source = 'network',
@@ -141,6 +143,7 @@ export const buildCoachPortfolioBundle = ({
     nutritionByAthleteId,
     weeklyReviewsByAthleteId,
     weeklyCheckInsByAthleteId,
+    coachFollowUpsByAthleteId,
     portfolio,
     rosterEntries: portfolio.rosterEntries ?? [],
     loadedAt: Date.now(),
@@ -177,6 +180,10 @@ export const mergeCoachPortfolioBundle = (coachContext = {}, bundle = {}) => ({
   weeklyCheckInsByAthleteId:
     bundle.weeklyCheckInsByAthleteId ??
     coachContext.weeklyCheckInsByAthleteId ??
+    {},
+  coachFollowUpsByAthleteId:
+    bundle.coachFollowUpsByAthleteId ??
+    coachContext.coachFollowUpsByAthleteId ??
     {},
   portfolio: bundle.portfolio ?? coachContext.portfolio ?? null,
   rosterEntries:
@@ -275,12 +282,13 @@ const fetchPortfolioIntelligence = async (athleteIds = []) => {
   }
 
   const weekStart = getCoachWeekRange().weekStart
-  const [athleteStatesById, nutritionByAthleteId, reviews, weeklyCheckInsByAthleteId] =
+  const [athleteStatesById, nutritionByAthleteId, reviews, weeklyCheckInsByAthleteId, coachFollowUps] =
     await Promise.all([
       coachBackend.listAthleteFoundryStates(athleteIds),
       coachBackend.listAthleteNutritionSnapshots(athleteIds),
       coachBackend.listCoachWeeklyReviews(),
       weeklyCheckInBackend.listCoachWeeklyCheckIns(athleteIds, weekStart),
+      coachBackend.listCoachClientFollowUps({ status: 'open' }).catch(() => []),
     ])
 
   const weeklyReviewsByAthleteId = Object.fromEntries(
@@ -290,11 +298,21 @@ const fetchPortfolioIntelligence = async (athleteIds = []) => {
       .map((review) => [review.athleteId, review]),
   )
 
+  const coachFollowUpsByAthleteId = Object.fromEntries(
+    athleteIds.map((athleteId) => [
+      athleteId,
+      (coachFollowUps ?? [])
+        .map(normalizeCoachFollowUp)
+        .filter((item) => item.athleteId === athleteId && isOpenFollowUp(item)),
+    ]),
+  )
+
   return {
     athleteStatesById,
     nutritionByAthleteId,
     weeklyReviewsByAthleteId,
     weeklyCheckInsByAthleteId,
+    coachFollowUpsByAthleteId,
   }
 }
 

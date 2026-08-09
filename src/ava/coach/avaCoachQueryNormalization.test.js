@@ -22,6 +22,7 @@ vi.mock('../../lib/coachBackend', () => ({
     listAthleteFoundryStates: vi.fn(),
     listAthleteNutritionSnapshots: vi.fn(),
     listCoachWeeklyReviews: vi.fn(),
+    listCoachClientFollowUps: vi.fn(),
   },
 }))
 
@@ -145,6 +146,7 @@ const mockPortfolioBackend = () => {
   })
   coachBackend.listAthleteNutritionSnapshots.mockResolvedValue({})
   coachBackend.listCoachWeeklyReviews.mockResolvedValue([])
+  coachBackend.listCoachClientFollowUps.mockResolvedValue([])
   weeklyCheckInBackend.listCoachWeeklyCheckIns.mockResolvedValue({
     'sarah-1': submittedWeeklyCheckIn('sarah-1'),
   })

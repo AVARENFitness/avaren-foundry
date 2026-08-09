@@ -207,6 +207,17 @@ export const AVA_ACTION_REGISTRY = {
     buildSuccessMessage: () => 'Here are nutrition logging concerns.',
     buildFailureMessage: () => "I couldn't load nutrition signals right now.",
   },
+  [AVA_ACTION_IDS.SHOW_CLIENT_FOLLOWUPS]: {
+    id: AVA_ACTION_IDS.SHOW_CLIENT_FOLLOWUPS,
+    domain: AVA_ACTION_DOMAINS.COACH,
+    description: 'Show open athlete follow-ups.',
+    requiredContext: [],
+    confirmationPolicy: AVA_ACTION_CONFIRMATION.NONE,
+    reversible: false,
+    allowedRoles: ['coach'],
+    buildSuccessMessage: () => 'Here are open client follow-ups.',
+    buildFailureMessage: () => "I couldn't load client follow-ups right now.",
+  },
   [AVA_ACTION_IDS.CLIENT_SUMMARY]: {
     id: AVA_ACTION_IDS.CLIENT_SUMMARY,
     domain: AVA_ACTION_DOMAINS.COACH,

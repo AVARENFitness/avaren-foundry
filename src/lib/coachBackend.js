@@ -14,8 +14,29 @@ import {
 import { buildScheduleInstant } from './sessionReminders'
 import { DEFAULT_COACH_SCHEDULE_TIMEZONE } from './sessionTimezone'
 import { getCoachWeekRange } from './weeklyReview'
+import {
+  FOLLOWUP_STATUS,
+  normalizeCoachFollowUp,
+  validateCoachFollowUpInput,
+} from './coachFollowUp'
 
 const normalizeEmail = (value = '') => String(value).trim().toLowerCase()
+
+const devFollowUpStore = new Map()
+
+const readDevFollowUps = (coachId = null) =>
+  devFollowUpStore.get(String(coachId ?? '')) ?? []
+
+const writeDevFollowUp = (coachId = null, item = null) => {
+  const key = String(coachId ?? '')
+  const rows = readDevFollowUps(key)
+  devFollowUpStore.set(key, [item, ...rows])
+  return item
+}
+
+export const resetDevCoachFollowUpStore = () => {
+  devFollowUpStore.clear()
+}
 const missingBackend = (error) =>
   error?.code === '42P01' ||
   error?.code === '42883' ||
@@ -791,5 +812,177 @@ export const coachBackend = {
     }
 
     return normalizeRsvpRpcResult(data)
+  },
+
+  async getAthleteCoachId() {
+    const user = await currentUser()
+    const { data, error } = await supabase
+      .from('coach_clients')
+      .select('coach_id')
+      .eq('athlete_id', user.id)
+      .limit(1)
+      .maybeSingle()
+
+    if (error) {
+      if (missingBackend(error)) return null
+      throw error
+    }
+
+    return data?.coach_id ?? null
+  },
+
+  async createClientFollowUp({
+    reasonType = null,
+    summary = '',
+    sourceType = 'ava_athlete',
+    sessionId = null,
+    assignmentId = null,
+  } = {}) {
+    const user = await currentUser()
+    const resolvedCoachId = await this.getAthleteCoachId()
+
+    const validation = validateCoachFollowUpInput({
+      athleteId: user.id,
+      reasonType,
+      summary,
+      sourceType,
+    })
+
+    if (!validation.ok) {
+      throw new Error('Could not create coach follow-up.')
+    }
+
+    if (!resolvedCoachId) {
+      throw new Error('No coach relationship found for this athlete.')
+    }
+
+    const payload = {
+      coach_id: resolvedCoachId,
+      athlete_id: user.id,
+      reason_type: reasonType,
+      source_type: sourceType,
+      summary: String(summary).trim(),
+      status: FOLLOWUP_STATUS.OPEN,
+      session_id: sessionId ?? null,
+      assignment_id: assignmentId ?? null,
+    }
+
+    try {
+      const row = await unwrap(
+        supabase
+          .from('coach_client_followups')
+          .insert(payload)
+          .select()
+          .single(),
+      )
+      return normalizeCoachFollowUp(row)
+    } catch (error) {
+      if (missingBackend(error)) {
+        return writeDevFollowUp(
+          resolvedCoachId,
+          normalizeCoachFollowUp({
+            ...payload,
+            coachId: resolvedCoachId,
+            athleteId: user.id,
+            reasonType,
+            sourceType,
+          }),
+        )
+      }
+      throw error
+    }
+  },
+
+  async listAthleteFollowUps() {
+    const user = await currentUser()
+
+    try {
+      const rows = await unwrap(
+        supabase
+          .from('coach_client_followups')
+          .select('*')
+          .eq('athlete_id', user.id)
+          .order('created_at', { ascending: false }),
+      )
+      return (rows ?? []).map(normalizeCoachFollowUp)
+    } catch (error) {
+      if (missingBackend(error)) return []
+      throw error
+    }
+  },
+
+  async listCoachClientFollowUps({ status = null } = {}) {
+    const user = await currentUser()
+
+    try {
+      let query = supabase
+        .from('coach_client_followups')
+        .select('*')
+        .eq('coach_id', user.id)
+        .order('created_at', { ascending: false })
+
+      if (status) {
+        query = query.eq('status', status)
+      }
+
+      const rows = await unwrap(query)
+      return (rows ?? []).map(normalizeCoachFollowUp)
+    } catch (error) {
+      if (missingBackend(error)) {
+        const devRows = readDevFollowUps(user.id)
+        return status
+          ? devRows.filter((item) => item.status === status)
+          : devRows
+      }
+      throw error
+    }
+  },
+
+  async updateClientFollowUpStatus(followUpId, status) {
+    const user = await currentUser()
+
+    try {
+      const { data, error } = await supabase.rpc(
+        'update_coach_client_followup_status',
+        {
+          p_followup_id: followUpId,
+          p_status: status,
+        },
+      )
+
+      if (error) {
+        if (missingBackend(error)) {
+          throw new Error(
+            'Coach follow-up lifecycle is not installed. Run AVAREN_COACH_CLIENT_FOLLOWUPS_8_2.sql.',
+          )
+        }
+        throw error
+      }
+
+      return normalizeCoachFollowUp(data)
+    } catch (error) {
+      if (missingBackend(error)) {
+        const rows = readDevFollowUps(user.id)
+        const index = rows.findIndex((item) => item.id === followUpId)
+        if (index === -1) throw new Error('Follow-up not found.')
+        const updated = normalizeCoachFollowUp({
+          ...rows[index],
+          status,
+          reviewedAt:
+            status === FOLLOWUP_STATUS.REVIEWED ||
+            status === FOLLOWUP_STATUS.RESOLVED
+              ? new Date().toISOString()
+              : null,
+          resolvedAt:
+            status === FOLLOWUP_STATUS.RESOLVED
+              ? new Date().toISOString()
+              : null,
+        })
+        rows[index] = updated
+        devFollowUpStore.set(String(user.id), rows)
+        return updated
+      }
+      throw error
+    }
   },
 }

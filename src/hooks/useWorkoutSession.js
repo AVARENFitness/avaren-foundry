@@ -13,6 +13,12 @@ import {
   attachExecutionMetadataToSession,
   isExecutionPlanCurrent,
 } from '../lib/sessionExecutionPlan'
+import {
+  attachSessionModeMetadata,
+  hasScheduledInPersonToday,
+  resolveSessionMode,
+  SESSION_MODE,
+} from '../lib/sessionMode'
 
 const makeSet = (number, type = 'Working') => ({
   id: crypto.randomUUID(),
@@ -224,7 +230,10 @@ export function useWorkoutSession({
     }
 
     const { name } = resolveTodayWorkoutContext(state)
-    const activeWorkout = buildActiveWorkout(name)
+    const activeWorkout = attachSessionModeMetadata(
+      buildActiveWorkout(name),
+      SESSION_MODE.SOLO,
+    )
 
     setActiveExercise(0)
     navigate('gym', () => {
@@ -348,12 +357,27 @@ export function useWorkoutSession({
       return
     }
 
+    let scheduledSessions = []
+    try {
+      scheduledSessions = await coachBackend.listAthleteScheduledSessions()
+    } catch {
+      scheduledSessions = []
+    }
+
+    const sessionMode = resolveSessionMode({
+      assignmentId: assignment.id,
+      coachAssigned: true,
+      inPersonToday: hasScheduledInPersonToday(scheduledSessions),
+    })
+
+    const coachedWorkout = attachSessionModeMetadata(activeWorkout, sessionMode)
+
     setActiveExercise(0)
     navigate('gym', () => {
       setState((current) => ({
         ...current,
         selectedWorkout: definition.name,
-        activeWorkout,
+        activeWorkout: coachedWorkout,
       }))
     })
   }, [navigate, setState, setActiveExercise])
@@ -534,6 +558,14 @@ export function useWorkoutSession({
         intent: workout.intent ?? '',
         notes: workout.notes ?? '',
         reflection: workout.reflection ?? '',
+        assignmentId: workout.assignmentId ?? null,
+        sessionMode: workout.sessionMode ?? SESSION_MODE.SOLO,
+        exercisesPerformed: workout.exercises.map((exercise) => ({
+          name: exercise.name,
+          skipped: Boolean(exercise.skipped),
+          oneTime: Boolean(exercise.oneTime),
+          sets: exercise.sets.filter((set) => Number(set.reps) > 0),
+        })),
         sets,
       },
       isExecutionPlanCurrent(state.sessionExecutionPlan)

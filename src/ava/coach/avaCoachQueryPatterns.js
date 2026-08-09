@@ -16,6 +16,7 @@ export const COACH_QUERY_TYPES = {
   TRAINING: 'training',
   NUTRITION: 'nutrition',
   WEEKLY_REVIEW: 'weekly_review',
+  FOLLOWUP: 'followup',
 }
 
 export const COACH_INTENT_FAMILIES = {
@@ -25,6 +26,7 @@ export const COACH_INTENT_FAMILIES = {
   [COACH_QUERY_TYPES.TRAINING]: 'coach_training',
   [COACH_QUERY_TYPES.NUTRITION]: 'coach_nutrition',
   [COACH_QUERY_TYPES.WEEKLY_REVIEW]: 'coach_weekly_review',
+  [COACH_QUERY_TYPES.FOLLOWUP]: 'coach_followup',
 }
 
 const CONTRACTION_REPLACEMENTS = [
@@ -64,6 +66,8 @@ export const normalizeCoachQueryText = (value = '') => {
     .replace(/\bcheck ins\b/g, 'check in')
     .replace(/\bcheckins\b/g, 'check in')
     .replace(/\bcheckin\b/g, 'check in')
+    .replace(/\bfollow ups\b/g, 'follow up')
+    .replace(/\bfollowups\b/g, 'follow up')
     .replace(/\s+/g, ' ')
     .trim()
 }
@@ -85,7 +89,7 @@ export const isCoachRosterTargetingPhrase = (normalizedText = '') => {
 
   return (
     /^(who|anyone|anybody|what clients|what do i need|show|any)\b/.test(text) ||
-    /\b(clients|concerns|reviews|check in|missing check)\b/.test(text) ||
+    /\b(clients|concerns|reviews|check in|missing check|follow up)\b/.test(text) ||
     /\bwho (is|has|still|should|needs|do)\b/.test(text)
   )
 }
@@ -108,6 +112,13 @@ const matchesRecoveryIntent = (text = '') =>
   /\bshow recovery concerns\b/.test(text) ||
   /\banyone struggling with recovery\b/.test(text) ||
   (/\brecovery concerns\b/.test(text) && /\b(show|any)\b/.test(text))
+
+const matchesFollowUpIntent = (text = '') =>
+  /\bany client follow up\b/.test(text) ||
+  /\bclient follow ups\b/.test(text) ||
+  /\bopen follow ups\b/.test(text) ||
+  /\bany follow ups\b/.test(text) ||
+  (/\bfollow up\b/.test(text) && /\b(any|client|show|open)\b/.test(text))
 
 const matchesAttentionIntent = (text = '') =>
   /\bwho needs my attention\b/.test(text) ||
@@ -151,6 +162,11 @@ const INTENT_MATCHERS = [
     queryType: COACH_QUERY_TYPES.RECOVERY,
     actionId: AVA_ACTION_IDS.SHOW_RECOVERY_CONCERNS,
     match: matchesRecoveryIntent,
+  },
+  {
+    queryType: COACH_QUERY_TYPES.FOLLOWUP,
+    actionId: AVA_ACTION_IDS.SHOW_CLIENT_FOLLOWUPS,
+    match: matchesFollowUpIntent,
   },
   {
     queryType: COACH_QUERY_TYPES.ATTENTION,

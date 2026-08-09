@@ -3,6 +3,7 @@ export const AVA_PIPELINE_KIND = {
   CLARIFICATION: 'clarification',
   CONFIRMATION: 'confirmation',
   PLAN_PROPOSAL: 'plan_proposal',
+  FOLLOW_UP_PROPOSAL: 'follow_up_proposal',
   ACTION_READY: 'action_ready',
   ACTION_CONFIRMATION: 'action_confirmation',
   ACTION_SUCCESS: 'action_success',
@@ -79,6 +80,7 @@ export const createPipelineOutcome = (partial = {}) => ({
   actions: partial.actions ?? [],
   coachResults: partial.coachResults ?? [],
   planProposal: partial.planProposal ?? null,
+  followUpProposal: partial.followUpProposal ?? null,
 })
 
 export const createPipelineFailure = (message = FALLBACK_MESSAGE, raw = null) =>

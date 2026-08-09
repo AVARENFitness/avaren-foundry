@@ -8,6 +8,10 @@ import {
   summarizeRosterCheckInStatus,
 } from './avaCoachCheckIn'
 import {
+  FOLLOWUP_REASON_PRIORITY,
+  isOpenFollowUp,
+} from '../../lib/coachFollowUp'
+import {
   WEEKLY_CHECK_IN_PAIN,
   normalizeWeeklyCheckIn,
 } from '../../lib/weeklyCheckIn'
@@ -80,7 +84,7 @@ export const REASON_SHORT_LABELS = {
   [ATTENTION_REASON_TYPES.LOW_RECOVERY]: 'recovery concern',
   [ATTENTION_REASON_TYPES.RECOVERY_CONCERN]: 'recovery concern',
   [ATTENTION_REASON_TYPES.COACH_FOLLOWUP_NEEDED]:
-    'flagged something in their weekly check-in',
+    'flagged something for follow-up',
   [ATTENTION_REASON_TYPES.TRAINING_GAP]:
     'no recent completed session is recorded',
   [ATTENTION_REASON_TYPES.ASSIGNMENT_CONCERN]:
@@ -264,6 +268,7 @@ export const buildCoachAttentionQueue = (coachContext = {}, now = new Date()) =>
   const athleteStatesById = coachContext.athleteStatesById ?? {}
   const weeklyReviewsByAthleteId = coachContext.weeklyReviewsByAthleteId ?? {}
   const weeklyCheckInsByAthleteId = coachContext.weeklyCheckInsByAthleteId ?? {}
+  const coachFollowUpsByAthleteId = coachContext.coachFollowUpsByAthleteId ?? {}
   const portfolioLoaded = Boolean(
     coachContext.portfolioStatus === 'ready' ||
       coachContext.portfolioStatus === 'partial' ||
@@ -299,7 +304,7 @@ export const buildCoachAttentionQueue = (coachContext = {}, now = new Date()) =>
       if (!athleteId) return null
 
       const displayName =
-        buildCoachClientLabel(entry.client) ?? entry.clientName ?? 'Client'
+        buildCoachClientLabel(entry.client) || entry.clientName || 'Client'
       const intelligence = entry.intelligence ?? {}
       const readiness = intelligence.readiness ?? {}
       const reasons = []
@@ -329,6 +334,23 @@ export const buildCoachAttentionQueue = (coachContext = {}, now = new Date()) =>
             severity: 'high',
             evidence: followup.evidence,
             weekContext,
+          }),
+        )
+      }
+
+      const openFollowUp = (coachFollowUpsByAthleteId[athleteId] ?? []).find(
+        isOpenFollowUp,
+      )
+      if (openFollowUp?.summary) {
+        reasons.push(
+          buildReason({
+            type: ATTENTION_REASON_TYPES.COACH_FOLLOWUP_NEEDED,
+            severity:
+              FOLLOWUP_REASON_PRIORITY[openFollowUp.reasonType] >= 90
+                ? 'high'
+                : 'medium',
+            evidence: openFollowUp.summary,
+            recency: 'current',
           }),
         )
       }
@@ -529,7 +551,13 @@ export const formatAttentionExplanation = (entry = {}) => {
   }
 
   if (hasCoachFollowup) {
-    return `${name} flagged something for you in this week's check-in.`
+    const followUpReason = entry.reasons.find(
+      (reason) => reason.type === ATTENTION_REASON_TYPES.COACH_FOLLOWUP_NEEDED,
+    )
+    if (followUpReason?.evidence) {
+      return `${name} flagged a follow-up: ${followUpReason.evidence}`
+    }
+    return `${name} flagged something for you to review.`
   }
 
   if (hasMissingCheckIn && hasOpenReview) {

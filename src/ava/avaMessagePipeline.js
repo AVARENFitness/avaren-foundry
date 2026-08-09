@@ -33,6 +33,7 @@ import {
 } from './actions/avaActionOrchestrator'
 import { resolveModelProposedAction } from './actions/avaActionResolver'
 import { runCoachPipelineStep } from './coach/avaCoachPipeline'
+import { runCoachFollowUpPipelineStep } from './coach/avaCoachFollowUpPipeline'
 import { runPlanningPipelineStep } from './planning/avaPlanningPipeline'
 import {
   matchCoachOperationalQuery,
@@ -313,6 +314,19 @@ export async function runAvaMessagePipeline({
     }
 
     if (!effectiveCoachAccess && !shouldRouteNutritionPending(text, { session })) {
+      const followUpOutcome = await runCoachFollowUpPipelineStep({
+        message: text,
+        session,
+        packet,
+        actionRuntime,
+        role,
+      })
+
+      if (followUpOutcome) {
+        debugLog('followup-route', { kind: followUpOutcome.kind })
+        return followUpOutcome
+      }
+
       const planningOutcome = await runPlanningPipelineStep({
         message: text,
         session,

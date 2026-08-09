@@ -23,6 +23,7 @@ vi.mock('../../lib/coachBackend', () => ({
     listAthleteFoundryStates: vi.fn(),
     listAthleteNutritionSnapshots: vi.fn(),
     listCoachWeeklyReviews: vi.fn(),
+    listCoachClientFollowUps: vi.fn(),
   },
 }))
 
@@ -113,6 +114,7 @@ const mockPortfolioLoad = () => {
   coachBackend.listAthleteFoundryStates.mockResolvedValue(athleteStatesById)
   coachBackend.listAthleteNutritionSnapshots.mockResolvedValue({})
   coachBackend.listCoachWeeklyReviews.mockResolvedValue([])
+  coachBackend.listCoachClientFollowUps.mockResolvedValue([])
   weeklyCheckInBackend.listCoachWeeklyCheckIns.mockResolvedValue({
     'sarah-1': submittedWeeklyCheckIn('sarah-1'),
   })
@@ -218,6 +220,7 @@ describe('ava coach portfolio hydration 7.9.9', () => {
     })
     coachBackend.listAthleteNutritionSnapshots.mockResolvedValue({})
     coachBackend.listCoachWeeklyReviews.mockResolvedValue([])
+  coachBackend.listCoachClientFollowUps.mockResolvedValue([])
     weeklyCheckInBackend.listCoachWeeklyCheckIns.mockResolvedValue({
       'sarah-1': submittedWeeklyCheckIn('sarah-1'),
     })
