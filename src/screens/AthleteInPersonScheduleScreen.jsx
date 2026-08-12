@@ -1,14 +1,18 @@
-import { CalendarDays, ChevronLeft } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { CalendarDays, ChevronLeft } from 'lucide-react'
 import AthleteAppointmentDetailSheet from '../components/AthleteAppointmentDetailSheet'
 import { useAthleteAppointments } from '../hooks/useAthleteAppointments'
+import { coachBackend } from '../lib/coachBackend'
 import {
   appointmentTypeLabel,
+  appointmentStatusLabel,
   formatAppointmentDuration,
   formatAppointmentHomeWhen,
+  formatAppointmentWhen,
   linkedWorkoutTitle,
   locationLabel,
 } from '../lib/coachingAppointment'
+import { normalizeAthleteScheduledSession } from '../lib/coachScheduledSessions'
 import { canAthleteUpdateRsvp, RSVP_STATUS, rsvpAthleteLabel } from '../lib/sessionRsvp'
 
 export default function AthleteInPersonScheduleScreen({ onBack }) {
@@ -19,10 +23,35 @@ export default function AthleteInPersonScheduleScreen({ onBack }) {
     refreshAppointments,
   } = useAthleteAppointments()
   const [detailAppointment, setDetailAppointment] = useState(null)
+  const [pastAppointments, setPastAppointments] = useState([])
+  const [historyReady, setHistoryReady] = useState(false)
 
   useEffect(() => {
     refreshAppointments({ force: true })
   }, [refreshAppointments])
+
+  useEffect(() => {
+    let cancelled = false
+
+    coachBackend
+      .listAthleteScheduledSessionHistory()
+      .then((rows) => {
+        if (cancelled) return
+        setPastAppointments(
+          rows.map(normalizeAthleteScheduledSession).filter(Boolean),
+        )
+      })
+      .catch(() => {
+        if (!cancelled) setPastAppointments([])
+      })
+      .finally(() => {
+        if (!cancelled) setHistoryReady(true)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   useEffect(() => () => setDetailAppointment(null), [])
 
@@ -88,8 +117,34 @@ export default function AthleteInPersonScheduleScreen({ onBack }) {
       ) : ready ? (
         <div className="athlete-in-person-schedule-empty">
           <CalendarDays size={28} strokeWidth={1.5} />
-          <p>No in-person sessions scheduled.</p>
+          <p>No upcoming in-person sessions.</p>
         </div>
+      ) : null}
+
+      {historyReady && pastAppointments.length > 0 ? (
+        <section className="athlete-in-person-schedule-history">
+          <header>
+            <span className="eyebrow">PAST SESSIONS</span>
+          </header>
+          <ul className="athlete-in-person-schedule-list">
+            {pastAppointments.map((appointment) => (
+              <li key={appointment.id}>
+                <button
+                  type="button"
+                  className="athlete-in-person-schedule-item athlete-appointment-card athlete-in-person-schedule-item-button athlete-in-person-schedule-item-button--history"
+                  onClick={() => setDetailAppointment(appointment)}
+                >
+                  <strong className="athlete-appointment-card-when">
+                    {formatAppointmentWhen(appointment)}
+                  </strong>
+                  <span className="athlete-appointment-status-pill athlete-appointment-status-pill--compact">
+                    {appointmentStatusLabel(appointment)}
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
       ) : null}
 
       <AthleteAppointmentDetailSheet

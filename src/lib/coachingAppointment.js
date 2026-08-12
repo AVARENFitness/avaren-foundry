@@ -10,6 +10,7 @@ import {
   formatScheduledSessionDate,
   formatScheduledSessionTime,
 } from './sessionTimezone'
+import { isRsvpException, RSVP_STATUS } from './sessionRsvp'
 
 export { formatAppointmentDayTime, formatAppointmentHomeWhen } from './appointmentWhen'
 
@@ -90,6 +91,14 @@ export const appointmentRangeMs = (appointment = {}) => ({
 
 export const isActiveScheduledAppointment = (appointment = {}) =>
   appointment?.status === APPOINTMENT_STATUS.SCHEDULED
+
+export const isHistoricalAppointment = (appointment = {}) =>
+  appointment?.status === APPOINTMENT_STATUS.COMPLETED ||
+  appointment?.status === APPOINTMENT_STATUS.CANCELLED ||
+  appointment?.status === APPOINTMENT_STATUS.MISSED
+
+export const filterActiveAppointments = (appointments = []) =>
+  (appointments ?? []).filter(isActiveScheduledAppointment)
 
 export const appointmentsOverlap = (first = {}, second = {}) => {
   if (!isActiveScheduledAppointment(first) || !isActiveScheduledAppointment(second)) {
@@ -347,4 +356,80 @@ export const groupAppointmentsByDate = (appointments = []) => {
   })
 
   return [...groups.entries()].map(([date, items]) => ({ date, items }))
+}
+
+export const filterAppointmentHistory = (appointments = []) =>
+  sortAppointmentsByStart(appointments ?? []).filter(isHistoricalAppointment)
+
+export const summarizeAppointmentHistory = (appointments = []) => {
+  const history = filterAppointmentHistory(appointments)
+
+  return {
+    completed: history.filter(
+      (item) => item.status === APPOINTMENT_STATUS.COMPLETED,
+    ).length,
+    cancelled: history.filter(
+      (item) => item.status === APPOINTMENT_STATUS.CANCELLED,
+    ).length,
+    missed: history.filter(
+      (item) => item.status === APPOINTMENT_STATUS.MISSED,
+    ).length,
+    total: history.length,
+  }
+}
+
+export const coachAppointmentCardStatus = (appointment = {}) => {
+  if (!isActiveScheduledAppointment(appointment)) {
+    return appointmentStatusLabel(appointment)
+  }
+
+  if (isRsvpException(appointment)) return 'Needs attention'
+  if (appointment.rsvpStatus === RSVP_STATUS.CONFIRMED) return 'Confirmed'
+  if (appointment.rsvpStatus === RSVP_STATUS.AWAITING) return 'Awaiting reply'
+
+  return APPOINTMENT_STATUS_LABEL[APPOINTMENT_STATUS.SCHEDULED]
+}
+
+export const endOfWeekKey = (weekStartKey = '') => addDaysKey(weekStartKey, 6)
+
+export const partitionCoachCalendarAppointments = (
+  appointments = [],
+  { todayKey = '', weekStartKey = '' } = {},
+) => {
+  const active = filterActiveAppointments(appointments)
+  const weekEndKey = endOfWeekKey(weekStartKey)
+
+  const today = appointmentsOnDate(active, todayKey)
+  const thisWeek = sortAppointmentsByStart(
+    active.filter((item) => {
+      const sessionDate = String(item.sessionDate ?? '')
+      return sessionDate > todayKey && sessionDate <= weekEndKey
+    }),
+  )
+  const upcoming = sortAppointmentsByStart(
+    active.filter((item) => String(item.sessionDate ?? '') > weekEndKey),
+  )
+
+  return {
+    today,
+    thisWeek,
+    thisWeekByDay: groupAppointmentsByDate(thisWeek),
+    upcoming,
+    upcomingByDay: groupAppointmentsByDate(upcoming),
+  }
+}
+
+export const appointmentsOnSelectedDay = (
+  appointments = [],
+  selectedDayKey = '',
+) => appointmentsOnDate(filterActiveAppointments(appointments), selectedDayKey)
+
+export const formatCoachCalendarEmptyHint = (appointments = [], now = new Date()) => {
+  const next = nextUpcomingAppointment(appointments, now)
+  if (!next) return null
+
+  const relative = formatAppointmentRelativeWhen(next, now)
+  if (!relative) return null
+
+  return `Your next session is ${relative}.`
 }

@@ -5,18 +5,18 @@ import {
   Clock3,
   Plus,
   UserRound,
-  X,
 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { appUi } from '../lib/appUi'
 import { coachBackend } from '../lib/coachBackend'
 import {
+  addDaysKey,
   dateKey as scheduleDateKey,
   formatScheduleDateLong,
   formatTime12Hour,
   isScheduleTimeInPast,
 } from '../lib/appointmentScheduling'
-import { DEFAULT_COACH_SCHEDULE_TIMEZONE } from '../lib/sessionTimezone'
+import { DEFAULT_COACH_SCHEDULE_TIMEZONE, formatScheduledSessionTime } from '../lib/sessionTimezone'
 import {
   logAppointmentCreate,
   logCoachCreateCheckpoint,
@@ -28,20 +28,24 @@ import {
   SCHEDULED_SESSION_STATUS,
   sortScheduledSessions,
 } from '../lib/coachScheduledSessions'
-import { formatScheduledSessionTime } from '../lib/sessionTimezone'
 import {
   emptySessionPackage,
   normalizeSessionHistoryEntry,
   normalizeSessionPackage,
 } from '../lib/sessionPackages'
 import EmptyState from './ui/EmptyState'
+import AppUiCloseButton from './ui/AppUiCloseButton'
+import CoachAppointmentCard from './coach/CoachAppointmentCard'
 import CoachScheduleSessionSheet from './CoachScheduleSessionSheet'
 import { getClientDisplayName } from '../lib/clientDisplayName'
 import {
-  formatAppointmentHeadline,
   appointmentStatusLabel,
+  formatAppointmentHeadline,
+  formatCoachCalendarEmptyHint,
   locationLabel,
   mapAppointmentOverlapError,
+  partitionCoachCalendarAppointments,
+  appointmentsOnSelectedDay,
 } from '../lib/coachingAppointment'
 import {
   buildCoachRsvpAlert,
@@ -52,6 +56,7 @@ import {
 
 const ICON = { size: 18, strokeWidth: 1.75 }
 const DAY_MS = 86400000
+const UPCOMING_HORIZON_DAYS = 56
 
 const dateKey = (date) => scheduleDateKey(date, DEFAULT_COACH_SCHEDULE_TIMEZONE)
 const mondayOf = (input) => {
@@ -72,6 +77,7 @@ export default function CoachSessionCalendar({
   initialClientId = '',
 }) {
   const [anchor, setAnchor] = useState(new Date())
+  const [selectedDayKey, setSelectedDayKey] = useState(() => dateKey(new Date()))
   const [sessions, setSessions] = useState([])
   const [packages, setPackages] = useState({})
   const [loading, setLoading] = useState(true)
@@ -128,7 +134,7 @@ export default function CoachSessionCalendar({
     try {
       const rows = await coachBackend.listScheduledSessions({
         startDate: dateKey(weekDays[0]),
-        endDate: dateKey(weekDays[6]),
+        endDate: addDaysKey(dateKey(weekDays[0]), UPCOMING_HORIZON_DAYS),
       })
       setSessions(rows.map(normalizeScheduledSession).filter(Boolean))
     } catch (error) {
@@ -140,6 +146,12 @@ export default function CoachSessionCalendar({
       setLoading(false)
     }
   }, [weekDays])
+
+  useEffect(() => {
+    setSelectedDayKey((current) =>
+      weekDays.some((day) => dateKey(day) === current) ? current : todayKey,
+    )
+  }, [weekDays, todayKey])
 
   useEffect(() => {
     loadPackages()
@@ -178,14 +190,30 @@ export default function CoachSessionCalendar({
     [sessions],
   )
 
-  const todaySessions = useMemo(
+  const weekStartKey = dateKey(weekDays[0])
+
+  const calendarPartitions = useMemo(
     () =>
-      sortSessionsForCoachToday(
-        sortedSessions.filter(
-          (session) => session.sessionDate === todayKey,
-        ),
-      ),
-    [sortedSessions, todayKey],
+      partitionCoachCalendarAppointments(sortedSessions, {
+        todayKey,
+        weekStartKey,
+      }),
+    [sortedSessions, todayKey, weekStartKey],
+  )
+
+  const selectedDaySessions = useMemo(
+    () => appointmentsOnSelectedDay(sortedSessions, selectedDayKey),
+    [sortedSessions, selectedDayKey],
+  )
+
+  const todaySessions = useMemo(
+    () => sortSessionsForCoachToday(calendarPartitions.today),
+    [calendarPartitions.today],
+  )
+
+  const emptyHint = useMemo(
+    () => formatCoachCalendarEmptyHint(sortedSessions),
+    [sortedSessions],
   )
 
   const todayRsvpAlerts = useMemo(
@@ -203,13 +231,35 @@ export default function CoachSessionCalendar({
     [todaySessions, clientByAthleteId],
   )
 
-  const upcomingSessions = useMemo(
-    () =>
-      sortedSessions.filter(
-        (session) => session.sessionDate !== todayKey,
-      ),
-    [sortedSessions, todayKey],
-  )
+  const jumpToToday = () => {
+    const now = new Date()
+    setAnchor(now)
+    setSelectedDayKey(dateKey(now))
+  }
+
+  const renderDayGroup = ({ date, items }) => {
+    const label = new Date(`${date}T12:00:00`).toLocaleDateString([], {
+      weekday: 'long',
+      month: 'short',
+      day: 'numeric',
+    })
+
+    return (
+      <div key={date} className="coach-session-calendar-day-group">
+        <h4>{label}</h4>
+        <div className="coach-session-calendar-list">
+          {items.map((session) => (
+            <CoachAppointmentCard
+              key={session.id}
+              session={session}
+              client={clientByAthleteId[session.athleteId]}
+              onClick={setActiveSession}
+            />
+          ))}
+        </div>
+      </div>
+    )
+  }
 
   const packageFor = (athleteId) =>
     packages[athleteId] ?? emptySessionPackage()
@@ -441,6 +491,7 @@ export default function CoachSessionCalendar({
         current.map((item) => (item.id === session.id ? saved : item)),
       )
       setActiveSession(null)
+      setRescheduleMode(false)
       appUi.toast('Session cancelled.', 'success')
     } catch (error) {
       appUi.toast(error.message ?? 'Could not cancel session.', 'error')
@@ -472,42 +523,14 @@ export default function CoachSessionCalendar({
     }
   }
 
-  const renderSessionRow = (session) => {
-    const client = clientByAthleteId[session.athleteId]
-    const pkg = packageFor(session.athleteId)
-    const remainingLabel =
-      pkg.totalSessions > 0
-        ? `${pkg.sessionsRemaining} remaining`
-        : 'No package'
-
-    return (
-      <button
-        type="button"
-        key={session.id}
-        className={`coach-session-calendar-row status-${session.status} rsvp-${session.rsvpStatus}${isRsvpException(session) ? ' is-rsvp-exception' : ''}`}
-        onClick={() => setActiveSession(session)}
-      >
-        <div>
-          <strong>{getClientDisplayName(client ?? {})}</strong>
-          <span>
-            {formatScheduledSessionTime(session)}
-            {session.durationMinutes
-              ? ` · ${session.durationMinutes} min`
-              : ''}
-          </span>
-          {session.status === SCHEDULED_SESSION_STATUS.SCHEDULED && (
-            <small className="coach-session-rsvp-label">
-              {rsvpCoachLabel(session.rsvpStatus)}
-            </small>
-          )}
-        </div>
-        <div className="coach-session-calendar-row-meta">
-          <small>{session.status}</small>
-          <small>{remainingLabel}</small>
-        </div>
-      </button>
-    )
-  }
+  const selectedDayLabel = useMemo(() => {
+    const date = new Date(`${selectedDayKey}T12:00:00`)
+    return date.toLocaleDateString([], {
+      weekday: 'long',
+      month: 'short',
+      day: 'numeric',
+    })
+  }, [selectedDayKey])
 
   const activeClient = activeSession
     ? clientByAthleteId[activeSession.athleteId]
@@ -534,64 +557,138 @@ export default function CoachSessionCalendar({
         </button>
       </header>
 
-      <div className="coach-session-calendar-toolbar">
-        <button type="button" onClick={() => setAnchor(addDays(anchor, -7))}>
-          <ChevronLeft {...ICON} />
+      <div className="coach-session-calendar-nav">
+        <div className="coach-session-calendar-toolbar">
+          <button
+            type="button"
+            aria-label="Previous week"
+            onClick={() => setAnchor(addDays(anchor, -7))}
+          >
+            <ChevronLeft {...ICON} />
+          </button>
+          <strong>{selectedDayLabel}</strong>
+          <button
+            type="button"
+            aria-label="Next week"
+            onClick={() => setAnchor(addDays(anchor, 7))}
+          >
+            <ChevronRight {...ICON} />
+          </button>
+        </div>
+        <button
+          type="button"
+          className="coach-secondary-button coach-session-calendar-today"
+          onClick={jumpToToday}
+        >
+          Today
         </button>
-        <strong>
-          {weekDays[0].toLocaleDateString([], { month: 'short', day: 'numeric' })}
-          {' – '}
-          {weekDays[6].toLocaleDateString([], { month: 'short', day: 'numeric' })}
-        </strong>
-        <button type="button" onClick={() => setAnchor(addDays(anchor, 7))}>
-          <ChevronRight {...ICON} />
-        </button>
+      </div>
+
+      <div className="coach-session-calendar-week-strip" role="tablist" aria-label="Week days">
+        {weekDays.map((day) => {
+          const key = dateKey(day)
+          const isSelected = key === selectedDayKey
+          const isToday = key === todayKey
+
+          return (
+            <button
+              key={key}
+              type="button"
+              role="tab"
+              aria-selected={isSelected}
+              className={`coach-session-calendar-day-chip${isSelected ? ' is-selected' : ''}${isToday ? ' is-today' : ''}`}
+              onClick={() => setSelectedDayKey(key)}
+            >
+              <span>{day.toLocaleDateString([], { weekday: 'short' })}</span>
+              <strong>{day.getDate()}</strong>
+            </button>
+          )
+        })}
       </div>
 
       {loading ? (
         <p>Loading sessions…</p>
       ) : (
         <>
-          <section className="coach-session-calendar-day-block">
-            <header>
-              <span className="eyebrow">TODAY</span>
-              <h3>
-                {new Date().toLocaleDateString([], {
-                  weekday: 'long',
-                  month: 'long',
-                  day: 'numeric',
-                })}
-              </h3>
-            </header>
-            {todayRsvpAlerts.length > 0 && (
-              <div className="coach-session-rsvp-alerts" role="status">
-                {todayRsvpAlerts.map((alert) => (
-                  <p key={alert.id}>{alert.message}</p>
-                ))}
-              </div>
-            )}
-            {todaySessions.length ? (
-              <div className="coach-session-calendar-list">
-                {todaySessions.map(renderSessionRow)}
-              </div>
-            ) : (
-              <EmptyState
-                icon={CalendarDays}
-                title="Nothing scheduled today"
-                description="Schedule an in-person session when you're ready."
-              />
-            )}
-          </section>
+          {selectedDayKey === todayKey ? (
+            <section className="coach-session-calendar-day-block">
+              <header>
+                <span className="eyebrow">TODAY</span>
+                <h3>{selectedDayLabel}</h3>
+              </header>
+              {todayRsvpAlerts.length > 0 && (
+                <div className="coach-session-rsvp-alerts" role="status">
+                  {todayRsvpAlerts.map((alert) => (
+                    <p key={alert.id}>{alert.message}</p>
+                  ))}
+                </div>
+              )}
+              {todaySessions.length ? (
+                <div className="coach-session-calendar-list">
+                  {todaySessions.map((session) => (
+                    <CoachAppointmentCard
+                      key={session.id}
+                      session={session}
+                      client={clientByAthleteId[session.athleteId]}
+                      onClick={setActiveSession}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <EmptyState
+                  icon={CalendarDays}
+                  title="No sessions today"
+                  description={
+                    emptyHint ??
+                    'Schedule an in-person session when you are ready.'
+                  }
+                />
+              )}
+            </section>
+          ) : (
+            <section className="coach-session-calendar-day-block">
+              <header>
+                <span className="eyebrow">SELECTED DAY</span>
+                <h3>{selectedDayLabel}</h3>
+              </header>
+              {selectedDaySessions.length ? (
+                <div className="coach-session-calendar-list">
+                  {selectedDaySessions.map((session) => (
+                    <CoachAppointmentCard
+                      key={session.id}
+                      session={session}
+                      client={clientByAthleteId[session.athleteId]}
+                      onClick={setActiveSession}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <EmptyState
+                  icon={CalendarDays}
+                  title="No sessions this day"
+                  description="Choose another day or schedule a new session."
+                />
+              )}
+            </section>
+          )}
 
-          {upcomingSessions.length > 0 && (
+          {calendarPartitions.thisWeekByDay.length > 0 && (
             <section className="coach-session-calendar-day-block">
               <header>
                 <span className="eyebrow">THIS WEEK</span>
-                <h3>Upcoming sessions</h3>
+                <h3>Later this week</h3>
               </header>
-              <div className="coach-session-calendar-list">
-                {upcomingSessions.map(renderSessionRow)}
-              </div>
+              {calendarPartitions.thisWeekByDay.map(renderDayGroup)}
+            </section>
+          )}
+
+          {calendarPartitions.upcomingByDay.length > 0 && (
+            <section className="coach-session-calendar-day-block">
+              <header>
+                <span className="eyebrow">UPCOMING</span>
+                <h3>Future sessions</h3>
+              </header>
+              {calendarPartitions.upcomingByDay.map(renderDayGroup)}
             </section>
           )}
         </>
@@ -621,9 +718,12 @@ export default function CoachSessionCalendar({
                 <span className="eyebrow">SESSION</span>
                 <h2>{getClientDisplayName(activeClient ?? {})}</h2>
               </div>
-              <button type="button" onClick={() => { setActiveSession(null); setRescheduleMode(false) }} aria-label="Close">
-                <X {...ICON} />
-              </button>
+              <AppUiCloseButton
+                onClick={() => {
+                  setActiveSession(null)
+                  setRescheduleMode(false)
+                }}
+              />
             </header>
             {!rescheduleMode ? (
               <>

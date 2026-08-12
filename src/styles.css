@@ -17033,7 +17033,198 @@ input, textarea, select {
 .coach-session-calendar-screen {
   display: grid;
   gap: 28px;
+  padding-bottom: calc(var(--app-shell-nav-height, 72px) + 24px);
 }
+
+.coach-session-calendar-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.coach-session-calendar-today {
+  min-height: 44px;
+}
+
+.coach-session-calendar-week-strip {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.coach-session-calendar-day-chip {
+  display: grid;
+  gap: 4px;
+  justify-items: center;
+  min-height: 56px;
+  padding: 8px 4px;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--gold) 12%, transparent);
+  background: var(--surface-elevated);
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.coach-session-calendar-day-chip strong {
+  font-size: 1.05rem;
+  color: var(--text);
+}
+
+.coach-session-calendar-day-chip.is-selected {
+  border-color: color-mix(in srgb, var(--gold) 42%, transparent);
+  background: color-mix(in srgb, var(--gold) 10%, var(--surface-elevated));
+}
+
+.coach-session-calendar-day-chip.is-today:not(.is-selected) strong {
+  color: var(--gold);
+}
+
+.coach-session-calendar-day-group {
+  display: grid;
+  gap: 10px;
+}
+
+.coach-session-calendar-day-group h4 {
+  margin: 0;
+  font-size: 0.92rem;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.coach-appointment-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+  padding: 16px 18px;
+  border-radius: 16px;
+  border: 1px solid color-mix(in srgb, var(--gold) 14%, transparent);
+  background: var(--surface-elevated);
+  text-align: left;
+}
+
+.coach-appointment-card--attention {
+  border-color: color-mix(in srgb, var(--warning) 35%, transparent);
+}
+
+.coach-appointment-card-time {
+  display: block;
+  font-size: 1.05rem;
+}
+
+.coach-appointment-card-client {
+  display: block;
+  font-size: 1rem;
+}
+
+.coach-appointment-card-meta {
+  display: block;
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.coach-appointment-card-status {
+  flex-shrink: 0;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  border: 1px solid color-mix(in srgb, var(--gold) 18%, transparent);
+  color: var(--muted);
+  pointer-events: none;
+}
+
+.coach-appointment-card-status--needs-attention {
+  color: var(--warning);
+  border-color: color-mix(in srgb, var(--warning) 35%, transparent);
+}
+
+.coach-appointment-card-status--confirmed {
+  color: var(--success, #6fcf97);
+}
+
+.coach-client-in-person-panel {
+  display: grid;
+  gap: 18px;
+  padding: 18px;
+  border-radius: 18px;
+  border: 1px solid color-mix(in srgb, var(--gold) 12%, transparent);
+  background: var(--surface-elevated);
+}
+
+.coach-client-in-person-header h3,
+.coach-client-in-person-upcoming h3,
+.coach-client-in-person-history-summary h3 {
+  margin: 0 0 10px;
+  font-size: 0.95rem;
+}
+
+.coach-client-in-person-stats {
+  display: flex;
+  gap: 18px;
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+}
+
+.coach-client-in-person-stats li {
+  display: grid;
+  gap: 2px;
+}
+
+.coach-client-in-person-stats strong {
+  font-size: 1.2rem;
+}
+
+.coach-client-in-person-stats span {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.coach-client-in-person-history-list {
+  display: grid;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.coach-client-in-person-history-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--gold) 10%, transparent);
+  background: transparent;
+  text-align: left;
+}
+
+.coach-client-in-person-history-row span {
+  text-transform: capitalize;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.coach-client-in-person-empty {
+  color: var(--muted);
+  margin: 0;
+}
+
+.athlete-in-person-schedule-history {
+  display: grid;
+  gap: 12px;
+  margin-top: 28px;
+}
+
+.athlete-in-person-schedule-item-button--history {
+  align-items: center;
+}
+
 
 .coach-session-calendar-header {
   display: flex;

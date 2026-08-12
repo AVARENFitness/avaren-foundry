@@ -38,6 +38,7 @@ import {
   normalizeSessionPackage,
 } from '../lib/sessionPackages'
 import ClientIntelligenceDashboard from '../components/ClientIntelligenceDashboard'
+import CoachClientInPersonPanel from '../components/coach/CoachClientInPersonPanel'
 import CoachSessionPackage from '../components/CoachSessionPackage'
 import CoachClientProfileShell from '../components/CoachClientProfileShell'
 import EmptyState from '../components/ui/EmptyState'
@@ -532,9 +533,11 @@ export default function CoachClientProfile({
 
       case 'training':
         return (
-          <ProfileSection
-            eyebrow="TRAINING"
-            title="Programming"
+          <>
+            <CoachClientInPersonPanel client={client} />
+            <ProfileSection
+              eyebrow="TRAINING"
+              title="Programming"
             description="Goals, program focus, and assignment workflow."
             primaryAction={
               <button
@@ -607,6 +610,7 @@ export default function CoachClientProfile({
               </div>
             )}
           </ProfileSection>
+          </>
         )
 
       case 'business':

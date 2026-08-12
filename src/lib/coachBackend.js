@@ -913,6 +913,19 @@ export const coachBackend = {
     return rows
   },
 
+  async listAthleteScheduledSessionHistory() {
+    const { data, error } = await supabase.rpc(
+      'list_athlete_scheduled_session_history',
+    )
+
+    if (error) {
+      if (missingBackend(error)) return []
+      throw error
+    }
+
+    return parseAthleteScheduledSessionsRpc(data)
+  },
+
   async updateSessionRsvp(sessionId, rsvpStatus) {
     const { data, error } = await supabase.rpc('update_scheduled_session_rsvp', {
       p_session_id: sessionId,
