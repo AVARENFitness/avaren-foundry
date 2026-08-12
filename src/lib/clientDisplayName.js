@@ -173,7 +173,10 @@ export const getClientMatchStrings = (input = {}) => {
   return [...values]
 }
 
-export const enrichCoachClientRecord = (client = {}, { profile = null, coachLabel = '' } = {}) => {
+export const enrichCoachClientRecord = (
+  client = {},
+  { profile = null, coachLabel = '', businessClientId = null } = {},
+) => {
   const mergedProfile =
     profile ??
     client.profile ??
@@ -184,8 +187,13 @@ export const enrichCoachClientRecord = (client = {}, { profile = null, coachLabe
       display_name: client.display_name,
     })
 
+  const resolvedBusinessClientId =
+    businessClientId ?? client.business_client_id ?? client.businessClientId ?? null
+
   return {
     ...client,
+    business_client_id: resolvedBusinessClientId,
+    businessClientId: resolvedBusinessClientId,
     coach_label: normalizeWhitespace(
       coachLabel || client.coach_label || client.coachLabel || '',
     ),

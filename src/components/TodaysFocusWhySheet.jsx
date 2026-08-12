@@ -1,5 +1,5 @@
-import { useEffect, useId, useRef } from 'react'
-import { createPortal } from 'react-dom'
+import { useId, useRef } from 'react'
+import AppUiBackdrop from './ui/AppUiBackdrop'
 import { X } from 'lucide-react'
 
 export default function TodaysFocusWhySheet({ open, focus, onClose }) {
@@ -7,34 +7,10 @@ export default function TodaysFocusWhySheet({ open, focus, onClose }) {
   const descriptionId = useId()
   const panelRef = useRef(null)
 
-  useEffect(() => {
-    if (!open) return undefined
-
-    const previousOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-
-    const onKeyDown = (event) => {
-      if (event.key === 'Escape') {
-        event.preventDefault()
-        onClose?.()
-      }
-    }
-
-    window.addEventListener('keydown', onKeyDown)
-    return () => {
-      document.body.style.overflow = previousOverflow
-      window.removeEventListener('keydown', onKeyDown)
-    }
-  }, [open, onClose])
-
   if (!open || !focus) return null
 
-  return createPortal(
-    <div
-      className="app-ui-backdrop todays-focus-why-backdrop"
-      role="presentation"
-      onClick={onClose}
-    >
+  return (
+    <AppUiBackdrop open={open} onClose={onClose} className="todays-focus-why-backdrop">
       <section
         ref={panelRef}
         className="todays-focus-why-sheet"
@@ -76,7 +52,6 @@ export default function TodaysFocusWhySheet({ open, focus, onClose }) {
           check-ins — not medical advice.
         </p>
       </section>
-    </div>,
-    document.body,
+    </AppUiBackdrop>
   )
 }

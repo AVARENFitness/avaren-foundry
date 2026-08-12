@@ -1,9 +1,9 @@
 import { ArrowLeft } from 'lucide-react'
 
 export const CLIENT_PROFILE_SECTIONS = [
-  { id: 'today', label: 'Today' },
+  { id: 'overview', label: 'Overview' },
+  { id: 'sessions', label: 'Sessions' },
   { id: 'training', label: 'Training' },
-  { id: 'business', label: 'Business' },
   { id: 'notes', label: 'Notes' },
   { id: 'progress', label: 'Progress' },
 ]
@@ -14,11 +14,10 @@ export default function CoachClientProfileShell({
   clientName,
   clientEmail,
   connectedSince,
-  activeSection = 'today',
+  activeSection = 'overview',
   onSectionChange,
   onBack,
-  weeklyReviewAction = null,
-  weeklyCheckInPanel = null,
+  coachingStatusPanel = null,
   children,
 }) {
   return (
@@ -36,10 +35,11 @@ export default function CoachClientProfileShell({
           {connectedSince && <small>{connectedSince}</small>}
         </div>
 
-        <div className="coach-client-profile-status-stack">
-          {weeklyCheckInPanel}
-          {weeklyReviewAction}
-        </div>
+        {coachingStatusPanel ? (
+          <div className="coach-client-profile-status-stack coach-client-profile-status-stack--compact">
+            {coachingStatusPanel}
+          </div>
+        ) : null}
 
         <nav
           className="coach-client-profile-section-nav"

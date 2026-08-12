@@ -39,6 +39,7 @@ describe('coaching appointment calendar helpers', () => {
     ]
 
     expect(summarizeAppointmentHistory(items)).toEqual({
+      upcoming: 1,
       completed: 1,
       cancelled: 1,
       missed: 1,

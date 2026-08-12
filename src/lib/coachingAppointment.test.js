@@ -3,12 +3,15 @@ import {
   APPOINTMENT_STATUS,
   appointmentsOnDate,
   appointmentsOverlap,
+  attendanceStatusLabel,
   buildScheduleConflictSummaryFromAppointment,
+  coachAppointmentCardStatus,
   findAppointmentForScheduleConflict,
   findAppointmentLinkedToAssignment,
   findOverlappingAppointment,
   filterUpcomingAppointments,
   nextUpcomingAppointment,
+  rsvpStatusLabel,
 } from './coachingAppointment'
 
 const baseAppointment = (overrides = {}) => ({
@@ -145,5 +148,19 @@ describe('coachingAppointment', () => {
     expect(
       findAppointmentLinkedToAssignment(items, 'assign-2', now),
     ).toBeNull()
+  })
+
+  it('keeps RSVP and attendance labels separate for scheduled appointments', () => {
+    const confirmed = baseAppointment({ rsvpStatus: 'confirmed' })
+
+    expect(rsvpStatusLabel(confirmed)).toBe('Confirmed')
+    expect(attendanceStatusLabel(confirmed)).toBe('Scheduled')
+    expect(coachAppointmentCardStatus(confirmed)).toBe('Confirmed')
+  })
+
+  it('shows awaiting reply until athlete confirms', () => {
+    const awaiting = baseAppointment({ rsvpStatus: 'awaiting_response' })
+
+    expect(coachAppointmentCardStatus(awaiting)).toBe('Awaiting reply')
   })
 })

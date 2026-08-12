@@ -10,6 +10,7 @@ import './styles/screens/forge.css'
 import './styles/screens/history.css'
 import './styles/screens/coach-hub.css'
 import './styles/screens/coach-schedule.css'
+import './styles/screens/coach-pass.css'
 import './styles/components/app-ui.css'
 import './styles/screens/athlete-appointments.css'
 

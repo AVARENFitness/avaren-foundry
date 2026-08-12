@@ -363,8 +363,10 @@ export const filterAppointmentHistory = (appointments = []) =>
 
 export const summarizeAppointmentHistory = (appointments = []) => {
   const history = filterAppointmentHistory(appointments)
+  const active = filterActiveAppointments(appointments)
 
   return {
+    upcoming: active.length,
     completed: history.filter(
       (item) => item.status === APPOINTMENT_STATUS.COMPLETED,
     ).length,
@@ -383,12 +385,22 @@ export const coachAppointmentCardStatus = (appointment = {}) => {
     return appointmentStatusLabel(appointment)
   }
 
+  return rsvpStatusLabel(appointment) ?? appointmentStatusLabel(appointment)
+}
+
+export const rsvpStatusLabel = (appointment = {}) => {
+  if (!isActiveScheduledAppointment(appointment)) return null
+
   if (isRsvpException(appointment)) return 'Needs attention'
   if (appointment.rsvpStatus === RSVP_STATUS.CONFIRMED) return 'Confirmed'
+  if (appointment.rsvpStatus === RSVP_STATUS.CANNOT_ATTEND) return 'Cannot attend'
   if (appointment.rsvpStatus === RSVP_STATUS.AWAITING) return 'Awaiting reply'
 
-  return APPOINTMENT_STATUS_LABEL[APPOINTMENT_STATUS.SCHEDULED]
+  return 'Awaiting reply'
 }
+
+export const attendanceStatusLabel = (appointment = {}) =>
+  appointmentStatusLabel(appointment)
 
 export const endOfWeekKey = (weekStartKey = '') => addDaysKey(weekStartKey, 6)
 

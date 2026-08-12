@@ -83,3 +83,76 @@
   border-color: rgba(246,242,233,.08);
   background: rgba(255,255,255,.02);
 }
+
+.coach-client-in-person-history-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.coach-client-in-person-history-filters button {
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--gold) 14%, transparent);
+  background: transparent;
+  color: color-mix(in srgb, var(--cream) 78%, var(--muted));
+  font: inherit;
+  font-size: 0.82rem;
+}
+
+.coach-client-in-person-history-filters button.active {
+  border-color: color-mix(in srgb, var(--gold) 34%, transparent);
+  background: color-mix(in srgb, var(--gold) 10%, transparent);
+  color: var(--cream);
+}
+
+.coach-client-in-person-history-row-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.coach-client-in-person-history-chip {
+  flex-shrink: 0;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.coach-client-in-person-history-chip--success {
+  background: color-mix(in srgb, #5f9 16%, transparent);
+  color: #b8f0cb;
+}
+
+.coach-client-in-person-history-chip--attention {
+  background: color-mix(in srgb, var(--gold) 16%, transparent);
+  color: #f0ddb0;
+}
+
+.coach-client-in-person-history-chip--neutral {
+  background: color-mix(in srgb, var(--cream) 8%, transparent);
+  color: color-mix(in srgb, var(--cream) 72%, var(--muted));
+}
+
+.coach-client-profile-status-stack--compact {
+  gap: 10px;
+}
+
+.coach-profile-status-card--compact {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.coach-session-detail-pass-effect {
+  display: grid;
+  gap: 4px;
+  margin-top: 8px;
+}

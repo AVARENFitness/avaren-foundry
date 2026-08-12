@@ -134,11 +134,25 @@ describe('AthleteAppointmentDetailSheet schedule conflict handoff', () => {
   })
 
   it('still confirms RSVP from the primary action', async () => {
+    coachBackend.updateSessionRsvp.mockResolvedValueOnce({
+      ok: true,
+      session: {
+        id: 'appt-1',
+        status: 'scheduled',
+        rsvp_status: RSVP_STATUS.CONFIRMED,
+        session_date: '2026-08-12',
+        start_time: '09:00:00',
+        schedule_timezone: 'America/New_York',
+      },
+    })
+
+    const onUpdated = vi.fn()
     render(
       <AthleteAppointmentDetailSheet
         appointment={appointment}
         open
         onClose={vi.fn()}
+        onUpdated={onUpdated}
       />,
     )
 
@@ -149,6 +163,24 @@ describe('AthleteAppointmentDetailSheet schedule conflict handoff', () => {
         'appt-1',
         RSVP_STATUS.CONFIRMED,
       )
+      expect(screen.queryByRole('button', { name: 'Confirm' })).not.toBeInTheDocument()
     })
+
+    expect(screen.getByText(/✓ Confirmed/i)).toBeInTheDocument()
+    expect(onUpdated).toHaveBeenCalled()
+  })
+
+  it('renders confirmed state without a Confirm CTA when already confirmed', () => {
+    render(
+      <AthleteAppointmentDetailSheet
+        appointment={{ ...appointment, rsvpStatus: RSVP_STATUS.CONFIRMED }}
+        open
+        onClose={vi.fn()}
+      />,
+    )
+
+    expect(screen.queryByRole('button', { name: 'Confirm' })).not.toBeInTheDocument()
+    expect(screen.getByText(/✓ Confirmed/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /can't make it/i })).toBeInTheDocument()
   })
 })

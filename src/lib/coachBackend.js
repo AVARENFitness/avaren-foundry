@@ -38,6 +38,14 @@ import {
   inferFollowUpScheduledSessionFailure,
   resolveFollowUpCoachId,
 } from './appointmentFollowUpIdentity'
+import {
+  APPOINTMENT_LINKAGE_ERROR,
+} from './coachBusinessClientLinkage'
+import {
+  mapPassRpcError,
+  normalizePassUsageRpcResult,
+} from './coachPass'
+import { SCHEDULED_SESSION_STATUS } from './coachScheduledSessions'
 
 const normalizeEmail = (value = '') => String(value).trim().toLowerCase()
 
@@ -114,6 +122,7 @@ export const coachBackend = {
       enrichCoachClientRecord(client, {
         profile: profilesById[client.athlete_id] ?? null,
         coachLabel: labelsById[client.athlete_id]?.coach_label ?? '',
+        businessClientId: client.business_client_id ?? null,
       }),
     )
   },
@@ -679,6 +688,7 @@ export const coachBackend = {
 
   async createScheduledSession({
     athleteId,
+    businessClientId = null,
     sessionDate,
     startTime,
     durationMinutes = null,
@@ -692,6 +702,16 @@ export const coachBackend = {
     existingSessions = null,
   }) {
     const user = await currentUser()
+    let resolvedBusinessClientId = businessClientId
+
+    if (athleteId && !resolvedBusinessClientId) {
+      resolvedBusinessClientId = await this.resolveBusinessClientId(athleteId)
+    }
+
+    if (athleteId && !resolvedBusinessClientId) {
+      throw new Error(APPOINTMENT_LINKAGE_ERROR)
+    }
+
     const instant = buildScheduleInstant({
       sessionDate,
       startTime,
@@ -724,6 +744,7 @@ export const coachBackend = {
           .insert({
             coach_id: user.id,
             athlete_id: athleteId,
+            business_client_id: resolvedBusinessClientId,
             session_date: sessionDate,
             start_time: startTime,
             starts_at: resolvedStartsAt,
@@ -1204,5 +1225,228 @@ export const coachBackend = {
       }
       throw error
     }
+  },
+
+  async resolveBusinessClientId(athleteId) {
+    const user = await currentUser()
+    const rows = await unwrap(
+      supabase
+        .from('coach_clients')
+        .select('business_client_id')
+        .eq('coach_id', user.id)
+        .eq('athlete_id', athleteId)
+        .limit(1),
+    )
+    const bridgeId = rows[0]?.business_client_id ?? null
+    if (bridgeId) return bridgeId
+
+    const businessClients = await unwrap(
+      supabase
+        .from('coach_business_clients')
+        .select('id')
+        .eq('coach_id', user.id)
+        .eq('linked_user_id', athleteId)
+        .limit(2),
+    )
+
+    if ((businessClients ?? []).length === 1) {
+      return businessClients[0].id
+    }
+
+    return null
+  },
+
+  async listClientPassBalances(businessClientId) {
+    const user = await currentUser()
+    const rows = await unwrap(
+      supabase
+        .from('coach_client_pass_balances')
+        .select('*')
+        .eq('coach_id', user.id)
+        .eq('business_client_id', businessClientId)
+        .order('starts_at', { ascending: false }),
+    )
+    return rows ?? []
+  },
+
+  async listClientPassLedger(businessClientId, limit = 100) {
+    const user = await currentUser()
+    const rows = await unwrap(
+      supabase
+        .from('coach_client_pass_ledger')
+        .select('*, coach_client_passes(name)')
+        .eq('coach_id', user.id)
+        .eq('business_client_id', businessClientId)
+        .order('created_at', { ascending: false })
+        .limit(limit),
+    )
+    return (rows ?? []).map((row) => ({
+      ...row,
+      pass_name: row.coach_client_passes?.name ?? null,
+    }))
+  },
+
+  async createCoachClientPass({
+    businessClientId,
+    name,
+    sessionsPurchased,
+    startsAt,
+    expiresAt = null,
+    notes = '',
+  }) {
+    const { data, error } = await supabase.rpc('create_coach_client_pass', {
+      p_business_client_id: businessClientId,
+      p_name: name,
+      p_sessions_purchased: sessionsPurchased,
+      p_starts_at: startsAt,
+      p_expires_at: expiresAt,
+      p_notes: notes,
+    })
+
+    if (error) {
+      if (missingBackend(error)) {
+        throw new Error(
+          'Training pass RPCs are not installed. Run AVAREN_COACH_BUSINESS_CLIENTS_8_4_1D_RLS_RPC.sql.',
+        )
+      }
+      throw new Error(mapPassRpcError(error).message)
+    }
+
+    return data
+  },
+
+  async recordCompletedSessionPassUsage(sessionId, passId = null) {
+    const resolvedPassId = passId ?? null
+    const rpcArgs = {
+      p_scheduled_session_id: sessionId,
+      p_pass_id: resolvedPassId,
+    }
+
+    if (import.meta.env?.DEV) {
+      console.debug('[coach-pass-rpc-request]', {
+        rpcCalled: 'record_completed_session_pass_usage',
+        sessionIdSent: Boolean(sessionId),
+        passIdSent: Boolean(resolvedPassId),
+        passId: resolvedPassId,
+      })
+    }
+
+    const { data, error } = await supabase.rpc(
+      'record_completed_session_pass_usage',
+      rpcArgs,
+    )
+
+    if (import.meta.env?.DEV) {
+      console.debug('[coach-pass-rpc-response]', {
+        rpcCalled: 'record_completed_session_pass_usage',
+        rpcData: data ?? null,
+        rpcErrorCode: error?.code ?? null,
+        rpcErrorMessage: error?.message ?? null,
+      })
+    }
+
+    if (error) {
+      if (missingBackend(error)) {
+        throw new Error(
+          'Pass usage RPCs are not installed. Run AVAREN_COACH_BUSINESS_CLIENTS_8_4_1D_RLS_RPC.sql.',
+        )
+      }
+      return mapPassRpcError(error)
+    }
+
+    const result = normalizePassUsageRpcResult(data)
+    if (import.meta.env?.DEV) {
+      result.rawData = data ?? null
+    }
+    return result
+  },
+
+  async setMissedSessionChargeDecision(sessionId, decision) {
+    const { data, error } = await supabase.rpc(
+      'set_missed_session_charge_decision',
+      {
+        p_scheduled_session_id: sessionId,
+        p_decision: decision,
+      },
+    )
+
+    if (error) {
+      if (missingBackend(error)) {
+        throw new Error(
+          'Missed charge RPCs are not installed. Run AVAREN_COACH_BUSINESS_CLIENTS_8_4_1D_RLS_RPC.sql.',
+        )
+      }
+      return mapPassRpcError(error)
+    }
+
+    return normalizePassUsageRpcResult(data)
+  },
+
+  async recordMissedSessionPassCharge(sessionId, passId) {
+    const { data, error } = await supabase.rpc(
+      'record_missed_session_pass_charge',
+      {
+        p_scheduled_session_id: sessionId,
+        p_pass_id: passId,
+      },
+    )
+
+    if (error) {
+      if (missingBackend(error)) {
+        throw new Error(
+          'Missed charge RPCs are not installed. Run AVAREN_COACH_BUSINESS_CLIENTS_8_4_1D_RLS_RPC.sql.',
+        )
+      }
+      return mapPassRpcError(error)
+    }
+
+    return normalizePassUsageRpcResult(data)
+  },
+
+  async completeInPersonAppointment(sessionId, { passId = null } = {}) {
+    const completedAt = new Date().toISOString()
+    const session = await this.updateScheduledSession(sessionId, {
+      status: SCHEDULED_SESSION_STATUS.COMPLETED,
+      completedAt,
+    })
+    const passResult = await this.recordCompletedSessionPassUsage(
+      sessionId,
+      passId,
+    )
+
+    return {
+      session,
+      passResult,
+    }
+  },
+
+  async markInPersonAppointmentMissed(sessionId) {
+    return this.updateScheduledSession(sessionId, {
+      status: SCHEDULED_SESSION_STATUS.MISSED,
+    })
+  },
+
+  async getAthleteTrainingPassSummary() {
+    const { data, error } = await supabase.rpc('get_my_training_pass_summary')
+
+    if (error) {
+      if (missingBackend(error)) return []
+      throw error
+    }
+
+    return Array.isArray(data) ? data : []
+  },
+
+  async listAthletePassUsageHistory(limit = 30) {
+    const { data, error } = await supabase.rpc('list_my_pass_usage_history', {
+      p_limit: limit,
+    })
+
+    if (error) {
+      if (missingBackend(error)) return []
+      throw error
+    }
+
+    return Array.isArray(data) ? data : []
   },
 }

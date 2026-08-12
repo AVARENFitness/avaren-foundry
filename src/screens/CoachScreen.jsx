@@ -36,6 +36,7 @@ export default function CoachScreen({ workspace, setWorkspace, screen='clients',
   const [weeklyReviewClient,setWeeklyReviewClient]=useState(null)
   const [historicalReviewId,setHistoricalReviewId]=useState(null)
   const [coachLabelsEnabled,setCoachLabelsEnabled]=useState(false)
+  const [openScheduleComposer,setOpenScheduleComposer]=useState(false)
 
   useEffect(() => {
     probeIdentityCapabilities().then((caps) => {
@@ -253,7 +254,7 @@ export default function CoachScreen({ workspace, setWorkspace, screen='clients',
     {designer}
   </>
 
-  if(screen==='calendar') return <CoachSessionCalendar clients={clients} assignments={assignments} coachEmail={coachEmail} initialClientId={selectedClient?.athlete_id??''} onOpenClientProfile={(client)=>{if(!client)return; if(onOpenClientProfile) onOpenClientProfile(client); else setSelectedClient(client)}} />
+  if(screen==='calendar') return <CoachSessionCalendar clients={clients} assignments={assignments} coachEmail={coachEmail} initialClientId={selectedClient?.athlete_id??''} initialOpenComposer={openScheduleComposer} onComposerOpened={()=>setOpenScheduleComposer(false)} onOpenClientProfile={(client)=>{if(!client)return; if(onOpenClientProfile) onOpenClientProfile(client); else setSelectedClient(client)}} />
 
   if(screen==='programs') return <CoachPrograms clients={clients} templates={templates} program={program} onRefresh={load}/>
 
@@ -282,6 +283,10 @@ export default function CoachScreen({ workspace, setWorkspace, screen='clients',
       onAssignWorkout={()=>setShowDesigner(true)}
       onViewAssignments={()=>onNavigateCoachScreen?.('assignments')}
       onNavigateCoachScreen={onNavigateCoachScreen}
+      onSchedule={() => {
+        setOpenScheduleComposer(true)
+        onNavigateCoachScreen?.('calendar')
+      }}
       onReviewNext={()=>{
         const next = sortedPortfolio?.reviewQueue?.[0]
         if (next) openWeeklyReview(next.client)

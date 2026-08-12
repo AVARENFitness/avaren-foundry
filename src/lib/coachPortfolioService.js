@@ -1,5 +1,10 @@
 import { buildCoachPortfolioIntelligence } from './clientIntelligence'
 import { coachBackend } from './coachBackend'
+import {
+  buildCoachPassAvaContext,
+  normalizePassBalanceViewRow,
+  summarizeClientPasses,
+} from './coachPass'
 import { weeklyCheckInBackend } from './weeklyCheckInBackend'
 import { normalizeWeeklyReview, getCoachWeekRange } from './weeklyReview'
 import { isOpenFollowUp, normalizeCoachFollowUp } from './coachFollowUp'
@@ -108,6 +113,7 @@ export const buildCoachPortfolioBundle = ({
   weeklyReviewsByAthleteId = {},
   weeklyCheckInsByAthleteId = {},
   coachFollowUpsByAthleteId = {},
+  passAvaContextByAthleteId = {},
   status = COACH_PORTFOLIO_STATUS.READY,
   error = '',
   source = 'network',
@@ -144,6 +150,7 @@ export const buildCoachPortfolioBundle = ({
     weeklyReviewsByAthleteId,
     weeklyCheckInsByAthleteId,
     coachFollowUpsByAthleteId,
+    passAvaContextByAthleteId,
     portfolio,
     rosterEntries: portfolio.rosterEntries ?? [],
     loadedAt: Date.now(),
@@ -271,13 +278,17 @@ export const publishCoachPortfolioBundle = (bundle = {}) => {
   cache.bundle = bundle
 }
 
-const fetchPortfolioIntelligence = async (athleteIds = []) => {
+const fetchPortfolioIntelligence = async (clients = []) => {
+  const athleteIds = clients.map((client) => client.athlete_id).filter(Boolean)
+
   if (!athleteIds.length) {
     return {
       athleteStatesById: {},
       nutritionByAthleteId: {},
       weeklyReviewsByAthleteId: {},
       weeklyCheckInsByAthleteId: {},
+      coachFollowUpsByAthleteId: {},
+      passAvaContextByAthleteId: {},
     }
   }
 
@@ -298,6 +309,31 @@ const fetchPortfolioIntelligence = async (athleteIds = []) => {
       .map((review) => [review.athleteId, review]),
   )
 
+  const passAvaContextByAthleteId = Object.fromEntries(
+    await Promise.all(
+      clients.map(async (client) => {
+        const businessClientId =
+          client.business_client_id ?? client.businessClientId
+        if (!businessClientId) {
+          return [client.athlete_id, null]
+        }
+
+        try {
+          const rows = await coachBackend.listClientPassBalances(businessClientId)
+          const passes = (rows ?? [])
+            .map(normalizePassBalanceViewRow)
+            .filter(Boolean)
+          return [
+            client.athlete_id,
+            buildCoachPassAvaContext({ client, passes, ledger: [], appointments: [] }),
+          ]
+        } catch {
+          return [client.athlete_id, null]
+        }
+      }),
+    ),
+  )
+
   const coachFollowUpsByAthleteId = Object.fromEntries(
     athleteIds.map((athleteId) => [
       athleteId,
@@ -313,6 +349,7 @@ const fetchPortfolioIntelligence = async (athleteIds = []) => {
     weeklyReviewsByAthleteId,
     weeklyCheckInsByAthleteId,
     coachFollowUpsByAthleteId,
+    passAvaContextByAthleteId,
   }
 }
 
@@ -337,8 +374,7 @@ export async function loadCoachPortfolio({ force = false } = {}) {
         coachBackend.listClientsWithIdentity(),
         coachBackend.listCoachAssignments(),
       ])
-      const athleteIds = clients.map((client) => client.athlete_id).filter(Boolean)
-      const intelligence = await fetchPortfolioIntelligence(athleteIds)
+      const intelligence = await fetchPortfolioIntelligence(clients)
       const bundle = buildCoachPortfolioBundle({
         clients,
         assignments,
@@ -347,7 +383,7 @@ export async function loadCoachPortfolio({ force = false } = {}) {
         source: 'network',
         cacheHit: false,
       })
-      cache.key = athleteIdsKey(athleteIds)
+      cache.key = athleteIdsKey(clients.map((client) => client.athlete_id))
       cache.loadedAt = Date.now()
       cache.bundle = bundle
       return bundle
@@ -431,7 +467,7 @@ export async function loadCoachPortfolioIntelligence({
     }
   }
 
-  const intelligence = await fetchPortfolioIntelligence(athleteIds)
+  const intelligence = await fetchPortfolioIntelligence(clients)
   const bundle = buildCoachPortfolioBundle({
     clients,
     assignments,

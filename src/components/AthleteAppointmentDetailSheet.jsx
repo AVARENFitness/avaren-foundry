@@ -75,12 +75,27 @@ export default function AthleteAppointmentDetailSheet({
   }
 
   const handleRsvpConfirm = async () => {
-    if (!canAthleteUpdateRsvp(session) || updating) return
+    if (
+      !canAthleteUpdateRsvp(session) ||
+      updating ||
+      session.rsvpStatus === RSVP_STATUS.CONFIRMED
+    ) {
+      return
+    }
+
+    const optimistic = {
+      ...session,
+      rsvpStatus: RSVP_STATUS.CONFIRMED,
+    }
+    setSession(optimistic)
+    onUpdated?.(optimistic)
 
     setUpdating(true)
     try {
       const result = await coachBackend.updateSessionRsvp(session.id, RSVP_STATUS.CONFIRMED)
       if (!result.ok) {
+        setSession(appointment)
+        onUpdated?.(appointment)
         appUi.toast('Could not update your response.', 'error')
         return
       }
@@ -90,6 +105,8 @@ export default function AthleteAppointmentDetailSheet({
       onUpdated?.(updated)
       appUi.toast('Session confirmed.', 'success')
     } catch (error) {
+      setSession(appointment)
+      onUpdated?.(appointment)
       appUi.toast(error.message ?? 'Could not update your response.', 'error')
     } finally {
       setUpdating(false)
@@ -193,9 +210,10 @@ export default function AthleteAppointmentDetailSheet({
   const workoutTitle = linkedWorkoutTitle(session)
   const sessionType = appointmentTypeLabel(session)
   const rsvpLabel = rsvpAthleteLabel(session.rsvpStatus)
-  const showRsvpStatus =
-    canAthleteUpdateRsvp(session) &&
-    session.rsvpStatus === RSVP_STATUS.AWAITING
+  const isAwaitingRsvp = session.rsvpStatus === RSVP_STATUS.AWAITING
+  const isConfirmedRsvp = session.rsvpStatus === RSVP_STATUS.CONFIRMED
+  const showAwaitingPill =
+    canAthleteUpdateRsvp(session) && isAwaitingRsvp
   const conflictLine = formatAppointmentScheduleConflictLine(session)
   const showConflictAction =
     canAthleteUpdateRsvp(session) &&
@@ -251,13 +269,17 @@ export default function AthleteAppointmentDetailSheet({
                 <p className="athlete-appointment-detail-workout">{workoutTitle}</p>
               ) : null}
 
-              {showRsvpStatus ? (
+              {showAwaitingPill ? (
                 <span className="athlete-appointment-status-pill">{rsvpLabel}</span>
               ) : null}
 
-              {!showRsvpStatus && session.rsvpStatus !== RSVP_STATUS.AWAITING ? (
-                <span className="athlete-appointment-status-pill athlete-appointment-status-pill--quiet">
-                  {rsvpLabel}
+              {!showAwaitingPill && canAthleteUpdateRsvp(session) ? (
+                <span
+                  className={`athlete-appointment-status-pill athlete-appointment-status-pill--quiet${
+                    isConfirmedRsvp ? ' athlete-appointment-status-pill--confirmed' : ''
+                  }`}
+                >
+                  {isConfirmedRsvp ? '✓ Confirmed' : rsvpLabel}
                 </span>
               ) : null}
 
@@ -270,17 +292,22 @@ export default function AthleteAppointmentDetailSheet({
 
             {canAthleteUpdateRsvp(session) ? (
               <footer className="athlete-appointment-detail-footer">
-                <button
-                  type="button"
-                  className={`gold-button machined athlete-appointment-confirm-button ${
-                    session.rsvpStatus === RSVP_STATUS.CONFIRMED ? 'active' : ''
-                  }`}
-                  disabled={updating}
-                  onClick={handleRsvpConfirm}
-                >
-                  <Check size={16} strokeWidth={1.75} aria-hidden="true" />
-                  Confirm
-                </button>
+                {isConfirmedRsvp ? (
+                  <p className="athlete-appointment-confirmed-state" role="status">
+                    <Check size={16} strokeWidth={1.75} aria-hidden="true" />
+                    Confirmed
+                  </p>
+                ) : isAwaitingRsvp ? (
+                  <button
+                    type="button"
+                    className="gold-button machined athlete-appointment-confirm-button"
+                    disabled={updating}
+                    onClick={handleRsvpConfirm}
+                  >
+                    <Check size={16} strokeWidth={1.75} aria-hidden="true" />
+                    Confirm
+                  </button>
+                ) : null}
                 {showConflictAction ? (
                   <button
                     type="button"
@@ -288,7 +315,7 @@ export default function AthleteAppointmentDetailSheet({
                     disabled={updating}
                     onClick={openScheduleConflictHandoff}
                   >
-                    Can't make it
+                    Can&apos;t make it
                   </button>
                 ) : null}
               </footer>

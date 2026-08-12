@@ -1,6 +1,6 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
 import { CalendarDays, ChevronDown } from 'lucide-react'
+import AppUiBackdrop from './ui/AppUiBackdrop'
 import AppUiCloseButton from './ui/AppUiCloseButton'
 import { getClientDisplayName } from '../lib/clientDisplayName'
 import {
@@ -11,7 +11,6 @@ import {
   dateKey,
   filterAvailableTimeOptions,
   formatScheduleDateLong,
-  formatScheduleTimeRange,
   formatTime12Hour,
   isScheduleTimeInPast,
 } from '../lib/appointmentScheduling'
@@ -76,9 +75,6 @@ export default function CoachScheduleSessionSheet({
   useEffect(() => {
     if (!open) return undefined
 
-    const previousOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-
     const onKeyDown = (event) => {
       if (event.key === 'Escape') {
         event.preventDefault()
@@ -87,14 +83,17 @@ export default function CoachScheduleSessionSheet({
       }
     }
 
+    const closeMenuOnScroll = () => setOpenMenu(null)
+
     window.addEventListener('keydown', onKeyDown)
+    panelRef.current?.addEventListener('scroll', closeMenuOnScroll)
     panelRef.current?.scrollTo?.(0, 0)
     setTimeError('')
     setOpenMenu(null)
 
     return () => {
-      document.body.style.overflow = previousOverflow
       window.removeEventListener('keydown', onKeyDown)
+      panelRef.current?.removeEventListener('scroll', closeMenuOnScroll)
     }
   }, [open, onClose])
 
@@ -130,8 +129,14 @@ export default function CoachScheduleSessionSheet({
   ])
 
   const handleDateQuickPick = (sessionDate) => {
+    setOpenMenu(null)
     setTimeError('')
     onDraftChange?.({ ...draft, sessionDate })
+  }
+
+  const toggleMenu = (menuId) => (event) => {
+    event.stopPropagation()
+    setOpenMenu((current) => (current === menuId ? null : menuId))
   }
 
   const handleSubmit = () => {
@@ -150,18 +155,15 @@ export default function CoachScheduleSessionSheet({
     onSubmit?.()
   }
 
-  const toggleMenu = (menuId) => (event) => {
-    event.stopPropagation()
-    setOpenMenu((current) => (current === menuId ? null : menuId))
-  }
-
-  if (!open) return null
-
-  return createPortal(
-    <div
-      className="app-ui-backdrop coach-schedule-session-backdrop"
-      role="presentation"
-      onClick={onClose}
+  return (
+    <AppUiBackdrop
+      open={open}
+      onClose={submitting ? undefined : onClose}
+      className="coach-schedule-session-backdrop"
+      onEscape={() => {
+        setOpenMenu(null)
+        onClose?.()
+      }}
     >
       <section
         ref={panelRef}
@@ -169,6 +171,7 @@ export default function CoachScheduleSessionSheet({
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
+        data-testid="coach-schedule-session-sheet"
         onClick={(event) => event.stopPropagation()}
       >
         <header className="coach-schedule-session-sheet-header">
@@ -185,12 +188,12 @@ export default function CoachScheduleSessionSheet({
             <div className="coach-schedule-picker">
               <button
                 type="button"
-                className="coach-schedule-control"
+                className="coach-schedule-control coach-schedule-control--client"
                 aria-expanded={openMenu === 'client'}
                 aria-haspopup="listbox"
                 onClick={toggleMenu('client')}
               >
-                <span>
+                <span className="coach-schedule-control-value">
                   {selectedClient
                     ? getClientDisplayName(selectedClient) || selectedClient.athlete_email
                     : 'Select client'}
@@ -512,20 +515,6 @@ export default function CoachScheduleSessionSheet({
             </div>
           </label>
 
-          {draft.athleteId && draft.sessionDate && draft.startTime ? (
-            <section className="coach-schedule-preview" aria-label="Session preview">
-              <span className="eyebrow">IN-PERSON TRAINING</span>
-              <strong>{getClientDisplayName(selectedClient ?? {}) || 'Client'}</strong>
-              <span>{formatScheduleDateLong(draft.sessionDate)}</span>
-              <span>
-                {formatScheduleTimeRange({
-                  startTime: draft.startTime,
-                  durationMinutes: Number(draft.durationMinutes) || 60,
-                })}
-              </span>
-              {selectedAssignment?.title ? <span>{selectedAssignment.title}</span> : null}
-            </section>
-          ) : null}
         </div>
 
         <footer className="coach-schedule-session-sheet-footer">
@@ -546,7 +535,6 @@ export default function CoachScheduleSessionSheet({
           </button>
         </footer>
       </section>
-    </div>,
-    document.body,
+    </AppUiBackdrop>
   )
 }

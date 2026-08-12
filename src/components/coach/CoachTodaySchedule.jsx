@@ -1,18 +1,14 @@
 import { CalendarDays } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { coachBackend } from '../../lib/coachBackend'
-import {
-  appointmentsOnDate,
-  formatAppointmentWhen,
-} from '../../lib/coachingAppointment'
+import { appointmentsOnDate } from '../../lib/coachingAppointment'
 import {
   normalizeScheduledSession,
   sortScheduledSessions,
 } from '../../lib/coachScheduledSessions'
-import { getClientDisplayName } from '../../lib/clientDisplayName'
+import CoachAppointmentCard from './CoachAppointmentCard'
 import EmptyState from '../ui/EmptyState'
 
-const ICON = { size: 18, strokeWidth: 1.75 }
 const todayKey = () => new Date().toISOString().slice(0, 10)
 
 export default function CoachTodaySchedule({
@@ -20,6 +16,8 @@ export default function CoachTodaySchedule({
   onSchedule,
   onOpenCalendar,
   onOpenClient,
+  onOpenSession,
+  refreshSignal = 0,
 }) {
   const [sessions, setSessions] = useState([])
   const [loading, setLoading] = useState(true)
@@ -49,6 +47,22 @@ export default function CoachTodaySchedule({
 
   useEffect(() => {
     loadToday()
+  }, [loadToday, refreshSignal])
+
+  useEffect(() => {
+    const refetchOnFocus = () => {
+      if (document.visibilityState === 'visible') {
+        loadToday()
+      }
+    }
+
+    document.addEventListener('visibilitychange', refetchOnFocus)
+    window.addEventListener('focus', loadToday)
+
+    return () => {
+      document.removeEventListener('visibilitychange', refetchOnFocus)
+      window.removeEventListener('focus', loadToday)
+    }
   }, [loadToday])
 
   const todayItems = useMemo(
@@ -61,7 +75,7 @@ export default function CoachTodaySchedule({
       <header className="coach-today-schedule-header">
         <div>
           <span className="eyebrow">TODAY</span>
-          <h2>Who you're training</h2>
+          <h2>Who you&apos;re training</h2>
         </div>
         <div className="coach-today-schedule-actions">
           <button type="button" className="coach-secondary-button" onClick={onSchedule}>
@@ -83,22 +97,22 @@ export default function CoachTodaySchedule({
         />
       ) : (
         <ul className="coach-today-schedule-list">
-          {todayItems.map((item) => {
-            const client = clientByAthleteId[item.athleteId] ?? {}
-            const clientName = getClientDisplayName(client) || 'Client'
-            return (
-              <li key={item.id}>
-                <button
-                  type="button"
-                  className="coach-today-schedule-item"
-                  onClick={() => onOpenClient?.(client)}
-                >
-                  <strong>{formatAppointmentWhen(item)}</strong>
-                  <span>{clientName}</span>
-                </button>
-              </li>
-            )
-          })}
+          {todayItems.map((item) => (
+            <li key={item.id}>
+              <CoachAppointmentCard
+                session={item}
+                client={clientByAthleteId[item.athleteId] ?? null}
+                className="coach-today-schedule-card"
+                onClick={(session) => {
+                  if (onOpenSession) {
+                    onOpenSession(session)
+                    return
+                  }
+                  onOpenClient?.(clientByAthleteId[session.athleteId] ?? null)
+                }}
+              />
+            </li>
+          ))}
         </ul>
       )}
     </section>

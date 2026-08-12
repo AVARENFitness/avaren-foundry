@@ -1,35 +1,38 @@
 import { Package } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { coachBackend } from '../lib/coachBackend'
+import { formatPackageDate } from '../lib/sessionPackages'
 import {
-  emptySessionPackage,
-  formatPackageDate,
-  normalizeSessionPackage,
-} from '../lib/sessionPackages'
+  normalizeAthletePassHistory,
+  normalizeAthletePassSummary,
+  summarizeClientPasses,
+} from '../lib/coachPass'
 
 const ICON = { size: 18, strokeWidth: 1.75 }
 
 export default function AthleteSessionPackageCard() {
-  const [pkg, setPkg] = useState(emptySessionPackage())
+  const [passes, setPasses] = useState([])
+  const [history, setHistory] = useState([])
   const [loading, setLoading] = useState(true)
-  const [visible, setVisible] = useState(false)
+  const [showHistory, setShowHistory] = useState(false)
 
   useEffect(() => {
     let active = true
     setLoading(true)
 
-    coachBackend
-      .getAthleteSessionPackage()
-      .then((row) => {
+    Promise.all([
+      coachBackend.getAthleteTrainingPassSummary(),
+      coachBackend.listAthletePassUsageHistory(20),
+    ])
+      .then(([summaryRows, historyRows]) => {
         if (!active) return
-        const normalized = normalizeSessionPackage(row)
-        setPkg(normalized)
-        setVisible(normalized.totalSessions > 0)
+        setPasses(normalizeAthletePassSummary(summaryRows))
+        setHistory(normalizeAthletePassHistory(historyRows))
       })
       .catch(() => {
         if (active) {
-          setPkg(emptySessionPackage())
-          setVisible(false)
+          setPasses([])
+          setHistory([])
         }
       })
       .finally(() => {
@@ -41,30 +44,59 @@ export default function AthleteSessionPackageCard() {
     }
   }, [])
 
-  if (loading || !visible) return null
+  const summary = summarizeClientPasses(
+    passes.map((pass) => ({
+      ...pass,
+      sessionsPurchased: pass.balance,
+    })),
+  )
+
+  if (loading || summary.totalBalance <= 0) return null
+
+  const primary = summary.primaryPass ?? passes[0]
 
   return (
-    <section className="athlete-session-package-card" aria-label="Session package">
+    <section className="athlete-session-package-card" aria-label="Training pass">
       <header>
         <span className="coach-profile-card-icon" aria-hidden="true">
           <Package {...ICON} />
         </span>
         <div>
-          <span className="eyebrow">SESSION PACKAGE</span>
-          <h2>{pkg.sessionsRemaining} sessions remaining</h2>
+          <span className="eyebrow">TRAINING PASS</span>
+          <h2>{summary.totalBalance} sessions remaining</h2>
         </div>
       </header>
-      <p>
-        {pkg.sessionsUsed} of {pkg.totalSessions} used
-      </p>
+      <p>{primary?.name ?? 'Training pass'}</p>
       <div className="athlete-session-package-meta">
-        {pkg.purchasedAt && (
-          <span>Purchased {formatPackageDate(pkg.purchasedAt)}</span>
+        {primary?.startsAt && (
+          <span>Started {formatPackageDate(primary.startsAt)}</span>
         )}
-        {pkg.expiresAt && (
-          <span>Expires {formatPackageDate(pkg.expiresAt)}</span>
+        {primary?.expiresAt && (
+          <span>Expires {formatPackageDate(primary.expiresAt)}</span>
         )}
       </div>
+      {history.length > 0 ? (
+        <button
+          type="button"
+          className="coach-secondary-button athlete-session-package-history-toggle"
+          onClick={() => setShowHistory((current) => !current)}
+        >
+          {showHistory ? 'Hide usage' : 'View usage'}
+        </button>
+      ) : null}
+      {showHistory ? (
+        <ul className="athlete-session-package-history">
+          {history.map((entry, index) => (
+            <li key={`${entry.occurredAt}-${index}`}>
+              <strong>{entry.label}</strong>
+              <span>
+                {entry.quantity > 0 ? '+' : ''}
+                {entry.quantity}
+              </span>
+            </li>
+          ))}
+        </ul>
+      ) : null}
     </section>
   )
 }

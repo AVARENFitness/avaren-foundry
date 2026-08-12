@@ -47,6 +47,7 @@ import { buildConfirmationPreview } from './buildConfirmationPreview'
 import { useAva } from './useAva'
 import { useFocusTrap } from './useFocusTrap'
 import { useBodyScrollLock } from './useBodyScrollLock'
+import { resetDocumentModalLayer } from '../hooks/useAppModalLayer'
 import { useAvaSheetViewport } from './useAvaSheetViewport'
 import {
   isNearTranscriptBottom,
@@ -138,6 +139,11 @@ export default function AvaSheet({
 
   useFocusTrap(panelRef, open)
   useBodyScrollLock(open)
+  useEffect(() => {
+    if (!open) {
+      resetDocumentModalLayer()
+    }
+  }, [open])
   const { keyboardOpen } = useAvaSheetViewport({
     open,
     backdropRef,
@@ -704,11 +710,14 @@ export default function AvaSheet({
 
   if (!open) return null
 
+  // AVA sheet keeps its own keyboard viewport contract (backdropRef) but must
+  // still expose the canonical open marker so app-ui.css does not hide it.
   return createPortal(
     <div
       ref={backdropRef}
       className={`ava-sheet-backdrop app-ui-backdrop${keyboardOpen ? ' ava-sheet-backdrop--keyboard' : ''}`}
       role="presentation"
+      data-app-ui-backdrop="open"
       onClick={onClose}
     >
       <section

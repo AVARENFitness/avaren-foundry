@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import {
   CalendarRange,
   ClipboardList,
@@ -11,6 +12,7 @@ import { COACH_CLIENT_SORT } from '../../lib/clientIntelligence'
 import CoachAttentionQueue from './CoachAttentionQueue'
 import CoachClientCard from './CoachClientCard'
 import CoachTodaySchedule from './CoachTodaySchedule'
+import CoachSessionDetailHost from './CoachSessionDetailHost'
 import EmptyState from '../ui/EmptyState'
 
 const ICON = { size: 18, strokeWidth: 1.75 }
@@ -41,8 +43,11 @@ export default function CoachCommandCenter({
   onInviteEmailChange,
   onReviewNext,
   onNavigateCoachScreen,
+  onSchedule,
   notice = '',
+  assignments = [],
 }) {
+  const [hubScheduleRefresh, setHubScheduleRefresh] = useState(0)
   const hero = portfolio?.hero
   const sortedRoster = portfolio?.rosterEntries ?? []
   const filteredRoster = sortedRoster.filter((entry) =>
@@ -100,6 +105,13 @@ export default function CoachCommandCenter({
   }
 
   return (
+    <CoachSessionDetailHost
+      clients={clients}
+      assignments={assignments}
+      onOpenClientProfile={onSelectClient}
+      onMutated={() => setHubScheduleRefresh((current) => current + 1)}
+    >
+      {(openSession) => (
     <section className="coach-hub-screen coach-command-center coach-command-center--calm">
       <header className="coach-command-hero coach-command-hero--compact">
         <div>
@@ -123,9 +135,11 @@ export default function CoachCommandCenter({
 
       <CoachTodaySchedule
         clients={clients}
-        onSchedule={() => onNavigateCoachScreen?.('calendar')}
+        onSchedule={onSchedule ?? (() => onNavigateCoachScreen?.('calendar'))}
         onOpenCalendar={() => onNavigateCoachScreen?.('calendar')}
         onOpenClient={onSelectClient}
+        onOpenSession={openSession}
+        refreshSignal={hubScheduleRefresh}
       />
 
       <CoachAttentionQueue
@@ -261,5 +275,7 @@ export default function CoachCommandCenter({
         </section>
       )}
     </section>
+      )}
+    </CoachSessionDetailHost>
   )
 }

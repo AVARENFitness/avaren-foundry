@@ -39,8 +39,8 @@ import {
 } from '../lib/sessionPackages'
 import ClientIntelligenceDashboard from '../components/ClientIntelligenceDashboard'
 import CoachClientInPersonPanel from '../components/coach/CoachClientInPersonPanel'
-import CoachSessionPackage from '../components/CoachSessionPackage'
 import CoachClientProfileShell from '../components/CoachClientProfileShell'
+import CoachSessionDetailHost from '../components/coach/CoachSessionDetailHost'
 import EmptyState from '../components/ui/EmptyState'
 
 const ICON = { size: 18, strokeWidth: 1.75 }
@@ -94,8 +94,8 @@ export default function CoachClientProfile({
   onOpenWeeklyReview,
   notice = '',
 }) {
-  const businessRef = useRef(null)
-  const [activeSection, setActiveSection] = useState('today')
+  const [passAvaContext, setPassAvaContext] = useState(null)
+  const [activeSection, setActiveSection] = useState('overview')
   const [packageSummary, setPackageSummary] = useState(emptySessionPackage())
   const [packageLoading, setPackageLoading] = useState(true)
   const [athleteState, setAthleteState] = useState(null)
@@ -354,15 +354,10 @@ export default function CoachClientProfile({
     }
   }, [client.athlete_id])
 
-  const handleRecordSession = () => {
-    setActiveSection('business')
-    requestAnimationFrame(() => {
-      businessRef.current?.scrollIntoView({
-        behavior: 'smooth',
-        block: 'start',
-      })
-    })
-  }
+  useEffect(() => {
+    if (!passAvaContext || !import.meta.env?.DEV) return
+    console.debug('[ava-coach-pass-context]', passAvaContext)
+  }, [passAvaContext])
 
   const handleSectionAction = (action) => {
     if (!action) return
@@ -377,8 +372,8 @@ export default function CoachClientProfile({
       return
     }
 
-    if (['training', 'progress'].includes(action)) {
-      setActiveSection(action === 'progress' ? 'progress' : 'training')
+    if (['training', 'progress', 'sessions'].includes(action)) {
+      setActiveSection(action)
     }
   }
 
@@ -402,124 +397,79 @@ export default function CoachClientProfile({
     [currentWeeklyCheckIn],
   )
 
-  const weeklyReviewAction = (
-    <article className="coach-profile-status-card coach-profile-status-card--review">
-      <div className="coach-profile-status-card-copy">
-        <span className="eyebrow">WEEKLY REVIEW</span>
-        <strong className="coach-profile-status-card-title">
-          {formatWeekRangeLabel(
-            weeklyReviewStatus.weekRange.weekStart,
-            weeklyReviewStatus.weekRange.weekEnd,
-          )}
-        </strong>
-        <p
-          className={`coach-profile-status-badge ${
-            weeklyReviewStatus.status === 'REVIEWED'
-              ? 'coach-profile-status-badge--complete'
-              : 'coach-profile-status-badge--open'
-          }`}
-        >
-          {weeklyReviewStatus.status === 'REVIEWED' ? '✓ Reviewed' : 'Review open'}
-        </p>
-      </div>
-      <button
-        type="button"
-        className={
-          weeklyReviewStatus.status === 'REVIEWED'
-            ? 'coach-secondary-button coach-profile-status-action'
-            : 'gold-button machined coach-profile-status-action'
-        }
-        onClick={onOpenWeeklyReview}
-      >
-        {weeklyReviewStatus.status === 'REVIEWED' ? 'View Review' : 'Review This Week'}
-      </button>
-    </article>
-  )
+  const coachingStatusPanel =
+    weeklyCheckInSummary || weeklyReviewStatus.status !== 'REVIEWED' ? (
+      <article className="coach-profile-status-card coach-profile-status-card--compact">
+        <div className="coach-profile-status-card-copy">
+          <span className="eyebrow">COACHING</span>
+          <strong className="coach-profile-status-card-title">
+            {weeklyCheckInSummary
+              ? 'Check-in · Received'
+              : 'Check-in · Waiting'}
+            {' · '}
+            {weeklyReviewStatus.status === 'REVIEWED'
+              ? 'Review · Done'
+              : 'Review · Open'}
+          </strong>
+        </div>
+        {weeklyReviewStatus.status !== 'REVIEWED' ? (
+          <button
+            type="button"
+            className="coach-secondary-button coach-profile-status-action"
+            onClick={onOpenWeeklyReview}
+          >
+            Review
+          </button>
+        ) : null}
+      </article>
+    ) : null
 
-  const weeklyCheckInPanel = (
-    <article className="coach-profile-status-card coach-profile-status-card--checkin">
-      <div className="coach-profile-status-card-copy">
-        <span className="eyebrow">WEEKLY CHECK-IN</span>
-        {weeklyCheckInSummary ? (
-          <>
-            <strong className="coach-profile-status-card-title">
-              Athlete submission received
-            </strong>
-            <p className="coach-profile-status-card-meta">
-              Training {weeklyCheckInSummary.training} · Recovery{' '}
-              {weeklyCheckInSummary.recovery} · Nutrition{' '}
-              {weeklyCheckInSummary.nutrition}
-            </p>
-            {weeklyCheckInSummary.issue !== 'No issues' && (
-              <p className="coach-profile-status-card-note">
-                Issue: {weeklyCheckInSummary.issue}
-              </p>
-            )}
-            {weeklyCheckInSummary.win && (
-              <p className="coach-profile-status-card-note">
-                Win: {weeklyCheckInSummary.win}
-              </p>
-            )}
-          </>
-        ) : (
-          <>
-            <strong className="coach-profile-status-card-title">
-              No submission yet this week
-            </strong>
-            <p className="coach-profile-status-card-meta">
-              Waiting on the athlete weekly check-in.
-            </p>
-          </>
-        )}
-      </div>
-      {weeklyCheckInSummary && (
-        <button
-          type="button"
-          className="coach-secondary-button coach-profile-status-action"
-          onClick={onOpenWeeklyReview}
-        >
-          Review
-        </button>
-      )}
-    </article>
-  )
+  const attentionPanel =
+    clientFollowUps.length > 0 ? (
+      <section className="coach-client-followup-panel">
+        <span className="eyebrow">ATTENTION</span>
+        {clientFollowUps.map((item) => (
+          <article key={item.id} className="coach-client-followup-card">
+            <div>
+              <strong>{item.summary}</strong>
+              <small>{item.reasonType.replace(/_/g, ' ').toLowerCase()}</small>
+            </div>
+            <div className="coach-client-followup-actions">
+              <button
+                type="button"
+                className="coach-secondary-button"
+                disabled={followUpBusyId === item.id}
+                onClick={() => updateFollowUpStatus(item.id, 'reviewed')}
+              >
+                Review
+              </button>
+              <button
+                type="button"
+                className="coach-secondary-button"
+                disabled={followUpBusyId === item.id}
+                onClick={() => updateFollowUpStatus(item.id, 'resolved')}
+              >
+                Resolve
+              </button>
+            </div>
+          </article>
+        ))}
+      </section>
+    ) : null
 
-  const renderSection = () => {
+  const renderSection = (openSession) => {
     switch (activeSection) {
+      case 'overview':
       case 'today':
         return (
           <>
-            {clientFollowUps.length > 0 && (
-              <section className="coach-client-followup-panel">
-                <span className="eyebrow">NEEDS ATTENTION</span>
-                {clientFollowUps.map((item) => (
-                  <article key={item.id} className="coach-client-followup-card">
-                    <div>
-                      <strong>{item.summary}</strong>
-                      <small>{item.reasonType.replace(/_/g, ' ').toLowerCase()}</small>
-                    </div>
-                    <div className="coach-client-followup-actions">
-                      <button
-                        type="button"
-                        className="coach-secondary-button"
-                        disabled={followUpBusyId === item.id}
-                        onClick={() => updateFollowUpStatus(item.id, 'reviewed')}
-                      >
-                        Review
-                      </button>
-                      <button
-                        type="button"
-                        className="coach-secondary-button"
-                        disabled={followUpBusyId === item.id}
-                        onClick={() => updateFollowUpStatus(item.id, 'resolved')}
-                      >
-                        Resolve
-                      </button>
-                    </div>
-                  </article>
-                ))}
-              </section>
-            )}
+            {attentionPanel}
+            <CoachClientInPersonPanel
+              client={client}
+              onOpenSession={openSession}
+              onPassContextChange={setPassAvaContext}
+              showHistory={false}
+            />
             <ClientIntelligenceDashboard
               intelligence={intelligence}
               loading={intelligenceLoading}
@@ -531,10 +481,19 @@ export default function CoachClientProfile({
           </>
         )
 
+      case 'sessions':
+        return (
+          <CoachClientInPersonPanel
+            client={client}
+            onOpenSession={openSession}
+            onPassContextChange={setPassAvaContext}
+            showPassPanel={false}
+            showUpcoming={false}
+          />
+        )
       case 'training':
         return (
           <>
-            <CoachClientInPersonPanel client={client} />
             <ProfileSection
               eyebrow="TRAINING"
               title="Programming"
@@ -615,58 +574,15 @@ export default function CoachClientProfile({
 
       case 'business':
         return (
-          <ProfileSection
-            eyebrow="COACHING BUSINESS"
-            title="Session packages"
-            description="Track purchased sessions and record in-person visits."
-            primaryAction={
-              <button
-                type="button"
-                className="gold-button machined coach-primary-action coach-client-profile-section-action"
-                onClick={handleRecordSession}
-              >
-                <Package {...ICON} />
-                Record Session
-              </button>
-            }
-          >
-            <article className="coach-profile-card coach-profile-card--wide">
-              <span className="coach-profile-card-icon" aria-hidden="true">
-                <Package {...ICON} />
-              </span>
-              <div>
-                <small>Session package</small>
-                {packageLoading ? (
-                  <strong>Loading…</strong>
-                ) : packageSummary.totalSessions > 0 ? (
-                  <>
-                    <strong>
-                      {packageSummary.sessionsRemaining} remaining
-                    </strong>
-                    <span>
-                      {packageSummary.sessionsUsed} used ·{' '}
-                      {packageSummary.totalSessions} purchased
-                      {packageSummary.purchasedAt
-                        ? ` · ${formatPackageDate(packageSummary.purchasedAt)}`
-                        : ''}
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    <strong>No package on file</strong>
-                    <span>Create a package below to start tracking sessions.</span>
-                  </>
-                )}
-              </div>
-            </article>
-
-            <div ref={businessRef} id="coach-session-business">
-              <CoachSessionPackage
-                athleteId={client.athlete_id}
-                coachLabel={coachEmail}
-              />
-            </div>
-          </ProfileSection>
+          <>
+            {attentionPanel}
+            <CoachClientInPersonPanel
+              client={client}
+              onOpenSession={openSession}
+              onPassContextChange={setPassAvaContext}
+              showHistory={false}
+            />
+          </>
         )
 
       case 'notes':
@@ -878,6 +794,12 @@ export default function CoachClientProfile({
   }
 
   return (
+    <CoachSessionDetailHost
+      clients={[client]}
+      assignments={assignments}
+      onOpenClientProfile={() => {}}
+    >
+      {(openSession) => (
     <CoachClientProfileShell
       clientName={getClientDisplayName(client)}
       clientEmail={client.athlete_email}
@@ -885,11 +807,12 @@ export default function CoachClientProfile({
       activeSection={activeSection}
       onSectionChange={setActiveSection}
       onBack={onBack}
-      weeklyReviewAction={weeklyReviewAction}
-      weeklyCheckInPanel={weeklyCheckInPanel}
+      coachingStatusPanel={coachingStatusPanel}
     >
-      {renderSection()}
+      {renderSection(openSession)}
       {notice && <p className="coach-hub-notice">{notice}</p>}
     </CoachClientProfileShell>
+      )}
+    </CoachSessionDetailHost>
   )
 }

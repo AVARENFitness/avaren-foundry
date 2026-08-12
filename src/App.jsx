@@ -279,6 +279,20 @@ function App() {
     setCoachWorkspace,
     coachAuthorized,
   })
+  const [screenReturnTo, setScreenReturnTo] = useState(null)
+
+  const navigateFromTrain = useCallback(
+    (nextScreen) => {
+      setScreenReturnTo('train')
+      navigate(nextScreen)
+    },
+    [navigate],
+  )
+
+  const closeSubScreen = useCallback(() => {
+    navigate(screenReturnTo ?? 'more')
+    setScreenReturnTo(null)
+  }, [navigate, screenReturnTo])
 
   useEffect(() => {
     resetDocumentModalLayer()
@@ -1582,7 +1596,7 @@ function App() {
         <TrainHubScreen
           state={state}
           onStart={startWorkout}
-          navigate={navigate}
+          navigate={navigateFromTrain}
         />
       )
     }
@@ -1620,7 +1634,7 @@ function App() {
           onSave={(program) =>
             setState((current) => ({ ...current, program }))
           }
-          onClose={() => navigate('more')}
+          onClose={closeSubScreen}
         />
       )
     }
@@ -1633,8 +1647,9 @@ function App() {
           onSave={(weeklySchedule) => {
             setState((current) => ({ ...current, weeklySchedule }))
             navigate('home')
+            setScreenReturnTo(null)
           }}
-          onClose={() => navigate('more')}
+          onClose={closeSubScreen}
         />
       )
     }
@@ -1691,7 +1706,7 @@ function App() {
       return (
         <ForgeScreen
           state={state}
-          onClose={() => navigate('more')}
+          onClose={closeSubScreen}
         />
       )
     }
@@ -1700,7 +1715,7 @@ function App() {
       return (
         <HistoryScreen
           state={state}
-          onClose={() => navigate('more')}
+          onClose={closeSubScreen}
           onDelete={(sessionId) =>
             setState((current) => ({
               ...current,

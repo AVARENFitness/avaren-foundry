@@ -132,4 +132,27 @@ describe('todayWorkout', () => {
     expect(context.displayName).toBe('Legs + Core')
     expect(context.source).toBe(WORKOUT_SOURCE.PROGRAM)
   })
+
+  it('does not promote next rotation workout after completing today', () => {
+    const state = {
+      selectedWorkout: null,
+      program: {
+        nextWorkout: 'Arms',
+        workouts: { 'Legs + Core': [], Arms: [] },
+      },
+      weeklySchedule: { 1: 'Rest' },
+      history: [
+        {
+          id: 'done-1',
+          name: 'Chest + Back',
+          finishedAt: '2026-08-03T18:00:00.000Z',
+        },
+      ],
+    }
+
+    const context = resolveTodayWorkoutContext(state, { now: monday })
+
+    expect(context.displayName).toBeNull()
+    expect(context.source).toBe(WORKOUT_SOURCE.NONE)
+  })
 })

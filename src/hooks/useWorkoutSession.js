@@ -650,7 +650,7 @@ export function useWorkoutSession({
       const nextState = {
         ...current,
         program: { ...current.program, nextWorkout },
-        selectedWorkout: nextWorkout,
+        selectedWorkout: null,
         activeWorkout: null,
         sessionExecutionPlan: null,
         history: [...current.history, completedWorkoutSession],

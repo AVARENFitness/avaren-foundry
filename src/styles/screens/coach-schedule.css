@@ -243,6 +243,19 @@
   height: 0;
 }
 
+.coach-schedule-control--client {
+  min-height: 48px;
+}
+
+.coach-schedule-control-value {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 650;
+}
+
 .coach-schedule-preview {
   display: grid;
   gap: 4px;

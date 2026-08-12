@@ -6,6 +6,16 @@ import {
 const todayKey = (date = new Date()) =>
   new Date(date).toISOString().slice(0, 10)
 
+const findCompletedWorkoutToday = (history = [], now = new Date()) => {
+  const key = todayKey(now)
+  return (history ?? []).find((session) => {
+    const finished =
+      session?.finishedAt ??
+      (session?.date ? `${session.date}T12:00:00` : null)
+    return finished && todayKey(new Date(finished)) === key
+  })
+}
+
 const normalizeWorkoutName = (value) => {
   if (!value) return null
   if (typeof value === 'string') return value
@@ -93,10 +103,14 @@ export const resolveTodayWorkoutContext = (state = {}, context = {}) => {
     }
   }
 
+  const completedTodaySession = findCompletedWorkoutToday(state.history, now)
+
   const name =
     normalizeWorkoutName(state.selectedWorkout) ||
     (scheduled && scheduled !== 'Rest' ? scheduled : null) ||
-    normalizeWorkoutName(state.program?.nextWorkout) ||
+    (!completedTodaySession
+      ? normalizeWorkoutName(state.program?.nextWorkout)
+      : null) ||
     null
 
   let source = WORKOUT_SOURCE.NONE

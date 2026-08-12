@@ -1,0 +1,85 @@
+-- AVAREN Sprint 8.4.4 — Phase C offline client plan (DO NOT RUN — checklist only)
+--
+-- Goal: coach creates offline client (linked_user_id NULL), schedules/completes
+-- appointments (athlete_id NULL), consumes pass, views history — no fake auth user.
+--
+-- Canonical after Phase C:
+--   business_client_id = business truth
+--   linked_user_id     = optional athlete-app linkage (NULL = offline)
+--   athlete_id on appointment = denormalized cache when linked; NULL when offline
+--
+-- ══════════════════════════════════════════════════════════════════════════════
+-- SCHEMA (after verification green)
+-- ══════════════════════════════════════════════════════════════════════════════
+--
+-- alter table public.coach_scheduled_sessions alter column athlete_id drop not null;
+-- alter table public.coach_scheduled_sessions
+--   add constraint coach_scheduled_sessions_business_client_required
+--   check (business_client_id is not null);
+--
+-- ══════════════════════════════════════════════════════════════════════════════
+-- SQL / RPC AUDIT — athlete_id assumptions to update
+-- ══════════════════════════════════════════════════════════════════════════════
+--
+-- ALREADY PREPARED (8.4.1E):
+--   enforce_coach_scheduled_session_integrity()
+--     - business_client_id path: offline allows athlete_id NULL
+--     - no coach_clients requirement for offline clients
+--
+-- MUST UPDATE:
+--
+-- 1. complete_coach_scheduled_session (AVAREN_COACH_SESSION_COMPLETION_ATOMIC_7_1.sql)
+--    - Lines 53-60: coach_clients check via athlete_id only
+--    - Lines 62-67: package lookup via athlete_id
+--    → Phase C: resolve business_client_id; call record_completed_session_pass_usage()
+--    → Remove legacy coach_session_packages mutation path
+--
+-- 2. undo_complete_coach_scheduled_session (same file)
+--    - Same athlete_id-only authorization
+--    → Phase C: business_client_id + optional credit_restored linkage
+--
+-- 3. list_athlete_scheduled_sessions (8.3 / 8.3.9 / SESSION_RSVP_7_1)
+--    - WHERE s.athlete_id = v_athlete_id
+--    → JOIN coach_business_clients bc ON bc.id = s.business_client_id
+--       WHERE bc.linked_user_id = auth.uid()
+--
+-- 4. list_athlete_scheduled_session_history (8.3.16)
+--    - Same athlete_id filter + LIMIT-after-agg bug (mirror 8.4.4 LIMIT fix)
+--    → linked_user_id filter; LIMIT in subquery before jsonb_agg
+--
+-- 5. athlete_scheduled_session_public_json (8.3 / 8.3.14)
+--    - Assignment title join uses s.athlete_id
+--    → Only when athlete_id present; offline N/A for athlete RPCs
+--
+-- 6. update_scheduled_session_rsvp (8.3 / SESSION_RSVP_7_1)
+--    - athlete_id = auth.uid() ownership check
+--    → bc.linked_user_id = auth.uid() via business_client_id
+--
+-- 7. enforce_coach_client_followup_insert (8.3 / 8.3.15)
+--    - Validates coach_clients + scheduled session via athlete_id
+--    → Accept business_client_id path for linked athletes
+--
+-- 8. coach_scheduled_sessions_overlap_guard (8.3)
+--    - OK as-is (coach_id scoped, no athlete_id)
+--
+-- 9. Coach calendar / create appointment RPCs (app layer)
+--    - src/lib/coachScheduledSessions.js, coachBackend.js
+--    → Require business_client_id; athlete_id optional/null for offline
+--
+-- 10. NEW RPCs needed (8.4 Phase C app):
+--    - create_coach_business_client(...) — offline client without auth user
+--    - create_coach_scheduled_session_for_business_client(...)
+--    - list_coach_business_client_appointments(...) — coach history for offline
+--
+-- ══════════════════════════════════════════════════════════════════════════════
+-- OFFLINE CLIENT ACCEPTANCE CRITERIA
+-- ══════════════════════════════════════════════════════════════════════════════
+--
+-- [ ] create business client with linked_user_id NULL — no coach_clients row required
+-- [ ] create_coach_client_pass → balance correct
+-- [ ] schedule appointment with business_client_id, athlete_id NULL
+-- [ ] appointment appears on coach calendar
+-- [ ] complete appointment → record_completed_session_pass_usage debits pass
+-- [ ] coach sees full ledger history; athlete RPCs return empty (not linked)
+-- [ ] invite + accept → same business_client_id, athlete_id backfilled on appointments
+-- [ ] verification queries all 0

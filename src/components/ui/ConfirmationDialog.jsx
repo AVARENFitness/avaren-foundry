@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef } from 'react'
-import { createPortal } from 'react-dom'
 import { AlertTriangle, Info, X } from 'lucide-react'
+import AppUiBackdrop from './AppUiBackdrop'
 
 const TONE_META = {
   default: { icon: Info, className: 'tone-default' },
@@ -27,28 +27,11 @@ export default function ConfirmationDialog({
 
   useEffect(() => {
     if (!open) return undefined
-
     confirmRef.current?.focus()
+  }, [open])
 
-    const onKeyDown = (event) => {
-      if (event.key === 'Escape') {
-        event.preventDefault()
-        onCancel?.()
-      }
-    }
-
-    window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
-  }, [open, onCancel])
-
-  if (!open) return null
-
-  return createPortal(
-    <div
-      className="app-ui-backdrop"
-      role="presentation"
-      onClick={onCancel}
-    >
+  return (
+    <AppUiBackdrop open={open} onClose={onCancel}>
       <section
         className={`confirmation-dialog ${meta.className}`}
         role="dialog"
@@ -103,7 +86,6 @@ export default function ConfirmationDialog({
           </button>
         </div>
       </section>
-    </div>,
-    document.body,
+    </AppUiBackdrop>
   )
 }

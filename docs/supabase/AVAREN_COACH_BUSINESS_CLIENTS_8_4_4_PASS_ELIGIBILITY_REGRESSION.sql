@@ -1,0 +1,28 @@
+-- AVAREN Sprint 8.4.4 — Pass eligibility regression (staging / manual)
+-- DO NOT RUN IN PRODUCTION without isolated test data.
+--
+-- Each case must raise pass_not_eligible_for_session when p_pass_id is explicit.
+--
+-- | Case | Setup | Expected |
+-- |------|-------|----------|
+-- | future pass | starts_at > session_date | pass_not_eligible_for_session |
+-- | expired pass | expires_at < session_date OR status=expired | pass_not_eligible_for_session |
+-- | archived pass | status=archived | pass_not_eligible_for_session |
+-- | wrong client | pass.business_client_id <> session.business_client_id | pass_not_eligible_for_session |
+-- | zero balance | SUM(ledger.quantity) = 0 | pass_not_eligible_for_session |
+--
+-- Example (coach auth context required):
+--
+-- select public.record_completed_session_pass_usage(
+--   '<completed_session_id>'::uuid,
+--   '<future_pass_id>'::uuid
+-- );
+-- -- expect: pass_not_eligible_for_session
+--
+-- Multi-pass missed flow:
+-- 1. set_missed_session_charge_decision(session_id, 'charge') with 2 eligible → pass_selection_required, decision NULL
+-- 2. record_missed_session_pass_charge(session_id, selected_pass_id) → decision=charge + exactly one no_show_charged
+--
+-- Charge consistency (post-workflow):
+-- select * from ... verification missedChargeDecisionWithoutDebit / noShowDebitWithoutChargeDecision
+-- -- both must be 0

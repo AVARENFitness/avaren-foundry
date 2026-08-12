@@ -55,50 +55,12 @@ alter function public.list_athlete_scheduled_session_history(integer) owner to p
 revoke all on function public.list_athlete_scheduled_session_history(integer) from public;
 grant execute on function public.list_athlete_scheduled_session_history(integer) to authenticated;
 
--- ── B. Pass adjustment ledger (proposal — complements coach_session_packages) ─
-
-create table if not exists public.coach_client_pass_adjustments (
-  id uuid primary key default gen_random_uuid(),
-  coach_id uuid not null references auth.users(id) on delete cascade,
-  athlete_id uuid not null references auth.users(id) on delete cascade,
-  package_id uuid references public.coach_session_packages(id) on delete set null,
-  adjustment_type text not null check (
-    adjustment_type in ('bonus', 'correction', 'transfer', 'comp', 'manual_debit')
-  ),
-  session_delta integer not null check (session_delta <> 0),
-  reason text not null default '',
-  related_appointment_id uuid references public.coach_scheduled_sessions(id) on delete set null,
-  created_by uuid not null references auth.users(id) on delete cascade,
-  created_at timestamptz not null default now()
-);
-
-create index if not exists coach_client_pass_adjustments_client_idx
-  on public.coach_client_pass_adjustments (coach_id, athlete_id, created_at desc);
-
-alter table public.coach_client_pass_adjustments enable row level security;
-
-drop policy if exists coach_client_pass_adjustments_coach_all
-  on public.coach_client_pass_adjustments;
-create policy coach_client_pass_adjustments_coach_all
-  on public.coach_client_pass_adjustments
-for all to authenticated
-using (coach_id = auth.uid() and public.is_avaren_coach())
-with check (
-  coach_id = auth.uid()
-  and public.is_avaren_coach()
-  and exists (
-    select 1 from public.coach_clients as cc
-    where cc.coach_id = auth.uid()
-      and cc.athlete_id = coach_client_pass_adjustments.athlete_id
-  )
-);
-
-drop policy if exists coach_client_pass_adjustments_athlete_select
-  on public.coach_client_pass_adjustments;
-create policy coach_client_pass_adjustments_athlete_select
-  on public.coach_client_pass_adjustments
-for select to authenticated
-using (athlete_id = auth.uid());
+-- ── B. REJECTED — do not create coach_client_pass_adjustments ─────────────────
+-- Superseded by AVAREN 8.4.1 canonical ledger:
+--   coach_business_clients → coach_client_passes → coach_client_pass_ledger
+-- Reasons: required athlete_id (blocks non-app clients), duplicate truth vs ledger,
+-- athlete SELECT exposed coach-private reasons. All adjustments = immutable ledger rows.
+-- Part A (athlete history RPC) may still be adopted independently — see 8.4.1D.
 
 notify pgrst, 'reload schema';
 

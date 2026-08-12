@@ -1,0 +1,14 @@
+-- AVAREN Sprint 8.4.3 — Athlete history LIMIT regression (manual / staging)
+-- DO NOT RUN IN PRODUCTION. Validates list_my_pass_usage_history scopes before agg.
+--
+-- Setup: linked athlete with >30 ledger rows (mix of purchase/session_used).
+-- Assert: list_my_pass_usage_history(30) returns exactly 30 entries (newest first).
+--
+-- select jsonb_array_length(public.list_my_pass_usage_history(30)) as returned_count;
+-- -- expected: 30 when source rows > 30
+--
+-- select jsonb_array_length(public.list_my_pass_usage_history(30)) as returned_count
+-- from public.coach_business_clients bc
+-- where bc.linked_user_id = auth.uid();
+--
+-- App regression (post-Phase D): add vitest against RPC mock with 35 rows.

@@ -13,7 +13,7 @@ export default function CoachAppointmentCard({
   onClick,
   className = '',
 }) {
-  const clientName = getClientDisplayName(client ?? {})
+  const clientName = getClientDisplayName(client ?? {}) || 'Client'
   const time = formatScheduledSessionTime(session)
   const duration = formatAppointmentDuration(session)
   const place = locationLabel(session)
@@ -31,6 +31,7 @@ export default function CoachAppointmentCard({
       type="button"
       className={`coach-appointment-card${isRsvpException(session) ? ' coach-appointment-card--attention' : ''} ${className}`.trim()}
       onClick={() => onClick?.(session)}
+      data-testid="coach-appointment-card"
     >
       <div className="coach-appointment-card-main">
         <strong className="coach-appointment-card-time">{time}</strong>

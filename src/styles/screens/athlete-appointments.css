@@ -133,6 +133,26 @@
   color: color-mix(in srgb, var(--cream) 72%, var(--muted));
 }
 
+.athlete-appointment-status-pill--confirmed {
+  color: var(--success, #6fcf97);
+  border-color: color-mix(in srgb, var(--success, #6fcf97) 28%, transparent);
+}
+
+.athlete-appointment-confirmed-state {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 48px;
+  margin: 0;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--success, #6fcf97) 24%, transparent);
+  background: color-mix(in srgb, var(--success, #6fcf97) 8%, transparent);
+  color: var(--success, #6fcf97);
+  font-weight: 650;
+}
+
 .athlete-appointment-status-pill--compact {
   margin-top: 8px;
 }

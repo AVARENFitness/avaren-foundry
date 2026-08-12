@@ -10,7 +10,7 @@ describe('CoachClientProfileShell', () => {
     clientName: 'Alex Rivera',
     clientEmail: 'alex@example.com',
     connectedSince: 'Connected since Jan 4, 2026',
-    activeSection: 'today',
+    activeSection: 'overview',
     onSectionChange: vi.fn(),
     onBack: vi.fn(),
   }
@@ -76,40 +76,23 @@ describe('CoachClientProfileShell', () => {
       'aria-current',
       'page',
     )
-    expect(screen.getByRole('button', { name: 'Today' })).not.toHaveAttribute(
+    expect(screen.getByRole('button', { name: 'Overview' })).not.toHaveAttribute(
       'aria-current',
     )
   })
 
-  it('separates weekly check-in eyebrow from title in status cards', () => {
+  it('renders compact coaching status when provided', () => {
     render(
       <CoachClientProfileShell
         {...baseProps}
-        weeklyCheckInPanel={
-          <article className="coach-profile-status-card coach-profile-status-card--checkin">
+        coachingStatusPanel={
+          <article className="coach-profile-status-card coach-profile-status-card--compact">
             <div className="coach-profile-status-card-copy">
-              <span className="eyebrow">WEEKLY CHECK-IN</span>
+              <span className="eyebrow">COACHING</span>
               <strong className="coach-profile-status-card-title">
-                Athlete submission received
+                Check-in · Waiting · Review · Open
               </strong>
-              <p className="coach-profile-status-card-meta">
-                Training 3/5 · Recovery 2/5 · Nutrition 4/5
-              </p>
             </div>
-          </article>
-        }
-        weeklyReviewAction={
-          <article className="coach-profile-status-card coach-profile-status-card--review">
-            <div className="coach-profile-status-card-copy">
-              <span className="eyebrow">WEEKLY REVIEW</span>
-              <strong className="coach-profile-status-card-title">Aug 3 – 9</strong>
-              <p className="coach-profile-status-badge coach-profile-status-badge--complete">
-                ✓ Reviewed
-              </p>
-            </div>
-            <button type="button" className="coach-secondary-button coach-profile-status-action">
-              View Review
-            </button>
           </article>
         }
       >
@@ -117,13 +100,7 @@ describe('CoachClientProfileShell', () => {
       </CoachClientProfileShell>,
     )
 
-    expect(screen.getByText('WEEKLY CHECK-IN')).toBeInTheDocument()
-    expect(screen.getByText('Athlete submission received')).toBeInTheDocument()
-    expect(screen.getByText(/Training 3\/5/)).toBeInTheDocument()
-    expect(screen.getByText('✓ Reviewed')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'View Review' })).toHaveClass(
-      'coach-secondary-button',
-    )
-    expect(screen.queryByRole('button', { name: 'Reviewed' })).not.toBeInTheDocument()
+    expect(screen.getByText('COACHING')).toBeInTheDocument()
+    expect(screen.getByText(/Check-in · Waiting/)).toBeInTheDocument()
   })
 })
