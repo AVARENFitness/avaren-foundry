@@ -1,4 +1,4 @@
-import { CalendarDays, Check, XCircle } from 'lucide-react'
+import { CalendarDays, Check } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { appUi } from '../lib/appUi'
 import { coachBackend } from '../lib/coachBackend'
@@ -33,6 +33,8 @@ export default function AthleteScheduledSessions({
   useEffect(() => {
     onSessionsChange?.(sessions)
   }, [onSessionsChange, sessions])
+
+  useEffect(() => () => setDetailSession(null), [])
 
   const handleRsvp = async (session, rsvpStatus) => {
     if (!canAthleteUpdateRsvp(session) || updatingId === session.id) return
@@ -107,15 +109,6 @@ export default function AthleteScheduledSessions({
                   >
                     <Check size={16} />
                     Confirm
-                  </button>
-                  <button
-                    type="button"
-                    className={session.rsvpStatus === RSVP_STATUS.CANNOT_ATTEND ? 'active' : ''}
-                    disabled={updatingId === session.id}
-                    onClick={() => handleRsvp(session, RSVP_STATUS.CANNOT_ATTEND)}
-                  >
-                    <XCircle size={16} />
-                    Can't make it
                   </button>
                 </div>
               )}

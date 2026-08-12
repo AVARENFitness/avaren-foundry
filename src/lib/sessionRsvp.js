@@ -90,8 +90,6 @@ export const ATHLETE_SESSION_PRIVATE_FIELDS = [
   'reminderClaimedAt',
   'reminder_claim_expires_at',
   'reminderClaimExpiresAt',
-  'coach_id',
-  'coachId',
   'athlete_id',
   'athleteId',
   'created_at',

@@ -32,6 +32,12 @@ import {
   logAthleteRpcCheckpoint,
   resolveAuthenticatedUserId,
 } from './athleteAppointmentTrace'
+import {
+  buildFollowUpInsertDiagnostics,
+  buildScheduleConflictFollowUpForensics,
+  inferFollowUpScheduledSessionFailure,
+  resolveFollowUpCoachId,
+} from './appointmentFollowUpIdentity'
 
 const normalizeEmail = (value = '') => String(value).trim().toLowerCase()
 
@@ -942,6 +948,25 @@ export const coachBackend = {
     return data?.coach_id ?? null
   },
 
+  async getCoachIdFromAssignment(assignmentId = null) {
+    if (!assignmentId) return null
+
+    const user = await currentUser()
+    const { data, error } = await supabase
+      .from('coach_assignments')
+      .select('coach_id')
+      .eq('id', assignmentId)
+      .eq('athlete_id', user.id)
+      .maybeSingle()
+
+    if (error) {
+      if (missingBackend(error)) return null
+      throw error
+    }
+
+    return data?.coach_id ?? null
+  },
+
   async createClientFollowUp({
     reasonType = null,
     summary = '',
@@ -949,9 +974,36 @@ export const coachBackend = {
     sessionId = null,
     assignmentId = null,
     scheduledSessionId = null,
+    coachId = null,
+    appointmentContext = null,
   } = {}) {
     const user = await currentUser()
-    const resolvedCoachId = await this.getAthleteCoachId()
+    let resolvedCoachId
+
+    try {
+      resolvedCoachId = await resolveFollowUpCoachId({
+        coachId,
+        assignmentId,
+        scheduledSessionId,
+        fetchCoachIdFromAssignment: (id) => this.getCoachIdFromAssignment(id),
+        fetchDefaultCoachId: () => this.getAthleteCoachId(),
+      })
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.warn('[follow-up-insert]', {
+          ...buildFollowUpInsertDiagnostics({
+            athleteId: user.id,
+            coachId,
+            scheduledSessionId,
+            assignmentId,
+            reasonType,
+            sourceType,
+          }),
+          error: error.message,
+        })
+      }
+      throw error
+    }
 
     const validation = validateCoachFollowUpInput({
       athleteId: user.id,
@@ -968,6 +1020,17 @@ export const coachBackend = {
       throw new Error('No coach relationship found for this athlete.')
     }
 
+    if (import.meta.env.DEV) {
+      console.warn('[follow-up-insert]', buildFollowUpInsertDiagnostics({
+        athleteId: user.id,
+        coachId: resolvedCoachId,
+        scheduledSessionId,
+        assignmentId,
+        reasonType,
+        sourceType,
+      }))
+    }
+
     const payload = {
       coach_id: resolvedCoachId,
       athlete_id: user.id,
@@ -980,6 +1043,18 @@ export const coachBackend = {
       scheduled_session_id: scheduledSessionId ?? null,
     }
 
+    if (import.meta.env.DEV && scheduledSessionId) {
+      const forensics = buildScheduleConflictFollowUpForensics({
+        appointment: appointmentContext ?? {
+          id: scheduledSessionId,
+          coachId: resolvedCoachId,
+        },
+        authAthleteId: user.id,
+        followUpPayload: payload,
+      })
+      console.warn('[follow-up-insert-forensics]', forensics)
+    }
+
     try {
       const row = await unwrap(
         supabase
@@ -990,6 +1065,25 @@ export const coachBackend = {
       )
       return normalizeCoachFollowUp(row)
     } catch (error) {
+      if (import.meta.env.DEV && scheduledSessionId) {
+        const forensics = buildScheduleConflictFollowUpForensics({
+          appointment: appointmentContext ?? {
+            id: scheduledSessionId,
+            coachId: resolvedCoachId,
+          },
+          authAthleteId: user.id,
+          followUpPayload: payload,
+        })
+        const inferred = inferFollowUpScheduledSessionFailure({
+          errorMessage: error?.message ?? String(error),
+          forensics,
+        })
+        console.warn('[follow-up-insert-failure]', {
+          error: error?.message ?? String(error),
+          forensics,
+          inferredFailure: inferred,
+        })
+      }
       if (missingBackend(error)) {
         return writeDevFollowUp(
           resolvedCoachId,

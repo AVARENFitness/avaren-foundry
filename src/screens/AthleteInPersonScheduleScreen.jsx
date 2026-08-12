@@ -1,5 +1,6 @@
 import { CalendarDays, ChevronLeft } from 'lucide-react'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
+import AthleteAppointmentDetailSheet from '../components/AthleteAppointmentDetailSheet'
 import { useAthleteAppointments } from '../hooks/useAthleteAppointments'
 import {
   appointmentTypeLabel,
@@ -17,10 +18,13 @@ export default function AthleteInPersonScheduleScreen({ onBack }) {
     ready,
     refreshAppointments,
   } = useAthleteAppointments()
+  const [detailAppointment, setDetailAppointment] = useState(null)
 
   useEffect(() => {
     refreshAppointments({ force: true })
   }, [refreshAppointments])
+
+  useEffect(() => () => setDetailAppointment(null), [])
 
   return (
     <div className="athlete-in-person-schedule-screen">
@@ -53,7 +57,11 @@ export default function AthleteInPersonScheduleScreen({ onBack }) {
 
             return (
               <li key={appointment.id}>
-                <article className="athlete-in-person-schedule-item athlete-appointment-card">
+                <button
+                  type="button"
+                  className="athlete-in-person-schedule-item athlete-appointment-card athlete-in-person-schedule-item-button"
+                  onClick={() => setDetailAppointment(appointment)}
+                >
                   <span className="eyebrow">{appointmentTypeLabel(appointment).toUpperCase()}</span>
                   <strong className="athlete-appointment-card-when">
                     {formatAppointmentHomeWhen(appointment)}
@@ -72,7 +80,7 @@ export default function AthleteInPersonScheduleScreen({ onBack }) {
                       {rsvpAthleteLabel(appointment.rsvpStatus)}
                     </span>
                   ) : null}
-                </article>
+                </button>
               </li>
             )
           })}
@@ -83,6 +91,16 @@ export default function AthleteInPersonScheduleScreen({ onBack }) {
           <p>No in-person sessions scheduled.</p>
         </div>
       ) : null}
+
+      <AthleteAppointmentDetailSheet
+        appointment={detailAppointment}
+        open={Boolean(detailAppointment)}
+        onClose={() => setDetailAppointment(null)}
+        onUpdated={(updated) => {
+          refreshAppointments({ force: true })
+          setDetailAppointment(updated)
+        }}
+      />
     </div>
   )
 }

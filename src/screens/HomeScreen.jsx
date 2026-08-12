@@ -95,6 +95,8 @@ export default function HomeScreen({
   } = useAthleteAppointments()
   const [detailAppointment, setDetailAppointment] = useState(null)
 
+  useEffect(() => () => setDetailAppointment(null), [])
+
   useEffect(() => {
     logHomeAppointmentCheckpoint({
       appointmentStateReady: appointmentsReady,
@@ -355,7 +357,10 @@ export default function HomeScreen({
         <button
           type="button"
           className="home-today-plan-link"
-          onClick={() => setScreen('in-person-schedule')}
+          onClick={() => {
+            setDetailAppointment(null)
+            setScreen('in-person-schedule')
+          }}
         >
           View schedule
           <ChevronRight size={16} strokeWidth={1.75} />

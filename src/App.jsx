@@ -35,6 +35,7 @@ import MoreScreen from './screens/MoreScreen'
 import TrainHubScreen from './screens/TrainHubScreen'
 import AthleteInPersonScheduleScreen from './screens/AthleteInPersonScheduleScreen'
 import { AthleteAppointmentsProvider } from './hooks/useAthleteAppointments'
+import { resetDocumentModalLayer } from './hooks/useAppModalLayer'
 import NutritionScreen from './screens/NutritionScreen'
 import { createNutritionState, nutritionDateKey, nutritionTotals } from './lib/nutrition'
 import { nutritionBackend } from './lib/nutritionBackend'
@@ -278,6 +279,10 @@ function App() {
     setCoachWorkspace,
     coachAuthorized,
   })
+
+  useEffect(() => {
+    resetDocumentModalLayer()
+  }, [screen])
 
   useEffect(() => {
     if (
@@ -960,6 +965,7 @@ function App() {
             sessionId: proposal.sessionId,
             assignmentId: proposal.assignmentId,
             scheduledSessionId: proposal.scheduledSessionId,
+            coachId: proposal.coachId,
           })
           setState((current) => ({
             ...current,

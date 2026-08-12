@@ -1,5 +1,30 @@
 /* ===== PATCH 8.3.10 · SHARED APP UI CONTROLS ===== */
 
+:root {
+  --app-fab-clearance: 112px;
+  --app-layer-nav: 50;
+  --app-layer-fab: 48;
+  --app-layer-modal: 120;
+  --app-layer-toast: 130;
+}
+
+.ava-entry-button {
+  z-index: var(--app-layer-fab);
+  width: auto;
+  max-width: calc(100vw - 32px - env(safe-area-inset-right) - env(safe-area-inset-left));
+  pointer-events: auto;
+}
+
+.app-ui-backdrop {
+  z-index: var(--app-layer-modal);
+}
+
+.app-ui-backdrop:not([data-app-ui-backdrop='open']) {
+  display: none;
+  pointer-events: none;
+  visibility: hidden;
+}
+
 .ava-sheet-close,
 .app-ui-close-button {
   display: grid;
@@ -61,7 +86,7 @@
 }
 
 .athlete-appointment-detail-backdrop {
-  z-index: 1200;
+  z-index: var(--app-layer-modal);
   align-items: center;
   padding: 16px;
   padding-bottom: calc(16px + env(safe-area-inset-bottom));

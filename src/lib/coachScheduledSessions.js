@@ -17,6 +17,7 @@ import {
   DEFAULT_RSVP_STATUS,
   normalizeRsvpStatus,
 } from './sessionRsvp'
+import { extractAppointmentDateKey } from './appointmentWhen'
 
 export const normalizeScheduledSession = (row) => {
   if (!row) return null
@@ -252,8 +253,14 @@ export const normalizeAthleteScheduledSession = (row) => {
 
   return {
     id: row.id,
+    coachId: row.coach_id ?? row.coachId ?? null,
     coachDisplayName: row.coach_display_name ?? row.coachDisplayName ?? 'Coach',
-    sessionDate: row.session_date ?? row.sessionDate ?? null,
+    sessionDate:
+      extractAppointmentDateKey({
+        sessionDate: row.session_date ?? row.sessionDate ?? null,
+        startsAt: row.starts_at ?? row.startsAt ?? null,
+        scheduleTimezone: row.schedule_timezone ?? row.scheduleTimezone ?? null,
+      }) ?? row.session_date ?? row.sessionDate ?? null,
     startTime: String(row.start_time ?? row.startTime ?? '').slice(0, 5),
     startsAt: row.starts_at ?? row.startsAt ?? null,
     scheduleTimezone: row.schedule_timezone ?? row.scheduleTimezone ?? null,

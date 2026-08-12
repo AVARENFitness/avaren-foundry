@@ -130,13 +130,25 @@ export const formatScheduledSessionDate = (session) => {
     return formatSessionInstantDate(session.startsAt, timeZone)
   }
 
-  if (!session?.sessionDate) return ''
+  const rawDate = session?.sessionDate ?? session?.session_date ?? null
+  if (!rawDate) return ''
 
-  return new Date(`${session.sessionDate}T12:00:00`).toLocaleDateString([], {
+  const match = String(rawDate).trim().match(/^(\d{4}-\d{2}-\d{2})/)
+  if (!match) return ''
+
+  const [year, month, day] = match[1].split('-').map(Number)
+  if (![year, month, day].every(Number.isFinite)) return ''
+
+  const date = new Date(year, month - 1, day)
+  if (!Number.isFinite(date.getTime())) return ''
+
+  const label = date.toLocaleDateString([], {
     weekday: 'short',
     month: 'short',
     day: 'numeric',
   })
+
+  return label.includes('Invalid') ? '' : label
 }
 
 export const sessionInstantTimestamp = (session) => {

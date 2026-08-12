@@ -22,6 +22,24 @@ describe('athlete session privacy', () => {
     rsvp_updated_at: null,
   }
 
+  it('normalizes canonical appointment coach_id for follow-up identity', () => {
+    const normalized = normalizeAthleteScheduledSession({
+      ...publicPayload,
+      coach_id: 'coach-1',
+    })
+
+    expect(normalized.coachId).toBe('coach-1')
+  })
+
+  it('allows coach_id in athlete-safe RPC payloads', () => {
+    expect(
+      isAthleteSessionPayloadSafe({
+        ...publicPayload,
+        coach_id: 'coach-1',
+      }),
+    ).toBe(true)
+  })
+
   it('returns only allowlisted athlete session fields', () => {
     expect(isAthleteSessionPayloadSafe(publicPayload)).toBe(true)
     expect(publicPayload).not.toHaveProperty('coach_note')

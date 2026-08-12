@@ -2,9 +2,16 @@ import { sessionDateTime } from './coachScheduledSessions'
 import { upcomingAppointmentsFromRpc } from './athleteAppointments'
 import { addDaysKey, dateKey } from './appointmentScheduling'
 import {
+  extractAppointmentDateKey,
+  formatAppointmentDayTime,
+  formatAppointmentHomeWhen,
+} from './appointmentWhen'
+import {
   formatScheduledSessionDate,
   formatScheduledSessionTime,
 } from './sessionTimezone'
+
+export { formatAppointmentDayTime, formatAppointmentHomeWhen } from './appointmentWhen'
 
 export const APPOINTMENT_TYPE = {
   IN_PERSON_TRAINING: 'IN_PERSON_TRAINING',
@@ -216,49 +223,32 @@ export const formatAppointmentWhen = (appointment = {}) => {
   return [date, time].filter(Boolean).join(' · ')
 }
 
-export const formatAppointmentDayTime = (appointment = {}) => {
-  if (!appointment?.sessionDate) return formatScheduledSessionTime(appointment)
-
-  const date = new Date(`${appointment.sessionDate}T12:00:00`)
-  const day = date.toLocaleDateString([], { weekday: 'short' })
-  const time = formatScheduledSessionTime(appointment)
-  return `${day} · ${time}`
-}
-
 export const formatAppointmentRelativeWhen = (appointment = {}, now = new Date()) => {
-  if (!appointment?.sessionDate) return formatScheduledSessionTime(appointment)
+  const dateKeyValue = extractAppointmentDateKey(appointment)
+  const time = formatScheduledSessionTime(appointment)
+
+  if (!dateKeyValue) {
+    return time || 'Date unavailable'
+  }
 
   const today = dateKey(now)
   const tomorrow = addDaysKey(today, 1)
-  const time = formatScheduledSessionTime(appointment)
 
-  if (appointment.sessionDate === today) return `today at ${time}`
-  if (appointment.sessionDate === tomorrow) return `tomorrow at ${time}`
+  if (dateKeyValue === today) return `today at ${time}`
+  if (dateKeyValue === tomorrow) return `tomorrow at ${time}`
 
-  const { year, month, day } = appointment.sessionDate.split('-').map(Number)
+  const { year, month, day } = dateKeyValue.split('-').map(Number)
+  if (![year, month, day].every(Number.isFinite)) {
+    return time || 'Date unavailable'
+  }
+
   const date = new Date(year, month - 1, day)
+  if (!Number.isFinite(date.getTime())) {
+    return time || 'Date unavailable'
+  }
+
   const dayLabel = date.toLocaleDateString([], { weekday: 'long' })
-  return `${dayLabel} at ${time}`
-}
-
-export const formatAppointmentHomeWhen = (appointment = {}, now = new Date()) => {
-  if (!appointment?.sessionDate) return formatScheduledSessionTime(appointment)
-
-  const today = dateKey(now)
-  const tomorrow = addDaysKey(today, 1)
-  const time = formatScheduledSessionTime(appointment)
-
-  if (appointment.sessionDate === today) return `Today · ${time}`
-  if (appointment.sessionDate === tomorrow) return `Tomorrow · ${time}`
-
-  const { year, month, day } = appointment.sessionDate.split('-').map(Number)
-  const date = new Date(year, month - 1, day)
-  const dayLabel = date.toLocaleDateString([], {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-  })
-  return `${dayLabel} · ${time}`
+  return dayLabel.includes('Invalid') ? time || 'Date unavailable' : `${dayLabel} at ${time}`
 }
 
 const mentionedDayKey = (message = '', now = new Date()) => {

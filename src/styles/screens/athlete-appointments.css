@@ -124,6 +124,7 @@
   color: var(--cream);
   font-size: 0.82rem;
   font-weight: 650;
+  pointer-events: none;
 }
 
 .athlete-appointment-status-pill--quiet {
@@ -178,6 +179,33 @@
   background: color-mix(in srgb, var(--ink) 72%, transparent);
 }
 
+.athlete-appointment-cant-make-it {
+  justify-self: center;
+  min-height: 44px;
+  padding: 0 8px;
+}
+
+.athlete-appointment-handoff-lede {
+  margin: 0;
+  color: color-mix(in srgb, var(--cream) 86%, var(--muted));
+  font-size: 0.98rem;
+  line-height: 1.5;
+}
+
+.athlete-appointment-handoff-note {
+  margin: 0;
+  color: var(--text-supporting, #948d84);
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.athlete-appointment-handoff-error {
+  margin: 0;
+  color: #e8b4a8;
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+
 .athlete-appointment-card {
   display: grid;
   gap: 4px;
@@ -200,7 +228,7 @@
 }
 
 .athlete-in-person-schedule-screen {
-  padding: 16px 20px calc(96px + env(safe-area-inset-bottom));
+  padding: 16px 20px calc(calc(var(--app-fab-clearance, 112px) + 24px) + env(safe-area-inset-bottom));
 }
 
 .athlete-in-person-schedule-header {
@@ -244,6 +272,19 @@
   border-radius: 16px;
   border: 1px solid color-mix(in srgb, var(--gold) 14%, transparent);
   background: color-mix(in srgb, var(--ink) 88%, transparent);
+}
+
+.athlete-in-person-schedule-item-button {
+  width: 100%;
+  text-align: left;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.athlete-in-person-schedule-item-button:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--gold) 40%, transparent);
+  outline-offset: 2px;
 }
 
 .athlete-in-person-schedule-empty {

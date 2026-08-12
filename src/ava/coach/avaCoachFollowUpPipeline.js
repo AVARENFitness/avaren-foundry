@@ -84,6 +84,7 @@ const buildFollowUpProposal = ({
   sessionId = null,
   assignmentId = null,
   scheduledSessionId = null,
+  coachId = null,
 } = {}) => ({
   id: crypto.randomUUID(),
   reasonType,
@@ -92,6 +93,7 @@ const buildFollowUpProposal = ({
   sessionId,
   assignmentId,
   scheduledSessionId,
+  coachId,
   sourceType: FOLLOWUP_SOURCE_TYPE.AVA_ATHLETE,
 })
 
@@ -331,6 +333,7 @@ export async function runCoachFollowUpPipelineStep({
         activeWorkout?.assignmentId ??
         null,
       scheduledSessionId: matchedAppointment?.id ?? null,
+      coachId: matchedAppointment?.coachId ?? null,
     })
 
     setPendingCoachFollowUp(session, proposal)
