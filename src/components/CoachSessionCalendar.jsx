@@ -11,6 +11,17 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { appUi } from '../lib/appUi'
 import { coachBackend } from '../lib/coachBackend'
 import {
+  dateKey as scheduleDateKey,
+  formatScheduleDateLong,
+  formatTime12Hour,
+  isScheduleTimeInPast,
+} from '../lib/appointmentScheduling'
+import { DEFAULT_COACH_SCHEDULE_TIMEZONE } from '../lib/sessionTimezone'
+import {
+  logAppointmentCreate,
+  logCoachCreateCheckpoint,
+} from '../lib/athleteAppointmentTrace'
+import {
   cancelScheduledSession,
   completeScheduledSession,
   normalizeScheduledSession,
@@ -27,6 +38,12 @@ import EmptyState from './ui/EmptyState'
 import CoachScheduleSessionSheet from './CoachScheduleSessionSheet'
 import { getClientDisplayName } from '../lib/clientDisplayName'
 import {
+  formatAppointmentHeadline,
+  appointmentStatusLabel,
+  locationLabel,
+  mapAppointmentOverlapError,
+} from '../lib/coachingAppointment'
+import {
   buildCoachRsvpAlert,
   isRsvpException,
   rsvpCoachLabel,
@@ -36,7 +53,7 @@ import {
 const ICON = { size: 18, strokeWidth: 1.75 }
 const DAY_MS = 86400000
 
-const dateKey = (date) => new Date(date).toISOString().slice(0, 10)
+const dateKey = (date) => scheduleDateKey(date, DEFAULT_COACH_SCHEDULE_TIMEZONE)
 const mondayOf = (input) => {
   const date = new Date(input)
   date.setHours(12, 0, 0, 0)
@@ -49,6 +66,7 @@ const addDays = (date, days) =>
 
 export default function CoachSessionCalendar({
   clients = [],
+  assignments = [],
   coachEmail = 'Coach',
   onOpenClientProfile,
   initialClientId = '',
@@ -63,6 +81,10 @@ export default function CoachSessionCalendar({
   const [rescheduleDraft, setRescheduleDraft] = useState({
     sessionDate: '',
     startTime: '',
+    durationMinutes: '60',
+    assignmentId: null,
+    locationType: 'default',
+    locationName: '',
   })
   const [undoState, setUndoState] = useState(null)
   const [completingSessionId, setCompletingSessionId] = useState(null)
@@ -74,6 +96,10 @@ export default function CoachSessionCalendar({
     startTime: '09:00',
     durationMinutes: '60',
     coachNote: '',
+    assignmentId: null,
+    locationType: 'default',
+    locationName: '',
+    assignments: [],
   })
 
   const weekStart = useMemo(() => mondayOf(anchor), [anchor])
@@ -122,6 +148,22 @@ export default function CoachSessionCalendar({
   useEffect(() => {
     loadSessions()
   }, [loadSessions])
+
+  useEffect(() => {
+    if (!draft.athleteId) {
+      setDraft((current) => ({ ...current, assignments: [] }))
+      return
+    }
+
+    setDraft((current) => ({
+      ...current,
+      assignments: assignments.filter(
+        (item) =>
+          item.athlete_id === draft.athleteId &&
+          ['assigned', 'started'].includes(item.status),
+      ),
+    }))
+  }, [draft.athleteId, assignments])
 
   const clientByAthleteId = useMemo(
     () =>
@@ -198,27 +240,70 @@ export default function CoachSessionCalendar({
       return
     }
 
+    if (
+      isScheduleTimeInPast({
+        sessionDate: draft.sessionDate,
+        startTime: draft.startTime,
+        scheduleTimezone: DEFAULT_COACH_SCHEDULE_TIMEZONE,
+      })
+    ) {
+      appUi.toast('That time has already passed.', 'error')
+      return
+    }
+
     setScheduling(true)
+
+    const scheduledDate = draft.sessionDate
+    const scheduledTime = draft.startTime
 
     try {
       const created = await coachBackend.createScheduledSession({
         athleteId: draft.athleteId,
-        sessionDate: draft.sessionDate,
-        startTime: draft.startTime,
+        sessionDate: scheduledDate,
+        startTime: scheduledTime,
         durationMinutes: draft.durationMinutes
           ? Number(draft.durationMinutes)
           : null,
         coachNote: draft.coachNote.trim(),
+        assignmentId: draft.assignmentId ?? null,
+        locationType: draft.locationType ?? 'default',
+        locationName: draft.locationName ?? '',
+        existingSessions: sessions,
       })
       setShowComposer(false)
-      setDraft((current) => ({ ...current, coachNote: '' }))
-      appUi.toast('Session scheduled.', 'success')
+      setDraft((current) => ({
+        ...current,
+        coachNote: '',
+        sessionDate: dateKey(new Date()),
+        startTime: '09:00',
+        durationMinutes: '60',
+        assignmentId: null,
+      }))
+      appUi.toast(
+        `Session scheduled · ${formatScheduleDateLong(scheduledDate)} · ${formatTime12Hour(scheduledTime)}`,
+        'success',
+      )
       const normalized = normalizeScheduledSession(created)
+      logAppointmentCreate({
+        success: true,
+        selectedLocalDate: scheduledDate,
+        selectedLocalTime: scheduledTime,
+        timezone: DEFAULT_COACH_SCHEDULE_TIMEZONE,
+        row: created,
+      })
+      logCoachCreateCheckpoint(created, { expectedAthleteId: draft.athleteId })
       if (normalized) {
         setSessions((current) => sortScheduledSessions([...current, normalized]))
       }
       await loadSessions()
     } catch (error) {
+      logAppointmentCreate({
+        success: false,
+        selectedLocalDate: scheduledDate,
+        selectedLocalTime: scheduledTime,
+        timezone: DEFAULT_COACH_SCHEDULE_TIMEZONE,
+        error,
+      })
       appUi.toast(error.message ?? 'Could not schedule session.', 'error')
     } finally {
       setScheduling(false)
@@ -365,19 +450,25 @@ export default function CoachSessionCalendar({
   const handleReschedule = async (session, patch) => {
     try {
       const saved = normalizeScheduledSession(
-        await coachBackend.updateScheduledSession(session.id, {
-          ...patch,
-          scheduleTimezone: session.scheduleTimezone,
-        }),
+        await coachBackend.updateScheduledSession(
+          session.id,
+          {
+            ...patch,
+            scheduleTimezone: session.scheduleTimezone,
+          },
+          { existingSessions: sessions },
+        ),
       )
       setSessions((current) =>
         current.map((item) => (item.id === session.id ? saved : item)),
       )
       setActiveSession(saved)
+      setRescheduleMode(false)
       appUi.toast('Session rescheduled.', 'success')
       await loadSessions()
     } catch (error) {
-      appUi.toast(error.message ?? 'Could not reschedule session.', 'error')
+      const overlap = mapAppointmentOverlapError(error)
+      appUi.toast(overlap?.message ?? error.message ?? 'Could not reschedule session.', 'error')
     }
   }
 
@@ -514,6 +605,7 @@ export default function CoachSessionCalendar({
         onClose={() => setShowComposer(false)}
         onSubmit={handleSchedule}
         submitting={scheduling}
+        scheduleTimezone={DEFAULT_COACH_SCHEDULE_TIMEZONE}
       />
 
       {activeSession && (
@@ -534,12 +626,27 @@ export default function CoachSessionCalendar({
               </button>
             </header>
             {!rescheduleMode ? (
-              <p>
-                {activeSession.sessionDate} · {formatScheduledSessionTime(activeSession)}
-                {activeSession.durationMinutes
-                  ? ` · ${activeSession.durationMinutes} min`
-                  : ''}
-              </p>
+              <>
+                <p>
+                  {activeSession.sessionDate} · {formatScheduledSessionTime(activeSession)}
+                  {activeSession.durationMinutes
+                    ? ` · ${activeSession.durationMinutes} min`
+                    : ''}
+                </p>
+                <p className="coach-session-detail-status">
+                  {appointmentStatusLabel(activeSession)}
+                </p>
+                {formatAppointmentHeadline(activeSession) ? (
+                  <p className="coach-session-detail-workout">
+                    Linked workout: {formatAppointmentHeadline(activeSession)}
+                  </p>
+                ) : null}
+                {locationLabel(activeSession) !== 'Default location' ? (
+                  <p className="coach-session-detail-location">
+                    Location: {locationLabel(activeSession)}
+                  </p>
+                ) : null}
+              </>
             ) : (
               <div className="coach-session-reschedule-fields">
                 <label className="coach-date-field">
@@ -570,6 +677,86 @@ export default function CoachSessionCalendar({
                     }
                   />
                 </label>
+                <label className="coach-date-field">
+                  <span>Duration (minutes)</span>
+                  <input
+                    type="number"
+                    className="coach-field-input"
+                    min="15"
+                    step="15"
+                    value={rescheduleDraft.durationMinutes}
+                    onChange={(event) =>
+                      setRescheduleDraft((current) => ({
+                        ...current,
+                        durationMinutes: event.target.value,
+                      }))
+                    }
+                  />
+                </label>
+                {assignments.filter(
+                  (item) => item.athlete_id === activeSession.athleteId,
+                ).length > 0 ? (
+                  <label className="coach-date-field">
+                    <span>Linked workout</span>
+                    <select
+                      className="coach-field-input"
+                      value={rescheduleDraft.assignmentId ?? ''}
+                      onChange={(event) =>
+                        setRescheduleDraft((current) => ({
+                          ...current,
+                          assignmentId: event.target.value || null,
+                        }))
+                      }
+                    >
+                      <option value="">No linked workout</option>
+                      {assignments
+                        .filter(
+                          (item) =>
+                            item.athlete_id === activeSession.athleteId &&
+                            ['assigned', 'started'].includes(item.status),
+                        )
+                        .map((assignment) => (
+                          <option key={assignment.id} value={assignment.id}>
+                            {assignment.title}
+                          </option>
+                        ))}
+                    </select>
+                  </label>
+                ) : null}
+                <label className="coach-date-field">
+                  <span>Location</span>
+                  <select
+                    className="coach-field-input"
+                    value={rescheduleDraft.locationType ?? 'default'}
+                    onChange={(event) =>
+                      setRescheduleDraft((current) => ({
+                        ...current,
+                        locationType: event.target.value,
+                      }))
+                    }
+                  >
+                    <option value="default">Default location</option>
+                    <option value="avaren_gym">AVAREN Gym</option>
+                    <option value="client_gym">Client gym</option>
+                    <option value="other">Other</option>
+                  </select>
+                </label>
+                {rescheduleDraft.locationType === 'other' ? (
+                  <label className="coach-date-field">
+                    <span>Location name</span>
+                    <input
+                      type="text"
+                      className="coach-field-input"
+                      value={rescheduleDraft.locationName}
+                      onChange={(event) =>
+                        setRescheduleDraft((current) => ({
+                          ...current,
+                          locationName: event.target.value,
+                        }))
+                      }
+                    />
+                  </label>
+                ) : null}
               </div>
             )}
             <div className="coach-session-detail-balance">
@@ -627,10 +814,14 @@ export default function CoachSessionCalendar({
                         handleReschedule(activeSession, {
                           sessionDate: rescheduleDraft.sessionDate,
                           startTime: rescheduleDraft.startTime,
-                        }).then(() => setRescheduleMode(false))
+                          durationMinutes: Number(rescheduleDraft.durationMinutes) || 60,
+                          assignmentId: rescheduleDraft.assignmentId,
+                          locationType: rescheduleDraft.locationType,
+                          locationName: rescheduleDraft.locationName,
+                        })
                       }
                     >
-                      Save New Time
+                      Save changes
                     </button>
                   ) : (
                     <button
@@ -640,6 +831,10 @@ export default function CoachSessionCalendar({
                         setRescheduleDraft({
                           sessionDate: activeSession.sessionDate,
                           startTime: activeSession.startTime,
+                          durationMinutes: String(activeSession.durationMinutes ?? 60),
+                          assignmentId: activeSession.assignmentId ?? null,
+                          locationType: activeSession.locationType ?? 'default',
+                          locationName: activeSession.locationName ?? '',
                         })
                         setRescheduleMode(true)
                       }}

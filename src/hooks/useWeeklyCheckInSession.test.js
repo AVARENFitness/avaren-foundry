@@ -4,9 +4,12 @@ import { getCoachWeekRange } from '../lib/weeklyReview'
 import { WEEKLY_CHECK_IN_STATUS } from '../lib/weeklyCheckIn'
 import { useWeeklyCheckInSession } from './useWeeklyCheckInSession'
 import { resetWeeklyCheckInBackendCache } from '../lib/weeklyCheckInBackend'
+import { FROZEN_COACH_WEEK, installFrozenCoachWeek } from '../test/frozenTime'
 
-const now = new Date('2026-08-07T12:00:00.000Z')
+const now = FROZEN_COACH_WEEK
 const weekRange = getCoachWeekRange(now)
+
+installFrozenCoachWeek(now)
 
 const submittedRecord = {
   athleteId: 'athlete-1',

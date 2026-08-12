@@ -13,14 +13,14 @@ export const SESSION_MODE_LABEL = {
 export const resolveSessionMode = ({
   assignmentId = null,
   coachAssigned = false,
-  inPersonToday = false,
+  linkedAppointmentToday = false,
   explicitMode = null,
 } = {}) => {
   if (explicitMode && Object.values(SESSION_MODE).includes(explicitMode)) {
     return explicitMode
   }
 
-  if (assignmentId && inPersonToday) {
+  if (assignmentId && linkedAppointmentToday) {
     return SESSION_MODE.IN_PERSON_COACHED
   }
 
@@ -44,13 +44,18 @@ export const attachSessionModeMetadata = (session = {}, mode = SESSION_MODE.SOLO
 })
 
 export const hasScheduledInPersonToday = (sessions = [], todayKey = null) => {
-  const key =
-    todayKey ?? new Date().toISOString().slice(0, 10)
+  const key = todayKey ?? new Date().toISOString().slice(0, 10)
 
   return (sessions ?? []).some((item) => {
     const date = String(
-      item?.scheduled_date ?? item?.scheduledDate ?? item?.date ?? '',
+      item?.sessionDate ??
+        item?.session_date ??
+        item?.scheduled_date ??
+        item?.scheduledDate ??
+        item?.date ??
+        '',
     ).slice(0, 10)
-    return date === key && item?.status !== 'cancelled'
+    const status = item?.status ?? 'scheduled'
+    return date === key && status === 'scheduled'
   })
 }

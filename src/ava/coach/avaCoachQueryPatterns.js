@@ -17,6 +17,7 @@ export const COACH_QUERY_TYPES = {
   NUTRITION: 'nutrition',
   WEEKLY_REVIEW: 'weekly_review',
   FOLLOWUP: 'followup',
+  APPOINTMENT: 'appointment',
 }
 
 export const COACH_INTENT_FAMILIES = {
@@ -27,6 +28,7 @@ export const COACH_INTENT_FAMILIES = {
   [COACH_QUERY_TYPES.NUTRITION]: 'coach_nutrition',
   [COACH_QUERY_TYPES.WEEKLY_REVIEW]: 'coach_weekly_review',
   [COACH_QUERY_TYPES.FOLLOWUP]: 'coach_followup',
+  [COACH_QUERY_TYPES.APPOINTMENT]: 'coach_appointment',
 }
 
 const CONTRACTION_REPLACEMENTS = [
@@ -120,6 +122,15 @@ const matchesFollowUpIntent = (text = '') =>
   /\bany follow ups\b/.test(text) ||
   (/\bfollow up\b/.test(text) && /\b(any|client|show|open)\b/.test(text))
 
+const matchesAppointmentIntent = (text = '') =>
+  /\bwho am i training today\b/.test(text) ||
+  /\bwhat'?s my next session\b/.test(text) ||
+  /\bwhat is my next session\b/.test(text) ||
+  /\bshow me today'?s appointments\b/.test(text) ||
+  /\btoday'?s appointments\b/.test(text) ||
+  /\bdo i have anyone tomorrow\b/.test(text) ||
+  (/\bwhen do i have\b/.test(text) && /\b(train|session|appointment)\b/.test(text))
+
 const matchesAttentionIntent = (text = '') =>
   /\bwho needs my attention\b/.test(text) ||
   /\bwho needs attention\b/.test(text) ||
@@ -162,6 +173,11 @@ const INTENT_MATCHERS = [
     queryType: COACH_QUERY_TYPES.RECOVERY,
     actionId: AVA_ACTION_IDS.SHOW_RECOVERY_CONCERNS,
     match: matchesRecoveryIntent,
+  },
+  {
+    queryType: COACH_QUERY_TYPES.APPOINTMENT,
+    actionId: AVA_ACTION_IDS.SHOW_TODAY_APPOINTMENTS,
+    match: matchesAppointmentIntent,
   },
   {
     queryType: COACH_QUERY_TYPES.FOLLOWUP,

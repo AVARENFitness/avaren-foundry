@@ -9,6 +9,8 @@ import {
   Settings2,
 } from 'lucide-react'
 import { useMemo } from 'react'
+import { buildAthleteAppointmentContextLine } from '../ava/coach/avaAthleteAppointmentPipeline'
+import { useAthleteAppointments } from '../hooks/useAthleteAppointments'
 import { buildPlanningOwnership, coachOwnershipLabel } from '../lib/planOwnership'
 import {
   executionPlanSummaryLabel,
@@ -33,9 +35,19 @@ const ActionCard = ({ icon: Icon, title, description, onClick, primary = false }
 
 export default function TrainHubScreen({ state, onStart, navigate }) {
   const activeWorkout = state.activeWorkout
+  const { upcomingAppointments } = useAthleteAppointments()
+
   const todayContext = useMemo(
     () => resolveTodayWorkoutContext(state),
     [state],
+  )
+  const appointmentContext = useMemo(
+    () =>
+      buildAthleteAppointmentContextLine(upcomingAppointments, {
+        assignmentId:
+          activeWorkout?.assignmentId ?? todayContext.assignmentId ?? null,
+      }),
+    [upcomingAppointments, activeWorkout?.assignmentId, todayContext.assignmentId],
   )
   const coachLabel = useMemo(() => {
     const fromSession = sessionModeLabel(activeWorkout?.sessionMode)
@@ -70,6 +82,9 @@ export default function TrainHubScreen({ state, onStart, navigate }) {
             <span className="train-coach-ownership eyebrow">{coachLabel}</span>
           ) : null}
           <h2>{nextWorkout}</h2>
+          {appointmentContext ? (
+            <p className="train-appointment-context">{appointmentContext}</p>
+          ) : null}
           {executionFocusLabel ? (
             <p className="train-execution-focus">{executionFocusLabel} active</p>
           ) : null}

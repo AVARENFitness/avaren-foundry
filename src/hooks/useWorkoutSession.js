@@ -15,10 +15,13 @@ import {
 } from '../lib/sessionExecutionPlan'
 import {
   attachSessionModeMetadata,
-  hasScheduledInPersonToday,
   resolveSessionMode,
   SESSION_MODE,
 } from '../lib/sessionMode'
+import { normalizeAthleteAppointmentsFromRpc } from '../lib/athleteAppointments'
+import {
+  findAppointmentLinkedToAssignment,
+} from '../lib/coachingAppointment'
 
 const makeSet = (number, type = 'Working') => ({
   id: crypto.randomUUID(),
@@ -359,18 +362,31 @@ export function useWorkoutSession({
 
     let scheduledSessions = []
     try {
-      scheduledSessions = await coachBackend.listAthleteScheduledSessions()
+      const rows = await coachBackend.listAthleteScheduledSessions()
+      scheduledSessions = normalizeAthleteAppointmentsFromRpc(rows)
     } catch {
       scheduledSessions = []
     }
 
+    const linkedAppointment = findAppointmentLinkedToAssignment(
+      scheduledSessions,
+      assignment.id,
+    )
+
     const sessionMode = resolveSessionMode({
       assignmentId: assignment.id,
       coachAssigned: true,
-      inPersonToday: hasScheduledInPersonToday(scheduledSessions),
+      linkedAppointmentToday: Boolean(linkedAppointment),
     })
 
-    const coachedWorkout = attachSessionModeMetadata(activeWorkout, sessionMode)
+    const coachedWorkout = attachSessionModeMetadata(
+      {
+        ...activeWorkout,
+        assignmentId: assignment.id,
+        scheduledSessionId: linkedAppointment?.id ?? null,
+      },
+      sessionMode,
+    )
 
     setActiveExercise(0)
     navigate('gym', () => {
@@ -612,6 +628,19 @@ export function useWorkoutSession({
         .catch((error) => {
           console.error(
             'Could not mark assignment complete:',
+            error,
+          )
+        })
+    }
+
+    if (workout.scheduledSessionId) {
+      coachBackend
+        .updateScheduledSession(workout.scheduledSessionId, {
+          workoutSessionId: completedWorkoutSession.id,
+        })
+        .catch((error) => {
+          console.error(
+            'Could not link workout session to appointment:',
             error,
           )
         })

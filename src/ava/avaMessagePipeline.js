@@ -33,6 +33,7 @@ import {
 } from './actions/avaActionOrchestrator'
 import { resolveModelProposedAction } from './actions/avaActionResolver'
 import { runCoachPipelineStep } from './coach/avaCoachPipeline'
+import { runAthleteAppointmentPipelineStep, isAthleteAppointmentQuery } from './coach/avaAthleteAppointmentPipeline'
 import { runCoachFollowUpPipelineStep } from './coach/avaCoachFollowUpPipeline'
 import { runPlanningPipelineStep } from './planning/avaPlanningPipeline'
 import {
@@ -205,6 +206,24 @@ export async function runAvaMessagePipeline({
         message: "That coaching view isn't available on this account.",
         readOnly: true,
       })
+    }
+
+    if (
+      role !== 'coach' &&
+      isAthleteAppointmentQuery(text) &&
+      !shouldRouteNutritionPending(text, { session })
+    ) {
+      const appointmentOutcome = await runAthleteAppointmentPipelineStep({
+        message: text,
+        session,
+        packet,
+        role,
+      })
+
+      if (appointmentOutcome) {
+        debugLog('appointment-route', { kind: appointmentOutcome.kind })
+        return appointmentOutcome
+      }
     }
 
     if (effectiveCoachAccess) {

@@ -9,6 +9,15 @@ import {
   runCoachQuery,
 } from './avaCoachQueries'
 import {
+  formatCoachAppointmentMessage,
+  queryCoachClientAppointments,
+  queryCoachNextAppointment,
+  queryCoachTodayAppointments,
+  queryCoachTomorrowAppointments,
+} from './avaCoachAppointmentQueries'
+import { COACH_QUERY_TYPES, normalizeCoachQueryText } from './avaCoachQueryPatterns'
+import { resolveCoachClientByName } from './avaCoachClientResolver'
+import {
   resolveCoachDisambiguationSelection,
   resolveCoachExplicitCommand,
   isCoachClientNameCommand,
@@ -55,7 +64,11 @@ const collectCoachActions = (result = {}) => {
 
 export const mapCoachQueryToPipeline = (queryOutcome = {}) => {
   const result = queryOutcome.result
-  const message = formatCoachQueryMessage(result)
+  const message =
+    result?.actionId === AVA_ACTION_IDS.SHOW_TODAY_APPOINTMENTS ||
+    result?.actionId === AVA_ACTION_IDS.OPEN_TODAY_SCHEDULE
+      ? formatCoachAppointmentMessage(result)
+      : formatCoachQueryMessage(result)
   const coachResults = result?.items ?? []
   const actions = collectCoachActions(result)
 
@@ -138,7 +151,44 @@ export async function runCoachPipelineStep({
   })
 
   if (!resolution && operationalQuery) {
-    const result = runCoachQuery(operationalQuery.actionId, activeCoachContext)
+    let result = null
+    const normalizedMessage = normalizeCoachQueryText(message)
+
+    if (operationalQuery.queryType === COACH_QUERY_TYPES.APPOINTMENT) {
+      if (/\bdo i have anyone tomorrow\b/.test(normalizedMessage)) {
+        result = await queryCoachTomorrowAppointments(activeCoachContext)
+      } else if (
+        /\bwhat'?s my next session\b/.test(normalizedMessage) ||
+        /\bwhat is my next session\b/.test(normalizedMessage)
+      ) {
+        result = await queryCoachNextAppointment(activeCoachContext)
+      } else if (/\bwhen do i have\b/.test(normalizedMessage)) {
+        const clientMatch = normalizedMessage.match(/\bwhen do i have\s+(.+)/)
+        const clientQuery = clientMatch?.[1]
+          ?.replace(/\b(train|session|appointment|tomorrow|today|this week).*$/, '')
+          ?.trim()
+        if (clientQuery) {
+          const resolution = resolveCoachClientByName(
+            clientQuery,
+            activeCoachContext.clients ?? [],
+          )
+          if (resolution?.athleteId) {
+            result = await queryCoachClientAppointments(
+              resolution.athleteId,
+              activeCoachContext,
+            )
+          }
+        }
+        if (!result) {
+          result = await queryCoachTodayAppointments(activeCoachContext)
+        }
+      } else {
+        result = await queryCoachTodayAppointments(activeCoachContext)
+      }
+    } else {
+      result = runCoachQuery(operationalQuery.actionId, activeCoachContext)
+    }
+
     resolution = {
       kind: 'query',
       actionId: operationalQuery.actionId,

@@ -9,6 +9,9 @@ import './styles/screens/builder.css'
 import './styles/screens/forge.css'
 import './styles/screens/history.css'
 import './styles/screens/coach-hub.css'
+import './styles/screens/coach-schedule.css'
+import './styles/components/app-ui.css'
+import './styles/screens/athlete-appointments.css'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>

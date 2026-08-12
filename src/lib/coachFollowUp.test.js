@@ -27,7 +27,7 @@ describe('sessionMode', () => {
       resolveSessionMode({
         assignmentId: 'a1',
         coachAssigned: true,
-        inPersonToday: true,
+        linkedAppointmentToday: true,
       }),
     ).toBe(SESSION_MODE.IN_PERSON_COACHED)
   })
@@ -36,7 +36,7 @@ describe('sessionMode', () => {
     const today = '2026-08-09'
     expect(
       hasScheduledInPersonToday(
-        [{ scheduled_date: today, status: 'scheduled' }],
+        [{ sessionDate: today, status: 'scheduled' }],
         today,
       ),
     ).toBe(true)

@@ -34,8 +34,11 @@ vi.mock('../../lib/weeklyCheckInBackend', () => ({
 }))
 
 import { weeklyCheckInBackend } from '../../lib/weeklyCheckInBackend'
+import { FROZEN_COACH_WEEK, installFrozenCoachWeek } from '../../test/frozenTime'
 
-const now = new Date('2026-08-07T12:00:00.000Z')
+installFrozenCoachWeek(FROZEN_COACH_WEEK)
+
+const now = FROZEN_COACH_WEEK
 const weekRange = getCoachWeekRange(now)
 
 const submittedWeeklyCheckIn = (athleteId) => ({

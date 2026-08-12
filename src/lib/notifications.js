@@ -113,9 +113,7 @@ const weeklyCheckInNotifications = (state) => {
       action: NOTIFICATION_ACTIONS.OPEN_WEEKLY_CHECKIN,
       actionLabel: 'Check In',
       fingerprint: `weekly-checkin:${weekKey}`,
-      expiresAt: weeklyState.weekEnd
-        ? `${weeklyState.weekEnd}T23:59:59`
-        : null,
+      expiresAt: null,
     }),
   ]
 }

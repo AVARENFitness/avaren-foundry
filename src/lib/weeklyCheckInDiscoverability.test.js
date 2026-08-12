@@ -12,8 +12,11 @@ import {
   NOTIFICATION_TYPES,
 } from './notifications'
 import { WEEKLY_CHECKIN_CAPABILITY_STATUS } from './weeklyCheckInCapability'
+import { FROZEN_COACH_WEEK, installFrozenCoachWeek } from '../test/frozenTime'
 
-const now = new Date('2026-08-07T12:00:00.000Z')
+installFrozenCoachWeek(FROZEN_COACH_WEEK)
+
+const now = FROZEN_COACH_WEEK
 
 const dueStatus = getWeeklyCheckInStatus({
   hasCoach: true,

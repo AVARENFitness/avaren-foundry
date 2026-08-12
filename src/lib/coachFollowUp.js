@@ -51,6 +51,7 @@ export const normalizeCoachFollowUp = (row = {}) => ({
   status: row.status ?? FOLLOWUP_STATUS.OPEN,
   sessionId: row.session_id ?? row.sessionId ?? null,
   assignmentId: row.assignment_id ?? row.assignmentId ?? null,
+  scheduledSessionId: row.scheduled_session_id ?? row.scheduledSessionId ?? null,
   createdAt: row.created_at ?? row.createdAt ?? new Date().toISOString(),
   reviewedAt: row.reviewed_at ?? row.reviewedAt ?? null,
   resolvedAt: row.resolved_at ?? row.resolvedAt ?? null,

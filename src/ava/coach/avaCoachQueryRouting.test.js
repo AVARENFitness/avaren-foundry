@@ -16,6 +16,9 @@ import { resolveCoachExplicitCommand } from './avaCoachResolver'
 import { runCoachPipelineStep } from './avaCoachPipeline'
 import { invalidateCoachPortfolioCache } from '../../lib/coachPortfolioService'
 import { coachBackend } from '../../lib/coachBackend'
+import { FROZEN_COACH_WEEK, installFrozenCoachWeek } from '../../test/frozenTime'
+
+installFrozenCoachWeek(FROZEN_COACH_WEEK)
 
 vi.mock('../../lib/coachBackend', () => ({
   coachBackend: {
@@ -28,7 +31,7 @@ vi.mock('../../lib/coachBackend', () => ({
   },
 }))
 
-const now = new Date('2026-08-07T12:00:00.000Z')
+const now = FROZEN_COACH_WEEK
 const weekRange = getCoachWeekRange(now)
 
 const jake = {

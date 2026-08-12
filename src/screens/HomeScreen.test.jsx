@@ -11,9 +11,26 @@ import {
   WEEKLY_CHECKIN_CAPABILITY_STATUS,
 } from '../lib/weeklyCheckInCapability'
 import { createNutritionState } from '../lib/nutrition'
+import { FROZEN_COACH_WEEK, installFrozenCoachWeek } from '../test/frozenTime'
+
+installFrozenCoachWeek(FROZEN_COACH_WEEK)
 
 vi.mock('../ava/useAvaUi', () => ({
   useAvaUi: () => ({ openAva: vi.fn() }),
+}))
+
+vi.mock('../hooks/useAthleteAppointments', () => ({
+  useAthleteAppointments: () => ({
+    status: 'ready',
+    loading: false,
+    ready: true,
+    error: null,
+    appointments: [],
+    upcomingAppointments: [],
+    nextAppointment: null,
+    refreshAppointments: vi.fn(),
+    reload: vi.fn(),
+  }),
 }))
 
 vi.mock('../lib/coachBackend', () => ({

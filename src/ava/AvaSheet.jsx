@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { ArrowUp, RotateCcw, Sparkles, X } from 'lucide-react'
+import { ArrowUp, RotateCcw, Sparkles } from 'lucide-react'
+import AppUiCloseButton from '../components/ui/AppUiCloseButton'
 import { appUi } from '../lib/appUi'
 import {
   buildAvaOpeningMessage,
@@ -729,14 +730,7 @@ export default function AvaSheet({
               <h2 id={titleId}>Ask AVA</h2>
             </div>
           </div>
-          <button
-            type="button"
-            className="ava-sheet-close"
-            onClick={onClose}
-            aria-label="Close AVA"
-          >
-            <X size={18} />
-          </button>
+          <AppUiCloseButton onClick={onClose} label="Close AVA" />
         </header>
 
         <p id={descriptionId} className="ava-sheet-context">

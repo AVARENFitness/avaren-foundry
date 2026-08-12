@@ -3,6 +3,9 @@ import { render, screen, waitFor } from '@testing-library/react'
 import CoachWeeklyReview from './CoachWeeklyReview'
 import { coachBackend } from '../../lib/coachBackend'
 import { weeklyCheckInBackend } from '../../lib/weeklyCheckInBackend'
+import { FROZEN_COACH_WEEK, installFrozenCoachWeek } from '../../test/frozenTime'
+
+installFrozenCoachWeek(FROZEN_COACH_WEEK)
 
 vi.mock('../../lib/appUi', () => ({
   appUi: {

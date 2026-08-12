@@ -21,10 +21,10 @@ describe('CoachScheduleSessionSheet', () => {
     )
 
     expect(screen.getByRole('dialog')).toBeInTheDocument()
-    expect(screen.getByText('Plan an in-person session')).toBeInTheDocument()
-    expect(screen.getByLabelText('Close')).toBeInTheDocument()
+    expect(screen.getByText('In-person training')).toBeInTheDocument()
+    expect(screen.getByText('Today')).toBeInTheDocument()
+    expect(screen.getByText('Tomorrow')).toBeInTheDocument()
     expect(screen.getByText('Schedule Session')).toBeInTheDocument()
-    expect(screen.getByText('Cancel')).toBeInTheDocument()
     expect(document.body.style.overflow).toBe('hidden')
   })
 

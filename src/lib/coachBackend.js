@@ -19,6 +19,19 @@ import {
   normalizeCoachFollowUp,
   validateCoachFollowUpInput,
 } from './coachFollowUp'
+import {
+  findOverlappingAppointment,
+  mapAppointmentOverlapError,
+} from './coachingAppointment'
+import {
+  logAppointmentReadDiagnostics,
+  normalizeAthleteAppointmentsFromRpc,
+  parseAthleteScheduledSessionsRpc,
+} from './athleteAppointments'
+import {
+  logAthleteRpcCheckpoint,
+  resolveAuthenticatedUserId,
+} from './athleteAppointmentTrace'
 
 const normalizeEmail = (value = '') => String(value).trim().toLowerCase()
 
@@ -666,6 +679,11 @@ export const coachBackend = {
     coachNote = '',
     startsAt = null,
     scheduleTimezone = DEFAULT_COACH_SCHEDULE_TIMEZONE,
+    assignmentId = null,
+    locationType = 'default',
+    locationName = '',
+    appointmentType = 'IN_PERSON_TRAINING',
+    existingSessions = null,
   }) {
     const user = await currentUser()
     const instant = buildScheduleInstant({
@@ -675,28 +693,55 @@ export const coachBackend = {
     })
     const resolvedStartsAt = startsAt ?? instant.startsAt
     const resolvedTimezone = instant.scheduleTimezone
+    const resolvedDuration = durationMinutes ?? 60
 
-    return unwrap(
-      supabase
-        .from('coach_scheduled_sessions')
-        .insert({
-          coach_id: user.id,
-          athlete_id: athleteId,
-          session_date: sessionDate,
-          start_time: startTime,
-          starts_at: resolvedStartsAt,
-          schedule_timezone: resolvedTimezone,
-          duration_minutes: durationMinutes,
-          coach_note: coachNote,
-          status: 'scheduled',
-          updated_at: new Date().toISOString(),
-        })
-        .select()
-        .single(),
-    )
+    const candidate = {
+      coachId: user.id,
+      sessionDate,
+      startTime,
+      startsAt: resolvedStartsAt,
+      durationMinutes: resolvedDuration,
+      status: 'scheduled',
+    }
+
+    if (Array.isArray(existingSessions)) {
+      const overlap = findOverlappingAppointment(candidate, existingSessions)
+      if (overlap) {
+        throw new Error('appointment_overlap')
+      }
+    }
+
+    try {
+      return await unwrap(
+        supabase
+          .from('coach_scheduled_sessions')
+          .insert({
+            coach_id: user.id,
+            athlete_id: athleteId,
+            session_date: sessionDate,
+            start_time: startTime,
+            starts_at: resolvedStartsAt,
+            schedule_timezone: resolvedTimezone,
+            duration_minutes: resolvedDuration,
+            coach_note: coachNote,
+            assignment_id: assignmentId ?? null,
+            location_type: locationType,
+            location_name: locationName,
+            appointment_type: appointmentType,
+            status: 'scheduled',
+            updated_at: new Date().toISOString(),
+          })
+          .select()
+          .single(),
+      )
+    } catch (error) {
+      const mapped = mapAppointmentOverlapError(error)
+      if (mapped) throw new Error(mapped.message)
+      throw error
+    }
   },
 
-  async updateScheduledSession(id, patch) {
+  async updateScheduledSession(id, patch, { existingSessions = null } = {}) {
     const payload = { updated_at: new Date().toISOString() }
     if (patch.sessionDate !== undefined) payload.session_date = patch.sessionDate
     if (patch.startTime !== undefined) payload.start_time = patch.startTime
@@ -708,6 +753,12 @@ export const coachBackend = {
     if (patch.completedAt !== undefined) payload.completed_at = patch.completedAt
     if (patch.sessionHistoryId !== undefined) {
       payload.session_history_id = patch.sessionHistoryId
+    }
+    if (patch.assignmentId !== undefined) payload.assignment_id = patch.assignmentId
+    if (patch.locationType !== undefined) payload.location_type = patch.locationType
+    if (patch.locationName !== undefined) payload.location_name = patch.locationName
+    if (patch.workoutSessionId !== undefined) {
+      payload.workout_session_id = patch.workoutSessionId
     }
     if (patch.scheduleTimezone !== undefined) {
       payload.schedule_timezone = patch.scheduleTimezone
@@ -730,14 +781,40 @@ export const coachBackend = {
       }
     }
 
-    return unwrap(
-      supabase
-        .from('coach_scheduled_sessions')
-        .update(payload)
-        .eq('id', id)
-        .select()
-        .single(),
-    )
+    if (Array.isArray(existingSessions) && payload.status !== 'cancelled') {
+      const current = existingSessions.find((item) => item.id === id)
+      const candidate = {
+        ...(current ?? {}),
+        id,
+        coachId: current?.coachId,
+        sessionDate: payload.session_date ?? current?.sessionDate,
+        startTime: payload.start_time ?? current?.startTime,
+        startsAt: payload.starts_at ?? current?.startsAt,
+        durationMinutes: payload.duration_minutes ?? current?.durationMinutes,
+        status: payload.status ?? current?.status ?? 'scheduled',
+      }
+      const overlap = findOverlappingAppointment(candidate, existingSessions, {
+        excludeId: id,
+      })
+      if (overlap) {
+        throw new Error('appointment_overlap')
+      }
+    }
+
+    try {
+      return await unwrap(
+        supabase
+          .from('coach_scheduled_sessions')
+          .update(payload)
+          .eq('id', id)
+          .select()
+          .single(),
+      )
+    } catch (error) {
+      const mapped = mapAppointmentOverlapError(error)
+      if (mapped) throw new Error(mapped.message)
+      throw error
+    }
   },
 
   async completeScheduledSessionAtomic(sessionId, coachLabel = '') {
@@ -781,19 +858,53 @@ export const coachBackend = {
     return normalizeUndoScheduledSessionRpcResult(data)
   },
 
-  async listAthleteScheduledSessions() {
+  async listAthleteScheduledSessions({ expectedUserId = null, controlAppointmentId = null } = {}) {
+    const authUserId = await resolveAuthenticatedUserId()
+
+    if (
+      expectedUserId &&
+      authUserId &&
+      authUserId !== expectedUserId &&
+      import.meta.env.DEV
+    ) {
+      logAthleteRpcCheckpoint({
+        authUserId,
+        expectedUserId,
+        rpcOk: false,
+        rawData: null,
+        error: { code: 'auth_user_mismatch', message: 'auth_user_mismatch' },
+        controlAppointmentId,
+      })
+    }
+
     const { data, error } = await supabase.rpc('list_athlete_scheduled_sessions')
+
+    logAthleteRpcCheckpoint({
+      authUserId,
+      expectedUserId,
+      rpcOk: !error,
+      rawData: data,
+      error,
+      controlAppointmentId,
+    })
 
     if (error) {
       if (missingBackend(error)) {
-        throw new Error(
-          'Athlete session scheduling is not installed. Run AVAREN_COACH_SESSION_RSVP_7_1.sql.',
+        const installError = new Error(
+          'Athlete session scheduling is not installed. Run AVAREN_COACH_APPOINTMENTS_8_3.sql.',
         )
+        installError.code = error.code ?? null
+        installError.details = error.details ?? null
+        installError.hint = error.hint ?? null
+        installError.cause = error
+        throw installError
       }
       throw error
     }
 
-    return Array.isArray(data) ? data : data ?? []
+    const rows = parseAthleteScheduledSessionsRpc(data)
+    logAppointmentReadDiagnostics(rows, { source: 'coachBackend.listAthleteScheduledSessions' })
+    return rows
   },
 
   async updateSessionRsvp(sessionId, rsvpStatus) {
@@ -837,6 +948,7 @@ export const coachBackend = {
     sourceType = 'ava_athlete',
     sessionId = null,
     assignmentId = null,
+    scheduledSessionId = null,
   } = {}) {
     const user = await currentUser()
     const resolvedCoachId = await this.getAthleteCoachId()
@@ -865,6 +977,7 @@ export const coachBackend = {
       status: FOLLOWUP_STATUS.OPEN,
       session_id: sessionId ?? null,
       assignment_id: assignmentId ?? null,
+      scheduled_session_id: scheduledSessionId ?? null,
     }
 
     try {

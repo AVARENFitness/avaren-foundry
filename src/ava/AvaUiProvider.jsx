@@ -7,6 +7,7 @@ import {
 } from './avaRuntimeContext'
 import { createNutritionState } from '../lib/nutrition'
 import { coachBackend } from '../lib/coachBackend'
+import { useAthleteAppointmentsContext } from '../context/athleteAppointmentsContext'
 import AvaEntryButton from './AvaEntryButton'
 import AvaSheet from './AvaSheet'
 import { AvaUiContext } from './avaUiReactContext'
@@ -27,6 +28,7 @@ export function AvaUiProvider({
   const [open, setOpen] = useState(false)
   const [assignments, setAssignments] = useState([])
   const sessionRef = useRef(createAvaSession())
+  const appointmentContext = useAthleteAppointmentsContext()
 
   useEffect(() => {
     coachBackend
@@ -36,6 +38,12 @@ export function AvaUiProvider({
   }, [])
 
   useEffect(() => {
+    if (open && role !== 'coach') {
+      appointmentContext?.refreshAppointments?.()
+    }
+  }, [appointmentContext, open, role])
+
+  useEffect(() => {
     if (!open || !appState?.sessionExecutionPlan) return
     sessionRef.current.sessionExecutionPlan = appState.sessionExecutionPlan
   }, [open, appState?.sessionExecutionPlan])
@@ -43,7 +51,8 @@ export function AvaUiProvider({
   const packet = useMemo(() => {
     if (!appState) return null
 
-    return buildAvaContextPacket(
+    return {
+      ...buildAvaContextPacket(
       {
         ...appState,
         nutrition: nutrition ?? appState.nutrition,
@@ -53,8 +62,22 @@ export function AvaUiProvider({
         assignments,
         now: new Date(),
       },
-    )
-  }, [appState, nutrition, userName, assignments, open])
+    ),
+      athleteAppointments: appointmentContext?.appointments ?? [],
+      athleteAppointmentsReady: appointmentContext?.ready ?? false,
+      athleteAppointmentsLoading: appointmentContext?.loading ?? false,
+    }
+  }, [
+    appState,
+    nutrition,
+    userName,
+    assignments,
+    open,
+    appointmentContext?.appointments,
+    appointmentContext?.ready,
+    appointmentContext?.loading,
+    appointmentContext?.userId,
+  ])
 
   const openAva = useCallback(() => {
     if (!enabled) return

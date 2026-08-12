@@ -10,6 +10,7 @@ import {
 import { COACH_CLIENT_SORT } from '../../lib/clientIntelligence'
 import CoachAttentionQueue from './CoachAttentionQueue'
 import CoachClientCard from './CoachClientCard'
+import CoachTodaySchedule from './CoachTodaySchedule'
 import EmptyState from '../ui/EmptyState'
 
 const ICON = { size: 18, strokeWidth: 1.75 }
@@ -119,6 +120,13 @@ export default function CoachCommandCenter({
       {portfolioError && (
         <p className="coach-hub-notice">{portfolioError}</p>
       )}
+
+      <CoachTodaySchedule
+        clients={clients}
+        onSchedule={() => onNavigateCoachScreen?.('calendar')}
+        onOpenCalendar={() => onNavigateCoachScreen?.('calendar')}
+        onOpenClient={onSelectClient}
+      />
 
       <CoachAttentionQueue
         items={portfolio?.attentionQueue ?? []}

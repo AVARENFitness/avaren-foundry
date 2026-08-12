@@ -25,6 +25,18 @@ import {
   executionPlanSummaryLabel,
   isExecutionPlanCurrent,
 } from '../lib/sessionExecutionPlan'
+import AthleteNextAppointment, {
+  AthleteAppointmentWeekStrip,
+} from '../components/AthleteNextAppointment'
+import AthleteAppointmentDetailSheet from '../components/AthleteAppointmentDetailSheet'
+import { useAthleteAppointments } from '../hooks/useAthleteAppointments'
+import { logHomeAppointmentCheckpoint } from '../lib/athleteAppointmentTrace'
+import {
+  appointmentLinksToAssignment,
+  formatAppointmentHeadline,
+} from '../lib/coachingAppointment'
+import { nextUpcomingAppointmentFromRpc } from '../lib/athleteAppointments'
+import { dateKey } from '../lib/appointmentScheduling'
 import {
   hasScheduledInPersonToday,
   resolveSessionMode,
@@ -74,16 +86,28 @@ export default function HomeScreen({
 }) {
   const { openAva } = useAvaUi()
   const [assignments, setAssignments] = useState([])
-  const [scheduledSessions, setScheduledSessions] = useState([])
+  const {
+    appointments: scheduledSessions,
+    upcomingAppointments,
+    nextAppointment,
+    refreshAppointments: reloadAppointments,
+    ready: appointmentsReady,
+  } = useAthleteAppointments()
+  const [detailAppointment, setDetailAppointment] = useState(null)
+
+  useEffect(() => {
+    logHomeAppointmentCheckpoint({
+      appointmentStateReady: appointmentsReady,
+      upcomingCount: upcomingAppointments.length,
+      nextAppointmentPresent: Boolean(nextAppointment),
+      rendered: Boolean(nextAppointment),
+    })
+  }, [appointmentsReady, upcomingAppointments.length, nextAppointment])
 
   useEffect(() => {
     coachBackend
       .listAthleteAssignments()
       .then(setAssignments)
-      .catch(() => {})
-    coachBackend
-      .listAthleteScheduledSessions()
-      .then(setScheduledSessions)
       .catch(() => {})
   }, [])
 
@@ -138,11 +162,19 @@ export default function HomeScreen({
     const executionFocusLabel = isExecutionPlanCurrent(state.sessionExecutionPlan)
       ? executionPlanSummaryLabel(state.sessionExecutionPlan)
       : null
-    const inPersonToday = hasScheduledInPersonToday(scheduledSessions)
+    const inPersonToday =
+      appointmentsReady && hasScheduledInPersonToday(scheduledSessions)
+    const nextAppt = appointmentsReady
+      ? nextAppointment ?? nextUpcomingAppointmentFromRpc(scheduledSessions)
+      : null
+    const linkedAppointmentToday = appointmentLinksToAssignment(
+      nextAppt,
+      activeCoachAssignment?.id ?? null,
+    ) && nextAppt?.sessionDate === dateKey(now)
     const sessionMode = resolveSessionMode({
       assignmentId: activeCoachAssignment?.id ?? null,
       coachAssigned: Boolean(activeCoachAssignment),
-      inPersonToday,
+      linkedAppointmentToday,
     })
     const coachedSessionLabel = sessionModeLabel(sessionMode)
 
@@ -157,13 +189,15 @@ export default function HomeScreen({
       isRestDay,
       coachLabel: coachedSessionLabel ?? coachOwnershipLabel(coachOwnership),
       inPersonToday,
+      nextAppointment: nextAppt,
+      linkedAppointmentToday,
       sessionMode,
       executionFocusLabel,
       workouts: workoutsThisWeek.length,
       volume: Math.round(weeklyVolume),
       prs: weeklyPRs.length,
     }
-  }, [state, userName, assignments, activeCoachAssignment, scheduledSessions])
+  }, [state, userName, assignments, activeCoachAssignment, scheduledSessions, nextAppointment])
 
   const readinessScore = readiness?.completed
     ? readiness.score
@@ -255,6 +289,21 @@ export default function HomeScreen({
         onAskAva={openAva}
       />
 
+      <AthleteNextAppointment
+        appointment={appointmentsReady ? nextAppointment : null}
+        onViewDetails={setDetailAppointment}
+      />
+
+      <AthleteAppointmentDetailSheet
+        appointment={detailAppointment}
+        open={Boolean(detailAppointment)}
+        onClose={() => setDetailAppointment(null)}
+        onUpdated={(updated) => {
+          reloadAppointments()
+          setDetailAppointment(updated)
+        }}
+      />
+
       <section className="home-today-plan">
         <span className="eyebrow">TODAY</span>
         {dashboard.isRestDay && !activeCoachAssignment ? (
@@ -268,8 +317,10 @@ export default function HomeScreen({
               <span className="home-coach-ownership eyebrow">{dashboard.coachLabel}</span>
             ) : null}
             <h2>{dashboard.workoutName}</h2>
-            {dashboard.inPersonToday ? (
-              <p className="home-in-person-note">In-person session today</p>
+            {dashboard.linkedAppointmentToday && dashboard.nextAppointment ? (
+              <p className="home-in-person-note">
+                {formatAppointmentHeadline(dashboard.nextAppointment)} with Coach
+              </p>
             ) : null}
             {dashboard.executionFocusLabel ? (
               <p className="home-execution-focus">{dashboard.executionFocusLabel} active</p>
@@ -304,12 +355,16 @@ export default function HomeScreen({
         <button
           type="button"
           className="home-today-plan-link"
-          onClick={() => setScreen('train')}
+          onClick={() => setScreen('in-person-schedule')}
         >
           View schedule
           <ChevronRight size={16} strokeWidth={1.75} />
         </button>
       </section>
+
+      <AthleteAppointmentWeekStrip
+        appointments={appointmentsReady ? upcomingAppointments : []}
+      />
 
       <div className="home-assignment-slot">
         {!activeCoachAssignment && (

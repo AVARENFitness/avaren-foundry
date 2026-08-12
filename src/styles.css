@@ -14884,18 +14884,6 @@ input, textarea, select {
   letter-spacing: -.04em;
 }
 
-.ava-sheet-close {
-  display: grid;
-  place-items: center;
-  width: 40px;
-  height: 40px;
-  margin-top: 2px;
-  border: 0;
-  border-radius: 12px;
-  background: rgba(255,255,255,.04);
-  color: #a39c93;
-}
-
 .ava-sheet-intro {
   margin: 0 0 12px;
   color: #9b948b;
@@ -15190,6 +15178,87 @@ input, textarea, select {
   display: flex;
   gap: 0.5rem;
   flex-wrap: wrap;
+}
+
+.coach-today-schedule {
+  margin-bottom: 18px;
+  padding: 16px;
+  border: 1px solid rgba(196,165,116,.18);
+  border-radius: var(--radius-sm, 12px);
+}
+
+.coach-today-schedule-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.coach-today-schedule-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.coach-today-schedule-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.coach-today-schedule-item {
+  width: 100%;
+  text-align: left;
+  padding: 12px;
+  border: 1px solid rgba(196,165,116,.12);
+  border-radius: 10px;
+  background: transparent;
+}
+
+.coach-today-schedule-item strong {
+  display: block;
+}
+
+.coach-today-schedule-item span {
+  display: block;
+  margin-top: 4px;
+}
+
+.coach-today-schedule-item small {
+  display: block;
+  margin-top: 2px;
+  color: var(--text-supporting, #948d84);
+}
+
+.train-appointment-context {
+  margin: 8px 0 0;
+  color: var(--text-supporting, #948d84);
+}
+
+.athlete-scheduled-session-main {
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  color: inherit;
+}
+
+.athlete-scheduled-session-meta {
+  display: block;
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--text-supporting, #948d84);
+}
+
+.coach-session-detail-status,
+.coach-session-detail-workout,
+.coach-session-detail-location {
+  margin: 8px 0 0;
+  color: var(--text-supporting, #948d84);
 }
 
 .completion-coach-followup-note {
@@ -17105,48 +17174,6 @@ input, textarea, select {
   color: var(--gold);
   text-decoration: underline;
   min-height: 44px;
-}
-
-.coach-schedule-session-backdrop {
-  z-index: 130;
-  align-items: flex-end;
-}
-
-.coach-schedule-session-sheet {
-  width: min(100%, 560px);
-  max-height: min(92vh, 760px);
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
-  border-radius: 24px 24px 0 0;
-  border: 1px solid color-mix(in srgb, var(--gold) 18%, transparent);
-  background:
-    radial-gradient(circle at 85% -15%, rgba(199, 166, 92, 0.12), transparent 32%),
-    linear-gradient(145deg, rgba(25, 29, 35, 0.98), rgba(13, 16, 20, 0.98));
-  box-shadow: var(--shadow);
-  animation: modalRise 0.28s cubic-bezier(0.18, 0.8, 0.2, 1) both;
-}
-
-.coach-schedule-session-sheet-header,
-.coach-schedule-session-sheet-footer {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 20px;
-}
-
-.coach-schedule-session-sheet-footer {
-  align-items: center;
-  padding-bottom: calc(20px + env(safe-area-inset-bottom));
-  border-top: 1px solid color-mix(in srgb, var(--gold) 12%, transparent);
-}
-
-.coach-schedule-session-sheet-body {
-  overflow: auto;
-  padding: 0 20px 12px;
-  display: grid;
-  gap: 12px;
-  -webkit-overflow-scrolling: touch;
 }
 
 .coach-session-rsvp-alerts {

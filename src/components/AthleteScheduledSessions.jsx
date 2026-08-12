@@ -1,41 +1,38 @@
 import { CalendarDays, Check, XCircle } from 'lucide-react'
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { appUi } from '../lib/appUi'
 import { coachBackend } from '../lib/coachBackend'
 import { normalizeAthleteScheduledSession } from '../lib/coachScheduledSessions'
+import {
+  formatAppointmentDuration,
+  formatAppointmentHeadline,
+  locationLabel,
+} from '../lib/coachingAppointment'
 import {
   formatScheduledSessionDate,
   formatScheduledSessionTime,
 } from '../lib/sessionTimezone'
 import { RSVP_STATUS, canAthleteUpdateRsvp, rsvpAthleteLabel } from '../lib/sessionRsvp'
+import { useAthleteAppointments } from '../hooks/useAthleteAppointments'
+import AthleteAppointmentDetailSheet from './AthleteAppointmentDetailSheet'
 
 const ICON = { size: 18, strokeWidth: 1.75 }
 
-export default function AthleteScheduledSessions({ onSessionsChange }) {
-  const [sessions, setSessions] = useState([])
-  const [loading, setLoading] = useState(true)
+export default function AthleteScheduledSessions({
+  onSessionsChange,
+}) {
+  const { upcomingAppointments: sessions, loading, refreshAppointments: reload } =
+    useAthleteAppointments()
   const [updatingId, setUpdatingId] = useState(null)
-
-  const loadSessions = useCallback(async () => {
-    setLoading(true)
-    try {
-      const rows = await coachBackend.listAthleteScheduledSessions()
-      const normalized = (Array.isArray(rows) ? rows : [])
-        .map(normalizeAthleteScheduledSession)
-        .filter(Boolean)
-      setSessions(normalized)
-      onSessionsChange?.(normalized)
-    } catch {
-      setSessions([])
-      onSessionsChange?.([])
-    } finally {
-      setLoading(false)
-    }
-  }, [onSessionsChange])
+  const [detailSession, setDetailSession] = useState(null)
 
   useEffect(() => {
-    loadSessions()
-  }, [loadSessions])
+    reload()
+  }, [reload])
+
+  useEffect(() => {
+    onSessionsChange?.(sessions)
+  }, [onSessionsChange, sessions])
 
   const handleRsvp = async (session, rsvpStatus) => {
     if (!canAthleteUpdateRsvp(session) || updatingId === session.id) return
@@ -48,14 +45,7 @@ export default function AthleteScheduledSessions({ onSessionsChange }) {
         return
       }
 
-      const updated = normalizeAthleteScheduledSession(result.session)
-      setSessions((current) => {
-        const next = current.map((item) =>
-          item.id === session.id ? updated : item,
-        )
-        onSessionsChange?.(next)
-        return next
-      })
+      await reload()
       appUi.toast(
         rsvpStatus === RSVP_STATUS.CONFIRMED
           ? 'Session confirmed.'
@@ -73,53 +63,77 @@ export default function AthleteScheduledSessions({ onSessionsChange }) {
   if (!sessions.length) return null
 
   return (
-    <section className="athlete-scheduled-sessions-card" aria-label="Upcoming training sessions">
-      <header>
-        <span className="coach-profile-card-icon" aria-hidden="true">
-          <CalendarDays {...ICON} />
-        </span>
-        <div>
-          <span className="eyebrow">UPCOMING SESSIONS</span>
-          <h2>In-person training</h2>
-        </div>
-      </header>
+    <>
+      <section className="athlete-scheduled-sessions-card" aria-label="Upcoming training sessions">
+        <header>
+          <span className="coach-profile-card-icon" aria-hidden="true">
+            <CalendarDays {...ICON} />
+          </span>
+          <div>
+            <span className="eyebrow">UPCOMING SESSIONS</span>
+            <h2>In-person training</h2>
+          </div>
+        </header>
 
-      <div className="athlete-scheduled-sessions-list">
-        {sessions.map((session) => (
-          <article key={session.id} className={`athlete-scheduled-session rsvp-${session.rsvpStatus}`}>
-            <div>
-              <strong>{session.coachDisplayName ?? 'Coach'}</strong>
-              <span>
-                {formatScheduledSessionDate(session)} · {formatScheduledSessionTime(session)}
-              </span>
-              <small className="athlete-rsvp-status">{rsvpAthleteLabel(session.rsvpStatus)}</small>
-            </div>
-            {canAthleteUpdateRsvp(session) && (
-              <div className="athlete-rsvp-actions">
-                <button
-                  type="button"
-                  className={session.rsvpStatus === RSVP_STATUS.CONFIRMED ? 'active' : ''}
-                  disabled={updatingId === session.id}
-                  onClick={() => handleRsvp(session, RSVP_STATUS.CONFIRMED)}
-                >
-                  <Check size={16} />
-                  Confirm
-                </button>
-                <button
-                  type="button"
-                  className={session.rsvpStatus === RSVP_STATUS.CANNOT_ATTEND ? 'active' : ''}
-                  disabled={updatingId === session.id}
-                  onClick={() => handleRsvp(session, RSVP_STATUS.CANNOT_ATTEND)}
-                >
-                  <XCircle size={16} />
-                  Can't make it
-                </button>
-              </div>
-            )}
-          </article>
-        ))}
-      </div>
-    </section>
+        <div className="athlete-scheduled-sessions-list">
+          {sessions.map((session) => (
+            <article key={session.id} className={`athlete-scheduled-session rsvp-${session.rsvpStatus}`}>
+              <button
+                type="button"
+                className="athlete-scheduled-session-main"
+                onClick={() => setDetailSession(session)}
+              >
+                <div>
+                  <strong>{formatAppointmentHeadline(session)}</strong>
+                  <span>
+                    {formatScheduledSessionDate(session)} · {formatScheduledSessionTime(session)}
+                  </span>
+                  <span className="athlete-scheduled-session-meta">
+                    {formatAppointmentDuration(session)}
+                    {locationLabel(session) !== 'Default location'
+                      ? ` · ${locationLabel(session)}`
+                      : ''}
+                  </span>
+                  <small className="athlete-rsvp-status">{rsvpAthleteLabel(session.rsvpStatus)}</small>
+                </div>
+              </button>
+              {canAthleteUpdateRsvp(session) && (
+                <div className="athlete-rsvp-actions">
+                  <button
+                    type="button"
+                    className={session.rsvpStatus === RSVP_STATUS.CONFIRMED ? 'active' : ''}
+                    disabled={updatingId === session.id}
+                    onClick={() => handleRsvp(session, RSVP_STATUS.CONFIRMED)}
+                  >
+                    <Check size={16} />
+                    Confirm
+                  </button>
+                  <button
+                    type="button"
+                    className={session.rsvpStatus === RSVP_STATUS.CANNOT_ATTEND ? 'active' : ''}
+                    disabled={updatingId === session.id}
+                    onClick={() => handleRsvp(session, RSVP_STATUS.CANNOT_ATTEND)}
+                  >
+                    <XCircle size={16} />
+                    Can't make it
+                  </button>
+                </div>
+              )}
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <AthleteAppointmentDetailSheet
+        appointment={detailSession}
+        open={Boolean(detailSession)}
+        onClose={() => setDetailSession(null)}
+        onUpdated={async (updated) => {
+          await reload()
+          setDetailSession(updated)
+        }}
+      />
+    </>
   )
 }
 

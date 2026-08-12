@@ -33,6 +33,8 @@ import GymScreen from './screens/GymScreen'
 import ProgressScreen from './screens/ProgressScreen'
 import MoreScreen from './screens/MoreScreen'
 import TrainHubScreen from './screens/TrainHubScreen'
+import AthleteInPersonScheduleScreen from './screens/AthleteInPersonScheduleScreen'
+import { AthleteAppointmentsProvider } from './hooks/useAthleteAppointments'
 import NutritionScreen from './screens/NutritionScreen'
 import { createNutritionState, nutritionDateKey, nutritionTotals } from './lib/nutrition'
 import { nutritionBackend } from './lib/nutritionBackend'
@@ -957,6 +959,7 @@ function App() {
             sourceType: proposal.sourceType,
             sessionId: proposal.sessionId,
             assignmentId: proposal.assignmentId,
+            scheduledSessionId: proposal.scheduledSessionId,
           })
           setState((current) => ({
             ...current,
@@ -1578,6 +1581,12 @@ function App() {
       )
     }
 
+    if (screen === 'in-person-schedule') {
+      return (
+        <AthleteInPersonScheduleScreen onBack={() => navigate('home')} />
+      )
+    }
+
     if (screen === 'nutrition') {
       return (
         <NutritionScreen
@@ -1965,6 +1974,7 @@ function App() {
   }
 
   return (
+    <AthleteAppointmentsProvider userId={session?.user?.id ?? null}>
     <AvaUiProvider
       enabled={!isImmersiveScreen(screen, { mobilityFlow })}
       showFloatingEntry={screen !== 'home'}
@@ -2031,6 +2041,7 @@ function App() {
         )}
       </AppShell>
     </AvaUiProvider>
+    </AthleteAppointmentsProvider>
   )
 }
 

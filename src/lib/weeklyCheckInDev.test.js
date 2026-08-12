@@ -26,9 +26,12 @@ import {
   weeklyCheckInBackend,
 } from './weeklyCheckInBackend'
 import { invalidateCoachPortfolioCache } from './coachPortfolioService'
+import { FROZEN_COACH_WEEK, installFrozenCoachWeek } from '../test/frozenTime'
 
-const now = new Date('2026-08-07T12:00:00.000Z')
+const now = FROZEN_COACH_WEEK
 const weekRange = getCoachWeekRange(now)
+
+installFrozenCoachWeek(now)
 
 vi.mock('./supabase', () => ({
   supabase: {

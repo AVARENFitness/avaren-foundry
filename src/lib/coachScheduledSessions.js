@@ -8,6 +8,7 @@ export const SCHEDULED_SESSION_STATUS = {
   SCHEDULED: 'scheduled',
   COMPLETED: 'completed',
   CANCELLED: 'cancelled',
+  MISSED: 'missed',
 }
 
 export { DEFAULT_RSVP_STATUS, RSVP_STATUS, normalizeRsvpStatus } from './sessionRsvp'
@@ -19,6 +20,13 @@ import {
 
 export const normalizeScheduledSession = (row) => {
   if (!row) return null
+
+  const assignmentJoin = row.coach_assignments ?? row.assignment ?? null
+  const linkedWorkoutTitle =
+    row.linked_workout_title ??
+    row.linkedWorkoutTitle ??
+    assignmentJoin?.title ??
+    null
 
   return {
     id: row.id,
@@ -39,6 +47,13 @@ export const normalizeScheduledSession = (row) => {
     scheduleTimezone: row.schedule_timezone ?? null,
     completedAt: row.completed_at ?? null,
     sessionHistoryId: row.session_history_id ?? null,
+    appointmentType: row.appointment_type ?? 'IN_PERSON_TRAINING',
+    locationType: row.location_type ?? 'default',
+    locationName: row.location_name ?? '',
+    assignmentId: row.assignment_id ?? row.assignmentId ?? null,
+    linkedWorkoutTitle,
+    workoutSessionId: row.workout_session_id ?? null,
+    endsAt: row.ends_at ?? null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   }
@@ -161,6 +176,24 @@ export const cancelScheduledSession = (session) => {
   }
 }
 
+export const markScheduledSessionMissed = (session) => {
+  if (session?.status === SCHEDULED_SESSION_STATUS.COMPLETED) {
+    return { ok: false, error: 'already_completed' }
+  }
+
+  if (session?.status === SCHEDULED_SESSION_STATUS.CANCELLED) {
+    return { ok: false, error: 'session_cancelled' }
+  }
+
+  return {
+    ok: true,
+    session: {
+      ...session,
+      status: SCHEDULED_SESSION_STATUS.MISSED,
+    },
+  }
+}
+
 const COMPLETION_ERROR_CODES = [
   'already_completed',
   'no_sessions_remaining',
@@ -228,5 +261,11 @@ export const normalizeAthleteScheduledSession = (row) => {
     status: row.status ?? SCHEDULED_SESSION_STATUS.SCHEDULED,
     rsvpStatus: normalizeRsvpStatus(row.rsvp_status ?? row.rsvpStatus),
     rsvpUpdatedAt: row.rsvp_updated_at ?? row.rsvpUpdatedAt ?? null,
+    appointmentType: row.appointment_type ?? row.appointmentType ?? 'IN_PERSON_TRAINING',
+    locationType: row.location_type ?? row.locationType ?? 'default',
+    locationName: row.location_name ?? row.locationName ?? '',
+    assignmentId: row.assignment_id ?? row.assignmentId ?? null,
+    linkedWorkoutTitle: row.linked_workout_title ?? row.linkedWorkoutTitle ?? null,
+    endsAt: row.ends_at ?? row.endsAt ?? null,
   }
 }

@@ -28,6 +28,13 @@ import {
   wasCoachFollowUpSubmitted,
 } from './avaCoachFollowUpSession'
 import { hasActivePendingTransaction, isAwaitingConfirmation } from '../avaTransactionState'
+import { coachBackend } from '../../lib/coachBackend'
+import { normalizeAthleteAppointmentsFromRpc } from '../../lib/athleteAppointments'
+import { normalizeAthleteScheduledSession } from '../../lib/coachScheduledSessions'
+import {
+  buildScheduleConflictSummaryFromAppointment,
+  findAppointmentForScheduleConflict,
+} from '../../lib/coachingAppointment'
 
 const normalize = (value = '') =>
   String(value ?? '').trim().toLowerCase().replace(/\s+/g, ' ')
@@ -76,6 +83,7 @@ const buildFollowUpProposal = ({
   exerciseName = null,
   sessionId = null,
   assignmentId = null,
+  scheduledSessionId = null,
 } = {}) => ({
   id: crypto.randomUUID(),
   reasonType,
@@ -83,6 +91,7 @@ const buildFollowUpProposal = ({
   exerciseName,
   sessionId,
   assignmentId,
+  scheduledSessionId,
   sourceType: FOLLOWUP_SOURCE_TYPE.AVA_ATHLETE,
 })
 
@@ -92,6 +101,7 @@ export async function runCoachFollowUpPipelineStep({
   packet,
   actionRuntime = null,
   role = 'athlete',
+  now = new Date(),
 } = {}) {
   if (role === 'coach') return null
   if (hasActivePendingTransaction(session) || isAwaitingConfirmation(session)) {
@@ -282,17 +292,45 @@ export async function runCoachFollowUpPipelineStep({
       isProgramChange,
     })
 
-    const summary = buildFollowUpSummary({
-      reasonType,
-      detail: message,
-      workoutName: packet?.todayWorkout?.displayName ?? null,
-    })
+    let athleteAppointments = []
+    if (
+      packet?.athleteAppointmentsReady &&
+      Array.isArray(packet?.athleteAppointments)
+    ) {
+      athleteAppointments = normalizeAthleteAppointmentsFromRpc(
+        packet.athleteAppointments,
+      )
+    } else {
+      try {
+        athleteAppointments = normalizeAthleteAppointmentsFromRpc(
+          await coachBackend.listAthleteScheduledSessions(),
+        )
+      } catch {
+        athleteAppointments = []
+      }
+    }
+
+    const matchedAppointment = isSchedule
+      ? findAppointmentForScheduleConflict(message, athleteAppointments, now)
+      : null
+
+    const summary = matchedAppointment
+      ? buildScheduleConflictSummaryFromAppointment(matchedAppointment)
+      : buildFollowUpSummary({
+          reasonType,
+          detail: message,
+          workoutName: packet?.todayWorkout?.displayName ?? null,
+        })
 
     const proposal = buildFollowUpProposal({
       reasonType,
       summary,
       sessionId: activeWorkout?.id ?? null,
-      assignmentId: activeWorkout?.assignmentId ?? null,
+      assignmentId:
+        matchedAppointment?.assignmentId ??
+        activeWorkout?.assignmentId ??
+        null,
+      scheduledSessionId: matchedAppointment?.id ?? null,
     })
 
     setPendingCoachFollowUp(session, proposal)

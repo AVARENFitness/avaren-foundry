@@ -63,12 +63,17 @@ export async function runPlanningPipelineStep({
   }
 
   const state = planningStateFromRuntime(actionRuntime)
+  const planningNow = packet?.generatedAt
+    ? new Date(packet.generatedAt)
+    : new Date()
+
   let context = buildPlanningContext({
     state,
     packet,
     session,
     assignments: packet?.assignments ?? state.assignments ?? [],
     message,
+    now: planningNow,
   })
   context = attachSessionConstraints(context, session, message)
 
