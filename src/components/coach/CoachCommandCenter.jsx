@@ -3,7 +3,6 @@ import {
   CalendarRange,
   ClipboardList,
   Mail,
-  Plus,
   Search,
   UserPlus,
   Users,
@@ -17,6 +16,7 @@ import EmptyState from '../ui/EmptyState'
 
 const ICON = { size: 18, strokeWidth: 1.75 }
 const SEARCH_ICON = { size: 16, strokeWidth: 1.75 }
+const ROSTER_PREVIEW_LIMIT = 4
 
 const PRIMARY_SORT_OPTIONS = [
   { id: COACH_CLIENT_SORT.NEEDS_ATTENTION, label: 'Attention' },
@@ -55,7 +55,8 @@ export default function CoachCommandCenter({
   )
 
   const attentionCount = portfolio?.attentionQueue?.length ?? 0
-  const reviewsRemaining = hero?.weeklyReviews?.remaining ?? 0
+  const rosterPreview = filteredRoster.slice(0, ROSTER_PREVIEW_LIMIT)
+  const hiddenRosterCount = Math.max(0, filteredRoster.length - rosterPreview.length)
 
   if (!clients.length && !loading) {
     return (
@@ -120,11 +121,10 @@ export default function CoachCommandCenter({
           {!loading && !portfolioLoading && hero ? (
             <p className="coach-command-summary">
               {hero.activeClients} active
-              {attentionCount > 0 ? ` · ${attentionCount} need attention` : ' · roster on track'}
-              {reviewsRemaining > 0 ? ` · ${reviewsRemaining} reviews open` : ''}
+              {attentionCount > 0 ? ` · ${attentionCount} need attention` : ' · all caught up'}
             </p>
           ) : (
-            <p>Who needs you, what&apos;s next, and quick access to every client.</p>
+            <p>Today&apos;s sessions, who needs you, and quick access to every client.</p>
           )}
         </div>
       </header>
@@ -149,40 +149,21 @@ export default function CoachCommandCenter({
         onViewAll={() => onSortChange?.(COACH_CLIENT_SORT.NEEDS_ATTENTION)}
       />
 
-      {reviewsRemaining > 0 && (
-        <section className="coach-command-panel coach-command-review-compact">
-          <div className="coach-command-review-compact-copy">
-            <CalendarRange size={16} />
-            <div>
-              <strong>{reviewsRemaining} weekly review{reviewsRemaining === 1 ? '' : 's'} open</strong>
-              <span>Complete reviews while context is fresh.</span>
-            </div>
-          </div>
-          <button
-            type="button"
-            className="coach-secondary-button coach-command-inline-action"
-            onClick={onReviewNext}
-          >
-            Review next
-          </button>
-        </section>
-      )}
-
       <section className="coach-command-panel coach-command-roster">
         <header className="coach-command-panel-header">
           <div>
             <span className="eyebrow">CLIENTS</span>
-            <h2>Your roster</h2>
+            <h2>Roster preview</h2>
           </div>
-          <button
-            type="button"
-            className="coach-secondary-button coach-command-inline-action"
-            disabled={!clients.length}
-            onClick={onAssignWorkout}
-          >
-            <Plus size={16} />
-            Assign
-          </button>
+          {hiddenRosterCount > 0 ? (
+            <button
+              type="button"
+              className="coach-secondary-button coach-command-inline-action"
+              onClick={() => onSortChange?.(COACH_CLIENT_SORT.ALL)}
+            >
+              View all
+            </button>
+          ) : null}
         </header>
 
         <label className="coach-roster-search-shell">
@@ -217,7 +198,7 @@ export default function CoachCommandCenter({
           </div>
         ) : filteredRoster.length ? (
           <div className="coach-command-client-grid">
-            {filteredRoster.map((entry) => (
+            {rosterPreview.map((entry) => (
               <CoachClientCard
                 key={entry.client.id}
                 entry={entry}
@@ -237,11 +218,23 @@ export default function CoachCommandCenter({
       <section className="coach-command-panel coach-command-tools">
         <header className="coach-command-panel-header">
           <div>
-            <span className="eyebrow">TOOLS</span>
+            <span className="eyebrow">QUICK ACTIONS</span>
             <h2>Go deeper</h2>
           </div>
         </header>
         <div className="coach-command-tools-grid">
+          <button
+            type="button"
+            className="coach-secondary-button"
+            onClick={onSchedule ?? (() => onNavigateCoachScreen?.('calendar'))}
+          >
+            <CalendarRange size={16} />
+            Schedule
+          </button>
+          <button type="button" className="coach-secondary-button" onClick={onInvite}>
+            <UserPlus size={16} />
+            Add client
+          </button>
           <button type="button" className="coach-secondary-button" onClick={onViewAssignments}>
             <ClipboardList size={16} />
             Assignments
@@ -250,14 +243,10 @@ export default function CoachCommandCenter({
           <button
             type="button"
             className="coach-secondary-button"
-            onClick={() => onNavigateCoachScreen?.('calendar')}
+            onClick={() => onNavigateCoachScreen?.('programs')}
           >
-            <CalendarRange size={16} />
-            Calendar
-          </button>
-          <button type="button" className="coach-secondary-button" onClick={onInvite}>
-            <UserPlus size={16} />
-            Add client
+            <Users size={16} />
+            Programs
           </button>
         </div>
       </section>

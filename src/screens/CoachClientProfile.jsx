@@ -463,21 +463,73 @@ export default function CoachClientProfile({
       case 'today':
         return (
           <>
-            {attentionPanel}
+            {clientFollowUps.length > 0 ? (
+              attentionPanel
+            ) : (
+              <section className="coach-client-overview-attention coach-client-overview-attention--clear">
+                <span className="eyebrow">ATTENTION</span>
+                <strong>All caught up</strong>
+              </section>
+            )}
             <CoachClientInPersonPanel
               client={client}
               onOpenSession={openSession}
               onPassContextChange={setPassAvaContext}
               showHistory={false}
             />
-            <ClientIntelligenceDashboard
-              intelligence={intelligence}
-              loading={intelligenceLoading}
-              error={intelligenceError}
-              onSectionAction={handleSectionAction}
-              onAssignWorkout={onAssignWorkout}
-              onSaveNotes={() => setActiveSection('notes')}
-            />
+            {intelligence?.training?.recentSessions?.[0] ? (
+              <section className="coach-client-overview-recent">
+                <span className="eyebrow">RECENT TRAINING</span>
+                <div className="coach-client-overview-recent-row">
+                  <div>
+                    <strong>Last workout</strong>
+                    <span>
+                      {intelligence.training.recentSessions[0].name}
+                      {intelligence.training.recentSessions[0].relativeLabel
+                        ? ` · ${intelligence.training.recentSessions[0].relativeLabel}`
+                        : ''}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    className="coach-secondary-button"
+                    onClick={() => setActiveSection('training')}
+                  >
+                    View training
+                  </button>
+                </div>
+              </section>
+            ) : null}
+            <div className="coach-client-overview-actions">
+              <button
+                type="button"
+                className="coach-secondary-button"
+                onClick={() => setActiveSection('sessions')}
+              >
+                Schedule
+              </button>
+              <button
+                type="button"
+                className="coach-secondary-button"
+                onClick={() => setActiveSection('sessions')}
+              >
+                View usage
+              </button>
+              <button
+                type="button"
+                className="gold-button machined coach-primary-action"
+                onClick={onAssignWorkout}
+              >
+                Assign workout
+              </button>
+              <button
+                type="button"
+                className="coach-secondary-button"
+                onClick={() => setActiveSection('notes')}
+              >
+                Add note
+              </button>
+            </div>
           </>
         )
 
@@ -731,61 +783,14 @@ export default function CoachClientProfile({
 
       case 'progress':
         return (
-          <ProfileSection
-            eyebrow="PROGRESS"
-            title="Completed work"
-            description="Recent workouts, performance trends, and assignment history."
-            primaryAction={
-              <button
-                type="button"
-                className="coach-secondary-button coach-client-profile-section-action"
-                onClick={() => handleSectionAction('progress')}
-              >
-                <BarChart3 {...ICON} />
-                Review trends
-              </button>
-            }
-          >
-            {intelligence.performance.cards.length > 0 && (
-              <div className="client-intelligence-insight-grid">
-                {intelligence.performance.cards.map((card) => (
-                  <article key={card.id} className="coach-profile-card">
-                    <div>
-                      <small>{card.title}</small>
-                      <strong>{card.value}</strong>
-                      <span>{card.detail}</span>
-                    </div>
-                  </article>
-                ))}
-              </div>
-            )}
-
-            {recentActivity.length ? (
-              <div className="coach-client-profile-activity">
-                {recentActivity.map((item) => (
-                  <article key={item.id} className="coach-profile-activity-row">
-                    <strong>{item.title}</strong>
-                    <span>
-                      Completed{' '}
-                      {new Date(item.completed_at).toLocaleDateString([], {
-                        month: 'short',
-                        day: 'numeric',
-                      })}
-                      {item.completion_summary?.volume
-                        ? ` · ${Math.round(item.completion_summary.volume).toLocaleString()} lb`
-                        : ''}
-                    </span>
-                  </article>
-                ))}
-              </div>
-            ) : (
-              <EmptyState
-                icon={Activity}
-                title="No completed workouts"
-                description="Completed assignments will appear here."
-              />
-            )}
-          </ProfileSection>
+          <ClientIntelligenceDashboard
+            intelligence={intelligence}
+            loading={intelligenceLoading}
+            error={intelligenceError}
+            onSectionAction={handleSectionAction}
+            onAssignWorkout={onAssignWorkout}
+            onSaveNotes={() => setActiveSection('notes')}
+          />
         )
 
       default:

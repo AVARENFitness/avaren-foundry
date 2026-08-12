@@ -1,4 +1,8 @@
 import { useCallback, useState } from 'react'
+import {
+  COACH_ACTIVE_MODE,
+  writeLastActiveMode,
+} from '../lib/coachModePersistence'
 import { canAccessCoachHub } from './useCoachAccess'
 
 export function useNavigation({ session, setCoachWorkspace, coachAuthorized = false }) {
@@ -30,6 +34,9 @@ export function useNavigation({ session, setCoachWorkspace, coachAuthorized = fa
     setSelectedCoachClient(null)
     setCoachScreen('clients')
     setScreen('coach-hub')
+    if (session?.user?.id) {
+      writeLastActiveMode(session.user.id, COACH_ACTIVE_MODE.COACH)
+    }
     window.scrollTo({
       top: 0,
       behavior: 'auto',
@@ -41,12 +48,15 @@ export function useNavigation({ session, setCoachWorkspace, coachAuthorized = fa
       ...current,
       modeEnabled: false,
     }))
+    if (session?.user?.id) {
+      writeLastActiveMode(session.user.id, COACH_ACTIVE_MODE.ATHLETE)
+    }
     setScreen('more')
     window.scrollTo({
       top: 0,
       behavior: 'auto',
     })
-  }, [setCoachWorkspace])
+  }, [session?.user?.id, setCoachWorkspace])
 
   return {
     screen,

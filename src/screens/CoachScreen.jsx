@@ -95,6 +95,22 @@ export default function CoachScreen({ workspace, setWorkspace, screen='clients',
     }
   }
   useEffect(()=>{load()},[])
+
+  useEffect(() => {
+    const refreshOnFocus = () => {
+      if (document.visibilityState !== 'visible') return
+      load()
+      refreshPortfolio()
+    }
+
+    document.addEventListener('visibilitychange', refreshOnFocus)
+    window.addEventListener('focus', refreshOnFocus)
+
+    return () => {
+      document.removeEventListener('visibilitychange', refreshOnFocus)
+      window.removeEventListener('focus', refreshOnFocus)
+    }
+  }, [refreshPortfolio])
   useEffect(()=>{if(screen!=='clients')setSelectedClient?.(null)},[screen,setSelectedClient])
   useEffect(()=>{if(!selectedClient)return;coachBackend.getClientNotes(selectedClient.athlete_id).then(note=>{setClientNotes(note?.notes??'');setNotesUpdatedAt(note?.updated_at??null)}).catch(()=>{setClientNotes('');setNotesUpdatedAt(null)})},[selectedClient])
 

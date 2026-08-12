@@ -1,4 +1,4 @@
-import { ChevronRight, Sparkles, Trophy } from 'lucide-react'
+import { ChevronRight } from 'lucide-react'
 import { CLIENT_ROSTER_STATUS } from '../../lib/clientIntelligence'
 
 const ICON = { size: 18, strokeWidth: 1.75 }
@@ -27,39 +27,28 @@ export default function CoachClientCard({ entry, onSelect }) {
     status,
     card,
     attentionCount,
-    hasWin,
-    winLabel,
-    weeklyReviewStatus,
-    athleteCheckInStatus,
   } = entry
+
+  const detailLine = card.lastWorkoutLabel
+    ? `Last trained ${card.lastWorkoutLabel.toLowerCase()}`
+    : card.workoutsThisWeek
+      ? `${card.workoutsThisWeek} workout${card.workoutsThisWeek === 1 ? '' : 's'} this week`
+      : 'No recent training logged'
 
   return (
     <button
       type="button"
-      className="coach-command-client-card"
+      className="coach-command-client-card coach-command-client-card--compact"
       onClick={() => onSelect?.(client)}
     >
       <div className="coach-command-client-card-top">
-        <div className="coach-client-avatar">{clientName.charAt(0)}</div>
         <div className="coach-command-client-card-heading">
           <strong>{clientName}</strong>
-          <span className={`coach-command-status ${statusClass(status)}`}>
-            {status}
-          </span>
-          {athleteCheckInStatus && (
-            <span
-              className={`coach-command-review-badge ${
-                athleteCheckInStatus === 'submitted' ? 'reviewed' : 'due'
-              }`}
-            >
-              Check-in {athleteCheckInStatus === 'submitted' ? 'Submitted' : 'Missing'}
+          {attentionCount > 0 ? (
+            <span className={`coach-command-status ${statusClass(status)}`}>
+              Needs attention
             </span>
-          )}
-          {weeklyReviewStatus && (
-            <span className={`coach-command-review-badge ${weeklyReviewStatus === 'REVIEWED' ? 'reviewed' : 'due'}`}>
-              Review {weeklyReviewStatus === 'REVIEWED' ? 'Done' : 'Open'}
-            </span>
-          )}
+          ) : null}
         </div>
         {attentionCount > 0 && (
           <span className="coach-command-attention-dot" aria-label="Needs attention">
@@ -69,36 +58,11 @@ export default function CoachClientCard({ entry, onSelect }) {
       </div>
 
       <div className="coach-command-client-card-body">
-        <span>
-          {card.workoutsThisWeek
-            ? `${card.workoutsThisWeek} workout${card.workoutsThisWeek === 1 ? '' : 's'} this week`
-            : 'No workouts this week'}
-        </span>
-        {card.lastWorkoutLabel && (
-          <span>Last trained {card.lastWorkoutLabel.toLowerCase()}</span>
-        )}
-        {card.readinessLabel && <span>Readiness {card.readinessLabel}</span>}
-        {card.assignmentLabel && (
-          <span>
-            {card.activeAssignmentTitle
-              ? `${card.assignmentLabel} · ${card.activeAssignmentTitle}`
-              : card.assignmentLabel}
-          </span>
-        )}
+        <span>{detailLine}</span>
       </div>
 
       <div className="coach-command-client-card-footer">
-        {hasWin ? (
-          <span className="coach-command-win-badge">
-            <Trophy size={14} />
-            {winLabel}
-          </span>
-        ) : (
-          <span className="coach-command-win-badge muted">
-            <Sparkles size={14} />
-            View client
-          </span>
-        )}
+        <span>View client</span>
         <ChevronRight {...ICON} />
       </div>
     </button>

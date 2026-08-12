@@ -156,3 +156,49 @@
   gap: 4px;
   margin-top: 8px;
 }
+
+.coach-client-overview-attention,
+.coach-client-overview-recent {
+  display: grid;
+  gap: 8px;
+  padding: 14px 16px;
+  border: 1px solid rgba(246, 242, 233, 0.06);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.012);
+}
+
+.coach-client-overview-attention--clear strong {
+  color: #b5afa6;
+  font-weight: 650;
+}
+
+.coach-client-overview-recent-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.coach-client-overview-recent-row strong,
+.coach-client-overview-recent-row span {
+  display: block;
+}
+
+.coach-client-overview-recent-row span {
+  color: #8a8379;
+  font-size: 13px;
+}
+
+.coach-client-overview-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.coach-client-overview-actions .coach-primary-action {
+  grid-column: 1 / -1;
+}
+
+.coach-command-client-card--compact .coach-command-client-card-body {
+  gap: 4px;
+}

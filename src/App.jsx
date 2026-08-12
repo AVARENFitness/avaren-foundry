@@ -19,6 +19,12 @@ import {
   useCoachAccess,
 } from './hooks/useCoachAccess'
 import { canShowCoachHubShortcut } from './config/coachAccess'
+import {
+  clearLastActiveMode,
+  readLastActiveMode,
+  resolveDefaultActiveMode,
+  shouldRestoreCoachMode,
+} from './lib/coachModePersistence'
 import { registerPushWorker, syncPushSubscription } from './lib/pushNotifications'
 import { coachBackend } from './lib/coachBackend'
 import { COACH_CLIENT_SORT } from './lib/clientIntelligence'
@@ -166,6 +172,8 @@ function App() {
     useState(false)
 
   const sessionBridgeRef = useRef({})
+  const modeRestoreRef = useRef(false)
+  const lastUserIdRef = useRef(null)
   const openDailyResetRef = useRef(() => {})
   const trainingRecommendationRef = useRef(null)
 
@@ -199,12 +207,14 @@ function App() {
     resetWeeklyCheckInBackendCache()
     resetWeeklyCheckInCapabilityCache()
     clearDevWeeklyCheckInDueOverride()
+    clearLastActiveMode(lastUserIdRef.current)
     setState(createInitialState())
     sessionBridgeRef.current.resetWorkoutSession?.()
     setMobilityFlow(null)
     setShowOnboarding(false)
     setIsReplayingOnboarding(false)
     setWeeklyCheckInConfirmation(false)
+    modeRestoreRef.current = false
   }, [])
 
   const handleAccountHydrated = useCallback((hydratedState, decision) => {
@@ -229,6 +239,8 @@ function App() {
     onSignedOut: handleSignedOut,
     onAccountHydrated: handleAccountHydrated,
   })
+
+  lastUserIdRef.current = session?.user?.id ?? null
 
   const handleNutritionChange = useCallback((nextNutrition) => {
     setState((current) => {
@@ -321,6 +333,33 @@ function App() {
   ])
 
   sessionBridgeRef.current.setScreen = setScreen
+
+  useEffect(() => {
+    if (authLoading || coachAccessLoading || !session?.user?.id) return
+    if (modeRestoreRef.current) return
+    if (showOnboarding) return
+
+    modeRestoreRef.current = true
+
+    if (
+      shouldRestoreCoachMode({
+        persistedMode: readLastActiveMode(session.user.id),
+        defaultMode: resolveDefaultActiveMode({ session, coachAuthorized }),
+        coachAuthorized: canAccessCoachHub(session, coachAuthorized),
+        hasActiveWorkout: Boolean(state.activeWorkout),
+      })
+    ) {
+      enterCoachMode()
+    }
+  }, [
+    authLoading,
+    coachAccessLoading,
+    session,
+    coachAuthorized,
+    showOnboarding,
+    state.activeWorkout,
+    enterCoachMode,
+  ])
 
   useEffect(() => {
     const timer = setTimeout(() => setShowSplash(false), 820)

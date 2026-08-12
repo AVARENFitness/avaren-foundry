@@ -12,7 +12,7 @@ export default function CoachAttentionQueue({
     <section className="coach-command-panel coach-command-attention">
       <header className="coach-command-panel-header">
         <div>
-          <span className="eyebrow">PRIORITY</span>
+          <span className="eyebrow">NEEDS ATTENTION</span>
           <h2>Needs Attention</h2>
         </div>
         {totalCount > visible.length && (
@@ -51,7 +51,7 @@ export default function CoachAttentionQueue({
         </div>
       ) : (
         <div className="coach-command-empty-copy">
-          <strong>Your clients are on track.</strong>
+          <strong>All caught up</strong>
           <span>No clients need attention right now.</span>
         </div>
       )}
