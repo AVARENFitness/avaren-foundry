@@ -1,8 +1,14 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import AppUiBackdrop from '../ui/AppUiBackdrop'
 import AppUiCloseButton from '../ui/AppUiCloseButton'
 import { END_COACHING_COPY } from '../../lib/coachClientLifecycle'
 import { hasLinkedAthlete } from '../../lib/coachBusinessClient'
+import {
+  canConfigureWeeklyCheckInRequirement,
+  COACHING_REQUIREMENT_KEYS,
+  readCoachingRequirementsFromClient,
+  WEEKLY_CHECK_IN_REQUIREMENT,
+} from '../../lib/coachClientRequirements'
 
 export default function CoachEndCoachingSheet({
   open = false,
@@ -84,6 +90,95 @@ export default function CoachEndCoachingSheet({
         </footer>
       </section>
     </AppUiBackdrop>
+  )
+}
+
+export function CoachCoachingRequirementsPanel({
+  client,
+  submitting = false,
+  onUpdateWeeklyCheckInRequired,
+}) {
+  const requirements = readCoachingRequirementsFromClient(client)
+  const canConfigure = canConfigureWeeklyCheckInRequirement(client)
+  const savedValue =
+    requirements[COACHING_REQUIREMENT_KEYS.WEEKLY_CHECK_IN] ===
+    WEEKLY_CHECK_IN_REQUIREMENT.NOT_REQUIRED
+      ? WEEKLY_CHECK_IN_REQUIREMENT.NOT_REQUIRED
+      : WEEKLY_CHECK_IN_REQUIREMENT.REQUIRED
+  const [saveError, setSaveError] = useState(null)
+  const [savedNotice, setSavedNotice] = useState(false)
+  const isSaving = submitting
+
+  useEffect(() => {
+    setSavedNotice(false)
+    setSaveError(null)
+  }, [savedValue])
+
+  const handleChange = async (event) => {
+    const nextValue = event.target.value
+    if (nextValue === savedValue) return
+    if (!onUpdateWeeklyCheckInRequired) return
+
+    setSaveError(null)
+    setSavedNotice(false)
+
+    try {
+      await onUpdateWeeklyCheckInRequired(
+        nextValue === WEEKLY_CHECK_IN_REQUIREMENT.REQUIRED,
+      )
+      setSavedNotice(true)
+    } catch {
+      setSaveError('Unable to update weekly check-in requirement.')
+    }
+  }
+
+  return (
+    <section
+      className="coach-coaching-requirements-panel"
+      data-testid="coach-coaching-requirements-panel"
+    >
+      <header>
+        <span className="eyebrow">COACHING REQUIREMENTS</span>
+        <h2>Recurring obligations</h2>
+      </header>
+
+      <div className="coach-requirement-item">
+        <div className="coach-requirement-copy">
+          <strong className="coach-requirement-label">Weekly check-in</strong>
+          <p className="coach-requirement-description">
+            {canConfigure
+              ? 'Choose whether this client is required to complete a weekly check-in.'
+              : 'Connect an AVAREN account to enable weekly check-ins.'}
+          </p>
+          {isSaving ? (
+            <p className="coach-requirement-status" role="status">
+              Saving…
+            </p>
+          ) : savedNotice ? (
+            <p className="coach-requirement-status" role="status">
+              Saved
+            </p>
+          ) : null}
+          {saveError ? (
+            <p className="coach-requirement-error" role="alert">
+              {saveError}
+            </p>
+          ) : null}
+        </div>
+        <select
+          className="coach-requirement-select"
+          value={savedValue}
+          disabled={!canConfigure || isSaving || !onUpdateWeeklyCheckInRequired}
+          onChange={handleChange}
+          data-testid="coach-weekly-checkin-requirement-select"
+        >
+          <option value={WEEKLY_CHECK_IN_REQUIREMENT.REQUIRED}>Required</option>
+          <option value={WEEKLY_CHECK_IN_REQUIREMENT.NOT_REQUIRED}>
+            Not required
+          </option>
+        </select>
+      </div>
+    </section>
   )
 }
 

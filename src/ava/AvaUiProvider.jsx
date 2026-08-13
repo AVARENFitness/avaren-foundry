@@ -24,6 +24,8 @@ export function AvaUiProvider({
   onNutritionChange,
   coachContext = null,
   role = 'athlete',
+  weeklyCheckInRequired = false,
+  weeklyCheckInState = null,
 }) {
   const [open, setOpen] = useState(false)
   const [assignments, setAssignments] = useState([])
@@ -51,21 +53,28 @@ export function AvaUiProvider({
   const packet = useMemo(() => {
     if (!appState) return null
 
-    return {
-      ...buildAvaContextPacket(
-      {
-        ...appState,
-        nutrition: nutrition ?? appState.nutrition,
-      },
-      {
-        userName,
-        assignments,
-        now: new Date(),
-      },
-    ),
-      athleteAppointments: appointmentContext?.appointments ?? [],
-      athleteAppointmentsReady: appointmentContext?.ready ?? false,
-      athleteAppointmentsLoading: appointmentContext?.loading ?? false,
+    try {
+      return {
+        ...buildAvaContextPacket(
+          {
+            ...appState,
+            nutrition: nutrition ?? appState.nutrition,
+          },
+          {
+            userName,
+            assignments,
+            now: new Date(),
+            weeklyCheckInRequired,
+            weeklyCheckInState,
+          },
+        ),
+        athleteAppointments: appointmentContext?.appointments ?? [],
+        athleteAppointmentsReady: appointmentContext?.ready ?? false,
+        athleteAppointmentsLoading: appointmentContext?.loading ?? false,
+      }
+    } catch (error) {
+      console.error('[ava-context] Failed to build athlete AVA packet:', error)
+      return null
     }
   }, [
     appState,
@@ -77,6 +86,8 @@ export function AvaUiProvider({
     appointmentContext?.ready,
     appointmentContext?.loading,
     appointmentContext?.userId,
+    weeklyCheckInRequired,
+    weeklyCheckInState,
   ])
 
   const openAva = useCallback(() => {

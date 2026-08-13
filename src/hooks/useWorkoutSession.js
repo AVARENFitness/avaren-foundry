@@ -8,6 +8,7 @@ import {
   applyRecommendationToWorkout,
   TRAINING_RECOMMENDATIONS,
 } from '../lib/trainingRecommendations'
+import { advanceProgramNextWorkout } from '../lib/programWorkout'
 import { resolveTodayWorkoutContext } from '../lib/todayWorkout'
 import {
   attachExecutionMetadataToSession,
@@ -77,7 +78,13 @@ export function useWorkoutSession({
 
   const plannedWorkout = useMemo(
     () => resolveTodayWorkoutContext(state).name,
-    [state.weeklySchedule, state.selectedWorkout, state.program.nextWorkout, state.activeWorkout],
+    [
+      state.weeklySchedule,
+      state.selectedWorkout,
+      state.program?.nextWorkout,
+      state.activeWorkout,
+      state.history,
+    ],
   )
 
   const buildActiveWorkout = useCallback((name) => {
@@ -233,6 +240,11 @@ export function useWorkoutSession({
     }
 
     const { name } = resolveTodayWorkoutContext(state)
+    if (!name) {
+      appUi.toast('Choose a workout to start.', 'error')
+      return
+    }
+
     const activeWorkout = attachSessionModeMetadata(
       buildActiveWorkout(name),
       SESSION_MODE.SOLO,
@@ -412,6 +424,20 @@ export function useWorkoutSession({
     })
   }, [setState])
 
+  const updateRestTimer = useCallback((restTimer) => {
+    setState((current) => {
+      if (!current.activeWorkout) return current
+
+      return {
+        ...current,
+        activeWorkout: {
+          ...current.activeWorkout,
+          restTimer: restTimer ?? null,
+        },
+      }
+    })
+  }, [setState])
+
   const updateSet = useCallback((exerciseIndex, setIndex, key, value) => {
     setState((current) => {
       const activeWorkout = structuredClone(current.activeWorkout)
@@ -560,9 +586,11 @@ export function useWorkoutSession({
       return
     }
 
-    const rotation = state.program.rotation
-    const currentIndex = rotation.indexOf(workout.name)
-    const nextWorkout = rotation[(currentIndex + 1) % rotation.length]
+    const nextWorkout = advanceProgramNextWorkout({
+      rotation: state.program.rotation,
+      completedWorkoutName: workout.name,
+      currentNextWorkout: state.program.nextWorkout,
+    })
 
     const completedWorkoutSession = attachExecutionMetadataToSession(
       {
@@ -737,6 +765,7 @@ export function useWorkoutSession({
     restartActiveWorkout,
     endActiveWorkoutWithoutSaving,
     updateWorkoutMeta,
+    updateRestTimer,
     updateSet,
     addSet,
     repeatPreviousSet,

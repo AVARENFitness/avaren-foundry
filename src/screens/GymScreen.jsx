@@ -48,9 +48,11 @@ export default function GymScreen({
   onChangeWorkout,
   onRestartWorkout,
   onEndWorkout,
+  onRestTimerChange,
   recommendation,
   isFinishing = false,
 }) {
+  const workout = state.activeWorkout
   const [showQuickAdd, setShowQuickAdd] = useState(false)
   const [supersetRound, setSupersetRound] = useState(0)
   const [navigationDirection, setNavigationDirection] = useState('next')
@@ -63,10 +65,29 @@ export default function GymScreen({
     ),
   )
   const [now, setNow] = useState(() => Date.now())
-  const [restDuration, setRestDuration] = useState(90)
-  const [restRemaining, setRestRemaining] = useState(0)
-  const [restRunning, setRestRunning] = useState(false)
-  const [restContext, setRestContext] = useState(null)
+  const persistedRestTimer = workout?.restTimer ?? null
+  const [restDuration, setRestDuration] = useState(
+    persistedRestTimer?.duration ?? 90,
+  )
+  const computeRestRemaining = (endsAt) => {
+    if (!endsAt) return 0
+    return Math.max(
+      0,
+      Math.ceil((new Date(endsAt).getTime() - Date.now()) / 1000),
+    )
+  }
+  const [restRemaining, setRestRemaining] = useState(() =>
+    computeRestRemaining(persistedRestTimer?.endsAt),
+  )
+  const [restRunning, setRestRunning] = useState(() =>
+    Boolean(
+      persistedRestTimer?.endsAt &&
+        computeRestRemaining(persistedRestTimer.endsAt) > 0,
+    ),
+  )
+  const [restContext, setRestContext] = useState(
+    persistedRestTimer?.context ?? null,
+  )
 
   const goPrevious = () => {
     setNavigationDirection('previous')
@@ -79,7 +100,6 @@ export default function GymScreen({
       Math.min(workout.exercises.length - 1, activeExercise + 1),
     )
   }
-  const workout = state.activeWorkout
   const executionPlan = isExecutionPlanCurrent(state.sessionExecutionPlan)
     ? state.sessionExecutionPlan
     : null
@@ -104,13 +124,24 @@ export default function GymScreen({
     if (!restRunning || restRemaining <= 0) return
 
     const timer = window.setInterval(() => {
-      setRestRemaining((current) =>
-        Math.max(0, current - 1),
-      )
+      setRestRemaining((current) => {
+        const next = Math.max(0, current - 1)
+        return next
+      })
+      setNow(Date.now())
     }, 1000)
 
     return () => window.clearInterval(timer)
   }, [restRunning, restRemaining])
+
+  useEffect(() => {
+    if (!restRunning || !workout?.restTimer?.endsAt) return
+
+    const remaining = computeRestRemaining(workout.restTimer.endsAt)
+    if (remaining !== restRemaining) {
+      setRestRemaining(remaining)
+    }
+  }, [now, restRunning, workout?.restTimer?.endsAt])
 
   useEffect(() => {
     if (
@@ -121,11 +152,12 @@ export default function GymScreen({
     }
 
     setRestRunning(false)
+    onRestTimerChange?.(null)
 
     if (navigator.vibrate) {
       navigator.vibrate([35, 55, 45])
     }
-  }, [restRemaining, restRunning])
+  }, [restRemaining, restRunning, onRestTimerChange])
 
   if (!workout) {
     return (
@@ -198,17 +230,42 @@ export default function GymScreen({
     setIndex,
     potentialPr,
   }) => {
-    setRestContext({
+    const context = {
       exercise: exercise.name,
       setNumber: setIndex + 1,
       potentialPr,
-    })
+    }
+    const endsAt = new Date(Date.now() + restDuration * 1000).toISOString()
+    setRestContext(context)
     setRestRemaining(restDuration)
     setRestRunning(true)
+    onRestTimerChange?.({
+      endsAt,
+      duration: restDuration,
+      context,
+    })
 
     if (navigator.vibrate) {
       navigator.vibrate(12)
     }
+  }
+
+  const persistRestTimer = ({
+    remaining = restRemaining,
+    running = restRunning,
+    context = restContext,
+    duration = restDuration,
+  } = {}) => {
+    if (!running || remaining <= 0 || !context) {
+      onRestTimerChange?.(null)
+      return
+    }
+
+    onRestTimerChange?.({
+      endsAt: new Date(Date.now() + remaining * 1000).toISOString(),
+      duration,
+      context,
+    })
   }
 
   const supersetGroup = currentExercise.supersetGroup
@@ -604,11 +661,20 @@ export default function GymScreen({
 
           <div className="lift-rest-actions">
             <button
-              onClick={() =>
-                setRestRunning(
-                  (current) => !current,
-                )
-              }
+              onClick={() => {
+                setRestRunning((current) => {
+                  const next = !current
+                  if (next) {
+                    persistRestTimer({
+                      remaining: restRemaining,
+                      running: true,
+                    })
+                  } else {
+                    onRestTimerChange?.(null)
+                  }
+                  return next
+                })
+              }}
               disabled={restRemaining === 0}
               aria-label={
                 restRunning
@@ -625,10 +691,15 @@ export default function GymScreen({
 
             <button
               onClick={() => {
-                setRestRemaining(
-                  (current) => current + 30,
-                )
-                setRestRunning(true)
+                setRestRemaining((current) => {
+                  const next = current + 30
+                  setRestRunning(true)
+                  persistRestTimer({
+                    remaining: next,
+                    running: true,
+                  })
+                  return next
+                })
               }}
               aria-label="Add 30 seconds"
             >
@@ -639,6 +710,10 @@ export default function GymScreen({
               onClick={() => {
                 setRestRemaining(restDuration)
                 setRestRunning(true)
+                persistRestTimer({
+                  remaining: restDuration,
+                  running: true,
+                })
               }}
               aria-label="Restart rest timer"
             >
@@ -651,6 +726,7 @@ export default function GymScreen({
                 setRestRunning(false)
                 setRestContext(null)
                 setRestRemaining(0)
+                onRestTimerChange?.(null)
               }}
             >
               Done

@@ -303,4 +303,40 @@ describe('avaConversation', () => {
     expect(response.summary.toLowerCase()).toContain('wouldn')
     expect(response.data.disagreement).toBe(true)
   })
+
+  it('answers what is next with tomorrow workout after completion', () => {
+    const state = {
+      ...readyState,
+      selectedWorkout: null,
+      program: {
+        nextWorkout: 'Legs + Core',
+        rotation: ['Chest + Back', 'Arms', 'Legs + Core'],
+        workouts: {
+          ...readyState.program.workouts,
+          Arms: [{ name: 'Curls', sets: 3, muscle: 'Biceps' }],
+          'Legs + Core': [{ name: 'Squat', sets: 3, muscle: 'Legs' }],
+        },
+      },
+      history: [
+        {
+          id: 'arms-done',
+          date: today,
+          name: 'Arms',
+          finishedAt: `${today}T16:00:00`,
+          sets: [{ exercise: 'Curls', muscle: 'Biceps', weight: 30, reps: 10 }],
+        },
+      ],
+    }
+
+    const packet = buildPacket(state)
+    const response = respondToAvaMessage({
+      message: "What's next?",
+      packet,
+      session: createAvaSession(),
+    })
+
+    expect(response.summary).toMatch(/Legs/i)
+    expect(response.summary).toMatch(/tomorrow/i)
+    expect(response.summary).not.toMatch(/Chest/i)
+  })
 })

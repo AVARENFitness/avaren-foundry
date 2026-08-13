@@ -3,6 +3,7 @@ import {
   readinessTrendSnapshot,
 } from './readiness'
 import { calculateRecoveryIntelligence } from '../data/mobility'
+import { findCompletedWorkoutToday } from './programWorkout'
 
 export const TRAINING_RECOMMENDATIONS = {
   TRAIN_NORMAL: 'train-normal',
@@ -111,10 +112,12 @@ export const buildTrainingRecommendation = (
   const readiness = calculateReadiness(state, now)
   const sevenDay = readinessTrendSnapshot(state, 7)
   const recovery = calculateRecoveryIntelligence(state)
+  const completedToday = findCompletedWorkoutToday(state.history, now)
   const workout =
     scheduledWorkout ||
-    state.selectedWorkout ||
-    state.program?.nextWorkout
+    (!completedToday &&
+      (state.selectedWorkout || state.program?.nextWorkout)) ||
+    null
 
   if (!readiness.completed) {
     return {

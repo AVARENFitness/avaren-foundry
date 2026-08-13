@@ -41,7 +41,11 @@ import {
 import {
   APPOINTMENT_LINKAGE_ERROR,
 } from './coachBusinessClientLinkage'
-import { mergeCoachRosterRecords, isQuerySafeAthleteId, isValidUuid } from './coachBusinessClient'
+import { mergeCoachRosterRecords, isQuerySafeAthleteId, isValidUuid, attachCoachingRequirementsToBusinessClients, resolveRecordBusinessClientId } from './coachBusinessClient'
+import {
+  mergeWeeklyCheckInRequirement,
+  normalizeUpdateCoachingRequirementsRpcResult,
+} from './coachClientRequirements'
 import {
   mapPassRpcError,
   normalizePassUsageRpcResult,
@@ -147,13 +151,49 @@ export const coachBackend = {
       }),
     )
   },
+  async enrichBusinessClientsCoachingRequirements(clients = []) {
+    if (!clients.length) return clients
+
+    const businessClientIds = [
+      ...new Set(
+        clients
+          .map((client) => resolveRecordBusinessClientId(client))
+          .filter(Boolean),
+      ),
+    ]
+
+    if (!businessClientIds.length) return clients
+
+    const { data, error } = await supabase
+      .from('coach_business_clients')
+      .select('id, coaching_requirements')
+      .in('id', businessClientIds)
+
+    if (error) {
+      console.warn(
+        '[coach-roster] Could not enrich coaching requirements:',
+        error,
+      )
+      return clients
+    }
+
+    const requirementsById = Object.fromEntries(
+      (data ?? []).map((row) => [row.id, row.coaching_requirements]),
+    )
+
+    return attachCoachingRequirementsToBusinessClients(
+      clients,
+      requirementsById,
+    )
+  },
   async listBusinessClients({ includeArchived = false } = {}) {
     try {
-      return await unwrap(
+      const clients = await unwrap(
         supabase.rpc('list_coach_business_clients', {
           p_include_archived: includeArchived,
         }),
       )
+      return this.enrichBusinessClientsCoachingRequirements(clients)
     } catch (error) {
       if (missingBackend(error) || /list_coach_business_clients/i.test(error?.message ?? '')) {
         return []
@@ -226,6 +266,60 @@ export const coachBackend = {
     if (error) throw error
     if (!client) throw new Error('business_client_not_found')
     return client
+  },
+
+  async updateBusinessClientCoachingRequirements({
+    businessClientId,
+    weeklyCheckInRequired = true,
+    requirements = null,
+  } = {}) {
+    if (!isValidUuid(businessClientId)) {
+      throw new Error('business_client_not_found')
+    }
+
+    const weeklyCheckIn =
+      requirements?.weekly_check_in ??
+      (weeklyCheckInRequired ? 'required' : 'not_required')
+
+    if (!['required', 'not_required'].includes(weeklyCheckIn)) {
+      throw new Error('invalid_weekly_check_in_requirement')
+    }
+
+    const { data, error } = await supabase.rpc(
+      'update_business_client_coaching_requirements',
+      {
+        p_business_client_id: businessClientId,
+        p_weekly_check_in: weeklyCheckIn,
+      },
+    )
+
+    if (error) {
+      if (missingBackend(error)) {
+        throw new Error(
+          'Coaching requirement RPCs are not installed. Run AVAREN_COACH_CLIENT_REQUIREMENTS_8_7_MIGRATION.sql.',
+        )
+      }
+      throw error
+    }
+
+    const record = await this.fetchBusinessClientRecord(businessClientId)
+    const rpcResult = normalizeUpdateCoachingRequirementsRpcResult(data)
+
+    if (!rpcResult?.ok) {
+      return record
+    }
+
+    return {
+      ...record,
+      coaching_requirements: mergeWeeklyCheckInRequirement(
+        record.coaching_requirements,
+        rpcResult.weeklyCheckIn,
+      ),
+      coachingRequirements: mergeWeeklyCheckInRequirement(
+        record.coaching_requirements,
+        rpcResult.weeklyCheckIn,
+      ),
+    }
   },
 
   async endBusinessClientCoaching({

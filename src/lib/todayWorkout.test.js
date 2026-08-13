@@ -154,5 +154,76 @@ describe('todayWorkout', () => {
 
     expect(context.displayName).toBeNull()
     expect(context.source).toBe(WORKOUT_SOURCE.NONE)
+    expect(context.completedToday).toBe(true)
+    expect(context.completedWorkoutName).toBe('Chest + Back')
+  })
+
+  it('does not use stale schedule after completing today', () => {
+    const thursday = new Date('2026-08-13T18:00:00.000Z')
+    const state = {
+      selectedWorkout: null,
+      program: {
+        nextWorkout: 'Legs + Core',
+        rotation: ['Chest + Back', 'Arms', 'Legs + Core'],
+        workouts: {
+          'Chest + Back': [],
+          Arms: [],
+          'Legs + Core': [],
+        },
+      },
+      weeklySchedule: {
+        0: 'Rest',
+        1: 'Chest + Back',
+        2: 'Arms',
+        3: 'Legs + Core',
+        4: 'Chest + Back',
+        5: 'Arms',
+        6: 'Legs + Core',
+      },
+      history: [
+        {
+          id: 'done-arms',
+          name: 'Arms',
+          finishedAt: '2026-08-13T16:00:00.000Z',
+        },
+      ],
+    }
+
+    const context = resolveTodayWorkoutContext(state, { now: thursday })
+
+    expect(context.displayName).toBeNull()
+    expect(context.completedToday).toBe(true)
+    expect(context.completedWorkoutName).toBe('Arms')
+    expect(context.scheduledWorkout).toBe('Chest + Back')
+  })
+
+  it('honors explicit selectedWorkout after completing today', () => {
+    const thursday = new Date('2026-08-13T18:00:00.000Z')
+    const state = {
+      selectedWorkout: 'Legs + Core',
+      program: {
+        nextWorkout: 'Legs + Core',
+        rotation: ['Chest + Back', 'Arms', 'Legs + Core'],
+        workouts: {
+          'Chest + Back': [],
+          Arms: [],
+          'Legs + Core': [],
+        },
+      },
+      weeklySchedule: { 4: 'Chest + Back' },
+      history: [
+        {
+          id: 'done-arms',
+          name: 'Arms',
+          finishedAt: '2026-08-13T16:00:00.000Z',
+        },
+      ],
+    }
+
+    const context = resolveTodayWorkoutContext(state, { now: thursday })
+
+    expect(context.displayName).toBe('Legs + Core')
+    expect(context.source).toBe(WORKOUT_SOURCE.SELECTED)
+    expect(context.completedToday).toBe(true)
   })
 })

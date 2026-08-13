@@ -139,13 +139,15 @@ const daysIntoCoachWeek = (now = new Date()) => {
 
 export const getWeeklyCheckInStatus = ({
   hasCoach = false,
+  obligationActive,
   submission = null,
   now = new Date(),
   devForceDue = false,
 } = {}) => {
   const weekRange = getCoachWeekRange(now)
+  const active = obligationActive ?? hasCoach
 
-  if (!hasCoach) {
+  if (!active) {
     if (devForceDue && import.meta.env?.DEV) {
       const daysIntoWeek = daysIntoCoachWeek(now)
       const overdue = daysIntoWeek >= 4

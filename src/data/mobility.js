@@ -1812,8 +1812,14 @@ const cloneMovement = (id, durationPreferences = {}) => {
 
 const unique = (items) => [...new Set(items.filter(Boolean))]
 
-const normalizeMuscle = (muscle = '') => {
-  const value = muscle.toLowerCase()
+const normalizeOptionalText = (value) => {
+  if (typeof value !== 'string') return ''
+  return value.trim()
+}
+
+const normalizeMuscle = (muscle) => {
+  const value = normalizeOptionalText(muscle).toLowerCase()
+  if (!value) return null
   if (value.includes('chest')) return 'chest'
   if (value.includes('back') || value.includes('lat')) return 'back'
   if (
@@ -1834,8 +1840,12 @@ const normalizeMuscle = (muscle = '') => {
   return null
 }
 
-const workoutFocus = (workoutName = '') => {
-  const value = workoutName.toLowerCase()
+export const workoutFocus = (workoutName) => {
+  const value = normalizeOptionalText(workoutName).toLowerCase()
+
+  if (!value || value === 'rest') {
+    return []
+  }
 
   if (value.includes('chest') || value.includes('back')) {
     return ['chest', 'back', 'shoulders', 'thoracic']
@@ -2057,12 +2067,14 @@ export const DAILY_RESET = {
 
 export function buildAdaptiveDailyReset({
   history = [],
-  plannedWorkout,
+  /** Workout due today — null when completed today with no alternate selected. */
+  plannedWorkout: workoutDueToday = null,
   durationPreferences = {},
   readiness,
   recentCompletions = [],
   preferences = {},
 }) {
+  const plannedWorkout = workoutDueToday
   const lastWorkout = latestWorkout(history)
   const previousMuscles = musclesFromSession(lastWorkout)
   const plannedFocus = workoutFocus(plannedWorkout)
@@ -2127,6 +2139,10 @@ export function buildAdaptiveDailyReset({
   if (plannedWorkout && plannedWorkout !== 'Rest') {
     reasonParts.push(
       `Today’s reset also prepares you for ${plannedWorkout}.`,
+    )
+  } else if (lastWorkout?.name) {
+    reasonParts.push(
+      'A short recovery flow can help you prepare for tomorrow.',
     )
   } else {
     reasonParts.push(

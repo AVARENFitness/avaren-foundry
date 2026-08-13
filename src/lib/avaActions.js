@@ -43,8 +43,22 @@ const buildAction = ({
   meta,
 })
 
+const isWorkoutCompleteToday = (ctx) =>
+  Boolean(
+    ctx.workoutRecommendation?.completedToday ??
+      ctx.workoutContext?.completedToday,
+  )
+
+const resolveTodayWorkoutName = (ctx) =>
+  ctx.workoutRecommendation?.todayWorkout ??
+  ctx.workoutContext?.displayName ??
+  null
+
 const hasTrainingToday = (ctx, dailyState) => {
-  const workoutName = ctx.workoutContext?.displayName ?? null
+  const workoutName = resolveTodayWorkoutName(ctx)
+  if (isWorkoutCompleteToday(ctx) && !workoutName) {
+    return false
+  }
   return (
     Boolean(workoutName) &&
     dailyState !== DAILY_STATE.REST &&
@@ -82,6 +96,7 @@ export const shouldSuggestMorningMovement = (ctx, dailyState) => {
 }
 
 const weeklyCheckInActionable = (ctx) => {
+  if (ctx.weeklyCheckInRequired !== true) return false
   const weekly = ctx.weeklyCheckInState
   return Boolean(weekly?.due && !weekly?.loading && weekly?.status !== 'loading')
 }
@@ -95,7 +110,7 @@ export const selectPrimaryAvaAction = (ctx, dailyState) => {
     hasHistory,
   } = ctx
 
-  const workoutName = workoutContext?.displayName ?? null
+  const workoutName = resolveTodayWorkoutName(ctx)
   const formattedWorkout = formatWorkoutName(workoutName)
 
   if (state.activeWorkout?.name) {
@@ -192,6 +207,29 @@ export const selectPrimaryAvaAction = (ctx, dailyState) => {
     })
   }
 
+  if (isWorkoutCompleteToday(ctx) && !workoutName) {
+    const completedName = formatWorkoutName(
+      ctx.workoutRecommendation?.completedWorkoutName ??
+        ctx.workoutContext?.completedWorkoutName,
+    )
+    const nextName = formatWorkoutName(ctx.workoutRecommendation?.nextWorkout)
+    const detail =
+      completedName && nextName
+        ? `${completedName} · Today. Next: ${nextName} · Tomorrow`
+        : completedName
+          ? `${completedName} · Today`
+          : null
+
+    return buildAction({
+      type: AVA_ACTION_TYPES.VIEW_PLAN,
+      focusAction: FOCUS_ACTIONS.VIEW_TODAY,
+      eyebrow: 'WORKOUT COMPLETE',
+      label: null,
+      detail,
+      meta: {},
+    })
+  }
+
   if (workoutName && dailyState !== DAILY_STATE.REST) {
     const coachAssigned = Boolean(assignment || workoutContext?.coachAssigned)
 
@@ -232,10 +270,32 @@ export const selectPrimaryAvaAction = (ctx, dailyState) => {
 export const selectSecondaryAvaAction = (ctx, dailyState, primaryAction) => {
   if (!primaryAction?.type) return null
 
-  const { workoutContext, hasHistory, readiness } = ctx
+  const { hasHistory, readiness } = ctx
 
-  const workoutName = workoutContext?.displayName ?? null
+  const workoutName = resolveTodayWorkoutName(ctx)
   const formattedWorkout = formatWorkoutName(workoutName)
+
+  if (isWorkoutCompleteToday(ctx) && !workoutName) {
+    if (
+      primaryAction.type === AVA_ACTION_TYPES.RECOVERY_FLOW ||
+      primaryAction.type === AVA_ACTION_TYPES.MORNING_MOVEMENT
+    ) {
+      return null
+    }
+
+    if (ctx.workoutRecommendation?.canStartAnotherToday) {
+      return buildAction({
+        type: AVA_ACTION_TYPES.VIEW_PLAN,
+        focusAction: FOCUS_ACTIONS.VIEW_TODAY,
+        eyebrow: null,
+        label: 'Choose another workout',
+        detail: null,
+        meta: {},
+      })
+    }
+
+    return null
+  }
 
   if (
     (primaryAction.type === AVA_ACTION_TYPES.MORNING_MOVEMENT ||

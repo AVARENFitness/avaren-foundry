@@ -1,12 +1,45 @@
--- AVAREN Sprint 8.5.2 — Phase C migration (revised)
+-- AVAREN Sprint 8.5.1 — Phase C migration (revised, approval-ready)
 -- TRUE NON-APP CLIENTS + UNLINK / RELINK + END-COACHING LIFECYCLE
 --
--- Bridge semantics (8.5.2):
---   coach_clients = ACTIVE connected-coaching access bridge ONLY.
---   DELETE bridge on: unlink, end coaching (always), end+unlink.
---   UPSERT bridge on: link, relink, reopen (when linked_user_id present).
---   Archived clients must NEVER retain an active bridge.
---   linked_user_id may remain after end coaching (historical account link).
+-- ══════════════════════════════════════════════════════════════════════════════
+-- CANONICAL IDENTITY
+-- ══════════════════════════════════════════════════════════════════════════════
+--   business_client_id = permanent client identity (coach business truth)
+--   linked_user_id     = optional AVAREN account connection (NULL = offline)
+--   athlete_id (appointment) = delivery/cache when linked; NULL when offline
+--
+-- ══════════════════════════════════════════════════════════════════════════════
+-- BRIDGE STRATEGY (8.5.1 — RESOLVED)
+-- ══════════════════════════════════════════════════════════════════════════════
+-- OPTION A: coach_clients = ACTIVE connected-coaching access bridge ONLY.
+--
+-- DELETE bridge on:
+--   • unlink (linked_user_id cleared; business client lifecycle unchanged)
+--   • end coaching (always — archived clients must never retain active bridge)
+--
+-- UPSERT bridge on:
+--   • link / relink / invitation accept (when linked_user_id present)
+--   • reopen coaching (when linked_user_id still present)
+--
+-- This is NOT a contradiction with audit preservation:
+--   • DELETE removes live authorization, NOT historical records.
+--   • coach_client_labels CASCADE is acceptable (private coach nickname only).
+--
+-- Historical "was coached" truth MUST NOT depend on bridge row existence.
+-- Durable sources (survive unlink / end / bridge delete):
+--   A. coach_business_clients        — identity, status, started_at, ended_at
+--   B. coach_assignments             — athlete_id permanent on assignment rows
+--   C. coach_scheduled_sessions      — business_client_id on all appointments
+--   D. coach_client_pass_*           — balances + ledger keyed by business_client_id
+--   E. coach_business_client_notes   — coach-private notes
+--   F. coach_weekly_reviews          — business_client_id path (when present)
+--   G. coach_client_followups        — historical rows retained
+--   H. athlete local workout history — Foundry state (not bridge-dependent)
+--
+-- After unlink the athlete loses CURRENT coaching access (bridge gone,
+-- linked_user_id NULL) but completed assignments + local history remain.
+-- Appointment history returns on relink via bc.linked_user_id join
+-- (including rows where athlete_id stayed NULL historically).
 --
 -- DO NOT RUN AUTOMATICALLY.
 -- Run ONLY after:
@@ -15,14 +48,16 @@
 --   3. Offline appointment gate checklist (section C.0 below) verified
 --   4. Explicit product approval
 --
--- Bridge strategy (8.5.2): DELETE coach_clients on unlink AND end coaching.
---   UPSERT on link/relink/reopen when linked_user_id present.
---   Historical truth = coach_assignments + coach_business_clients + sessions + ledger.
---   CASCADE: coach_client_labels deleted with bridge (private nickname only).
---
--- Link backfill (8.5.1): FUTURE scheduled appointments only.
---   Completed / cancelled / missed remain athlete_id NULL.
---   Athlete visibility resolves via business_client.linked_user_id.
+-- ══════════════════════════════════════════════════════════════════════════════
+-- END vs UNLINK (separate semantics)
+-- ══════════════════════════════════════════════════════════════════════════════
+-- END COACHING: status=archived, ended_at set, future appts cancelled (default),
+--               bridge deleted, linked_user_id preserved unless p_unlink_user.
+-- UNLINK:       linked_user_id cleared, bridge deleted, business client unchanged.
+-- END + UNLINK: end_business_client_coaching(p_unlink_user := true).
+-- REOPEN:       status=active, ended_at cleared, started_at preserved,
+--               bridge restored when linked_user_id present.
+--               Multiple coaching periods NOT modeled yet (no period table).
 
 begin;
 
@@ -482,8 +517,10 @@ begin
   where public.coach_clients.business_client_id is null
      or public.coach_clients.business_client_id = excluded.business_client_id;
 
-  -- FUTURE-ONLY backfill: scheduled appointments from today forward in row timezone.
-  -- Historical completed/cancelled/missed remain athlete_id NULL.
+  -- FUTURE-ONLY backfill (8.5.1):
+  --   SCHEDULED + session_date >= coach-local today → athlete_id populated.
+  --   COMPLETED / CANCELLED / MISSED → athlete_id NEVER rewritten from NULL.
+  -- Athlete visibility for ALL statuses resolves via bc.linked_user_id = auth.uid().
   update public.coach_scheduled_sessions as s
   set athlete_id = v_user_id,
       updated_at = now()
@@ -568,13 +605,15 @@ grant execute on function public.unlink_business_client_user(uuid)
 
 -- ══════════════════════════════════════════════════════════════════════════════
 -- C.8 — COACH RPC: end_business_client_coaching
--- Always cancels future appointments. Always deletes active bridge.
--- Optional unlink clears linked_user_id. Preserves all historical records.
+-- Default cancels future appointments. Optional keep when coach chooses.
+-- Always deletes active bridge. Optional unlink clears linked_user_id.
+-- ended_at uses coach-local business date (never UTC date truncation).
 -- ══════════════════════════════════════════════════════════════════════════════
 
 create or replace function public.end_business_client_coaching(
   p_business_client_id uuid,
   p_unlink_user boolean default false,
+  p_keep_future_appointments boolean default false,
   p_ended_at date default null,
   p_schedule_timezone text default 'America/New_York'
 )
@@ -610,15 +649,17 @@ begin
     public.coach_local_business_date(p_schedule_timezone)
   );
 
-  update public.coach_scheduled_sessions as s
-  set status = 'cancelled', updated_at = now()
-  where s.business_client_id = v_client.id
-    and s.coach_id = v_coach_id
-    and s.status = 'scheduled'
-    and s.session_date >= public.coach_local_business_date(
-      coalesce(nullif(trim(s.schedule_timezone), ''), p_schedule_timezone)
-    );
-  get diagnostics v_cancelled = row_count;
+  if not p_keep_future_appointments then
+    update public.coach_scheduled_sessions as s
+    set status = 'cancelled', updated_at = now()
+    where s.business_client_id = v_client.id
+      and s.coach_id = v_coach_id
+      and s.status = 'scheduled'
+      and s.session_date >= public.coach_local_business_date(
+        coalesce(nullif(trim(s.schedule_timezone), ''), p_schedule_timezone)
+      );
+    get diagnostics v_cancelled = row_count;
+  end if;
 
   update public.coach_business_clients
   set status = 'archived',
@@ -640,6 +681,7 @@ begin
     'archived', true,
     'ended_at', coalesce(v_client.ended_at, v_ended_at),
     'cancelled_future_appointments', v_cancelled,
+    'kept_future_appointments', p_keep_future_appointments,
     'bridge_rows_deleted', v_bridge_deleted,
     'unlinked', p_unlink_user,
     'linked_user_id_preserved', not p_unlink_user and v_client.linked_user_id is not null
@@ -647,9 +689,9 @@ begin
 end;
 $$;
 
-revoke all on function public.end_business_client_coaching(uuid, boolean, date, text)
+revoke all on function public.end_business_client_coaching(uuid, boolean, boolean, date, text)
   from public, anon, authenticated;
-grant execute on function public.end_business_client_coaching(uuid, boolean, date, text)
+grant execute on function public.end_business_client_coaching(uuid, boolean, boolean, date, text)
   to authenticated;
 
 -- ══════════════════════════════════════════════════════════════════════════════
@@ -863,6 +905,70 @@ grant execute on function public.list_athlete_scheduled_session_history(integer)
   to authenticated;
 
 -- ══════════════════════════════════════════════════════════════════════════════
+-- C.11b — ATHLETE RPC: update_scheduled_session_rsvp
+-- Authorize via business_client.linked_user_id (not athlete_id alone).
+-- Supports historical rows where athlete_id remained NULL after offline period.
+-- ══════════════════════════════════════════════════════════════════════════════
+
+create or replace function public.update_scheduled_session_rsvp(
+  p_session_id uuid,
+  p_rsvp_status text
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_athlete_id uuid := auth.uid();
+  v_session public.coach_scheduled_sessions;
+  v_coach_display_name text;
+begin
+  if v_athlete_id is null then
+    raise exception 'not_authenticated';
+  end if;
+
+  if p_rsvp_status not in ('confirmed', 'cannot_attend') then
+    raise exception 'invalid_rsvp_status';
+  end if;
+
+  select ss.*
+  into v_session
+  from public.coach_scheduled_sessions as ss
+  join public.coach_business_clients as bc on bc.id = ss.business_client_id
+  where ss.id = p_session_id
+    and bc.linked_user_id = v_athlete_id
+  for update of ss;
+
+  if not found then
+    raise exception 'session_not_found';
+  end if;
+
+  if v_session.status <> 'scheduled' then
+    raise exception 'session_not_scheduled';
+  end if;
+
+  update public.coach_scheduled_sessions as ss
+  set rsvp_status = p_rsvp_status,
+      rsvp_updated_at = now(),
+      updated_at = now()
+  where ss.id = p_session_id;
+
+  v_coach_display_name := public.resolve_user_public_display_name(v_session.coach_id);
+
+  return public.athlete_scheduled_session_public_json(
+    v_session,
+    v_coach_display_name
+  );
+end;
+$$;
+
+revoke all on function public.update_scheduled_session_rsvp(uuid, text)
+  from public, anon, authenticated;
+grant execute on function public.update_scheduled_session_rsvp(uuid, text)
+  to authenticated;
+
+-- ══════════════════════════════════════════════════════════════════════════════
 -- C.12 — RLS: coach_business_clients (coach-only direct access)
 -- ══════════════════════════════════════════════════════════════════════════════
 
@@ -882,6 +988,71 @@ create policy coach_business_clients_coach_update
   to authenticated
   using (coach_id = auth.uid() and public.is_avaren_coach())
   with check (coach_id = auth.uid() and public.is_avaren_coach());
+
+-- ══════════════════════════════════════════════════════════════════════════════
+-- C.13 — RLS: coach_scheduled_sessions coach CRUD via business_client_id
+-- Replaces legacy coach_clients + athlete_id gate (blocks offline clients).
+-- Athletes continue using SECURITY DEFINER RPCs only (no table SELECT policy).
+-- ══════════════════════════════════════════════════════════════════════════════
+
+drop policy if exists coach_scheduled_sessions_coach_insert on public.coach_scheduled_sessions;
+create policy coach_scheduled_sessions_coach_insert on public.coach_scheduled_sessions
+for insert to authenticated
+with check (
+  coach_id = auth.uid()
+  and public.is_avaren_coach()
+  and exists (
+    select 1
+    from public.coach_business_clients as bc
+    where bc.id = coach_scheduled_sessions.business_client_id
+      and bc.coach_id = auth.uid()
+      and bc.status = 'active'
+  )
+);
+
+drop policy if exists coach_scheduled_sessions_coach_update on public.coach_scheduled_sessions;
+create policy coach_scheduled_sessions_coach_update on public.coach_scheduled_sessions
+for update to authenticated
+using (coach_id = auth.uid() and public.is_avaren_coach())
+with check (
+  coach_id = auth.uid()
+  and public.is_avaren_coach()
+  and exists (
+    select 1
+    from public.coach_business_clients as bc
+    where bc.id = coach_scheduled_sessions.business_client_id
+      and bc.coach_id = auth.uid()
+  )
+);
+
+-- ══════════════════════════════════════════════════════════════════════════════
+-- C.14 — RLS: coach_assignments insert via active bridge OR linked business client
+-- Bridge DELETE on unlink/end removes NEW assignment authorization only.
+-- Existing assignment rows remain readable via athlete_id RLS SELECT policy.
+-- ══════════════════════════════════════════════════════════════════════════════
+
+drop policy if exists coach_assignments_insert on public.coach_assignments;
+create policy coach_assignments_insert on public.coach_assignments
+for insert to authenticated
+with check (
+  coach_id = auth.uid()
+  and public.is_avaren_coach()
+  and (
+    exists (
+      select 1
+      from public.coach_clients as cc
+      where cc.coach_id = auth.uid()
+        and cc.athlete_id = coach_assignments.athlete_id
+    )
+    or exists (
+      select 1
+      from public.coach_business_clients as bc
+      where bc.coach_id = auth.uid()
+        and bc.linked_user_id = coach_assignments.athlete_id
+        and bc.status = 'active'
+    )
+  )
+);
 
 notify pgrst, 'reload schema';
 

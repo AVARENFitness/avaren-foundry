@@ -450,4 +450,49 @@ describe('avaActions', () => {
 
     expect(selected).toBeNull()
   })
+
+  it('does not offer stale Start workout after completing today', () => {
+    const completedState = {
+      ...baseState,
+      selectedWorkout: null,
+      program: {
+        ...baseState.program,
+        nextWorkout: 'Legs + Core',
+        rotation: ['Chest + Back', 'Arms', 'Legs + Core'],
+        workouts: {
+          'Chest + Back': [{ name: 'Bench Press', sets: 3, muscle: 'Chest' }],
+          Arms: [{ name: 'Curls', sets: 3, muscle: 'Biceps' }],
+          'Legs + Core': [{ name: 'Squat', sets: 3, muscle: 'Legs' }],
+        },
+      },
+      weeklySchedule: [
+        'Rest',
+        'Chest + Back',
+        'Arms',
+        'Legs + Core',
+        'Chest + Back',
+        'Arms',
+        'Legs + Core',
+      ],
+      history: [
+        workout({ daysAgo: 0, name: 'Arms' }),
+        workout({ id: 'session-old', daysAgo: 2, name: 'Chest + Back' }),
+      ],
+      mobility: { completed: [] },
+    }
+
+    const ctx = buildAvaContext(completedState, { now: afternoon })
+    const briefing = buildAvaDailyBriefing(completedState, { now: afternoon })
+
+    expect(ctx.workoutRecommendation.completedToday).toBe(true)
+    expect(ctx.workoutRecommendation.nextWorkout).toBe('Legs + Core')
+    expect(ctx.workoutContext.displayName).toBeNull()
+
+    const labels = [
+      briefing.primaryAction?.label,
+      briefing.secondaryAction?.label,
+    ].filter(Boolean)
+
+    expect(labels.join(' ')).not.toMatch(/Start Chest/i)
+  })
 })

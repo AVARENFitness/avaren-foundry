@@ -8,9 +8,15 @@ import {
   ListChecks,
   Settings2,
 } from 'lucide-react'
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { buildAthleteAppointmentContextLine } from '../ava/coach/avaAthleteAppointmentPipeline'
+import WorkoutSelector from '../components/WorkoutSelector'
 import { useAthleteAppointments } from '../hooks/useAthleteAppointments'
+import {
+  listProgramWorkoutChoices,
+  normalizeProgramWorkoutName,
+  resolveWorkoutDaySummary,
+} from '../lib/programWorkout'
 import { buildPlanningOwnership, coachOwnershipLabel } from '../lib/planOwnership'
 import {
   executionPlanSummaryLabel,
@@ -33,14 +39,34 @@ const ActionCard = ({ icon: Icon, title, description, onClick, primary = false }
   </button>
 )
 
-export default function TrainHubScreen({ state, onStart, navigate }) {
+export default function TrainHubScreen({
+  state,
+  onStart,
+  navigate,
+  onSelectWorkout,
+}) {
   const activeWorkout = state.activeWorkout
+  const [showWorkoutSelector, setShowWorkoutSelector] = useState(false)
   const { upcomingAppointments } = useAthleteAppointments()
 
   const todayContext = useMemo(
     () => resolveTodayWorkoutContext(state),
     [state],
   )
+  const workoutDaySummary = useMemo(
+    () =>
+      resolveWorkoutDaySummary(state, { todayWorkoutContext: todayContext }),
+    [state, todayContext],
+  )
+  const programWorkouts = useMemo(
+    () => listProgramWorkoutChoices(state),
+    [state],
+  )
+  const recommendedWorkout =
+    workoutDaySummary.nextRecommendedWorkout ??
+    normalizeProgramWorkoutName(state.program?.nextWorkout) ??
+    state.program?.rotation?.[0] ??
+    null
   const appointmentContext = useMemo(
     () =>
       buildAthleteAppointmentContextLine(upcomingAppointments, {
@@ -61,11 +87,21 @@ export default function TrainHubScreen({ state, onStart, navigate }) {
     return executionPlanSummaryLabel(state.sessionExecutionPlan)
   }, [state.sessionExecutionPlan])
 
-  const nextWorkout =
-    activeWorkout?.name ||
-    todayContext.displayName ||
-    state.selectedWorkout ||
-    state.program?.nextWorkout
+  const heroTitle = activeWorkout
+    ? activeWorkout.name
+    : workoutDaySummary.completedToday
+      ? 'Workout complete'
+      : todayContext.displayName ?? recommendedWorkout ?? 'Open schedule'
+
+  const heroCopy = activeWorkout
+    ? 'Continue exactly where you left off.'
+    : workoutDaySummary.completedToday
+      ? `${workoutDaySummary.completedWorkoutName} · Today${
+          workoutDaySummary.nextRecommendedWorkout
+            ? `. Next: ${workoutDaySummary.nextRecommendedWorkout} tomorrow.`
+            : ''
+        }`
+      : 'Your selected workout is ready when you are.'
 
   return (
     <div className="train-hub-screen">
@@ -81,20 +117,30 @@ export default function TrainHubScreen({ state, onStart, navigate }) {
           {coachLabel ? (
             <span className="train-coach-ownership eyebrow">{coachLabel}</span>
           ) : null}
-          <h2>{nextWorkout}</h2>
+          <h2>{heroTitle}</h2>
           {appointmentContext ? (
             <p className="train-appointment-context">{appointmentContext}</p>
           ) : null}
           {executionFocusLabel ? (
             <p className="train-execution-focus">{executionFocusLabel} active</p>
           ) : null}
-          <p>{activeWorkout ? 'Continue exactly where you left off.' : 'Your selected workout is ready when you are.'}</p>
+          <p>{heroCopy}</p>
         </div>
         <button className="gold-button machined" onClick={onStart}>
           <Dumbbell size={18} />
           {activeWorkout ? 'Continue Session' : 'Start Session'}
           <ArrowRight size={17} />
         </button>
+        {!activeWorkout && programWorkouts.length > 1 ? (
+          <button
+            type="button"
+            className="ui-btn-secondary athlete-choose-workout-action train-choose-workout-link"
+            onClick={() => setShowWorkoutSelector(true)}
+          >
+            Choose another workout
+            <ArrowRight size={16} />
+          </button>
+        ) : null}
       </section>
 
       <section className="train-hub-grid">
@@ -105,6 +151,23 @@ export default function TrainHubScreen({ state, onStart, navigate }) {
         <ActionCard icon={ListChecks} title="Exercise Library" description="Browse movements in your programs" onClick={() => navigate('builder')} />
         <ActionCard icon={BookOpen} title="Programs" description="Program scheduling lives in Coach Hub today" onClick={() => navigate('more')} />
       </section>
+
+      {showWorkoutSelector ? (
+        <WorkoutSelector
+          workouts={programWorkouts}
+          recommendedWorkout={recommendedWorkout}
+          selectedWorkout={state.selectedWorkout}
+          onSelect={(workout) => {
+            onSelectWorkout?.(workout)
+            setShowWorkoutSelector(false)
+          }}
+          onClose={() => setShowWorkoutSelector(false)}
+          onOpenBuilder={() => {
+            setShowWorkoutSelector(false)
+            navigate('builder')
+          }}
+        />
+      ) : null}
     </div>
   )
 }

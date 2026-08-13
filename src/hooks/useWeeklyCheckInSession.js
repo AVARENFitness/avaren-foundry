@@ -20,15 +20,25 @@ import {
   resetWeeklyCheckInBackendCache,
   weeklyCheckInBackend,
 } from '../lib/weeklyCheckInBackend'
+import {
+  isAthleteWeeklyCheckInRequired,
+  resolveAthleteWeeklyCheckInSession,
+} from '../lib/weeklyCheckInEligibility'
 
-const applySubmissionState = (saved, hasCoach = true, athleteId = null) => {
+const applySubmissionState = (
+  saved,
+  obligationActive = false,
+  athleteId = null,
+  now = new Date(),
+) => {
   const record = saved ?? null
-  const weekStart = getCoachWeekRange().weekStart
+  const weekStart = getCoachWeekRange(now).weekStart
   return {
     record,
     status: getWeeklyCheckInStatus({
-      hasCoach,
+      obligationActive,
       submission: record,
+      now,
       devForceDue: isDevWeeklyCheckInDueOverrideActive(athleteId, weekStart),
     }),
   }
@@ -44,21 +54,26 @@ export function useWeeklyCheckInSession({
   )
   const [weeklyCheckInStatus, setWeeklyCheckInStatus] = useState(null)
   const [weeklyCheckInRecord, setWeeklyCheckInRecord] = useState(null)
+  const [weeklyCheckInRequired, setWeeklyCheckInRequired] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [visibilityRefresh, setVisibilityRefresh] = useState(0)
   const submittedWeekKeyRef = useRef(null)
   const activeUserIdRef = useRef(userId)
 
-  const reconcileSubmittedRecord = useCallback((saved, hasCoach = true) => {
-    const next = applySubmissionState(saved, hasCoach, userId)
-    if (next.status?.submitted && next.status?.weekKey) {
-      submittedWeekKeyRef.current = next.status.weekKey
-      clearDevWeeklyCheckInDueOverride()
-    }
-    setWeeklyCheckInRecord(next.record)
-    setWeeklyCheckInStatus(next.status)
-    setLoading(false)
-    return next
-  }, [userId])
+  const reconcileSubmittedRecord = useCallback(
+    (saved, obligationActive = weeklyCheckInRequired) => {
+      const next = applySubmissionState(saved, obligationActive, userId)
+      if (next.status?.submitted && next.status?.weekKey) {
+        submittedWeekKeyRef.current = next.status.weekKey
+        clearDevWeeklyCheckInDueOverride()
+      }
+      setWeeklyCheckInRecord(next.record)
+      setWeeklyCheckInStatus(next.status)
+      setLoading(false)
+      return next
+    },
+    [userId, weeklyCheckInRequired],
+  )
 
   useEffect(() => {
     if (activeUserIdRef.current !== userId) {
@@ -73,12 +88,28 @@ export function useWeeklyCheckInSession({
   }, [userId])
 
   useEffect(() => {
+    if (!userId || !cloudReady) return undefined
+
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        setVisibilityRefresh((current) => current + 1)
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibility)
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility)
+    }
+  }, [userId, cloudReady])
+
+  useEffect(() => {
     if (!userId || !cloudReady) {
       submittedWeekKeyRef.current = null
       clearDevWeeklyCheckInDueOverride()
       setCapability(getWeeklyCheckInCapability())
       setWeeklyCheckInStatus(null)
       setWeeklyCheckInRecord(null)
+      setWeeklyCheckInRequired(false)
       setLoading(false)
       logWeeklyCheckInRuntimeDiagnostic({
         stage: 'idle',
@@ -97,7 +128,7 @@ export function useWeeklyCheckInSession({
       })
 
       const nextCapability = await probeWeeklyCheckInCapability({
-        force: refreshKey > 0,
+        force: refreshKey > 0 || visibilityRefresh > 0,
         source: 'athlete-home',
       })
 
@@ -108,6 +139,7 @@ export function useWeeklyCheckInSession({
       if (!isWeeklyCheckInFeatureEnabled(nextCapability)) {
         setWeeklyCheckInRecord(null)
         setWeeklyCheckInStatus(null)
+        setWeeklyCheckInRequired(false)
         setLoading(false)
         logWeeklyCheckInRuntimeDiagnostic({
           stage: 'feature-unavailable',
@@ -122,13 +154,24 @@ export function useWeeklyCheckInSession({
       })
 
       try {
-        const hasCoach = await weeklyCheckInBackend.hasCoachRelationship()
+        const requirements =
+          await weeklyCheckInBackend.getAthleteCoachingRequirements()
+        const checkInRequired = isAthleteWeeklyCheckInRequired(requirements)
+        setWeeklyCheckInRequired(checkInRequired)
+
         const submission =
           await weeklyCheckInBackend.getCurrentWeeklyCheckIn()
 
         if (!active) return
 
-        const next = applySubmissionState(submission, hasCoach, userId)
+        const { status: nextStatus } = resolveAthleteWeeklyCheckInSession({
+          requirements,
+          submission,
+        })
+        const next = {
+          record: submission ?? null,
+          status: nextStatus,
+        }
         const pinnedWeekKey = submittedWeekKeyRef.current
 
         if (
@@ -157,6 +200,8 @@ export function useWeeklyCheckInSession({
         logWeeklyCheckInRuntimeDiagnostic({
           stage: 'ready',
           status: nextCapability.status,
+          requirement: checkInRequired ? 'required' : 'not_required',
+          checkInStatus: next.status?.status ?? null,
         })
       } catch {
         if (!active) return
@@ -170,6 +215,7 @@ export function useWeeklyCheckInSession({
         }
         setWeeklyCheckInRecord(null)
         setWeeklyCheckInStatus(null)
+        setWeeklyCheckInRequired(false)
         setLoading(false)
         logWeeklyCheckInRuntimeDiagnostic({
           stage: 'status-error',
@@ -183,7 +229,7 @@ export function useWeeklyCheckInSession({
     return () => {
       active = false
     }
-  }, [userId, cloudReady, refreshKey])
+  }, [userId, cloudReady, refreshKey, visibilityRefresh])
 
   const currentWeeklyCheckInState = useMemo(
     () =>
@@ -210,31 +256,51 @@ export function useWeeklyCheckInSession({
     resetWeeklyCheckInBackendCache()
 
     try {
-      const hasCoach = await weeklyCheckInBackend.hasCoachRelationship()
+      const requirements =
+        await weeklyCheckInBackend.getAthleteCoachingRequirements()
+      const checkInRequired = isAthleteWeeklyCheckInRequired(requirements)
+      setWeeklyCheckInRequired(checkInRequired)
+
       const submission =
         await weeklyCheckInBackend.getCurrentWeeklyCheckIn()
-      const next = applySubmissionState(submission, hasCoach, userId)
+      const { status } = resolveAthleteWeeklyCheckInSession({
+        requirements,
+        submission,
+      })
       submittedWeekKeyRef.current = null
-      setWeeklyCheckInRecord(next.record)
-      setWeeklyCheckInStatus(next.status)
+      setWeeklyCheckInRecord(submission ?? null)
+      setWeeklyCheckInStatus(status)
       setLoading(false)
-      return next
+      return {
+        record: submission ?? null,
+        status,
+        hasCoach: checkInRequired,
+        weekStart: status?.weekKey ?? getCoachWeekRange().weekStart,
+      }
     } catch {
       submittedWeekKeyRef.current = null
-      const hasCoach = await weeklyCheckInBackend
-        .hasCoachRelationship()
-        .catch(() => false)
-      const next = applySubmissionState(null, hasCoach, userId)
+      const requirements =
+        await weeklyCheckInBackend
+          .getAthleteCoachingRequirements()
+          .catch(() => null)
+      const checkInRequired = isAthleteWeeklyCheckInRequired(requirements)
+      setWeeklyCheckInRequired(checkInRequired)
+      const next = applySubmissionState(null, checkInRequired, userId)
       setWeeklyCheckInRecord(next.record)
       setWeeklyCheckInStatus(next.status)
       setLoading(false)
-      return next
+      return {
+        ...next,
+        hasCoach: checkInRequired,
+        weekStart: next.status?.weekKey ?? getCoachWeekRange().weekStart,
+      }
     }
   }, [userId])
 
   return {
     capability,
     weeklyCheckInEnabled: isWeeklyCheckInFeatureEnabled(capability),
+    weeklyCheckInRequired,
     weeklyCheckInStatus,
     weeklyCheckInRecord,
     currentWeeklyCheckInState,

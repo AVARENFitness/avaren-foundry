@@ -105,12 +105,37 @@ export const resolveTodayWorkoutContext = (state = {}, context = {}) => {
 
   const completedTodaySession = findCompletedWorkoutToday(state.history, now)
 
+  if (completedTodaySession) {
+    const explicitSelection = normalizeWorkoutName(state.selectedWorkout)
+    return {
+      workoutId: explicitSelection,
+      id: explicitSelection,
+      name: explicitSelection,
+      workoutName: explicitSelection,
+      displayName: explicitSelection,
+      source: explicitSelection ? WORKOUT_SOURCE.SELECTED : WORKOUT_SOURCE.NONE,
+      assignmentId: null,
+      coachAssigned: false,
+      isStartable: Boolean(
+        explicitSelection && state.program?.workouts?.[explicitSelection],
+      ),
+      startable: Boolean(
+        explicitSelection && state.program?.workouts?.[explicitSelection],
+      ),
+      isRestDay: isRestDay && !explicitSelection,
+      scheduledWorkout: scheduled,
+      scheduledFor: todayKey(now),
+      date: todayKey(now),
+      assignment: null,
+      completedToday: true,
+      completedWorkoutName: completedTodaySession.name,
+    }
+  }
+
   const name =
     normalizeWorkoutName(state.selectedWorkout) ||
     (scheduled && scheduled !== 'Rest' ? scheduled : null) ||
-    (!completedTodaySession
-      ? normalizeWorkoutName(state.program?.nextWorkout)
-      : null) ||
+    normalizeWorkoutName(state.program?.nextWorkout) ||
     null
 
   let source = WORKOUT_SOURCE.NONE
@@ -145,6 +170,8 @@ export const resolveTodayWorkoutContext = (state = {}, context = {}) => {
     scheduledFor: todayKey(now),
     date: todayKey(now),
     assignment: null,
+    completedToday: false,
+    completedWorkoutName: null,
   }
 }
 

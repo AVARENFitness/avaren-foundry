@@ -8,7 +8,7 @@ import {
   Trash2,
   Trophy,
 } from 'lucide-react'
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import Stepper from './Stepper'
 
 const SET_TYPES = [
@@ -73,40 +73,6 @@ export default function FocusExercise({
 }) {
   const [showPrevious, setShowPrevious] =
     useState(false)
-  const touchStart = useRef(null)
-
-  const onTouchStart = (event) => {
-    touchStart.current =
-      event.touches[0]?.clientX ?? null
-  }
-
-  const onTouchEnd = (event) => {
-    if (touchStart.current === null) return
-
-    const end =
-      event.changedTouches[0]?.clientX ??
-      touchStart.current
-    const distance =
-      end - touchStart.current
-
-    touchStart.current = null
-
-    if (Math.abs(distance) < 65) return
-
-    if (
-      distance < 0 &&
-      exerciseIndex < totalExercises - 1
-    ) {
-      onNext()
-    }
-
-    if (
-      distance > 0 &&
-      exerciseIndex > 0
-    ) {
-      onPrevious()
-    }
-  }
 
   const activeSetIndex = Math.max(
     0,
@@ -164,8 +130,6 @@ export default function FocusExercise({
         '--muscle-accent':
           muscleAccent(exercise.muscle),
       }}
-      onTouchStart={onTouchStart}
-      onTouchEnd={onTouchEnd}
     >
       <header className="focus-exercise-header">
         <div className="focus-index">

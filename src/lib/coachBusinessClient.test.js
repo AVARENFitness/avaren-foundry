@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  attachCoachingRequirementsToBusinessClients,
   buildScheduledSessionClientPayload,
   CLIENT_IDENTITY_BADGE,
   filterActiveRoster,
@@ -72,6 +73,28 @@ describe('coachBusinessClient', () => {
 
     expect(normalized.athlete_id).toBeNull()
     expect(normalized.linked_user_id).toBeNull()
+  })
+
+  it('preserves not_required coaching requirements during normalization', () => {
+    const normalized = normalizeBusinessClientRecord({
+      ...connectedClient,
+      coaching_requirements: { weekly_check_in: 'not_required' },
+    })
+
+    expect(normalized.coaching_requirements).toEqual({
+      weekly_check_in: 'not_required',
+    })
+  })
+
+  it('attaches coaching requirements by business client id', () => {
+    const enriched = attachCoachingRequirementsToBusinessClients(
+      [{ id: 'bc-jake', first_name: 'Jake' }],
+      { 'bc-jake': { weekly_check_in: 'not_required' } },
+    )
+
+    expect(enriched[0].coaching_requirements).toEqual({
+      weekly_check_in: 'not_required',
+    })
   })
 
   it('builds offline appointment payload with null athlete id', () => {

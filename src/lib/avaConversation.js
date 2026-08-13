@@ -235,6 +235,62 @@ const buildWhyAnswer = (packet) => {
 const buildWorkoutAnswer = (packet, session, text) => {
   const workout = referentWorkout(packet, session)
   const exercises = packet.workout?.exercises ?? []
+  const recommendation = packet.workoutRecommendation ?? null
+
+  if (
+    /what('s| is| should i do) next|what should i do next|whats next/.test(text)
+  ) {
+    if (recommendation?.completedToday && recommendation.nextWorkout) {
+      const formatted = formatWorkoutName(recommendation.nextWorkout)
+      return {
+        summary: `${formatted} is next, tomorrow.`,
+        actions: recommendation.canStartAnotherToday
+          ? [
+              buildAction(
+                AVA_CONVERSATION_ACTIONS.OPEN_PROGRESS,
+                'Choose another workout',
+              ),
+            ]
+          : [],
+      }
+    }
+
+    if (workout) {
+      return {
+        summary: `${workout} is today's workout.`,
+        actions: [
+          buildAction(AVA_CONVERSATION_ACTIONS.START_WORKOUT, `Start ${workout}`, {
+            workoutName: packet.workout.displayName,
+          }),
+        ],
+      }
+    }
+
+    if (recommendation?.nextWorkout) {
+      return {
+        summary: `${formatWorkoutName(recommendation.nextWorkout)} is up next.`,
+      }
+    }
+  }
+
+  if (/train again|another workout today|can i train/.test(text)) {
+    if (recommendation?.completedToday) {
+      const formatted = formatWorkoutName(recommendation.nextWorkout)
+      return {
+        summary: formatted
+          ? `You can choose another workout if you want, but ${formatted} is your next scheduled session.`
+          : 'You can choose another workout if you want.',
+        actions: recommendation.canStartAnotherToday
+          ? [
+              buildAction(
+                AVA_CONVERSATION_ACTIONS.OPEN_PROGRESS,
+                'Choose another workout',
+              ),
+            ]
+          : [],
+      }
+    }
+  }
 
   if (/what am i training|training today|workout today|what's today|whats today/.test(text)) {
     if (!workout) {

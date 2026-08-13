@@ -100,7 +100,18 @@ const {
   }
 
   const mockSupabaseFrom = vi.fn((table) => createBuilder(table))
-  const mockSupabaseRpc = vi.fn(async () => {
+  const mockSupabaseRpc = vi.fn(async (name) => {
+    if (name === 'get_athlete_coaching_requirements') {
+      return {
+        data: { weekly_check_in: 'required' },
+        error: null,
+      }
+    }
+
+    if (name !== 'dev_reset_current_weekly_check_in') {
+      return { data: null, error: null }
+    }
+
     const rowExistedBefore = Boolean(currentWeeklyCheckInRow)
     currentWeeklyCheckInRow = null
     return {

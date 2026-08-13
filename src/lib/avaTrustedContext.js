@@ -15,6 +15,7 @@ import {
   resolveActiveCoachAssignment,
 } from './coachAssignments'
 import { resolveTodayWorkoutContext, WORKOUT_SOURCE } from './todayWorkout'
+import { resolveWorkoutRecommendation } from './programWorkout'
 import { nutritionTotals } from './nutrition'
 
 export const AVA_TRUST_LEVELS = {
@@ -327,7 +328,12 @@ export const buildTrustedModelContext = ({
   const state = foundryState ?? {}
   const assignments = sanitizeServerAssignments(serverAssignments)
   const activeAssignment = resolveActiveCoachAssignment(assignments, now)
-  const workout = resolveTrustedWorkoutContext(state, assignments, now)
+  const workoutRecommendation = resolveWorkoutRecommendation(state, {
+    now,
+    assignments,
+    activeCoachAssignment: activeAssignment,
+  }, now)
+  const workout = workoutRecommendation.todayContext
   const sanitizedAssignment = sanitizeAthleteCoachAssignment(activeAssignment)
   const exercises = resolveWorkoutExercises(
     state,
@@ -340,6 +346,10 @@ export const buildTrustedModelContext = ({
     source: hasCloudState ? 'cloud-sync' : 'unverified-local-only',
     canonicalWorkout: workout.name ?? null,
     canonicalWorkoutFormatted: formatWorkoutName(workout.name),
+    nextWorkout: workoutRecommendation.nextWorkout ?? null,
+    nextWorkoutFormatted: formatWorkoutName(workoutRecommendation.nextWorkout),
+    completedToday: workoutRecommendation.completedToday,
+    completedWorkoutName: workoutRecommendation.completedWorkoutName ?? null,
     workoutSource: workout.source ?? WORKOUT_SOURCE.NONE,
     coachAssigned: Boolean(workout.coachAssigned),
     isRestDay: Boolean(workout.isRestDay),

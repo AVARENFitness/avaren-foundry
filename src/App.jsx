@@ -173,6 +173,7 @@ function App() {
 
   const sessionBridgeRef = useRef({})
   const modeRestoreRef = useRef(false)
+  const workoutResumeRef = useRef(false)
   const lastUserIdRef = useRef(null)
   const openDailyResetRef = useRef(() => {})
   const trainingRecommendationRef = useRef(null)
@@ -217,12 +218,20 @@ function App() {
     modeRestoreRef.current = false
   }, [])
 
-  const handleAccountHydrated = useCallback((hydratedState, decision) => {
+  const handleAccountHydrated = useCallback((hydratedState) => {
     setShowOnboarding(!hydratedState.onboarding?.completed)
     setIsReplayingOnboarding(false)
     sessionBridgeRef.current.setActiveExerciseState?.(
-      decision.state?.activeWorkout?.activeExerciseIndex ?? 0,
+      hydratedState?.activeWorkout?.activeExerciseIndex ?? 0,
     )
+
+    if (
+      hydratedState.activeWorkout &&
+      !hydratedState.coachWorkspace?.modeEnabled
+    ) {
+      workoutResumeRef.current = true
+      sessionBridgeRef.current.setScreen?.('gym')
+    }
   }, [])
 
   const {
@@ -362,6 +371,66 @@ function App() {
   ])
 
   useEffect(() => {
+    if (authLoading || coachAccessLoading || !cloudReady || showOnboarding) {
+      return
+    }
+
+    if (!state.activeWorkout || state.coachWorkspace?.modeEnabled) {
+      workoutResumeRef.current = false
+      return
+    }
+
+    if (screen === 'gym' || screen === 'complete') {
+      return
+    }
+
+    workoutResumeRef.current = true
+    navigate('gym')
+  }, [
+    authLoading,
+    coachAccessLoading,
+    cloudReady,
+    showOnboarding,
+    state.activeWorkout,
+    state.coachWorkspace?.modeEnabled,
+    screen,
+    navigate,
+  ])
+
+  useEffect(() => {
+    const resumeActiveWorkout = () => {
+      if (document.visibilityState && document.visibilityState !== 'visible') {
+        return
+      }
+
+      if (!state.activeWorkout || state.coachWorkspace?.modeEnabled) {
+        return
+      }
+
+      if (screen === 'gym' || screen === 'complete') {
+        return
+      }
+
+      navigate('gym')
+    }
+
+    document.addEventListener('visibilitychange', resumeActiveWorkout)
+    window.addEventListener('pageshow', resumeActiveWorkout)
+    window.addEventListener('focus', resumeActiveWorkout)
+
+    return () => {
+      document.removeEventListener('visibilitychange', resumeActiveWorkout)
+      window.removeEventListener('pageshow', resumeActiveWorkout)
+      window.removeEventListener('focus', resumeActiveWorkout)
+    }
+  }, [
+    state.activeWorkout,
+    state.coachWorkspace?.modeEnabled,
+    screen,
+    navigate,
+  ])
+
+  useEffect(() => {
     const timer = setTimeout(() => setShowSplash(false), 820)
     return () => clearTimeout(timer)
   }, [])
@@ -387,6 +456,7 @@ function App() {
     restartActiveWorkout,
     endActiveWorkoutWithoutSaving,
     updateWorkoutMeta,
+    updateRestTimer,
     updateSet,
     addSet,
     repeatPreviousSet,
@@ -413,6 +483,7 @@ function App() {
 
   const {
     capability: weeklyCheckInCapability,
+    weeklyCheckInRequired,
     weeklyCheckInStatus,
     weeklyCheckInRecord,
     currentWeeklyCheckInState,
@@ -1530,6 +1601,7 @@ function App() {
             onChangeWorkout={changeActiveWorkout}
             onRestartWorkout={restartActiveWorkout}
             onEndWorkout={endActiveWorkoutWithoutSaving}
+            onRestTimerChange={updateRestTimer}
             recommendation={trainingRecommendation}
           />
         </ErrorBoundary>
@@ -1636,6 +1708,12 @@ function App() {
           state={state}
           onStart={startWorkout}
           navigate={navigateFromTrain}
+          onSelectWorkout={(workout) =>
+            setState((current) => ({
+              ...current,
+              selectedWorkout: workout,
+            }))
+          }
         />
       )
     }
@@ -1901,6 +1979,8 @@ function App() {
               selectedWorkout: workout,
             }))
           }
+          weeklyCheckInRequired={weeklyCheckInRequired}
+          navigateToBuilder={() => navigate('builder')}
           nutritionSummary={(() => {
             const day = state.nutrition?.days?.[nutritionDateKey()]
             const totals = nutritionTotals(day)
@@ -2050,6 +2130,8 @@ function App() {
       role={avaRoleState.role}
       nutrition={state.nutrition ?? createNutritionState()}
       onNutritionChange={handleNutritionChange}
+      weeklyCheckInRequired={weeklyCheckInRequired}
+      weeklyCheckInState={currentWeeklyCheckInState}
     >
       <AppShell
         screen={screen}

@@ -1,4 +1,4 @@
--- AVAREN Sprint 8.5.2 — Phase C verification (read-only)
+-- AVAREN Sprint 8.5.1 — Phase C verification (read-only)
 -- Run AFTER AVAREN_COACH_BUSINESS_CLIENTS_8_5_PHASE_C_MIGRATION.sql
 -- All blocking integrity metrics must be 0.
 
@@ -62,7 +62,7 @@ where cc.business_client_id is not null
     or (bc.linked_user_id is not null and cc.athlete_id is distinct from bc.linked_user_id)
   );
 
--- ── Bridge lifecycle (8.5.2) — must be 0 ─────────────────────────────────────
+-- ── Bridge lifecycle (8.5.1) — must be 0 ─────────────────────────────────────
 
 select 'archivedClientsWithActiveBridge' as metric,
        count(*)::bigint as value
@@ -100,4 +100,14 @@ from public.coach_scheduled_sessions as s
 join public.coach_business_clients as bc on bc.id = s.business_client_id
 where bc.linked_user_id is not null
   and s.status in ('completed', 'cancelled', 'missed')
+  and s.athlete_id is null;
+
+-- Future-only link policy: linked clients should have athlete_id on future scheduled rows
+select 'linkedFutureScheduledMissingAthleteId' as metric,
+       count(*)::bigint as value
+from public.coach_scheduled_sessions as s
+join public.coach_business_clients as bc on bc.id = s.business_client_id
+where bc.linked_user_id is not null
+  and s.status = 'scheduled'
+  and s.session_date >= public.coach_local_business_date(s.schedule_timezone)
   and s.athlete_id is null;

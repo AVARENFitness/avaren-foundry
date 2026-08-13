@@ -8,6 +8,7 @@ import {
   assignmentDueToday,
 } from './coachAssignments'
 import { resolveTodayWorkoutContext } from './todayWorkout'
+import { resolveNextRecommendedWorkout } from './programWorkout'
 
 const DAY_MS = 86400000
 
@@ -300,6 +301,26 @@ export const deriveTodaysFocus = (
         `${nutrition.protein}g protein logged`,
       ],
       meta: { nutrition },
+    })
+  }
+
+  if (workoutContext.completedToday && !plannedWorkout) {
+    const nextWorkout = resolveNextRecommendedWorkout(state, now)
+    return buildFocus({
+      type: FOCUS_TYPES.TRAIN,
+      title: 'Workout complete for today',
+      explanation: nextWorkout
+        ? `You finished ${workoutContext.completedWorkoutName}. ${nextWorkout} is next tomorrow.`
+        : `You finished ${workoutContext.completedWorkoutName}.`,
+      action: FOCUS_ACTIONS.VIEW_TODAY,
+      reasons: [
+        `${workoutContext.completedWorkoutName} completed today`,
+        nextWorkout ? `Next session: ${nextWorkout}` : 'No next session queued',
+      ],
+      meta: {
+        completedWorkoutName: workoutContext.completedWorkoutName,
+        nextWorkout,
+      },
     })
   }
 

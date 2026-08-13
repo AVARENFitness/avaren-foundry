@@ -2,6 +2,12 @@ import { supabase } from './supabase'
 import { getCoachWeekRange } from './weeklyReview'
 import { isQuerySafeAthleteId } from './coachBusinessClient'
 import {
+  COACHING_REQUIREMENT_KEYS,
+  isDuplicateActiveLinkedRelationshipsError,
+  normalizeCoachingRequirements,
+  WEEKLY_CHECK_IN_REQUIREMENT,
+} from './coachClientRequirements'
+import {
   isMissingWeeklyCheckInTable,
   isWeeklyCheckInFeatureEnabled,
   probeWeeklyCheckInCapability,
@@ -74,6 +80,36 @@ const ensureSchemaReady = async () => {
 }
 
 export const weeklyCheckInBackend = {
+  async getAthleteCoachingRequirements() {
+    const safeDefault = normalizeCoachingRequirements({
+      [COACHING_REQUIREMENT_KEYS.WEEKLY_CHECK_IN]:
+        WEEKLY_CHECK_IN_REQUIREMENT.NOT_REQUIRED,
+    })
+
+    try {
+      await currentUser()
+      const { data, error } = await supabase.rpc(
+        'get_athlete_coaching_requirements',
+      )
+
+      if (!error && data) {
+        return normalizeCoachingRequirements(data)
+      }
+
+      if (error && isDuplicateActiveLinkedRelationshipsError(error)) {
+        console.error(
+          '[coaching-requirements] duplicate active linked relationships for athlete',
+        )
+      } else if (error && !missingCoachBackend(error)) {
+        console.warn('Could not load athlete coaching requirements:', error)
+      }
+    } catch (error) {
+      console.warn('Could not load athlete coaching requirements:', error)
+    }
+
+    return safeDefault
+  },
+
   async hasCoachRelationship() {
     try {
       const user = await currentUser()

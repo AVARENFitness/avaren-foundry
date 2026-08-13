@@ -16,6 +16,7 @@ import {
   FOCUS_ACTIONS,
 } from './todaysFocus'
 import { resolveTodayWorkoutContext } from './todayWorkout'
+import { resolveWorkoutRecommendation } from './programWorkout'
 import { applyAvaVoice } from './avaVoice'
 import { buildAvaDailyAction } from './avaActions'
 
@@ -122,11 +123,12 @@ export const buildAvaContext = (state = {}, context = {}) => {
     resolveActiveCoachAssignment(context.assignments ?? [], now) ??
     context.assignmentDueToday ??
     null
-  const workoutContext = resolveTodayWorkoutContext(state, {
+  const workoutRecommendation = resolveWorkoutRecommendation(state, {
     now,
     assignments: context.assignments,
     activeCoachAssignment: assignmentDueTodayItem,
-  })
+  }, now)
+  const workoutContext = workoutRecommendation.todayContext
   const nutrition = nutritionDaySummary(state, now)
   const trainingRecommendation = buildTrainingRecommendation(
     state,
@@ -147,11 +149,11 @@ export const buildAvaContext = (state = {}, context = {}) => {
     recovery,
     analytics,
     workoutContext,
+    workoutRecommendation,
     trainingRecommendation,
     assignmentDueToday: assignmentDueTodayItem,
     nutrition,
     todaysFocus,
-    workoutContext,
     hasHistory: history.length > 0,
     isRestDay: isScheduledRestDay(workoutContext),
     recentWorkouts: recentSessions(history, 7, now),
@@ -159,6 +161,7 @@ export const buildAvaContext = (state = {}, context = {}) => {
     mobilityResetDone: mobilityCompletedToday(state, 'daily-reset', now),
     recoveryFlowDone: mobilityCompletedToday(state, 'recovery-flow', now),
     weeklyCheckInState: context.weeklyCheckInState ?? null,
+    weeklyCheckInRequired: context.weeklyCheckInRequired === true,
   }
 }
 

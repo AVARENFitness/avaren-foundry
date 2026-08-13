@@ -1,4 +1,5 @@
 import { getClientDisplayName } from './clientDisplayName.js'
+import { normalizeCoachingRequirements } from './coachClientRequirements.js'
 
 export const BUSINESS_CLIENT_STATUS = {
   ACTIVE: 'active',
@@ -146,6 +147,27 @@ export const buildBusinessClientDisplayInput = (client = {}) =>
     email: client.email ?? client.athlete_email ?? '',
   })
 
+export const attachCoachingRequirementsToBusinessClients = (
+  clients = [],
+  requirementsById = {},
+) =>
+  clients.map((client) => {
+    const businessClientId = resolveRecordBusinessClientId(client)
+    const coachingRequirements =
+      (businessClientId ? requirementsById[businessClientId] : null) ??
+      client.coaching_requirements ??
+      client.coachingRequirements ??
+      null
+
+    if (!coachingRequirements) return client
+
+    return {
+      ...client,
+      coaching_requirements: coachingRequirements,
+      coachingRequirements,
+    }
+  })
+
 export const normalizeBusinessClientRecord = (record = {}, enrichments = {}) => {
   const rawLinked = record.linked_user_id ?? record.linkedUserId ?? null
   const canonicalLinkedId =
@@ -154,6 +176,13 @@ export const normalizeBusinessClientRecord = (record = {}, enrichments = {}) => 
       : isQuerySafeAthleteId(rawLinked)
         ? rawLinked
         : null
+
+  const rawRequirements =
+    record.coaching_requirements ?? record.coachingRequirements ?? null
+  const normalizedRequirements =
+    rawRequirements && typeof rawRequirements === 'object'
+      ? normalizeCoachingRequirements(rawRequirements)
+      : null
 
   return {
     ...record,
@@ -172,6 +201,10 @@ export const normalizeBusinessClientRecord = (record = {}, enrichments = {}) => 
       ...record,
       linked_user_id: canonicalLinkedId,
     }),
+    coaching_requirements:
+      normalizedRequirements ?? { weekly_check_in: 'required' },
+    coachingRequirements:
+      normalizedRequirements ?? { weekly_check_in: 'required' },
     rosterKey: resolveCoachClientRosterKey({
       ...record,
       linked_user_id: canonicalLinkedId,

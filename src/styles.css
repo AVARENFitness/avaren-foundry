@@ -18536,6 +18536,8 @@ input, textarea, select {
   color: var(--cream);
 }
 
+.athlete-choose-workout-action { appearance: none; -webkit-appearance: none; -webkit-tap-highlight-color: transparent; width: 100%; margin-top: var(--space-2); }
+.train-hub-hero .athlete-choose-workout-action { grid-column: 1 / -1; }
 .home-reminder-row {
   gap: var(--space-3);
   padding: var(--space-3) var(--space-4);

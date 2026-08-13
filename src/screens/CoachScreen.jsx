@@ -343,7 +343,7 @@ export default function CoachScreen({ workspace, setWorkspace, screen='clients',
       onAssignWorkout={()=>setShowDesigner(true)}
       onOpenWeeklyReview={()=>openWeeklyReview(selectedClient)}
       notice={notice}
-      onClientUpdated={async (updated) => {
+      onClientUpdated={async (updated, options = {}) => {
         const normalized = normalizeBusinessClientRecord(updated)
         setClients((prev) =>
           prev.map((item) =>
@@ -359,9 +359,11 @@ export default function CoachScreen({ workspace, setWorkspace, screen='clients',
             ? { ...current, ...normalized }
             : current,
         )
-        await load()
-        refreshPortfolio()
-        invalidateCoachPortfolioCache()
+        if (options.refreshRoster !== false) {
+          await load()
+          refreshPortfolio()
+          invalidateCoachPortfolioCache()
+        }
       }}
       onClientArchived={() => {
         setNotice('Coaching ended. History preserved.')

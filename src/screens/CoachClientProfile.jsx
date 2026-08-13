@@ -62,6 +62,7 @@ import {
 import ClientIntelligenceDashboard from '../components/ClientIntelligenceDashboard'
 import CoachClientInPersonPanel from '../components/coach/CoachClientInPersonPanel'
 import CoachEndCoachingSheet, {
+  CoachCoachingRequirementsPanel,
   CoachClientManagementPanel,
 } from '../components/coach/CoachClientManagementPanel'
 import CoachClientProfileShell from '../components/CoachClientProfileShell'
@@ -620,13 +621,39 @@ export default function CoachClientProfile({
   }
 
   const clientManagementPanel = businessClientId ? (
-    <CoachClientManagementPanel
-      client={client}
-      submitting={lifecycleBusy}
-      onEndCoaching={() => setShowEndCoaching(true)}
-      onReopenCoaching={handleReopenCoaching}
-      onUnlinkAccount={handleUnlinkAccount}
-    />
+    <>
+      <CoachCoachingRequirementsPanel
+        client={client}
+        submitting={lifecycleBusy}
+        onUpdateWeeklyCheckInRequired={async (weeklyCheckInRequired) => {
+          setLifecycleBusy(true)
+          try {
+            const updated = await coachBackend.updateBusinessClientCoachingRequirements(
+              {
+                businessClientId,
+                weeklyCheckInRequired,
+              },
+            )
+            onClientUpdated?.(updated, { refreshRoster: false })
+          } catch (error) {
+            appUi.toast(
+              error?.message ?? 'Unable to update weekly check-in requirement.',
+              'error',
+            )
+            throw error
+          } finally {
+            setLifecycleBusy(false)
+          }
+        }}
+      />
+      <CoachClientManagementPanel
+        client={client}
+        submitting={lifecycleBusy}
+        onEndCoaching={() => setShowEndCoaching(true)}
+        onReopenCoaching={handleReopenCoaching}
+        onUnlinkAccount={handleUnlinkAccount}
+      />
+    </>
   ) : null
 
   const renderSection = (openSession) => {

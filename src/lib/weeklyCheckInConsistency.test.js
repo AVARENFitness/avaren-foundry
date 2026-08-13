@@ -113,6 +113,7 @@ describe('weekly check-in AVA and Home consistency', () => {
       now,
       assignments: [],
       weeklyCheckInState,
+      weeklyCheckInRequired: true,
     })
 
     expect(isWeeklyCheckInDue(weeklyCheckInState)).toBe(true)
@@ -151,6 +152,7 @@ describe('weekly check-in AVA and Home consistency', () => {
         now,
         assignments: [],
         weeklyCheckInState,
+        weeklyCheckInRequired: true,
       },
     )
 

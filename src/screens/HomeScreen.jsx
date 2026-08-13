@@ -19,6 +19,11 @@ import { coachBackend } from '../lib/coachBackend'
 import { resolveActiveCoachAssignment } from '../lib/coachAssignments'
 import { recentPRs, sessionVolume } from '../lib/metrics'
 import { resolveTodayWorkoutContext } from '../lib/todayWorkout'
+import {
+  listProgramWorkoutChoices,
+  normalizeProgramWorkoutName,
+  resolveWorkoutDaySummary,
+} from '../lib/programWorkout'
 import { isWeeklyCheckInDue } from '../lib/weeklyCheckIn'
 import { buildPlanningOwnership, coachOwnershipLabel } from '../lib/planOwnership'
 import {
@@ -37,6 +42,7 @@ import {
 } from '../lib/coachingAppointment'
 import { nextUpcomingAppointmentFromRpc } from '../lib/athleteAppointments'
 import { dateKey } from '../lib/appointmentScheduling'
+import WorkoutSelector from '../components/WorkoutSelector'
 import {
   hasScheduledInPersonToday,
   resolveSessionMode,
@@ -83,9 +89,13 @@ export default function HomeScreen({
   currentWeeklyCheckInState = null,
   onOpenWeeklyCheckIn,
   weeklyCheckInConfirmation = false,
+  onSelectWorkout,
+  weeklyCheckInRequired = true,
+  navigateToBuilder,
 }) {
   const { openAva } = useAvaUi()
   const [assignments, setAssignments] = useState([])
+  const [showWorkoutSelector, setShowWorkoutSelector] = useState(false)
   const {
     appointments: scheduledSessions,
     upcomingAppointments,
@@ -118,16 +128,20 @@ export default function HomeScreen({
     [assignments],
   )
 
-  const avaBriefing = useMemo(
-    () =>
-      buildAvaDailyBriefing(state, {
+  const avaBriefing = useMemo(() => {
+    try {
+      return buildAvaDailyBriefing(state, {
         assignments,
         activeCoachAssignment,
         userName,
         weeklyCheckInState: currentWeeklyCheckInState,
-      }),
-    [state, assignments, activeCoachAssignment, userName, currentWeeklyCheckInState],
-  )
+        weeklyCheckInRequired,
+      })
+    } catch (error) {
+      console.error('[ava-briefing] Failed to build athlete Home briefing:', error)
+      return null
+    }
+  }, [state, assignments, activeCoachAssignment, userName, currentWeeklyCheckInState, weeklyCheckInRequired])
 
   const dashboard = useMemo(() => {
     const now = new Date()
@@ -180,6 +194,17 @@ export default function HomeScreen({
     })
     const coachedSessionLabel = sessionModeLabel(sessionMode)
 
+    const workoutDaySummary = resolveWorkoutDaySummary(
+      state,
+      { todayWorkoutContext: workoutContext },
+      now,
+    )
+    const recommendedWorkout =
+      workoutDaySummary.nextRecommendedWorkout ??
+      normalizeProgramWorkoutName(state.program?.nextWorkout) ??
+      state.program?.rotation?.[0] ??
+      null
+
     return {
       greeting: `${greetingForHour(now.getHours())}${firstName ? `, ${firstName}` : ''}`,
       date: now.toLocaleDateString([], {
@@ -198,8 +223,11 @@ export default function HomeScreen({
       workouts: workoutsThisWeek.length,
       volume: Math.round(weeklyVolume),
       prs: weeklyPRs.length,
+      workoutDaySummary,
+      recommendedWorkout,
+      programWorkouts: listProgramWorkoutChoices(state),
     }
-  }, [state, userName, assignments, activeCoachAssignment, scheduledSessions, nextAppointment])
+  }, [state, userName, assignments, activeCoachAssignment, scheduledSessions, nextAppointment, appointmentsReady])
 
   const readinessScore = readiness?.completed
     ? readiness.score
@@ -223,7 +251,8 @@ export default function HomeScreen({
     `${nutritionSummary?.calories || 0} cal logged`,
   ].join(' · ')
 
-  const weeklyCheckInDue = isWeeklyCheckInDue(currentWeeklyCheckInState)
+  const weeklyCheckInDue =
+    weeklyCheckInRequired && isWeeklyCheckInDue(currentWeeklyCheckInState)
   const readinessDue = !readiness?.completed
 
   const handleAvaAction = (action) => {
@@ -308,7 +337,32 @@ export default function HomeScreen({
 
       <section className="home-today-plan">
         <span className="eyebrow">TODAY</span>
-        {dashboard.isRestDay && !activeCoachAssignment ? (
+        {dashboard.workoutDaySummary?.completedToday && !state.activeWorkout ? (
+          <>
+            <h2>Workout complete</h2>
+            <p>
+              {dashboard.workoutDaySummary.completedWorkoutName} · Today
+            </p>
+            {dashboard.workoutDaySummary.nextRecommendedWorkout ? (
+              <p className="home-next-workout-note">
+                Next workout: {dashboard.workoutDaySummary.nextRecommendedWorkout}
+                {dashboard.workoutDaySummary.nextRecommendedLabel
+                  ? ` · ${dashboard.workoutDaySummary.nextRecommendedLabel}`
+                  : ''}
+              </p>
+            ) : null}
+            {!activeCoachAssignment ? (
+              <button
+                type="button"
+                className="ui-btn-secondary athlete-choose-workout-action home-choose-workout-link"
+                onClick={() => setShowWorkoutSelector(true)}
+              >
+                Choose another workout
+                <ChevronRight size={16} strokeWidth={1.75} />
+              </button>
+            ) : null}
+          </>
+        ) : dashboard.isRestDay && !activeCoachAssignment ? (
           <>
             <h2>Rest day</h2>
             <p>Your schedule calls for recovery today.</p>
@@ -332,7 +386,7 @@ export default function HomeScreen({
                 ? 'Your coach programmed this session.'
                 : 'Scheduled on your weekly plan.'}
             </p>
-            {(activeCoachAssignment || state.activeWorkout) && (
+            {(activeCoachAssignment || state.activeWorkout || dashboard.workoutName) && (
               <button
                 type="button"
                 className="gold-button machined home-start-session"
@@ -347,6 +401,16 @@ export default function HomeScreen({
                 {state.activeWorkout ? 'Continue Session' : 'Start Session'}
               </button>
             )}
+            {!state.activeWorkout && dashboard.programWorkouts.length > 1 ? (
+              <button
+                type="button"
+                className="ui-btn-secondary athlete-choose-workout-action home-choose-workout-link"
+                onClick={() => setShowWorkoutSelector(true)}
+              >
+                Choose another workout
+                <ChevronRight size={16} strokeWidth={1.75} />
+              </button>
+            ) : null}
           </>
         ) : (
           <>
@@ -523,6 +587,32 @@ export default function HomeScreen({
           <ArrowRight size={16} />
         </button>
       </details>
+
+      {showWorkoutSelector ? (
+        <WorkoutSelector
+          workouts={dashboard.programWorkouts}
+          recommendedWorkout={dashboard.recommendedWorkout}
+          selectedWorkout={state.selectedWorkout}
+          coachAssignedWorkout={
+            activeCoachAssignment
+              ? dashboard.workoutDaySummary?.recommendedTodayWorkout
+              : null
+          }
+          onSelect={(workout) => {
+            onSelectWorkout?.(workout)
+            setShowWorkoutSelector(false)
+          }}
+          onClose={() => setShowWorkoutSelector(false)}
+          onOpenBuilder={() => {
+            setShowWorkoutSelector(false)
+            if (navigateToBuilder) {
+              navigateToBuilder()
+              return
+            }
+            setScreen('builder')
+          }}
+        />
+      ) : null}
     </div>
   )
 }

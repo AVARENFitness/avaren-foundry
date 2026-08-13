@@ -7,6 +7,7 @@ import {
 import { resolveActiveCoachAssignment } from './coachAssignments'
 import { buildPlanningOwnership } from './planOwnership'
 import { resolveTodayWorkoutContext } from './todayWorkout'
+import { resolveWorkoutRecommendation } from './programWorkout'
 import {
   executionPlanSummaryLabel,
   isExecutionPlanCurrent,
@@ -130,12 +131,15 @@ export const buildAvaContextPacket = (state = {}, options = {}) => {
   )
   const recentWorkouts = recentSessions(history, 7, now)
   const performanceWin = selectAvaPerformanceWin(history, now)
-  const workoutName = briefing.workout?.displayName ?? null
-  const todayWorkout = resolveTodayWorkoutContext(state, {
-    now,
-    assignments,
-    activeCoachAssignment,
-  })
+  const workoutRecommendation =
+    ctx.workoutRecommendation ??
+    resolveWorkoutRecommendation(state, {
+      now,
+      assignments,
+      activeCoachAssignment,
+    }, now)
+  const workoutName = workoutRecommendation.todayWorkout ?? null
+  const todayWorkout = workoutRecommendation.todayContext
   const planningOwnership = buildPlanningOwnership({
     todayWorkout,
     activeAssignment: activeCoachAssignment,
@@ -157,6 +161,19 @@ export const buildAvaContextPacket = (state = {}, options = {}) => {
         (!flowId || item?.flowId === flowId)
       )
     })
+
+  const sanitizedRecommendation = {
+    ...workoutRecommendation,
+    todayContext: workoutRecommendation.todayContext
+      ? {
+          ...workoutRecommendation.todayContext,
+          assignment: sanitizeAssignment(
+            workoutRecommendation.todayContext.assignment ??
+              activeCoachAssignment,
+          ),
+        }
+      : null,
+  }
 
   const sanitizedTodayWorkout = todayWorkout
     ? {
@@ -252,7 +269,12 @@ export const buildAvaContextPacket = (state = {}, options = {}) => {
     facts: {
       canonicalWorkout: workoutName,
       canonicalWorkoutFormatted: formatWorkoutName(workoutName),
+      nextWorkout: workoutRecommendation.nextWorkout ?? null,
+      nextWorkoutFormatted: formatWorkoutName(workoutRecommendation.nextWorkout),
+      completedToday: workoutRecommendation.completedToday,
+      completedWorkoutName: workoutRecommendation.completedWorkoutName ?? null,
     },
+    workoutRecommendation: sanitizedRecommendation,
     todayWorkout: sanitizedTodayWorkout,
     planningOwnership,
     hasCoachRelationship: Boolean(assignments.length),

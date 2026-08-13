@@ -4,6 +4,10 @@ import {
   resetWeeklyCheckInBackendCache,
   weeklyCheckInBackend,
 } from './weeklyCheckInBackend'
+import {
+  COACHING_REQUIREMENT_KEYS,
+  WEEKLY_CHECK_IN_REQUIREMENT,
+} from './coachClientRequirements'
 
 const now = new Date('2026-08-07T12:00:00.000Z')
 const weekRange = getCoachWeekRange(now)
@@ -82,5 +86,18 @@ describe('weeklyCheckInBackend current-week cache', () => {
     const current = await weeklyCheckInBackend.getCurrentWeeklyCheckIn(now)
     expect(current?.weekStart).toBe(weekRange.weekStart)
     expect(current?.status).toBe('submitted')
+  })
+
+  it('returns not_required when coaching requirements RPC fails', async () => {
+    supabase.rpc = vi.fn().mockResolvedValue({
+      data: null,
+      error: { message: 'function get_athlete_coaching_requirements does not exist' },
+    })
+
+    const requirements = await weeklyCheckInBackend.getAthleteCoachingRequirements()
+
+    expect(requirements[COACHING_REQUIREMENT_KEYS.WEEKLY_CHECK_IN]).toBe(
+      WEEKLY_CHECK_IN_REQUIREMENT.NOT_REQUIRED,
+    )
   })
 })

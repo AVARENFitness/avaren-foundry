@@ -52,6 +52,7 @@ vi.mock('../lib/weeklyCheckInBackend', async () => {
     ...actual,
     weeklyCheckInBackend: {
       hasCoachRelationship: vi.fn(),
+      getAthleteCoachingRequirements: vi.fn(),
       getCurrentWeeklyCheckIn: vi.fn(),
       submitWeeklyCheckIn: vi.fn(),
     },
@@ -65,6 +66,9 @@ describe('useWeeklyCheckInSession post-submit reconciliation', () => {
     resetWeeklyCheckInBackendCache()
     vi.clearAllMocks()
     weeklyCheckInBackend.hasCoachRelationship.mockResolvedValue(true)
+    weeklyCheckInBackend.getAthleteCoachingRequirements.mockResolvedValue({
+      weekly_check_in: 'required',
+    })
     weeklyCheckInBackend.getCurrentWeeklyCheckIn.mockResolvedValue(null)
     weeklyCheckInBackend.submitWeeklyCheckIn.mockResolvedValue(submittedRecord)
   })
@@ -141,6 +145,50 @@ describe('useWeeklyCheckInSession post-submit reconciliation', () => {
     expect(result.current.weeklyCheckInStatus?.status).toBe(
       WEEKLY_CHECK_IN_STATUS.SUBMITTED,
     )
+  })
+
+  it('shows obligation when requirements RPC is required even without coach_clients row', async () => {
+    weeklyCheckInBackend.hasCoachRelationship.mockResolvedValue(false)
+    weeklyCheckInBackend.getAthleteCoachingRequirements.mockResolvedValue({
+      weekly_check_in: 'required',
+    })
+    weeklyCheckInBackend.getCurrentWeeklyCheckIn.mockResolvedValue(null)
+
+    const { result } = renderHook(() =>
+      useWeeklyCheckInSession({
+        userId: 'athlete-1',
+        cloudReady: true,
+        refreshKey: 0,
+      }),
+    )
+
+    await waitFor(() => {
+      expect(result.current.weeklyCheckInRequired).toBe(true)
+      expect(result.current.weeklyCheckInStatus?.status).toBe(
+        WEEKLY_CHECK_IN_STATUS.OVERDUE,
+      )
+    })
+  })
+
+  it('hides obligation when requirements RPC is not_required', async () => {
+    weeklyCheckInBackend.getAthleteCoachingRequirements.mockResolvedValue({
+      weekly_check_in: 'not_required',
+    })
+
+    const { result } = renderHook(() =>
+      useWeeklyCheckInSession({
+        userId: 'athlete-1',
+        cloudReady: true,
+        refreshKey: 0,
+      }),
+    )
+
+    await waitFor(() => {
+      expect(result.current.weeklyCheckInRequired).toBe(false)
+      expect(result.current.weeklyCheckInStatus?.status).toBe(
+        WEEKLY_CHECK_IN_STATUS.NOT_REQUIRED,
+      )
+    })
   })
 
   it('reconciles to due immediately after dev reset reconcile', async () => {
