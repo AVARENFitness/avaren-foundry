@@ -1,70 +1,42 @@
 import { ChevronRight } from 'lucide-react'
-import { CLIENT_ROSTER_STATUS } from '../../lib/clientIntelligence'
+import { buildRosterRowMeta, getClientInitials } from '../../lib/coachClientRosterUi'
 
-const ICON = { size: 18, strokeWidth: 1.75 }
+const ICON = { size: 16, strokeWidth: 1.75 }
 
-const statusClass = (status) => {
-  switch (status) {
-    case CLIENT_ROSTER_STATUS.ON_TRACK:
-      return 'status-on-track'
-    case CLIENT_ROSTER_STATUS.NEEDS_ATTENTION:
-      return 'status-attention'
-    case CLIENT_ROSTER_STATUS.RECOVERY_PRIORITY:
-      return 'status-recovery'
-    case CLIENT_ROSTER_STATUS.INACTIVE:
-      return 'status-inactive'
-    case CLIENT_ROSTER_STATUS.NEW_CLIENT:
-      return 'status-new'
-    default:
-      return ''
-  }
-}
-
-export default function CoachClientCard({ entry, onSelect }) {
-  const {
-    client,
-    clientName,
-    status,
-    card,
-    attentionCount,
-  } = entry
-
-  const detailLine = card.lastWorkoutLabel
-    ? `Last trained ${card.lastWorkoutLabel.toLowerCase()}`
-    : card.workoutsThisWeek
-      ? `${card.workoutsThisWeek} workout${card.workoutsThisWeek === 1 ? '' : 's'} this week`
-      : 'No recent training logged'
+export default function CoachClientCard({
+  entry,
+  onSelect,
+  nextSession = null,
+  passSummary = null,
+}) {
+  const { client, clientName } = entry
+  const meta = buildRosterRowMeta(entry, { nextSession, passSummary })
 
   return (
     <button
       type="button"
-      className="coach-command-client-card coach-command-client-card--compact"
+      className="coach-roster-row"
+      data-attention={meta.attentionLabel ? 'true' : 'false'}
+      data-pass-low={meta.passIsLow ? 'true' : 'false'}
+      data-pass-empty={meta.passIsEmpty ? 'true' : 'false'}
+      aria-label={`Open ${clientName}`}
       onClick={() => onSelect?.(client)}
     >
-      <div className="coach-command-client-card-top">
-        <div className="coach-command-client-card-heading">
+      <span className="coach-roster-row-avatar" aria-hidden="true">
+        {getClientInitials(clientName)}
+      </span>
+
+      <span className="coach-roster-row-body">
+        <span className="coach-roster-row-primary">
           <strong>{clientName}</strong>
-          {attentionCount > 0 ? (
-            <span className={`coach-command-status ${statusClass(status)}`}>
-              Needs attention
-            </span>
+          {meta.connectionHint ? (
+            <span className="coach-roster-row-connection">{meta.connectionHint}</span>
           ) : null}
-        </div>
-        {attentionCount > 0 && (
-          <span className="coach-command-attention-dot" aria-label="Needs attention">
-            {attentionCount}
-          </span>
-        )}
-      </div>
+        </span>
+        <span className="coach-roster-row-secondary">{meta.secondaryLine}</span>
+      </span>
 
-      <div className="coach-command-client-card-body">
-        <span>{detailLine}</span>
-      </div>
-
-      <div className="coach-command-client-card-footer">
-        <span>View client</span>
-        <ChevronRight {...ICON} />
-      </div>
+      <ChevronRight {...ICON} className="coach-roster-row-chevron" aria-hidden="true" />
     </button>
   )
 }

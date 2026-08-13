@@ -15,6 +15,8 @@ export function useCoachPortfolio(clients = [], assignments = []) {
   const [nutritionByAthleteId, setNutritionByAthleteId] = useState({})
   const [weeklyReviewsByAthleteId, setWeeklyReviewsByAthleteId] = useState({})
   const [weeklyCheckInsByAthleteId, setWeeklyCheckInsByAthleteId] = useState({})
+  const [passAvaContextByBusinessClientId, setPassAvaContextByBusinessClientId] =
+    useState({})
   const [portfolioLoading, setPortfolioLoading] = useState(false)
   const [portfolioError, setPortfolioError] = useState('')
   const [refreshToken, setRefreshToken] = useState(0)
@@ -30,14 +32,22 @@ export function useCoachPortfolio(clients = [], assignments = []) {
   }, [])
 
   useEffect(() => {
+    if (!clients.length) {
+      setAthleteStatesById({})
+      setNutritionByAthleteId({})
+      setWeeklyReviewsByAthleteId({})
+      setWeeklyCheckInsByAthleteId({})
+      setPassAvaContextByBusinessClientId({})
+      setPortfolioLoading(false)
+      setPortfolioError('')
+      return
+    }
+
     if (!athleteIds.length) {
       setAthleteStatesById({})
       setNutritionByAthleteId({})
       setWeeklyReviewsByAthleteId({})
       setWeeklyCheckInsByAthleteId({})
-      setPortfolioLoading(false)
-      setPortfolioError('')
-      return
     }
 
     let active = true
@@ -45,13 +55,22 @@ export function useCoachPortfolio(clients = [], assignments = []) {
     setPortfolioError('')
 
     loadCoachPortfolioIntelligence({ clients, assignments, force: refreshToken > 0 })
-      .then(({ athleteStatesById: states, nutritionByAthleteId: nutrition, weeklyReviewsByAthleteId: reviews, weeklyCheckInsByAthleteId: checkIns }) => {
+      .then(
+        ({
+          athleteStatesById: states,
+          nutritionByAthleteId: nutrition,
+          weeklyReviewsByAthleteId: reviews,
+          weeklyCheckInsByAthleteId: checkIns,
+          passAvaContextByBusinessClientId: passContexts,
+        }) => {
         if (!active) return
-        setAthleteStatesById(states)
-        setNutritionByAthleteId(nutrition)
-        setWeeklyReviewsByAthleteId(reviews)
+        setAthleteStatesById(states ?? {})
+        setNutritionByAthleteId(nutrition ?? {})
+        setWeeklyReviewsByAthleteId(reviews ?? {})
         setWeeklyCheckInsByAthleteId(checkIns ?? {})
-      })
+        setPassAvaContextByBusinessClientId(passContexts ?? {})
+      },
+      )
       .catch((error) => {
         if (!active) return
         setPortfolioError(error?.message ?? 'Could not load portfolio intelligence.')
@@ -63,7 +82,7 @@ export function useCoachPortfolio(clients = [], assignments = []) {
     return () => {
       active = false
     }
-  }, [athleteIds.join('|'), assignments, refreshToken, clients])
+  }, [clients, athleteIds.join('|'), assignments, refreshToken])
 
   const portfolio = useMemo(
     () =>
@@ -129,6 +148,7 @@ export function useCoachPortfolio(clients = [], assignments = []) {
     weeklyReviewsByAthleteId,
     nutritionByAthleteId,
     weeklyCheckInsByAthleteId,
+    passAvaContextByBusinessClientId,
   }
 }
 

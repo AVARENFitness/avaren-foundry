@@ -278,8 +278,54 @@ export const publishCoachPortfolioBundle = (bundle = {}) => {
   cache.bundle = bundle
 }
 
+const fetchPassContextsForClients = async (clients = []) => {
+  const passAvaContextByBusinessClientId = Object.fromEntries(
+    (
+      await Promise.all(
+        clients.map(async (client) => {
+          const businessClientId =
+            client.business_client_id ?? client.businessClientId ?? client.id
+          if (!businessClientId) {
+            return null
+          }
+
+          try {
+            const rows = await coachBackend.listClientPassBalances(businessClientId)
+            const passes = (rows ?? [])
+              .map(normalizePassBalanceViewRow)
+              .filter(Boolean)
+            return [
+              businessClientId,
+              buildCoachPassAvaContext({
+                client,
+                passes,
+                ledger: [],
+                appointments: [],
+              }),
+            ]
+          } catch {
+            return [businessClientId, null]
+          }
+        }),
+      )
+    ).filter(Boolean),
+  )
+
+  const passAvaContextByAthleteId = Object.fromEntries(
+    Object.entries(passAvaContextByBusinessClientId)
+      .map(([, context]) => {
+        const athleteId = context?.athleteId ?? null
+        return athleteId ? [athleteId, context] : null
+      })
+      .filter(Boolean),
+  )
+
+  return { passAvaContextByAthleteId, passAvaContextByBusinessClientId }
+}
+
 const fetchPortfolioIntelligence = async (clients = []) => {
   const athleteIds = clients.map((client) => client.athlete_id).filter(Boolean)
+  const passContexts = await fetchPassContextsForClients(clients)
 
   if (!athleteIds.length) {
     return {
@@ -288,7 +334,7 @@ const fetchPortfolioIntelligence = async (clients = []) => {
       weeklyReviewsByAthleteId: {},
       weeklyCheckInsByAthleteId: {},
       coachFollowUpsByAthleteId: {},
-      passAvaContextByAthleteId: {},
+      ...passContexts,
     }
   }
 
@@ -309,30 +355,8 @@ const fetchPortfolioIntelligence = async (clients = []) => {
       .map((review) => [review.athleteId, review]),
   )
 
-  const passAvaContextByAthleteId = Object.fromEntries(
-    await Promise.all(
-      clients.map(async (client) => {
-        const businessClientId =
-          client.business_client_id ?? client.businessClientId
-        if (!businessClientId) {
-          return [client.athlete_id, null]
-        }
-
-        try {
-          const rows = await coachBackend.listClientPassBalances(businessClientId)
-          const passes = (rows ?? [])
-            .map(normalizePassBalanceViewRow)
-            .filter(Boolean)
-          return [
-            client.athlete_id,
-            buildCoachPassAvaContext({ client, passes, ledger: [], appointments: [] }),
-          ]
-        } catch {
-          return [client.athlete_id, null]
-        }
-      }),
-    ),
-  )
+  const passAvaContextByBusinessClientId = passContexts.passAvaContextByBusinessClientId
+  const passAvaContextByAthleteId = passContexts.passAvaContextByAthleteId
 
   const coachFollowUpsByAthleteId = Object.fromEntries(
     athleteIds.map((athleteId) => [
@@ -350,6 +374,7 @@ const fetchPortfolioIntelligence = async (clients = []) => {
     weeklyCheckInsByAthleteId,
     coachFollowUpsByAthleteId,
     passAvaContextByAthleteId,
+    passAvaContextByBusinessClientId,
   }
 }
 
@@ -463,6 +488,8 @@ export async function loadCoachPortfolioIntelligence({
       nutritionByAthleteId: cache.bundle.nutritionByAthleteId,
       weeklyReviewsByAthleteId: cache.bundle.weeklyReviewsByAthleteId,
       weeklyCheckInsByAthleteId: cache.bundle.weeklyCheckInsByAthleteId,
+      passAvaContextByBusinessClientId:
+        cache.bundle.passAvaContextByBusinessClientId ?? {},
       cacheHit: true,
     }
   }

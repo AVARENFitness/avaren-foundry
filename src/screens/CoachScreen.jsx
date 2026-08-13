@@ -58,7 +58,7 @@ export default function CoachScreen({ workspace, setWorkspace, screen='clients',
     })
   }, [])
 
-  const { portfolio, portfolioLoading, portfolioError, refreshPortfolio, athleteStatesById, weeklyReviewsByAthleteId } = useCoachPortfolio(
+  const { portfolio, portfolioLoading, portfolioError, refreshPortfolio, athleteStatesById, weeklyReviewsByAthleteId, passAvaContextByBusinessClientId } = useCoachPortfolio(
     clients,
     assignments,
   )
@@ -390,11 +390,10 @@ export default function CoachScreen({ workspace, setWorkspace, screen='clients',
       portfolio={sortedPortfolio}
       portfolioLoading={portfolioLoading}
       portfolioError={portfolioError}
+      passAvaContextByBusinessClientId={passAvaContextByBusinessClientId}
       loading={loading}
       query={query}
       onQueryChange={setQuery}
-      sortKey={sortKey}
-      onSortChange={setSortKey}
       onSelectClient={setSelectedClient}
       onAssignWorkout={()=>setShowDesigner(true)}
       onViewAssignments={()=>onNavigateCoachScreen?.('assignments')}

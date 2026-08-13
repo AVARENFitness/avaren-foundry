@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   CalendarRange,
   ClipboardList,
@@ -6,22 +6,39 @@ import {
   UserPlus,
   Users,
 } from 'lucide-react'
-import { COACH_CLIENT_SORT } from '../../lib/clientIntelligence'
+import { coachBackend } from '../../lib/coachBackend'
+import {
+  buildUpcomingSessionsByBusinessClientId,
+  filterRosterEntriesByHubScope,
+  ROSTER_HUB_FILTER,
+  ROSTER_PREVIEW_LIMIT,
+  resolveRosterPassSummary,
+  sortRosterEntriesForOperations,
+} from '../../lib/coachClientRosterUi'
+import { resolveRecordBusinessClientId } from '../../lib/coachBusinessClient'
+import {
+  normalizeScheduledSession,
+  sortScheduledSessions,
+} from '../../lib/coachScheduledSessions'
 import CoachAttentionQueue from './CoachAttentionQueue'
 import CoachClientCard from './CoachClientCard'
 import CoachTodaySchedule from './CoachTodaySchedule'
 import CoachSessionDetailHost from './CoachSessionDetailHost'
 import EmptyState from '../ui/EmptyState'
 
-const ICON = { size: 18, strokeWidth: 1.75 }
 const SEARCH_ICON = { size: 16, strokeWidth: 1.75 }
-const ROSTER_PREVIEW_LIMIT = 4
 
-const PRIMARY_SORT_OPTIONS = [
-  { id: COACH_CLIENT_SORT.NEEDS_ATTENTION, label: 'Attention' },
-  { id: COACH_CLIENT_SORT.RECENTLY_ACTIVE, label: 'Recent' },
-  { id: COACH_CLIENT_SORT.ALL, label: 'All' },
+const ROSTER_FILTER_OPTIONS = [
+  { id: ROSTER_HUB_FILTER.ACTIVE, label: 'Active' },
+  { id: ROSTER_HUB_FILTER.ATTENTION, label: 'Attention' },
+  { id: ROSTER_HUB_FILTER.PAST, label: 'Past' },
 ]
+
+const upcomingRangeEnd = () => {
+  const end = new Date()
+  end.setDate(end.getDate() + 90)
+  return end.toISOString().slice(0, 10)
+}
 
 export default function CoachCommandCenter({
   clients = [],
@@ -29,11 +46,10 @@ export default function CoachCommandCenter({
   portfolio,
   portfolioLoading = false,
   portfolioError = '',
+  passAvaContextByBusinessClientId = {},
   loading = false,
   query = '',
   onQueryChange,
-  sortKey = COACH_CLIENT_SORT.NEEDS_ATTENTION,
-  onSortChange,
   onSelectClient,
   onAssignWorkout,
   onViewAssignments,
@@ -48,16 +64,60 @@ export default function CoachCommandCenter({
   assignments = [],
 }) {
   const [hubScheduleRefresh, setHubScheduleRefresh] = useState(0)
+  const [rosterExpanded, setRosterExpanded] = useState(false)
+  const [rosterFilter, setRosterFilter] = useState(ROSTER_HUB_FILTER.ACTIVE)
+  const [upcomingByBusinessClientId, setUpcomingByBusinessClientId] = useState({})
+
   const hero = portfolio?.hero
-  const sortedRoster = portfolio?.rosterEntries ?? []
-  const filteredRoster = sortedRoster.filter((entry) =>
-    String(entry.clientName ?? '')
-      .toLowerCase()
-      .includes(query.trim().toLowerCase()),
+  const attentionCount = portfolio?.attentionQueue?.length ?? 0
+
+  const loadUpcomingSessions = useCallback(async () => {
+    try {
+      const today = new Date().toISOString().slice(0, 10)
+      const rows = await coachBackend.listScheduledSessions({
+        startDate: today,
+        endDate: upcomingRangeEnd(),
+      })
+      const normalized = sortScheduledSessions(
+        (rows ?? []).map(normalizeScheduledSession).filter(Boolean),
+      )
+      setUpcomingByBusinessClientId(
+        buildUpcomingSessionsByBusinessClientId(normalized),
+      )
+    } catch {
+      setUpcomingByBusinessClientId({})
+    }
+  }, [])
+
+  useEffect(() => {
+    loadUpcomingSessions()
+  }, [loadUpcomingSessions, hubScheduleRefresh])
+
+  const sortedRoster = useMemo(
+    () =>
+      sortRosterEntriesForOperations(portfolio?.rosterEntries ?? [], {
+        upcomingByBusinessClientId,
+      }),
+    [portfolio?.rosterEntries, upcomingByBusinessClientId],
   )
 
-  const attentionCount = portfolio?.attentionQueue?.length ?? 0
+  const scopedRoster = useMemo(
+    () => filterRosterEntriesByHubScope(sortedRoster, rosterFilter),
+    [sortedRoster, rosterFilter],
+  )
+
+  const filteredRoster = useMemo(
+    () =>
+      scopedRoster.filter((entry) =>
+        String(entry.clientName ?? '')
+          .toLowerCase()
+          .includes(query.trim().toLowerCase()),
+      ),
+    [scopedRoster, query],
+  )
+
   const rosterPreview = filteredRoster.slice(0, ROSTER_PREVIEW_LIMIT)
+  const visibleRoster = rosterExpanded ? filteredRoster : rosterPreview
   const hiddenRosterCount = Math.max(0, filteredRoster.length - rosterPreview.length)
 
   if (!clients.length && !loading) {
@@ -72,7 +132,7 @@ export default function CoachCommandCenter({
         </header>
         <EmptyState
           icon={Users}
-          title="No clients yet"
+          title="No active clients yet"
           description="Create a client with or without an AVAREN account."
         />
         <section className="coach-invite-card coach-invite-card--quiet">
@@ -130,27 +190,30 @@ export default function CoachCommandCenter({
         items={portfolio?.attentionQueue ?? []}
         totalCount={portfolio?.attentionQueue?.length ?? 0}
         onViewClient={onSelectClient}
-        onViewAll={() => onSortChange?.(COACH_CLIENT_SORT.NEEDS_ATTENTION)}
+        onViewAll={() => {
+          setRosterExpanded(true)
+          setRosterFilter(ROSTER_HUB_FILTER.ATTENTION)
+        }}
       />
 
       <section className="coach-command-panel coach-command-roster">
-        <header className="coach-command-panel-header">
+        <header className="coach-command-panel-header coach-command-panel-header--compact">
           <div>
             <span className="eyebrow">CLIENTS</span>
-            <h2>Roster preview</h2>
+            <h2>{rosterExpanded ? 'All clients' : 'Client preview'}</h2>
           </div>
-          {hiddenRosterCount > 0 ? (
+          {rosterExpanded ? (
             <button
               type="button"
               className="coach-secondary-button coach-command-inline-action"
-              onClick={() => onSortChange?.(COACH_CLIENT_SORT.ALL)}
+              onClick={() => setRosterExpanded(false)}
             >
-              View all
+              Show preview
             </button>
           ) : null}
         </header>
 
-        <label className="coach-roster-search-shell">
+        <label className="coach-roster-search-shell coach-roster-search-shell--compact">
           <Search {...SEARCH_ICON} aria-hidden="true" />
           <input
             type="search"
@@ -161,13 +224,13 @@ export default function CoachCommandCenter({
           />
         </label>
 
-        <div className="coach-command-sort-row coach-command-sort-row--compact">
-          {PRIMARY_SORT_OPTIONS.map((option) => (
+        <div className="coach-command-sort-row coach-command-sort-row--compact coach-roster-filter-row">
+          {ROSTER_FILTER_OPTIONS.map((option) => (
             <button
               key={option.id}
               type="button"
-              className={sortKey === option.id ? 'active' : ''}
-              onClick={() => onSortChange?.(option.id)}
+              className={rosterFilter === option.id ? 'active' : ''}
+              onClick={() => setRosterFilter(option.id)}
             >
               {option.label}
             </button>
@@ -175,28 +238,56 @@ export default function CoachCommandCenter({
         </div>
 
         {loading || portfolioLoading ? (
-          <div className="coach-command-loading-grid">
-            {[1, 2, 3].map((item) => (
-              <article key={item} className="coach-command-client-card skeleton" />
+          <div className="coach-roster-list">
+            {[1, 2, 3, 4].map((item) => (
+              <article key={item} className="coach-roster-row skeleton" />
             ))}
           </div>
         ) : filteredRoster.length ? (
-          <div className="coach-command-client-grid">
-            {rosterPreview.map((entry) => (
-              <CoachClientCard
-                key={entry.client.id}
-                entry={entry}
-                onSelect={onSelectClient}
-              />
-            ))}
+          <div className="coach-roster-list">
+            {visibleRoster.map((entry) => {
+              const businessClientId = resolveRecordBusinessClientId(entry.client)
+              return (
+                <CoachClientCard
+                  key={businessClientId ?? entry.client.id ?? entry.clientName}
+                  entry={entry}
+                  onSelect={onSelectClient}
+                  nextSession={upcomingByBusinessClientId[businessClientId] ?? null}
+                  passSummary={resolveRosterPassSummary(
+                    entry,
+                    passAvaContextByBusinessClientId,
+                  )}
+                />
+              )
+            })}
           </div>
         ) : (
           <EmptyState
             icon={Users}
-            title="No matching clients"
-            description="Try another search or sorting option."
+            title={
+              rosterFilter === ROSTER_HUB_FILTER.ATTENTION
+                ? 'All caught up'
+                : rosterFilter === ROSTER_HUB_FILTER.PAST
+                  ? 'No past clients'
+                  : 'No matching clients'
+            }
+            description={
+              rosterFilter === ROSTER_HUB_FILTER.ATTENTION
+                ? 'Nothing needs your attention in this filter.'
+                : 'Try another search or filter.'
+            }
           />
         )}
+
+        {!rosterExpanded && hiddenRosterCount > 0 ? (
+          <button
+            type="button"
+            className="coach-roster-view-all-button"
+            onClick={() => setRosterExpanded(true)}
+          >
+            View all clients ({filteredRoster.length})
+          </button>
+        ) : null}
       </section>
 
       <section className="coach-command-panel coach-command-tools">

@@ -203,6 +203,149 @@
   gap: 4px;
 }
 
+.coach-roster-list {
+  display: grid;
+  gap: 0;
+  border: 1px solid rgba(246, 242, 233, 0.06);
+  border-radius: 14px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.012);
+}
+
+.coach-roster-row {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr) 18px;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 64px;
+  padding: 10px 14px;
+  border: 0;
+  border-bottom: 1px solid rgba(246, 242, 233, 0.05);
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.coach-roster-row:last-child {
+  border-bottom: 0;
+}
+
+.coach-roster-row:hover,
+.coach-roster-row:focus-visible {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.coach-roster-row.skeleton {
+  min-height: 64px;
+  animation: pulse 1.2s ease-in-out infinite;
+}
+
+.coach-roster-row-avatar {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  background: rgba(216, 184, 109, 0.08);
+  color: #ddc57f;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.coach-roster-row-body {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.coach-roster-row-primary {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+.coach-roster-row-primary strong {
+  color: #f1ebe1;
+  font-size: 15px;
+  font-weight: 650;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.coach-roster-row-connection {
+  flex-shrink: 0;
+  color: #8a8379;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.coach-roster-row-secondary {
+  color: #9a9389;
+  font-size: 12px;
+  line-height: 1.35;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.coach-roster-row[data-attention='true'] .coach-roster-row-secondary {
+  color: #d8c090;
+}
+
+.coach-roster-row[data-pass-low='true'] .coach-roster-row-secondary,
+.coach-roster-row[data-pass-empty='true'] .coach-roster-row-secondary {
+  color: #d8c090;
+}
+
+.coach-roster-row-chevron {
+  color: #8a8379;
+  flex-shrink: 0;
+}
+
+.coach-roster-search-shell--compact {
+  min-height: 40px;
+  padding: 0 12px;
+}
+
+.coach-roster-search-shell--compact input {
+  min-height: 40px;
+  padding: 8px 0;
+  font-size: 14px;
+}
+
+.coach-command-panel-header--compact h2 {
+  font-size: clamp(18px, 3.8vw, 22px);
+}
+
+.coach-roster-filter-row button {
+  min-height: 34px;
+  padding: 6px 12px;
+  font-size: 11px;
+}
+
+.coach-roster-view-all-button {
+  width: 100%;
+  min-height: 40px;
+  margin-top: 8px;
+  border: 0;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  color: #ddc57f;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.coach-roster-view-all-button:hover,
+.coach-roster-view-all-button:focus-visible {
+  background: rgba(216, 184, 109, 0.08);
+}
+
 .coach-lifecycle-sheet,
 .coach-create-client-sheet {
   width: min(100%, 420px);
