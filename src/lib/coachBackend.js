@@ -41,10 +41,16 @@ import {
 import {
   APPOINTMENT_LINKAGE_ERROR,
 } from './coachBusinessClientLinkage'
+import { mergeCoachRosterRecords, isQuerySafeAthleteId, isValidUuid } from './coachBusinessClient'
 import {
   mapPassRpcError,
   normalizePassUsageRpcResult,
 } from './coachPass'
+import { normalizeManualPassAdjustmentResult } from './coachPassAdjustment'
+import {
+  mapLifecycleRpcError,
+  normalizeLifecycleRpcResult,
+} from './coachClientLifecycle'
 import { SCHEDULED_SESSION_STATUS } from './coachScheduledSessions'
 
 const normalizeEmail = (value = '') => String(value).trim().toLowerCase()
@@ -82,9 +88,24 @@ const currentUser = async () => {
 }
 
 export const coachBackend = {
-  async inviteAthlete(email) {
+  async inviteAthlete(email, { businessClientId = null } = {}) {
+    if (businessClientId) {
+      return unwrap(
+        supabase.rpc('invite_business_client_to_avaren', {
+          p_business_client_id: businessClientId,
+          p_athlete_email: normalizeEmail(email),
+        }),
+      )
+    }
+
     const user = await currentUser()
-    return unwrap(supabase.from('coach_invitations').insert({ coach_id: user.id, athlete_email: normalizeEmail(email) }).select().single())
+    return unwrap(
+      supabase
+        .from('coach_invitations')
+        .insert({ coach_id: user.id, athlete_email: normalizeEmail(email) })
+        .select()
+        .single(),
+    )
   },
   async listCoachInvitations() {
     const user = await currentUser()
@@ -126,6 +147,165 @@ export const coachBackend = {
       }),
     )
   },
+  async listBusinessClients({ includeArchived = false } = {}) {
+    try {
+      return await unwrap(
+        supabase.rpc('list_coach_business_clients', {
+          p_include_archived: includeArchived,
+        }),
+      )
+    } catch (error) {
+      if (missingBackend(error) || /list_coach_business_clients/i.test(error?.message ?? '')) {
+        return []
+      }
+      throw error
+    }
+  },
+  async listCoachRoster({ includeArchived = false } = {}) {
+    const [businessClients, bridgeClients] = await Promise.all([
+      this.listBusinessClients({ includeArchived }),
+      this.listClients(),
+    ])
+
+    if (!businessClients.length) {
+      return this.listClientsWithIdentity()
+    }
+
+    const athleteIds = businessClients
+      .map((client) => client.linked_user_id)
+      .concat(bridgeClients.map((client) => client.athlete_id))
+      .filter(Boolean)
+
+    const [profilesById, labelsById] = await Promise.all([
+      userProfileBackend.listProfilesForAthletes([...new Set(athleteIds)]),
+      coachClientLabelsBackend.listOwnCoachLabels(),
+    ])
+
+    return mergeCoachRosterRecords({
+      businessClients,
+      bridgeClients,
+      profilesById,
+      labelsById,
+    })
+  },
+  async createBusinessClient({
+    firstName,
+    lastName = '',
+    preferredName = '',
+    email = null,
+    phone = null,
+    startedAt = null,
+    privateNote = null,
+  } = {}) {
+    return unwrap(
+      supabase.rpc('create_coach_business_client', {
+        p_first_name: firstName,
+        p_last_name: lastName,
+        p_preferred_name: preferredName,
+        p_email: email,
+        p_phone: phone,
+        p_started_at: startedAt,
+        p_private_note: privateNote,
+      }),
+    )
+  },
+
+  async fetchBusinessClientRecord(businessClientId) {
+    if (!isValidUuid(businessClientId)) {
+      throw new Error('business_client_not_found')
+    }
+
+    const user = await currentUser()
+    const { data: client, error } = await supabase
+      .from('coach_business_clients')
+      .select('*')
+      .eq('id', businessClientId)
+      .eq('coach_id', user.id)
+      .maybeSingle()
+
+    if (error) throw error
+    if (!client) throw new Error('business_client_not_found')
+    return client
+  },
+
+  async endBusinessClientCoaching({
+    businessClientId,
+    unlinkAccount = false,
+    scheduleTimezone = DEFAULT_COACH_SCHEDULE_TIMEZONE,
+  } = {}) {
+    if (!isValidUuid(businessClientId)) {
+      throw new Error('business_client_not_found')
+    }
+
+    const { data, error } = await supabase.rpc('end_business_client_coaching', {
+      p_business_client_id: businessClientId,
+      p_unlink_user: unlinkAccount,
+      p_ended_at: null,
+      p_schedule_timezone: scheduleTimezone,
+    })
+
+    if (error) {
+      if (missingBackend(error)) {
+        throw new Error(
+          'Lifecycle RPCs are not installed. Run AVAREN_COACH_BUSINESS_CLIENTS_8_5_PHASE_C_MIGRATION.sql.',
+        )
+      }
+      throw new Error(mapLifecycleRpcError(error).message)
+    }
+
+    normalizeLifecycleRpcResult(data)
+    return this.fetchBusinessClientRecord(businessClientId)
+  },
+
+  async reopenBusinessClientCoaching({ businessClientId } = {}) {
+    if (!isValidUuid(businessClientId)) {
+      throw new Error('business_client_not_found')
+    }
+
+    const { data, error } = await supabase.rpc('reopen_business_client_coaching', {
+      p_business_client_id: businessClientId,
+    })
+
+    if (error) {
+      if (missingBackend(error)) {
+        throw new Error(
+          'Lifecycle RPCs are not installed. Run AVAREN_COACH_BUSINESS_CLIENTS_8_5_PHASE_C_MIGRATION.sql.',
+        )
+      }
+      throw new Error(mapLifecycleRpcError(error).message)
+    }
+
+    normalizeLifecycleRpcResult(data)
+    return this.fetchBusinessClientRecord(businessClientId)
+  },
+
+  async unlinkBusinessClientAccount({ businessClientId } = {}) {
+    if (!isValidUuid(businessClientId)) {
+      throw new Error('business_client_not_found')
+    }
+
+    const { data, error } = await supabase.rpc('unlink_business_client_user', {
+      p_business_client_id: businessClientId,
+    })
+
+    if (error) {
+      if (missingBackend(error)) {
+        throw new Error(
+          'Lifecycle RPCs are not installed. Run AVAREN_COACH_BUSINESS_CLIENTS_8_5_PHASE_C_MIGRATION.sql.',
+        )
+      }
+      throw new Error(mapLifecycleRpcError(error).message)
+    }
+
+    normalizeLifecycleRpcResult(data)
+    return this.fetchBusinessClientRecord(businessClientId)
+  },
+
+  /** Canonical Phase C unlink entry — alias for unlinkBusinessClientAccount. */
+  async unlinkBusinessClientUser(options = {}) {
+    return this.unlinkBusinessClientAccount(options)
+  },
+
   async createAssignment({ athleteId, title, workout, coachNotes, dueDate, priority = 'normal' }) {
     const user = await currentUser()
     const assignment = await unwrap(
@@ -332,16 +512,24 @@ export const coachBackend = {
     return created
   },
   async getClientNotes(athleteId) {
+    if (!isQuerySafeAthleteId(athleteId)) return null
+
     const user = await currentUser()
     const rows = await unwrap(supabase.from('coach_client_notes').select('*').eq('coach_id', user.id).eq('athlete_id', athleteId).limit(1))
     return rows[0] ?? null
   },
   async saveClientNotes(athleteId, notes) {
+    if (!isQuerySafeAthleteId(athleteId)) {
+      throw new Error('Client notes require a linked AVAREN account.')
+    }
+
     const user = await currentUser()
     return unwrap(supabase.from('coach_client_notes').upsert({ coach_id: user.id, athlete_id: athleteId, notes, updated_at: new Date().toISOString() }, { onConflict: 'coach_id,athlete_id' }).select().single())
   },
 
   async getAthleteFoundryState(athleteId) {
+    if (!isQuerySafeAthleteId(athleteId)) return null
+
     try {
       const { data, error } = await supabase
         .from('foundry_state')
@@ -361,6 +549,10 @@ export const coachBackend = {
   },
 
   async getAthleteNutritionSnapshot(athleteId, { days = 14 } = {}) {
+    if (!isQuerySafeAthleteId(athleteId)) {
+      return { profile: null, days: [] }
+    }
+
     const end = new Date()
     const start = new Date(end.getTime() - (days - 1) * 86400000)
     const startKey = start.toISOString().slice(0, 10)
@@ -469,6 +661,8 @@ export const coachBackend = {
   },
 
   async getClientWeeklyReview(athleteId, weekStart = null) {
+    if (!isQuerySafeAthleteId(athleteId)) return null
+
     const user = await currentUser()
     const week = weekStart ?? getCoachWeekRange().weekStart
 
@@ -574,6 +768,8 @@ export const coachBackend = {
   },
 
   async getSessionPackage(athleteId) {
+    if (!isQuerySafeAthleteId(athleteId)) return null
+
     const user = await currentUser()
     const rows = await unwrap(
       supabase
@@ -1401,6 +1597,84 @@ export const coachBackend = {
     }
 
     return normalizePassUsageRpcResult(data)
+  },
+
+  async applyCoachClientPassManualDebit({ passId, quantity, reason, balanceBefore = null }) {
+    const { data, error } = await supabase.rpc(
+      'apply_coach_client_pass_manual_debit',
+      {
+        p_pass_id: passId,
+        p_quantity: quantity,
+        p_reason: reason,
+      },
+    )
+
+    if (error) {
+      if (missingBackend(error)) {
+        throw new Error(
+          'Pass adjustment RPCs are not installed. Run AVAREN_COACH_BUSINESS_CLIENTS_8_4_1D_RLS_RPC.sql.',
+        )
+      }
+      throw new Error(mapPassRpcError(error).message)
+    }
+
+    return normalizeManualPassAdjustmentResult(data, {
+      passId,
+      quantity,
+      balanceBefore,
+    })
+  },
+
+  async applyCoachClientPassManualCredit({ passId, quantity, reason, balanceBefore = null }) {
+    const { data, error } = await supabase.rpc(
+      'apply_coach_client_pass_manual_credit',
+      {
+        p_pass_id: passId,
+        p_quantity: quantity,
+        p_reason: reason,
+      },
+    )
+
+    if (error) {
+      if (missingBackend(error)) {
+        throw new Error(
+          'Pass adjustment RPCs are not installed. Run AVAREN_COACH_BUSINESS_CLIENTS_8_4_1D_RLS_RPC.sql.',
+        )
+      }
+      throw new Error(mapPassRpcError(error).message)
+    }
+
+    return normalizeManualPassAdjustmentResult(data, {
+      passId,
+      quantity,
+      balanceBefore,
+    })
+  },
+
+  async applyCoachClientPassCreditRestored({ passId, quantity, reason, balanceBefore = null }) {
+    const { data, error } = await supabase.rpc(
+      'apply_coach_client_pass_credit_restored',
+      {
+        p_pass_id: passId,
+        p_quantity: quantity,
+        p_reason: reason,
+      },
+    )
+
+    if (error) {
+      if (missingBackend(error)) {
+        throw new Error(
+          'Pass adjustment RPCs are not installed. Run AVAREN_COACH_BUSINESS_CLIENTS_8_4_1D_RLS_RPC.sql.',
+        )
+      }
+      throw new Error(mapPassRpcError(error).message)
+    }
+
+    return normalizeManualPassAdjustmentResult(data, {
+      passId,
+      quantity,
+      balanceBefore,
+    })
   },
 
   async completeInPersonAppointment(sessionId, { passId = null } = {}) {

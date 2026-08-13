@@ -2,7 +2,6 @@ import { useState } from 'react'
 import {
   CalendarRange,
   ClipboardList,
-  Mail,
   Search,
   UserPlus,
   Users,
@@ -39,6 +38,7 @@ export default function CoachCommandCenter({
   onAssignWorkout,
   onViewAssignments,
   onInvite,
+  onAddClient,
   inviteEmail = '',
   onInviteEmailChange,
   onReviewNext,
@@ -51,7 +51,9 @@ export default function CoachCommandCenter({
   const hero = portfolio?.hero
   const sortedRoster = portfolio?.rosterEntries ?? []
   const filteredRoster = sortedRoster.filter((entry) =>
-    entry.clientName.toLowerCase().includes(query.trim().toLowerCase()),
+    String(entry.clientName ?? '')
+      .toLowerCase()
+      .includes(query.trim().toLowerCase()),
   )
 
   const attentionCount = portfolio?.attentionQueue?.length ?? 0
@@ -65,41 +67,23 @@ export default function CoachCommandCenter({
           <div>
             <span className="eyebrow">COACH HUB</span>
             <h1>Command Center</h1>
-            <p>Invite your first athlete to begin.</p>
+            <p>Add your first client to begin.</p>
           </div>
         </header>
         <EmptyState
           icon={Users}
-          title="No connected clients yet"
-          description="Invite an athlete to begin building your coaching roster."
+          title="No clients yet"
+          description="Create a client with or without an AVAREN account."
         />
         <section className="coach-invite-card coach-invite-card--quiet">
-          <div className="coach-invite-copy">
-            <UserPlus {...ICON} />
-            <div>
-              <strong>Invite an athlete</strong>
-              <span>Use the email on their AVAREN account.</span>
-            </div>
-          </div>
-          <div className="coach-invite-form">
-            <label className="coach-field-shell">
-              <Mail {...ICON} />
-              <input
-                value={inviteEmail}
-                onChange={(event) => onInviteEmailChange?.(event.target.value)}
-                placeholder="athlete@email.com"
-                aria-label="Athlete email"
-              />
-            </label>
-            <button
-              type="button"
-              className="gold-button machined coach-invite-submit"
-              onClick={onInvite}
-            >
-              Invite
-            </button>
-          </div>
-          {notice && <p className="coach-hub-notice">{notice}</p>}
+          <button
+            type="button"
+            className="gold-button machined coach-invite-submit"
+            onClick={onAddClient}
+          >
+            Add client
+          </button>
+          {notice ? <p className="coach-hub-notice">{notice}</p> : null}
         </section>
       </section>
     )
@@ -231,7 +215,7 @@ export default function CoachCommandCenter({
             <CalendarRange size={16} />
             Schedule
           </button>
-          <button type="button" className="coach-secondary-button" onClick={onInvite}>
+          <button type="button" className="coach-secondary-button" onClick={onAddClient}>
             <UserPlus size={16} />
             Add client
           </button>

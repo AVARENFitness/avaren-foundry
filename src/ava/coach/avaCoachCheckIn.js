@@ -3,6 +3,7 @@ import {
   isSubmittedWeeklyCheckIn,
   normalizeWeeklyCheckIn,
 } from '../../lib/weeklyCheckIn'
+import { isWeeklyCheckInEligible } from '../../lib/weeklyCheckInEligibility'
 
 export const ATHLETE_CHECK_IN_STATUS = {
   SUBMITTED: 'submitted',
@@ -119,6 +120,18 @@ export const summarizeRosterCheckInStatus = ({
 
   const records = rosterEntries.map((entry) => {
     const athleteId = entry.client?.athlete_id
+    const eligible = isWeeklyCheckInEligible(entry.client)
+
+    if (!eligible) {
+      return resolveClientWeeklyCheckInRecord({
+        athleteId,
+        weeklyCheckIn: null,
+        weeklyCheckInLoaded: true,
+        weeklyReview: weeklyReviewsByAthleteId?.[athleteId] ?? null,
+        now,
+      })
+    }
+
     const weeklyCheckInLoaded = portfolioLoaded && Boolean(athleteId)
 
     return resolveClientWeeklyCheckInRecord({
@@ -128,6 +141,16 @@ export const summarizeRosterCheckInStatus = ({
       weeklyReview: weeklyReviewsByAthleteId?.[athleteId] ?? null,
       now,
     })
+  }).map((record, index) => {
+    const entry = rosterEntries[index]
+    if (!isWeeklyCheckInEligible(entry?.client)) {
+      return {
+        ...record,
+        athleteCheckInStatus: ATHLETE_CHECK_IN_STATUS.NOT_REQUIRED,
+        coachReviewStatus: COACH_REVIEW_STATUS.NOT_APPLICABLE,
+      }
+    }
+    return record
   })
 
   const submitted = records.filter(

@@ -202,3 +202,75 @@
 .coach-command-client-card--compact .coach-command-client-card-body {
   gap: 4px;
 }
+
+.coach-lifecycle-sheet,
+.coach-create-client-sheet {
+  width: min(100%, 420px);
+  max-height: min(92vh, 720px);
+  overflow: auto;
+  border-radius: 20px;
+  border: 1px solid rgba(246, 242, 233, 0.08);
+  background: #12110f;
+  padding: 20px;
+  display: grid;
+  gap: 16px;
+}
+
+.coach-lifecycle-sheet-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.coach-lifecycle-sheet-body {
+  display: grid;
+  gap: 12px;
+}
+
+.coach-lifecycle-sheet-footer {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.coach-create-client-app-access p {
+  margin: 4px 0 0;
+  color: #8a8379;
+  font-size: 14px;
+}
+
+.coach-create-client-error {
+  margin: 0;
+  color: #d49a8d;
+  font-size: 14px;
+}
+
+.coach-client-management-panel {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid color-mix(in srgb, var(--gold) 12%, transparent);
+}
+
+.coach-client-management-panel header {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.coach-client-management-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.coach-lifecycle-checkbox {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  color: var(--cream);
+}
+
+.coach-lifecycle-backdrop {
+  z-index: 130;
+}

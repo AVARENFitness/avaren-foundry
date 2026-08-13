@@ -33,12 +33,37 @@ import {
 import { weeklyCheckInBackend } from '../lib/weeklyCheckInBackend'
 import { isOpenFollowUp, normalizeCoachFollowUp } from '../lib/coachFollowUp'
 import {
+  endBusinessClientCoaching,
+  reopenBusinessClientCoaching,
+  unlinkBusinessClientAccount,
+  END_COACHING_COPY,
+  REOPEN_COACHING_COPY,
+  UNLINK_ACCOUNT_COPY,
+  mapLifecycleActionError,
+} from '../lib/coachClientLifecycle'
+import {
+  hasLinkedAthlete,
+  isArchivedBusinessClient,
+  resolveAthleteDataId,
+  resolveCanonicalLinkedUserId,
+  resolveClientIdentityBadge,
+  resolveRecordBusinessClientId,
+} from '../lib/coachBusinessClient'
+import {
+  canLoadAthleteIntelligence,
+  isWeeklyCheckInEligible,
+} from '../lib/weeklyCheckInEligibility'
+import { appUi } from '../lib/appUi'
+import {
   emptySessionPackage,
   formatPackageDate,
   normalizeSessionPackage,
 } from '../lib/sessionPackages'
 import ClientIntelligenceDashboard from '../components/ClientIntelligenceDashboard'
 import CoachClientInPersonPanel from '../components/coach/CoachClientInPersonPanel'
+import CoachEndCoachingSheet, {
+  CoachClientManagementPanel,
+} from '../components/coach/CoachClientManagementPanel'
 import CoachClientProfileShell from '../components/CoachClientProfileShell'
 import CoachSessionDetailHost from '../components/coach/CoachSessionDetailHost'
 import EmptyState from '../components/ui/EmptyState'
@@ -93,6 +118,8 @@ export default function CoachClientProfile({
   onAssignWorkout,
   onOpenWeeklyReview,
   notice = '',
+  onClientUpdated,
+  onClientArchived,
 }) {
   const [passAvaContext, setPassAvaContext] = useState(null)
   const [activeSection, setActiveSection] = useState('overview')
@@ -120,6 +147,25 @@ export default function CoachClientProfile({
   const [notesSaving, setNotesSaving] = useState(false)
   const [clientFollowUps, setClientFollowUps] = useState([])
   const [followUpBusyId, setFollowUpBusyId] = useState(null)
+  const [showEndCoaching, setShowEndCoaching] = useState(false)
+  const [lifecycleBusy, setLifecycleBusy] = useState(false)
+
+  const linkedAthleteId = useMemo(
+    () => resolveAthleteDataId(client),
+    [client],
+  )
+  const businessClientId = useMemo(
+    () => resolveRecordBusinessClientId(client),
+    [client],
+  )
+  const athleteIntelligenceEnabled = useMemo(
+    () => canLoadAthleteIntelligence(client),
+    [client],
+  )
+  const weeklyCheckInEnabled = useMemo(
+    () => isWeeklyCheckInEligible(client),
+    [client],
+  )
 
   const updateFollowUpStatus = async (followUpId, status) => {
     setFollowUpBusyId(followUpId)
@@ -226,8 +272,11 @@ export default function CoachClientProfile({
   }
 
   const clientAssignments = useMemo(
-    () => assignments.filter((item) => item.athlete_id === client.athlete_id),
-    [assignments, client.athlete_id],
+    () =>
+      linkedAthleteId
+        ? assignments.filter((item) => item.athlete_id === linkedAthleteId)
+        : [],
+    [assignments, linkedAthleteId],
   )
 
   const nextAssignment = useMemo(
@@ -279,8 +328,14 @@ export default function CoachClientProfile({
     let active = true
     setPackageLoading(true)
 
+    if (!linkedAthleteId) {
+      setPackageSummary(emptySessionPackage())
+      setPackageLoading(false)
+      return undefined
+    }
+
     coachBackend
-      .getSessionPackage(client.athlete_id)
+      .getSessionPackage(linkedAthleteId)
       .then((row) => {
         if (active) setPackageSummary(normalizeSessionPackage(row))
       })
@@ -294,18 +349,30 @@ export default function CoachClientProfile({
     return () => {
       active = false
     }
-  }, [client.athlete_id])
+  }, [linkedAthleteId])
 
   useEffect(() => {
     let active = true
+
+    if (!athleteIntelligenceEnabled) {
+      setAthleteState(null)
+      setNutritionProfile(null)
+      setNutritionDays([])
+      setCurrentWeekReview(null)
+      setCurrentWeeklyCheckIn(null)
+      setIntelligenceLoading(false)
+      setIntelligenceError('')
+      return undefined
+    }
+
     setIntelligenceLoading(true)
     setIntelligenceError('')
 
     Promise.all([
-      coachBackend.getAthleteFoundryState(client.athlete_id),
-      coachBackend.getAthleteNutritionSnapshot(client.athlete_id),
-      coachBackend.getClientWeeklyReview(client.athlete_id),
-      weeklyCheckInBackend.getClientWeeklyCheckIn(client.athlete_id),
+      coachBackend.getAthleteFoundryState(linkedAthleteId),
+      coachBackend.getAthleteNutritionSnapshot(linkedAthleteId),
+      coachBackend.getClientWeeklyReview(linkedAthleteId),
+      weeklyCheckInBackend.getClientWeeklyCheckIn(linkedAthleteId),
     ])
       .then(([state, nutrition, review, weeklyCheckIn]) => {
         if (!active) return
@@ -328,10 +395,16 @@ export default function CoachClientProfile({
     return () => {
       active = false
     }
-  }, [client.athlete_id])
+  }, [linkedAthleteId, athleteIntelligenceEnabled])
 
   useEffect(() => {
     let active = true
+
+    if (!linkedAthleteId) {
+      setClientFollowUps([])
+      return undefined
+    }
+
     coachBackend
       .listCoachClientFollowUps()
       .then((rows) => {
@@ -341,7 +414,7 @@ export default function CoachClientProfile({
             .map(normalizeCoachFollowUp)
             .filter(
               (item) =>
-                item.athleteId === client.athlete_id && isOpenFollowUp(item),
+                item.athleteId === linkedAthleteId && isOpenFollowUp(item),
             ),
         )
       })
@@ -381,24 +454,43 @@ export default function CoachClientProfile({
     nextAssignment?.title ??
     (clientAssignments.length ? 'Individual programming' : 'No program assigned')
 
-  const connectedSince = `Connected since ${new Date(client.created_at).toLocaleDateString([], {
-    month: 'long',
-    day: 'numeric',
-    year: 'numeric',
-  })}`
+  const profileStatusLine = useMemo(() => {
+    const lifecycle = isArchivedBusinessClient(client)
+      ? 'Past client'
+      : 'Active client'
+    return `${lifecycle} · ${resolveClientIdentityBadge(client)}`
+  }, [client])
+
+  const connectionDetail = useMemo(() => {
+    if (!hasLinkedAthlete(client)) return null
+    const linkedAt = client.bridgeCreatedAt ?? client.linked_at ?? null
+    if (!linkedAt) return null
+    return `Connected since ${new Date(linkedAt).toLocaleDateString([], {
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric',
+    })}`
+  }, [client])
 
   const weeklyReviewStatus = useMemo(
-    () => getWeeklyReviewStatus({ currentReview: currentWeekReview }),
-    [currentWeekReview],
+    () =>
+      weeklyCheckInEnabled
+        ? getWeeklyReviewStatus({ currentReview: currentWeekReview })
+        : { status: 'N/A' },
+    [currentWeekReview, weeklyCheckInEnabled],
   )
 
   const weeklyCheckInSummary = useMemo(
-    () => formatWeeklyCheckInSummary(currentWeeklyCheckIn),
-    [currentWeeklyCheckIn],
+    () =>
+      weeklyCheckInEnabled
+        ? formatWeeklyCheckInSummary(currentWeeklyCheckIn)
+        : null,
+    [currentWeeklyCheckIn, weeklyCheckInEnabled],
   )
 
   const coachingStatusPanel =
-    weeklyCheckInSummary || weeklyReviewStatus.status !== 'REVIEWED' ? (
+    weeklyCheckInEnabled &&
+    (weeklyCheckInSummary || weeklyReviewStatus.status !== 'REVIEWED') ? (
       <article className="coach-profile-status-card coach-profile-status-card--compact">
         <div className="coach-profile-status-card-copy">
           <span className="eyebrow">COACHING</span>
@@ -456,6 +548,86 @@ export default function CoachClientProfile({
         ))}
       </section>
     ) : null
+
+  const handleEndCoachingConfirm = async ({ unlinkAccount = false } = {}) => {
+    if (!businessClientId || lifecycleBusy) return
+
+    setLifecycleBusy(true)
+    try {
+      const updated = await endBusinessClientCoaching(
+        coachBackend,
+        businessClientId,
+        { unlinkAccount },
+      )
+      setShowEndCoaching(false)
+      onClientUpdated?.(updated)
+      onClientArchived?.(updated)
+      appUi.toast(END_COACHING_COPY.success, 'success')
+    } catch (error) {
+      appUi.toast(mapLifecycleActionError(error), 'error')
+    } finally {
+      setLifecycleBusy(false)
+    }
+  }
+
+  const handleReopenCoaching = async () => {
+    if (!businessClientId || lifecycleBusy) return
+
+    const confirmed = await appUi.confirm({
+      message: REOPEN_COACHING_COPY.message,
+      confirmLabel: REOPEN_COACHING_COPY.confirmLabel,
+    })
+    if (!confirmed) return
+
+    setLifecycleBusy(true)
+    try {
+      const updated = await reopenBusinessClientCoaching(
+        coachBackend,
+        businessClientId,
+      )
+      onClientUpdated?.(updated)
+      appUi.toast(REOPEN_COACHING_COPY.success, 'success')
+    } catch (error) {
+      appUi.toast(mapLifecycleActionError(error), 'error')
+    } finally {
+      setLifecycleBusy(false)
+    }
+  }
+
+  const handleUnlinkAccount = async () => {
+    if (!businessClientId || lifecycleBusy) return
+
+    const confirmed = await appUi.confirm({
+      message: UNLINK_ACCOUNT_COPY.message,
+      confirmLabel: UNLINK_ACCOUNT_COPY.confirmLabel,
+      tone: 'danger',
+    })
+    if (!confirmed) return
+
+    setLifecycleBusy(true)
+    try {
+      const updated = await unlinkBusinessClientAccount(
+        coachBackend,
+        businessClientId,
+      )
+      onClientUpdated?.(updated)
+      appUi.toast(UNLINK_ACCOUNT_COPY.success, 'success')
+    } catch (error) {
+      appUi.toast(mapLifecycleActionError(error), 'error')
+    } finally {
+      setLifecycleBusy(false)
+    }
+  }
+
+  const clientManagementPanel = businessClientId ? (
+    <CoachClientManagementPanel
+      client={client}
+      submitting={lifecycleBusy}
+      onEndCoaching={() => setShowEndCoaching(true)}
+      onReopenCoaching={handleReopenCoaching}
+      onUnlinkAccount={handleUnlinkAccount}
+    />
+  ) : null
 
   const renderSection = (openSession) => {
     switch (activeSection) {
@@ -530,6 +702,7 @@ export default function CoachClientProfile({
                 Add note
               </button>
             </div>
+            {clientManagementPanel}
           </>
         )
 
@@ -544,6 +717,16 @@ export default function CoachClientProfile({
           />
         )
       case 'training':
+        if (!athleteIntelligenceEnabled) {
+          return (
+            <EmptyState
+              icon={Activity}
+              title="No athlete training data yet"
+              description="Connect an AVAREN account to view athlete-submitted workouts and assignment delivery."
+            />
+          )
+        }
+
         return (
           <>
             <ProfileSection
@@ -782,6 +965,16 @@ export default function CoachClientProfile({
         )
 
       case 'progress':
+        if (!athleteIntelligenceEnabled) {
+          return (
+            <EmptyState
+              icon={BarChart3}
+              title="No athlete progress data yet"
+              description="Connect an AVAREN account to view athlete-submitted training, readiness, recovery, performance, and nutrition data."
+            />
+          )
+        }
+
         return (
           <ClientIntelligenceDashboard
             intelligence={intelligence}
@@ -807,8 +1000,9 @@ export default function CoachClientProfile({
       {(openSession) => (
     <CoachClientProfileShell
       clientName={getClientDisplayName(client)}
-      clientEmail={client.athlete_email}
-      connectedSince={connectedSince}
+      clientEmail={client.email ?? client.athlete_email ?? ''}
+      profileStatusLine={profileStatusLine}
+      connectionDetail={connectionDetail}
       activeSection={activeSection}
       onSectionChange={setActiveSection}
       onBack={onBack}
@@ -816,6 +1010,14 @@ export default function CoachClientProfile({
     >
       {renderSection(openSession)}
       {notice && <p className="coach-hub-notice">{notice}</p>}
+      <CoachEndCoachingSheet
+        open={showEndCoaching}
+        clientName={getClientDisplayName(client)}
+        linked={hasLinkedAthlete(client)}
+        submitting={lifecycleBusy}
+        onClose={() => setShowEndCoaching(false)}
+        onConfirm={handleEndCoachingConfirm}
+      />
     </CoachClientProfileShell>
       )}
     </CoachSessionDetailHost>

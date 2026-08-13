@@ -4,13 +4,21 @@ import { coachBackend } from '../../lib/coachBackend'
 import { formatPackageDate } from '../../lib/sessionPackages'
 import {
   buildCoachPassAvaContext,
-  formatPassLedgerLabel,
   lowPassLabel,
   normalizePassBalanceViewRow,
   normalizePassLedgerEntry,
   summarizeClientPasses,
 } from '../../lib/coachPass'
+import {
+  PASS_CREDIT_REASON,
+  formatPassLedgerHistoryHeadline,
+  formatPassLedgerQuantityLabel,
+  resolveManualCreditLedgerReason,
+  resolveManualDebitLedgerReason,
+  mapPassAdjustmentError,
+} from '../../lib/coachPassAdjustment'
 import CoachCreatePassSheet from './CoachCreatePassSheet'
+import CoachAdjustPassSheet from './CoachAdjustPassSheet'
 
 export default function CoachClientTrainingPassPanel({
   client = null,
@@ -25,8 +33,11 @@ export default function CoachClientTrainingPassPanel({
   const [linkageLoading, setLinkageLoading] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
   const [showCreate, setShowCreate] = useState(false)
+  const [showAdjust, setShowAdjust] = useState(false)
   const [creating, setCreating] = useState(false)
+  const [adjusting, setAdjusting] = useState(false)
   const [createError, setCreateError] = useState('')
+  const [adjustError, setAdjustError] = useState('')
   const [legacyRemaining, setLegacyRemaining] = useState(null)
 
   useEffect(() => {
@@ -135,11 +146,6 @@ export default function CoachClientTrainingPassPanel({
     )
   }, [passes, ledger, client, resolvedBusinessClientId, onPassContextChange])
 
-  const openCreateSheet = () => {
-    setCreateError('')
-    setShowCreate(true)
-  }
-
   const handleCreatePass = async (payload) => {
     if (!resolvedBusinessClientId || creating) return
 
@@ -167,6 +173,103 @@ export default function CoachClientTrainingPassPanel({
     }
   }
 
+  const openCreateSheet = () => {
+    setCreateError('')
+    setShowCreate(true)
+  }
+
+  const openAdjustSheet = () => {
+    setAdjustError('')
+    setShowAdjust(true)
+    setShowHistory(true)
+  }
+
+  const handleRemoveSession = async ({
+    passId,
+    quantity,
+    reasonCode,
+    note,
+    balanceBefore,
+  }) => {
+    if (!resolvedBusinessClientId || adjusting) return
+
+    setAdjusting(true)
+    setAdjustError('')
+
+    try {
+      const reason = resolveManualDebitLedgerReason(reasonCode, note)
+      const result = await coachBackend.applyCoachClientPassManualDebit({
+        passId,
+        quantity,
+        reason,
+        balanceBefore,
+      })
+
+      if (!result.ok) {
+        throw new Error(result.message)
+      }
+
+      setShowAdjust(false)
+      await loadPassData()
+      appUi.toast(
+        `${quantity} session${quantity === 1 ? '' : 's'} removed · ${result.balanceBefore} → ${result.balanceAfter} remaining`,
+        'success',
+      )
+    } catch (error) {
+      const message = mapPassAdjustmentError(error)
+      setAdjustError(message)
+      appUi.toast(message, 'error')
+    } finally {
+      setAdjusting(false)
+    }
+  }
+
+  const handleAddSession = async ({
+    passId,
+    quantity,
+    reasonCode,
+    note,
+    balanceBefore,
+  }) => {
+    if (!resolvedBusinessClientId || adjusting) return
+
+    setAdjusting(true)
+    setAdjustError('')
+
+    try {
+      const useCreditRestored = reasonCode === PASS_CREDIT_REASON.CHARGE_REVERSED
+      const reason = resolveManualCreditLedgerReason(reasonCode, note, {
+        useCreditRestored,
+      })
+      const apply = useCreditRestored
+        ? coachBackend.applyCoachClientPassCreditRestored.bind(coachBackend)
+        : coachBackend.applyCoachClientPassManualCredit.bind(coachBackend)
+      const result = await apply({
+        passId,
+        quantity,
+        reason,
+        balanceBefore,
+      })
+
+      if (!result.ok) {
+        throw new Error(result.message)
+      }
+
+      setShowAdjust(false)
+      await loadPassData()
+      appUi.toast(
+        `${quantity} session${quantity === 1 ? '' : 's'} added · ${result.balanceBefore} → ${result.balanceAfter} remaining`,
+        'success',
+      )
+    } catch (error) {
+      const message = mapPassAdjustmentError(error)
+      setAdjustError(message)
+      appUi.toast(message, 'error')
+    } finally {
+      setAdjusting(false)
+    }
+  }
+
   const createPassSheet = (
     <CoachCreatePassSheet
       open={showCreate}
@@ -180,6 +283,22 @@ export default function CoachClientTrainingPassPanel({
     />
   )
 
+  const adjustPassSheet = (
+    <CoachAdjustPassSheet
+      open={showAdjust}
+      submitting={adjusting}
+      passes={passes}
+      totalBalance={summary.totalBalance}
+      onClose={() => {
+        if (adjusting) return
+        setShowAdjust(false)
+        setAdjustError('')
+      }}
+      onRemoveSession={handleRemoveSession}
+      onAddSession={handleAddSession}
+    />
+  )
+
   if (linkageLoading || (loading && !businessClientIdPresent)) {
     return (
       <section
@@ -189,6 +308,7 @@ export default function CoachClientTrainingPassPanel({
       >
         <p className="coach-client-in-person-loading">Loading training pass…</p>
         {createPassSheet}
+        {adjustPassSheet}
       </section>
     )
   }
@@ -250,6 +370,14 @@ export default function CoachClientTrainingPassPanel({
             <button
               type="button"
               className="coach-secondary-button"
+              data-testid="coach-adjust-pass-button"
+              onClick={openAdjustSheet}
+            >
+              Adjust
+            </button>
+            <button
+              type="button"
+              className="coach-secondary-button"
               data-testid="coach-add-pass-button"
               onClick={openCreateSheet}
             >
@@ -278,18 +406,20 @@ export default function CoachClientTrainingPassPanel({
         </p>
       ) : null}
 
+      {adjustError ? (
+        <p className="coach-client-training-pass-error" role="alert">
+          {adjustError}
+        </p>
+      ) : null}
+
       {showHistory && ledger.length > 0 ? (
         <ul className="coach-client-training-pass-ledger">
           {ledger.map((entry) => (
             <li key={entry.id} className="coach-client-training-pass-ledger-row">
               <div>
-                <strong>{formatPassLedgerLabel(entry.entryType)}</strong>
-                <span>
-                  {entry.quantity > 0 ? '+' : ''}
-                  {entry.quantity}
-                  {entry.passName ? ` · ${entry.passName}` : ''}
-                </span>
-                {entry.reason ? <small>{entry.reason}</small> : null}
+                <strong>{formatPassLedgerHistoryHeadline(entry)}</strong>
+                <span>{formatPassLedgerQuantityLabel(entry.quantity)}</span>
+                {entry.passName ? <small>{entry.passName}</small> : null}
               </div>
               <time dateTime={entry.createdAt}>
                 {entry.createdAt
@@ -305,6 +435,7 @@ export default function CoachClientTrainingPassPanel({
       ) : null}
 
       {createPassSheet}
+      {adjustPassSheet}
     </section>
   )
 }

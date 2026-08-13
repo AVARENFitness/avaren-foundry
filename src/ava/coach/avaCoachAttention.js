@@ -15,6 +15,7 @@ import {
   WEEKLY_CHECK_IN_PAIN,
   normalizeWeeklyCheckIn,
 } from '../../lib/weeklyCheckIn'
+import { isWeeklyCheckInEligible } from '../../lib/weeklyCheckInEligibility'
 
 export { hasWeeklyAthleteCheckIn } from './avaCoachCheckIn'
 
@@ -301,7 +302,7 @@ export const buildCoachAttentionQueue = (coachContext = {}, now = new Date()) =>
   const queue = entries
     .map((entry) => {
       const athleteId = entry.client?.athlete_id ?? null
-      if (!athleteId) return null
+      if (!athleteId || !isWeeklyCheckInEligible(entry.client)) return null
 
       const displayName =
         buildCoachClientLabel(entry.client) || entry.clientName || 'Client'

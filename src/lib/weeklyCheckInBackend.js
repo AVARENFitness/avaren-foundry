@@ -1,5 +1,6 @@
 import { supabase } from './supabase'
 import { getCoachWeekRange } from './weeklyReview'
+import { isQuerySafeAthleteId } from './coachBusinessClient'
 import {
   isMissingWeeklyCheckInTable,
   isWeeklyCheckInFeatureEnabled,
@@ -227,6 +228,10 @@ export const weeklyCheckInBackend = {
   },
 
   async getClientWeeklyCheckIn(athleteId, weekStart = null) {
+    if (!isQuerySafeAthleteId(athleteId)) {
+      return null
+    }
+
     if (!(await ensureSchemaReady())) {
       return null
     }

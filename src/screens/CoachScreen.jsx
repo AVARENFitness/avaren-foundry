@@ -14,6 +14,18 @@ import { openClientReview } from '../lib/coachReviewNavigation'
 import { coachClientLabelsBackend } from '../lib/coachClientLabelsBackend'
 import { getIdentityCapabilities, probeIdentityCapabilities } from '../lib/identityCapabilities'
 import { useCoachPortfolio } from '../hooks/useCoachPortfolio'
+import {
+  normalizeBusinessClientRecord,
+  resolveRecordBusinessClientId,
+  resolveAthleteDataId,
+} from '../lib/coachBusinessClient'
+import {
+  validateInviteEmail,
+  LIFECYCLE_SUCCESS,
+  mapLifecycleUserMessage,
+} from '../lib/coachClientUi'
+import { invalidateCoachPortfolioCache } from '../lib/coachPortfolioService'
+import CoachCreateClientSheet from '../components/coach/CoachCreateClientSheet'
 import CoachClientProfile from './CoachClientProfile'
 import CoachWorkoutDesigner from '../components/CoachWorkoutDesigner'
 import CoachSessionCalendar from '../components/CoachSessionCalendar'
@@ -37,6 +49,8 @@ export default function CoachScreen({ workspace, setWorkspace, screen='clients',
   const [historicalReviewId,setHistoricalReviewId]=useState(null)
   const [coachLabelsEnabled,setCoachLabelsEnabled]=useState(false)
   const [openScheduleComposer,setOpenScheduleComposer]=useState(false)
+  const [showCreateClient,setShowCreateClient]=useState(false)
+  const [creatingClient,setCreatingClient]=useState(false)
 
   useEffect(() => {
     probeIdentityCapabilities().then((caps) => {
@@ -61,7 +75,7 @@ export default function CoachScreen({ workspace, setWorkspace, screen='clients',
     setLoading(true)
     try {
       const [c, i, a] = await Promise.all([
-        coachBackend.listClientsWithIdentity(),
+        coachBackend.listCoachRoster({ includeArchived: true }),
         coachBackend.listCoachInvitations(),
         coachBackend.listCoachAssignments(),
       ])
@@ -88,8 +102,10 @@ export default function CoachScreen({ workspace, setWorkspace, screen='clients',
         ),
       )
       setNotice('')
+      return c
     } catch (e) {
       setNotice(e.message)
+      return clients
     } finally {
       setLoading(false)
     }
@@ -112,9 +128,33 @@ export default function CoachScreen({ workspace, setWorkspace, screen='clients',
     }
   }, [refreshPortfolio])
   useEffect(()=>{if(screen!=='clients')setSelectedClient?.(null)},[screen,setSelectedClient])
-  useEffect(()=>{if(!selectedClient)return;coachBackend.getClientNotes(selectedClient.athlete_id).then(note=>{setClientNotes(note?.notes??'');setNotesUpdatedAt(note?.updated_at??null)}).catch(()=>{setClientNotes('');setNotesUpdatedAt(null)})},[selectedClient])
-
   useEffect(() => {
+    if (!selectedClient) return
+
+    const notesAthleteId = resolveAthleteDataId(selectedClient)
+    if (!notesAthleteId) {
+      setClientNotes('')
+      setNotesUpdatedAt(null)
+      return
+    }
+
+    coachBackend
+      .getClientNotes(notesAthleteId)
+      .then((note) => {
+        setClientNotes(note?.notes ?? '')
+        setNotesUpdatedAt(note?.updated_at ?? null)
+      })
+      .catch(() => {
+        setClientNotes('')
+        setNotesUpdatedAt(null)
+      })
+  }, [selectedClient])
+  useEffect(() => {
+    const contextClient = selectedClient ?? weeklyReviewClient ?? null
+    const selectedBusinessClientId = contextClient
+      ? resolveRecordBusinessClientId(contextClient)
+      : null
+
     onCoachAvaContextChange?.({
       isCoachMode: true,
       authorized: true,
@@ -125,8 +165,8 @@ export default function CoachScreen({ workspace, setWorkspace, screen='clients',
       athleteStatesById,
       weeklyReviewsByAthleteId,
       coachScreen: screen,
-      selectedClient: selectedClient ?? weeklyReviewClient,
-      selectedClientId: (selectedClient ?? weeklyReviewClient)?.athlete_id ?? null,
+      selectedClient: contextClient,
+      selectedClientId: selectedBusinessClientId,
       weeklyReviewOpen: Boolean(weeklyReviewClient),
       profileOpen: Boolean(selectedClient && !weeklyReviewClient),
       portfolioLoading,
@@ -146,7 +186,45 @@ export default function CoachScreen({ workspace, setWorkspace, screen='clients',
     onCoachAvaContextChange,
   ])
 
-  const invite=async()=>{const email=inviteEmail.trim().toLowerCase();if(!email.includes('@'))return setNotice('Enter a valid athlete email.');try{await coachBackend.inviteAthlete(email);setInviteEmail('');setNotice('Invitation sent.');await load()}catch(e){setNotice(e.message)}}
+  const openAddClient = () => {
+    setNotice('')
+    setShowCreateClient(true)
+  }
+
+  const invite=async()=>{const inviteError=validateInviteEmail(inviteEmail);if(inviteError)return setNotice(inviteError);const email=inviteEmail.trim().toLowerCase();try{await coachBackend.inviteAthlete(email);setInviteEmail('');setNotice(LIFECYCLE_SUCCESS.INVITE_SENT);await load()}catch(e){setNotice(e.message)}}
+
+  const handleCreateClient = async (payload) => {
+    setCreatingClient(true)
+    try {
+      const result = await coachBackend.createBusinessClient(payload)
+      setShowCreateClient(false)
+      setNotice(LIFECYCLE_SUCCESS.CLIENT_CREATED)
+      const roster = await load()
+      refreshPortfolio()
+      invalidateCoachPortfolioCache()
+      const created =
+        roster.find(
+          (client) =>
+            resolveRecordBusinessClientId(client) === result.business_client_id,
+        ) ??
+        normalizeBusinessClientRecord({
+          id: result.business_client_id,
+          business_client_id: result.business_client_id,
+          linked_user_id: null,
+          display_name: result.display_name,
+          first_name: payload.firstName,
+          last_name: payload.lastName,
+          preferred_name: payload.preferredName,
+          status: 'active',
+          hasCoachBridge: false,
+        })
+      setSelectedClient?.(created)
+    } catch (error) {
+      setNotice(mapLifecycleUserMessage(error, 'Unable to create client.'))
+    } finally {
+      setCreatingClient(false)
+    }
+  }
   const assignCustom=async(payload)=>{try{await coachBackend.createAssignment(payload);setNotice('Workout assigned.');await load()}catch(e){setNotice(e.message);throw e}}
   const saveTemplate=async({name,workout})=>{try{await coachBackend.saveWorkoutTemplate({name,workout});setNotice('Workout template saved.');await load()}catch(e){setNotice(e.message);throw e}}
   const unassign=async(assignment)=>{if(!(await appUi.confirm({ message:`Cancel ${assignment.title}? It will leave active schedules but remain in assignment history.`, tone:'danger', confirmLabel:'Cancel' })))return;try{await coachBackend.cancelAssignment(assignment.id);setNotice('Assignment cancelled and removed from active schedules.');await load()}catch(e){setNotice(e.message)}}
@@ -225,24 +303,23 @@ export default function CoachScreen({ workspace, setWorkspace, screen='clients',
       notesUpdatedAt={notesUpdatedAt}
       onClientNotesChange={setClientNotes}
       onSaveNotes={async (notes = clientNotes) => {
-        const saved = await coachBackend.saveClientNotes(
-          selectedClient.athlete_id,
-          notes,
-        )
+        const notesAthleteId = resolveAthleteDataId(selectedClient)
+        if (!notesAthleteId) return null
+
+        const saved = await coachBackend.saveClientNotes(notesAthleteId, notes)
         setClientNotes(notes)
         setNotesUpdatedAt(saved?.updated_at ?? new Date().toISOString())
         setNotice('Client notes saved.')
+        return saved
       }}
       onSaveCoachLabel={async (coachLabel) => {
+        const labelAthleteId = resolveAthleteDataId(selectedClient)
+        if (!labelAthleteId) return null
+
         const trimmed = sanitizeCoachLabelDraft(coachLabel)
         const saved = trimmed
-          ? await coachClientLabelsBackend.upsertCoachLabel(
-              selectedClient.athlete_id,
-              trimmed,
-            )
-          : await coachClientLabelsBackend.deleteCoachLabel(
-              selectedClient.athlete_id,
-            )
+          ? await coachClientLabelsBackend.upsertCoachLabel(labelAthleteId, trimmed)
+          : await coachClientLabelsBackend.deleteCoachLabel(labelAthleteId)
         const enriched = enrichCoachClientRecord(selectedClient, {
           coachLabel: trimmed ? saved?.coach_label ?? trimmed : '',
         })
@@ -266,6 +343,29 @@ export default function CoachScreen({ workspace, setWorkspace, screen='clients',
       onAssignWorkout={()=>setShowDesigner(true)}
       onOpenWeeklyReview={()=>openWeeklyReview(selectedClient)}
       notice={notice}
+      onClientUpdated={async (updated) => {
+        const normalized = normalizeBusinessClientRecord(updated)
+        setClients((prev) =>
+          prev.map((item) =>
+            resolveRecordBusinessClientId(item) ===
+            resolveRecordBusinessClientId(normalized)
+              ? { ...item, ...normalized }
+              : item,
+          ),
+        )
+        setSelectedClient((current) =>
+          resolveRecordBusinessClientId(current) ===
+          resolveRecordBusinessClientId(normalized)
+            ? { ...current, ...normalized }
+            : current,
+        )
+        await load()
+        refreshPortfolio()
+        invalidateCoachPortfolioCache()
+      }}
+      onClientArchived={() => {
+        setNotice('Coaching ended. History preserved.')
+      }}
     />
     {designer}
   </>
@@ -308,9 +408,19 @@ export default function CoachScreen({ workspace, setWorkspace, screen='clients',
         if (next) openWeeklyReview(next.client)
       }}
       onInvite={invite}
+      onAddClient={openAddClient}
       inviteEmail={inviteEmail}
       onInviteEmailChange={setInviteEmail}
       notice={notice}
+    />
+    <CoachCreateClientSheet
+      open={showCreateClient}
+      submitting={creatingClient}
+      onClose={() => {
+        setShowCreateClient(false)
+        setNotice('')
+      }}
+      onSubmit={handleCreateClient}
     />
     {designer}
   </>

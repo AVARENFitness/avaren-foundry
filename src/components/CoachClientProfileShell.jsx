@@ -13,13 +13,17 @@ const ICON = { size: 18, strokeWidth: 1.75 }
 export default function CoachClientProfileShell({
   clientName,
   clientEmail,
-  connectedSince,
+  profileStatusLine = '',
+  connectionDetail = '',
+  connectedSince = '',
   activeSection = 'overview',
   onSectionChange,
   onBack,
   coachingStatusPanel = null,
   children,
 }) {
+  const statusLine = profileStatusLine || connectedSince
+
   return (
     <div className="coach-client-profile-shell">
       <header className="coach-client-profile-shell-header">
@@ -31,8 +35,9 @@ export default function CoachClientProfileShell({
         <div className="coach-client-profile-header">
           <span className="eyebrow">CLIENT PROFILE</span>
           <h1>{clientName}</h1>
-          <p>{clientEmail}</p>
-          {connectedSince && <small>{connectedSince}</small>}
+          {clientEmail ? <p>{clientEmail}</p> : null}
+          {statusLine ? <small>{statusLine}</small> : null}
+          {connectionDetail ? <small>{connectionDetail}</small> : null}
         </div>
 
         {coachingStatusPanel ? (

@@ -52,6 +52,7 @@ const PASS_RPC_ERROR_CODES = [
   'starts_at_required',
   'reason_required',
   'invalid_quantity',
+  'pass_not_found',
 ]
 
 export const resolvePassCandidateId = (value) => {
@@ -152,6 +153,7 @@ export const mapPassRpcError = (error) => {
     starts_at_required: 'Choose a start date for the pass.',
     reason_required: 'Add a short reason to continue.',
     invalid_quantity: 'Enter a valid quantity.',
+    pass_not_found: 'Select a pass to charge.',
     pass_action_failed: 'Could not update the training pass.',
   }
 

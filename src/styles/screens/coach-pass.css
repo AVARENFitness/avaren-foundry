@@ -2,14 +2,16 @@
 
 .coach-create-pass-backdrop,
 .coach-pass-selection-backdrop,
-.coach-missed-charge-backdrop {
+.coach-missed-charge-backdrop,
+.coach-adjust-pass-backdrop {
   z-index: 130;
   align-items: flex-end;
 }
 
 .coach-create-pass-sheet,
 .coach-pass-selection-sheet,
-.coach-missed-charge-sheet {
+.coach-missed-charge-sheet,
+.coach-adjust-pass-sheet {
   width: min(100%, 520px);
   max-height: min(92vh, 720px);
   display: grid;
@@ -26,7 +28,8 @@
 
 .coach-create-pass-sheet-header,
 .coach-pass-selection-sheet-header,
-.coach-missed-charge-sheet-header {
+.coach-missed-charge-sheet-header,
+.coach-adjust-pass-sheet-header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -36,7 +39,8 @@
 
 .coach-create-pass-sheet-body,
 .coach-pass-selection-sheet-body,
-.coach-missed-charge-sheet-body {
+.coach-missed-charge-sheet-body,
+.coach-adjust-pass-sheet-body {
   overflow: auto;
   padding: 0 20px 16px;
   display: grid;
@@ -46,7 +50,8 @@
 
 .coach-create-pass-sheet-footer,
 .coach-pass-selection-sheet-footer,
-.coach-missed-charge-sheet-footer {
+.coach-missed-charge-sheet-footer,
+.coach-adjust-pass-sheet-footer {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
   gap: 10px;
@@ -81,16 +86,59 @@
   font-size: 0.88rem;
 }
 
+.coach-adjust-pass-balance {
+  display: grid;
+  gap: 6px;
+}
+
+.coach-adjust-pass-balance strong {
+  font-size: 1.35rem;
+}
+
+.coach-adjust-pass-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.coach-adjust-pass-target {
+  display: grid;
+  gap: 4px;
+  padding: 14px;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--gold) 14%, transparent);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.coach-adjust-pass-warning,
+.coach-adjust-pass-note {
+  margin: 0;
+  color: var(--text-secondary, #918980);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.coach-adjust-pass-error {
+  margin: 0;
+  color: #ffb4a8;
+}
+
+.coach-adjust-pass-footer-wide {
+  grid-column: 1 / -1;
+}
+
 @media (min-width: 720px) {
   .coach-create-pass-backdrop,
   .coach-pass-selection-backdrop,
-  .coach-missed-charge-backdrop {
+  .coach-missed-charge-backdrop,
+  .coach-adjust-pass-backdrop {
     align-items: center;
   }
 
   .coach-create-pass-sheet,
   .coach-pass-selection-sheet,
-  .coach-missed-charge-sheet {
+  .coach-missed-charge-sheet,
+  .coach-adjust-pass-sheet {
     border-radius: 24px;
   }
 }

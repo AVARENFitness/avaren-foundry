@@ -18,6 +18,13 @@ import {
 import { getCoachWeekRange, isDateInWeek } from './weeklyReview'
 import { isSubmittedWeeklyCheckIn } from './weeklyCheckIn'
 import {
+  isArchivedBusinessClient,
+  isOfflineBusinessClient,
+  resolveClientIdentityBadge,
+} from './coachBusinessClient.js'
+import { isPortfolioAthleteClient } from './coachClientRoster.js'
+import { isWeeklyCheckInEligible } from './weeklyCheckInEligibility.js'
+import {
   buildCoachAttentionQueue,
   mapAttentionQueueToHubItems,
 } from '../ava/coach/avaCoachAttention'
@@ -934,6 +941,7 @@ export const rankClientAttention = (clientEntries = [], { limit = 5 } = {}) => {
   const ranked = []
 
   clientEntries.forEach((entry) => {
+    if (!entry?.intelligence?.attention) return
     entry.intelligence.attention.forEach((item) => {
       if (item.id === 'all-clear' || item.id === 'performance-up') return
 
@@ -965,7 +973,39 @@ export const buildClientRosterEntry = ({
   nutritionProfile = null,
   nutritionDays = [],
   now = new Date(),
+  passSummary = null,
+  nextSessionLabel = null,
 } = {}) => {
+  const identityBadge = client?.identityBadge ?? resolveClientIdentityBadge(client)
+  const isOffline = isOfflineBusinessClient(client)
+  const isArchived = isArchivedBusinessClient(client)
+  const isAthletePortfolio = isPortfolioAthleteClient(client)
+
+  if (!isAthletePortfolio) {
+    return {
+      client,
+      clientName: displayClientName(client),
+      status: isArchived ? CLIENT_ROSTER_STATUS.INACTIVE : CLIENT_ROSTER_STATUS.ON_TRACK,
+      sortScore: isArchived ? STATUS_SORT_SCORE[CLIENT_ROSTER_STATUS.INACTIVE] : 0,
+      intelligence: null,
+      attentionCount: 0,
+      hasWin: false,
+      winLabel: null,
+      card: {
+        identityBadge,
+        nextSessionLabel,
+        passRemainingLabel: passSummary?.remainingLabel ?? null,
+        workoutsThisWeek: null,
+        lastWorkoutLabel: isOffline ? 'No athlete app data' : null,
+        readinessLabel: null,
+        assignmentLabel: null,
+        activeAssignmentTitle: null,
+      },
+      lastActivityAt: null,
+      daysSinceLastActivity: null,
+    }
+  }
+
   const clientAssignments = assignments.filter(
     (item) => item.athlete_id === client.athlete_id,
   )
@@ -1001,6 +1041,9 @@ export const buildClientRosterEntry = ({
     hasWin: Boolean(win),
     winLabel: win?.label ?? null,
     card: {
+      identityBadge,
+      nextSessionLabel,
+      passRemainingLabel: passSummary?.remainingLabel ?? null,
       workoutsThisWeek: intelligence.training.workoutsThisWeek,
       lastWorkoutLabel: lastSession?.relativeLabel ?? null,
       readinessLabel: intelligence.readiness.available
@@ -1083,7 +1126,7 @@ export const buildCoachPortfolioSnapshot = ({
       toTime(item.completed_at) >= weekStart,
   )
   const trainedThisWeek = rosterEntries.filter(
-    (entry) => entry.card.workoutsThisWeek > 0,
+    (entry) => (entry.card?.workoutsThisWeek ?? 0) > 0,
   ).length
   const needsAttention = rosterEntries.filter(
     (entry) =>
@@ -1142,7 +1185,9 @@ export const buildCoachActivityFeed = ({
     })
 
   rosterEntries.forEach((entry) => {
-    entry.intelligence.performance.recentPrs?.slice(0, 2).forEach((pr) => {
+    if (!entry?.intelligence) return
+
+    entry.intelligence.performance?.recentPrs?.slice(0, 2).forEach((pr) => {
       events.push({
         id: `pr-${entry.client.athlete_id}-${pr.id}`,
         type: 'pr',
@@ -1159,8 +1204,8 @@ export const buildCoachActivityFeed = ({
       })
     })
 
-    const nutrition = entry.intelligence.nutrition
-    if (nutrition.shared && nutrition.daysLoggedThisWeek > 0) {
+    const nutrition = entry.intelligence?.nutrition
+    if (nutrition?.shared && nutrition.daysLoggedThisWeek > 0) {
       events.push({
         id: `nutrition-${entry.client.athlete_id}`,
         type: 'nutrition',
@@ -1187,7 +1232,7 @@ export const buildCoachActivityFeed = ({
 export const buildClientWins = (rosterEntries = [], { limit = 5 } = {}) =>
   rosterEntries
     .map((entry) => {
-      const win = buildClientWin(entry.intelligence)
+      const win = entry.intelligence ? buildClientWin(entry.intelligence) : null
       if (!win) return null
       return {
         id: `win-${entry.client.athlete_id}`,
@@ -1250,17 +1295,17 @@ export const sortCoachClients = (
       )
     case COACH_CLIENT_SORT.ACTIVE_ASSIGNMENT:
       return entries.sort((first, second) => {
-        const firstActive = Boolean(first.intelligence.assignmentStatus.active)
-        const secondActive = Boolean(second.intelligence.assignmentStatus.active)
+        const firstActive = Boolean(first.intelligence?.assignmentStatus?.active)
+        const secondActive = Boolean(second.intelligence?.assignmentStatus?.active)
         if (firstActive !== secondActive) return secondActive - firstActive
         return second.sortScore - first.sortScore
       })
     case COACH_CLIENT_SORT.READY:
       return entries.sort((first, second) => {
         const firstReady =
-          first.intelligence.readiness.band === READINESS_BAND.READY ? 1 : 0
+          first.intelligence?.readiness?.band === READINESS_BAND.READY ? 1 : 0
         const secondReady =
-          second.intelligence.readiness.band === READINESS_BAND.READY ? 1 : 0
+          second.intelligence?.readiness?.band === READINESS_BAND.READY ? 1 : 0
         return secondReady - firstReady || second.sortScore - first.sortScore
       })
     case COACH_CLIENT_SORT.RECOVERY:
@@ -1273,7 +1318,7 @@ export const sortCoachClients = (
       })
     case COACH_CLIENT_SORT.ALL:
       return entries.sort((first, second) =>
-        first.clientName.localeCompare(second.clientName),
+        String(first.clientName ?? '').localeCompare(String(second.clientName ?? '')),
       )
     case COACH_CLIENT_SORT.NEEDS_ATTENTION:
     default:
@@ -1281,7 +1326,7 @@ export const sortCoachClients = (
         (first, second) =>
           second.sortScore - first.sortScore ||
           second.attentionCount - first.attentionCount ||
-          first.clientName.localeCompare(second.clientName),
+          String(first.clientName ?? '').localeCompare(String(second.clientName ?? '')),
       )
   }
 }
@@ -1310,13 +1355,19 @@ export const buildCoachPortfolioIntelligence = ({
     const currentCheckIn = weeklyCheckInsByAthleteId[client.athlete_id] ?? null
     const reviewedThisWeek =
       currentReview?.weekStart === weekRange.weekStart
-    const athleteCheckInStatus = isSubmittedWeeklyCheckIn(currentCheckIn, now)
-      ? 'submitted'
-      : 'missing'
+    const athleteCheckInStatus = isWeeklyCheckInEligible(client)
+      ? isSubmittedWeeklyCheckIn(currentCheckIn, now)
+        ? 'submitted'
+        : 'missing'
+      : 'n/a'
 
     return {
       ...entry,
-      weeklyReviewStatus: reviewedThisWeek ? 'REVIEWED' : 'REVIEW DUE',
+      weeklyReviewStatus: isWeeklyCheckInEligible(client)
+        ? reviewedThisWeek
+          ? 'REVIEWED'
+          : 'REVIEW DUE'
+        : 'N/A',
       athleteCheckInStatus,
       currentWeeklyReview: currentReview,
       currentWeeklyCheckIn: currentCheckIn,
@@ -1557,6 +1608,7 @@ export const rankClientsForWeeklyReview = (
   const { weekStart } = getCoachWeekRange(now)
 
   return rosterEntries
+    .filter((entry) => isWeeklyCheckInEligible(entry.client))
     .filter((entry) => {
       const review = weeklyReviewsByAthleteId[entry.client.athlete_id]
       return !review || review.weekStart !== weekStart
@@ -1565,7 +1617,7 @@ export const rankClientsForWeeklyReview = (
       (first, second) =>
         second.sortScore - first.sortScore ||
         second.attentionCount - first.attentionCount ||
-        first.clientName.localeCompare(second.clientName),
+        String(first.clientName ?? '').localeCompare(String(second.clientName ?? '')),
     )
 }
 
