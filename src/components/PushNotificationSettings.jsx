@@ -73,10 +73,10 @@ export default function PushNotificationSettings() {
         </span>
         <div>
           <span className="eyebrow">PHONE ALERTS</span>
-          <h2>Push notifications</h2>
+          <h2>Training reminders</h2>
           <p>
-            Receive new workout assignments even when AVAREN
-            is closed.
+            Get training reminders when sessions are scheduled, updated,
+            or approaching.
           </p>
         </div>
       </header>
@@ -94,8 +94,7 @@ export default function PushNotificationSettings() {
       ) : needsHomeScreen ? (
         <div className="push-settings-state warning">
           <Smartphone size={17} />
-          On iPhone, save AVAREN to your Home Screen, open the
-          saved app, then enable notifications here.
+          Add AVAREN to your Home Screen to receive training reminders.
         </div>
       ) : (
         <button
@@ -116,8 +115,14 @@ export default function PushNotificationSettings() {
             ? 'Blocked in browser settings'
             : status.subscribed
             ? 'Disable on this device'
-            : 'Enable phone notifications'}
+            : 'Enable notifications'}
         </button>
+      )}
+
+      {!needsHomeScreen && status.supported && status.configured && (
+        <p className="push-settings-message subtle">
+          Get training reminders
+        </p>
       )}
 
       {message && (

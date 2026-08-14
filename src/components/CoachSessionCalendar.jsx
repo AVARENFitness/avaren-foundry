@@ -67,6 +67,8 @@ export default function CoachSessionCalendar({
   initialClientId = '',
   initialOpenComposer = false,
   onComposerOpened,
+  initialFocusedSessionId = null,
+  onFocusedSessionOpened,
 }) {
   const [anchor, setAnchor] = useState(new Date())
   const [selectedDayKey, setSelectedDayKey] = useState(() => dateKey(new Date()))
@@ -155,6 +157,22 @@ export default function CoachSessionCalendar({
     setSessions,
     onLoadSessions: loadSessions,
   })
+
+  useEffect(() => {
+    if (!initialFocusedSessionId || loading) return
+
+    const session = sessions.find((entry) => entry.id === initialFocusedSessionId)
+    if (!session) return
+
+    sessionDetail.openSession(session)
+    onFocusedSessionOpened?.()
+  }, [
+    initialFocusedSessionId,
+    loading,
+    onFocusedSessionOpened,
+    sessionDetail,
+    sessions,
+  ])
 
   useEffect(() => {
     if (!draft.athleteId) {

@@ -97,6 +97,23 @@ export const assignmentNotificationBackend = {
   },
 }
 
+const appointmentPriority = (type) => {
+  if (type === 'appointment-athlete-cannot-attend') return 112
+  if (type === 'appointment-athlete-confirmed') return 96
+  if (type === 'appointment-cancelled') return 94
+  if (type === 'appointment-rescheduled') return 92
+  if (type === 'appointment-scheduled') return 90
+  if (type === 'appointment-coach-reminder-2h') return 86
+  if (type === 'appointment-athlete-reminder-2h') return 84
+  return 88
+}
+
+const appointmentActionLabel = (action) => {
+  if (action === 'open-appointment-detail') return 'Open Session'
+  if (action === 'open-coach-calendar') return 'Open Calendar'
+  return null
+}
+
 export const mapAssignmentNotification = (row) => ({
   id: row.id,
   type:
@@ -104,9 +121,13 @@ export const mapAssignmentNotification = (row) => ({
       ? 'workout'
       : row.type?.startsWith('session-')
       ? 'session'
+      : row.type?.startsWith('appointment-')
+      ? 'appointment'
       : 'assignment',
   priority:
-    row.type === 'session-rsvp-declined'
+    row.type?.startsWith('appointment-')
+      ? appointmentPriority(row.type)
+      : row.type === 'session-rsvp-declined'
       ? 110
       : row.type === 'session-rsvp-confirmed'
       ? 95
@@ -125,9 +146,11 @@ export const mapAssignmentNotification = (row) => ({
       ? 'Open Coach Hub'
       : row.action === 'open-coach-calendar'
       ? 'Open Calendar'
+      : row.action === 'open-appointment-detail'
+      ? 'Open Session'
       : row.action === 'open-session-rsvp'
       ? 'Respond'
-      : null,
+      : appointmentActionLabel(row.action),
   createdAt: row.created_at,
   fingerprint: `remote:${row.id}`,
   read: Boolean(row.read_at),

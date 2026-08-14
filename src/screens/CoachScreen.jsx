@@ -39,7 +39,7 @@ const today = () => new Date().toISOString().slice(0,10)
 const formatDate = (value) => value ? new Date(`${value}T12:00:00`).toLocaleDateString([], { month:'short', day:'numeric' }) : 'No due date'
 const ICON = { size: 18, strokeWidth: 1.75 }
 
-export default function CoachScreen({ workspace, setWorkspace, screen='clients', program, selectedClient, setSelectedClient, coachEmail='Coach', onOpenClientProfile, onNavigateCoachScreen, onCoachAvaContextChange, onRegisterCoachScreenApi }) {
+export default function CoachScreen({ workspace, setWorkspace, screen='clients', program, selectedClient, setSelectedClient, coachEmail='Coach', onOpenClientProfile, onNavigateCoachScreen, onCoachAvaContextChange, onRegisterCoachScreenApi, initialFocusedSessionId = null, onFocusedSessionOpened }) {
   const [clients,setClients]=useState([]), [invitations,setInvitations]=useState([]), [assignments,setAssignments]=useState([]), [templates,setTemplates]=useState([])
   const [query,setQuery]=useState(''), [inviteEmail,setInviteEmail]=useState(''), [notice,setNotice]=useState(''), [loading,setLoading]=useState(true)
   const [showDesigner,setShowDesigner]=useState(false), [designerTemplate,setDesignerTemplate]=useState(null), [clientNotes,setClientNotes]=useState(''), [notesUpdatedAt,setNotesUpdatedAt]=useState(null)
@@ -372,7 +372,7 @@ export default function CoachScreen({ workspace, setWorkspace, screen='clients',
     {designer}
   </>
 
-  if(screen==='calendar') return <CoachSessionCalendar clients={clients} assignments={assignments} coachEmail={coachEmail} initialClientId={selectedClient?.athlete_id??''} initialOpenComposer={openScheduleComposer} onComposerOpened={()=>setOpenScheduleComposer(false)} onOpenClientProfile={(client)=>{if(!client)return; if(onOpenClientProfile) onOpenClientProfile(client); else setSelectedClient(client)}} />
+  if(screen==='calendar') return <CoachSessionCalendar clients={clients} assignments={assignments} coachEmail={coachEmail} initialClientId={selectedClient?.athlete_id??''} initialOpenComposer={openScheduleComposer} onComposerOpened={()=>setOpenScheduleComposer(false)} initialFocusedSessionId={initialFocusedSessionId} onFocusedSessionOpened={onFocusedSessionOpened} onOpenClientProfile={(client)=>{if(!client)return; if(onOpenClientProfile) onOpenClientProfile(client); else setSelectedClient(client)}} />
 
   if(screen==='programs') return <CoachPrograms clients={clients} templates={templates} program={program} onRefresh={load}/>
 

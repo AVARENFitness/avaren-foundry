@@ -26,6 +26,13 @@ import {
   shouldRestoreCoachMode,
 } from './lib/coachModePersistence'
 import { registerPushWorker, syncPushSubscription } from './lib/pushNotifications'
+import {
+  buildPushDeepLinkDedupeKey,
+  parsePushDeepLinkUrl,
+  PUSH_DEEP_LINK_TYPES,
+  requestOpenAppointment,
+  resolvePushDeepLinkNavigation,
+} from './lib/appointmentDeepLink'
 import { coachBackend } from './lib/coachBackend'
 import { COACH_CLIENT_SORT } from './lib/clientIntelligence'
 import { useCoachAvaRuntime } from './hooks/useCoachAvaRuntime'
@@ -302,6 +309,8 @@ function App() {
     coachAuthorized,
   })
   const [screenReturnTo, setScreenReturnTo] = useState(null)
+  const [coachCalendarFocusSessionId, setCoachCalendarFocusSessionId] =
+    useState(null)
 
   const navigateFromTrain = useCallback(
     (nextScreen) => {
@@ -791,8 +800,25 @@ function App() {
       }
 
       if (notification.action === 'open-coach-calendar') {
-        setCoachScreen('calendar')
+        const sessionId =
+          notification.scheduledSessionId ??
+          notification.payload?.scheduledSessionId ??
+          null
         enterCoachMode()
+        setCoachScreen('calendar')
+        if (sessionId) setCoachCalendarFocusSessionId(sessionId)
+        return
+      }
+
+      if (notification.action === 'open-appointment-detail') {
+        const sessionId =
+          notification.scheduledSessionId ??
+          notification.payload?.scheduledSessionId ??
+          null
+        if (sessionId) {
+          navigate('home')
+          requestOpenAppointment(sessionId)
+        }
         return
       }
 
@@ -1448,24 +1474,28 @@ function App() {
     navigate('home')
   }
 
+  const handledPushDeepLinksRef = useRef(new Set())
+
   useEffect(() => {
     if (!session?.user?.id || !cloudReady) return undefined
 
     const openPushUrl = async (rawUrl) => {
-      const url = new URL(rawUrl, window.location.origin)
-      const assignmentId = url.searchParams.get('assignment')
-      const sessionId = url.searchParams.get('session')
-      const rsvp = url.searchParams.get('rsvp')
-      const openTarget = url.searchParams.get('open')
+      const request = parsePushDeepLinkUrl(rawUrl)
+      const navigation = resolvePushDeepLinkNavigation(request)
+      if (!request || !navigation) return
 
-      if (sessionId && rsvp) {
+      const dedupeKey = buildPushDeepLinkDedupeKey(request)
+      if (dedupeKey && handledPushDeepLinksRef.current.has(dedupeKey)) return
+      if (dedupeKey) handledPushDeepLinksRef.current.add(dedupeKey)
+
+      if (request.type === PUSH_DEEP_LINK_TYPES.RSVP_ACTION) {
         try {
           await respondToSessionRsvpFromPush(
-            sessionId,
-            rsvp === 'confirmed' ? 'confirmed' : 'cannot_attend',
+            request.sessionId,
+            request.rsvp === 'confirmed' ? 'confirmed' : 'cannot_attend',
           )
           appUi.toast(
-            rsvp === 'confirmed'
+            request.rsvp === 'confirmed'
               ? 'Session confirmed.'
               : 'Coach notified you cannot make it.',
             'success',
@@ -1473,19 +1503,31 @@ function App() {
         } catch (error) {
           appUi.toast(error.message, 'error')
         }
-        navigate('more')
-      } else if (sessionId || openTarget === 'session-rsvp') {
-        navigate('more')
-      } else if (assignmentId) {
+      }
+
+      if (navigation.coachMode) {
+        enterCoachMode()
+        setCoachScreen(navigation.coachScreen ?? 'calendar')
+        if (navigation.focusSessionId) {
+          setCoachCalendarFocusSessionId(navigation.focusSessionId)
+        }
+      } else if (navigation.screen) {
+        navigate(navigation.screen)
+      }
+
+      if (navigation.openAppointment?.sessionId) {
+        requestOpenAppointment(navigation.openAppointment.sessionId, {
+          role: navigation.openAppointment.role,
+        })
+      } else if (navigation.assignmentId) {
         try {
-          const assignment =
-            await coachBackend.getAthleteAssignment(assignmentId)
+          const assignment = await coachBackend.getAthleteAssignment(
+            navigation.assignmentId,
+          )
           await startCoachAssignment(assignment)
         } catch (error) {
           appUi.toast(error.message, 'error')
         }
-      } else if (openTarget === 'notifications') {
-        navigate('notifications')
       }
 
       window.history.replaceState({}, '', window.location.pathname)
@@ -1511,7 +1553,7 @@ function App() {
     return () => {
       navigator.serviceWorker?.removeEventListener('message', onMessage)
     }
-  }, [session?.user?.id, cloudReady, navigate, startCoachAssignment])
+  }, [session?.user?.id, cloudReady, navigate, startCoachAssignment, enterCoachMode, setCoachScreen])
 
   const completeOnboarding = () => {
     if (!isReplayingOnboarding) {
@@ -1816,6 +1858,8 @@ function App() {
           onNavigateCoachScreen={setCoachScreen}
           onCoachAvaContextChange={handleCoachAvaContextChange}
           onRegisterCoachScreenApi={handleRegisterCoachScreenApi}
+          initialFocusedSessionId={coachCalendarFocusSessionId}
+          onFocusedSessionOpened={() => setCoachCalendarFocusSessionId(null)}
         />
       )
     }

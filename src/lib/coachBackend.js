@@ -1028,7 +1028,7 @@ export const coachBackend = {
     }
 
     try {
-      return await unwrap(
+      const created = await unwrap(
         supabase
           .from('coach_scheduled_sessions')
           .insert({
@@ -1051,6 +1051,8 @@ export const coachBackend = {
           .select()
           .single(),
       )
+
+      return created
     } catch (error) {
       const mapped = mapAppointmentOverlapError(error)
       if (mapped) throw new Error(mapped.message)
@@ -1119,7 +1121,7 @@ export const coachBackend = {
     }
 
     try {
-      return await unwrap(
+      const updated = await unwrap(
         supabase
           .from('coach_scheduled_sessions')
           .update(payload)
@@ -1127,6 +1129,8 @@ export const coachBackend = {
           .select()
           .single(),
       )
+
+      return updated
     } catch (error) {
       const mapped = mapAppointmentOverlapError(error)
       if (mapped) throw new Error(mapped.message)
@@ -1252,7 +1256,8 @@ export const coachBackend = {
       return mapRsvpRpcError(error)
     }
 
-    return normalizeRsvpRpcResult(data)
+    const result = normalizeRsvpRpcResult(data)
+    return result
   },
 
   async getAthleteCoachId() {

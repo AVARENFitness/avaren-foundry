@@ -34,6 +34,12 @@ import AthleteNextAppointment, {
   AthleteAppointmentWeekStrip,
 } from '../components/AthleteNextAppointment'
 import AthleteAppointmentDetailSheet from '../components/AthleteAppointmentDetailSheet'
+import {
+  markAppointmentDeepLinkHandled,
+  releaseAppointmentDeepLinkClaim,
+  shouldHandleAppointmentDeepLink,
+  subscribeAppointmentDeepLink,
+} from '../lib/appointmentDeepLink'
 import { useAthleteAppointments } from '../hooks/useAthleteAppointments'
 import { logHomeAppointmentCheckpoint } from '../lib/athleteAppointmentTrace'
 import {
@@ -106,6 +112,44 @@ export default function HomeScreen({
   const [detailAppointment, setDetailAppointment] = useState(null)
 
   useEffect(() => () => setDetailAppointment(null), [])
+
+  useEffect(() => {
+    return subscribeAppointmentDeepLink(({ sessionId, role = 'athlete' }) => {
+      if (role !== 'athlete' || !sessionId) return
+      if (!shouldHandleAppointmentDeepLink({ sessionId, role })) return
+
+      const openDetail = (appointment) => {
+        if (!appointment) return
+        setDetailAppointment(appointment)
+        markAppointmentDeepLinkHandled({ sessionId, role })
+      }
+
+      const appointment =
+        scheduledSessions.find((entry) => entry.id === sessionId) ??
+        upcomingAppointments.find((entry) => entry.id === sessionId) ??
+        (nextAppointment?.id === sessionId ? nextAppointment : null)
+
+      if (appointment) {
+        openDetail(appointment)
+        return
+      }
+
+      void reloadAppointments().then((rows) => {
+        const resolved = rows.find((entry) => entry.id === sessionId)
+        if (resolved) {
+          openDetail(resolved)
+          return
+        }
+
+        releaseAppointmentDeepLinkClaim({ sessionId, role })
+      })
+    })
+  }, [
+    scheduledSessions,
+    upcomingAppointments,
+    nextAppointment,
+    reloadAppointments,
+  ])
 
   useEffect(() => {
     logHomeAppointmentCheckpoint({

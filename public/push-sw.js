@@ -25,7 +25,7 @@ self.addEventListener('push', (event) => {
         (payload.assignmentId
           ? `/?assignment=${encodeURIComponent(payload.assignmentId)}`
           : payload.sessionId
-          ? `/?session=${encodeURIComponent(payload.sessionId)}&open=session-rsvp`
+          ? `/?session=${encodeURIComponent(payload.sessionId)}&open=appointment-detail`
           : DEFAULT_URL),
       assignmentId: payload.assignmentId ?? null,
       sessionId: payload.sessionId ?? null,
@@ -56,7 +56,8 @@ self.addEventListener('notificationclick', (event) => {
   } else if (sessionId && action === 'decline') {
     url = `/?session=${encodeURIComponent(sessionId)}&rsvp=cannot_attend`
   } else if (sessionId && !action) {
-    url = `/?session=${encodeURIComponent(sessionId)}&open=session-rsvp`
+    url = event.notification.data?.url ??
+      `/?session=${encodeURIComponent(sessionId)}&open=appointment-detail`
   }
 
   event.waitUntil(
