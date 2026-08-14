@@ -83,6 +83,7 @@ export default function AvaSheet({
   const transcriptRef = useRef(null)
   const submitLockRef = useRef(false)
   const openedRef = useRef(false)
+  const openedAtRef = useRef(0)
   const stickToBottomRef = useRef(true)
   const nutritionRef = useRef(nutrition)
   const { routeMessage } = useAva()
@@ -144,11 +145,23 @@ export default function AvaSheet({
       resetDocumentModalLayer()
     }
   }, [open])
+  useEffect(() => () => resetDocumentModalLayer(), [])
   const { keyboardOpen } = useAvaSheetViewport({
     open,
-    backdropRef,
     panelRef,
   })
+
+  useEffect(() => {
+    if (open) {
+      openedAtRef.current = Date.now()
+    }
+  }, [open])
+
+  const handleBackdropClick = (event) => {
+    if (event.target !== event.currentTarget) return
+    if (Date.now() - openedAtRef.current < 400) return
+    onClose?.()
+  }
 
   useEffect(() => {
     if (!open) return undefined
@@ -718,7 +731,7 @@ export default function AvaSheet({
       className={`ava-sheet-backdrop app-ui-backdrop${keyboardOpen ? ' ava-sheet-backdrop--keyboard' : ''}`}
       role="presentation"
       data-app-ui-backdrop="open"
-      onClick={onClose}
+      onClick={handleBackdropClick}
     >
       <section
         ref={panelRef}

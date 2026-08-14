@@ -18762,9 +18762,6 @@ input, textarea, select {
   }
 
   .ava-sheet-backdrop {
-    top: var(--ava-vv-offset-top, 0px);
-    height: var(--ava-vv-height, 100dvh);
-    min-height: 0;
     align-items: flex-end;
   }
 

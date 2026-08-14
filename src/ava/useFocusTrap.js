@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 
 const FOCUSABLE =
   'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])'
+const MOBILE_SHEET_QUERY = '(max-width: 680px)'
 
 export function useFocusTrap(containerRef, active) {
   useEffect(() => {
@@ -14,7 +15,13 @@ export function useFocusTrap(containerRef, active) {
       )
 
     const initial = focusables()
-    initial[0]?.focus()
+    const preferDesktopFocus =
+      typeof window.matchMedia !== 'function' ||
+      !window.matchMedia(MOBILE_SHEET_QUERY).matches
+
+    if (preferDesktopFocus) {
+      initial[0]?.focus({ preventScroll: true })
+    }
 
     const onKeyDown = (event) => {
       if (event.key === 'Tab') {
