@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { appUi } from '../../lib/appUi'
+import { createRuntimeId } from '../../lib/createRuntimeId'
 import ConfirmationDialog from './ConfirmationDialog'
 import { ToastStack } from './Toast'
 
@@ -21,7 +22,7 @@ export default function AppUiProvider({ children }) {
   }, [])
 
   const showToast = useCallback((message, tone = 'info', options = null) => {
-    const id = crypto.randomUUID()
+    const id = createRuntimeId()
     setToasts((current) => [
       ...current,
       {

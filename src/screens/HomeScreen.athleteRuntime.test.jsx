@@ -282,4 +282,36 @@ describe('HomeScreen athlete runtime', () => {
     expect(screen.getByRole('heading', { level: 1, name: /Good morning, Jake/i })).toBeInTheDocument()
     expect(screen.queryByText(/Start Chest/i)).not.toBeInTheDocument()
   })
+
+  it('renders safely when crypto.randomUUID is unavailable on mobile Safari', () => {
+    const getRandomValues = vi.fn((target) => {
+      target.set(Uint8Array.from({ length: 16 }, (_, index) => (index * 11) % 256))
+      return target
+    })
+
+    vi.stubGlobal('crypto', {
+      randomUUID: undefined,
+      getRandomValues,
+    })
+
+    render(
+      <HomeScreen
+        state={buildAthleteState()}
+        onStart={vi.fn()}
+        setScreen={vi.fn()}
+        recoveryIntelligence={{ score: 72 }}
+        userName="Jake"
+        readiness={{ completed: true, score: 80, status: 'Ready' }}
+        onOpenReadiness={vi.fn()}
+        onOpenMobility={vi.fn()}
+        onOpenReset={vi.fn()}
+        nutritionSummary={{ calories: 0, goal: 2200, protein: 0 }}
+        weeklyCheckInRequired={false}
+        currentWeeklyCheckInState={null}
+      />,
+    )
+
+    expect(screen.getByRole('button', { name: 'Ask AVA' })).toBeInTheDocument()
+    expect(screen.queryByText(/Recovery Mode/i)).not.toBeInTheDocument()
+  })
 })

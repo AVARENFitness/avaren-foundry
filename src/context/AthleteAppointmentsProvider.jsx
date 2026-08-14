@@ -66,10 +66,30 @@ export function AthleteAppointmentsProvider({ userId = null, children }) {
       return []
     }
 
+    const authUserId = await resolveAuthenticatedUserId()
+    if (!authUserId) {
+      setAppointments([])
+      setStatus('idle')
+      setError(null)
+      setDiagnostics((current) => ({
+        ...current,
+        authUserPresent: false,
+        userIdSuffix: userIdSuffix(scopedUserId),
+        authSynced: false,
+        rpcRequested: false,
+        rpcStatus: APPOINTMENT_RPC_STATUS.IDLE,
+        currentInstant: nowIso,
+      }))
+      return []
+    }
+
     setStatus('loading')
     setDiagnostics((current) => ({
       ...current,
+      authUserPresent: true,
       userIdSuffix: userIdSuffix(scopedUserId),
+      authSynced: authUserId === scopedUserId,
+      rpcRequested: true,
       rpcStatus: APPOINTMENT_RPC_STATUS.LOADING,
       currentInstant: nowIso,
       lastFetchAt: nowIso,
@@ -85,19 +105,6 @@ export function AthleteAppointmentsProvider({ userId = null, children }) {
     })
 
     try {
-      const authUserId = await resolveAuthenticatedUserId()
-      const authSynced = authUserId === scopedUserId
-
-      setDiagnostics((current) => ({
-        ...current,
-        authUserPresent: Boolean(authUserId),
-        userIdSuffix: userIdSuffix(scopedUserId),
-        authSynced,
-        rpcRequested: true,
-        rpcStatus: APPOINTMENT_RPC_STATUS.LOADING,
-        currentInstant: nowIso,
-      }))
-
       const rows = await coachBackend.listAthleteScheduledSessions({
         expectedUserId: scopedUserId,
       })
@@ -109,6 +116,7 @@ export function AthleteAppointmentsProvider({ userId = null, children }) {
       const normalized = normalizeAthleteAppointmentsFromRpc(rows)
       const upcoming = upcomingAppointmentsFromRpc(normalized)
       const nextAppointment = nextUpcomingAppointmentFromRpc(normalized)
+      const authSynced = authUserId === scopedUserId
 
       setAppointments(normalized)
       setError(null)

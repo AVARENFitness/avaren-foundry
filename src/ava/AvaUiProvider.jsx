@@ -31,6 +31,10 @@ export function AvaUiProvider({
   const [assignments, setAssignments] = useState([])
   const sessionRef = useRef(createAvaSession())
   const appointmentContext = useAthleteAppointmentsContext()
+  const refreshAppointmentsRef = useRef(appointmentContext?.refreshAppointments)
+  const avaOpenRefreshTicketRef = useRef(0)
+
+  refreshAppointmentsRef.current = appointmentContext?.refreshAppointments
 
   useEffect(() => {
     coachBackend
@@ -40,10 +44,18 @@ export function AvaUiProvider({
   }, [])
 
   useEffect(() => {
-    if (open && role !== 'coach') {
-      appointmentContext?.refreshAppointments?.()
+    if (!open || role === 'coach') return
+
+    const ticket = avaOpenRefreshTicketRef.current + 1
+    avaOpenRefreshTicketRef.current = ticket
+    refreshAppointmentsRef.current?.()
+
+    return () => {
+      if (avaOpenRefreshTicketRef.current === ticket) {
+        avaOpenRefreshTicketRef.current += 1
+      }
     }
-  }, [appointmentContext, open, role])
+  }, [open, role])
 
   useEffect(() => {
     if (!open || !appState?.sessionExecutionPlan) return
@@ -81,7 +93,6 @@ export function AvaUiProvider({
     nutrition,
     userName,
     assignments,
-    open,
     appointmentContext?.appointments,
     appointmentContext?.ready,
     appointmentContext?.loading,

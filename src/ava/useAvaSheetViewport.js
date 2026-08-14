@@ -1,9 +1,12 @@
-import { useCallback, useLayoutEffect, useState } from 'react'
+import { useCallback, useLayoutEffect, useRef } from 'react'
 
 export const MOBILE_SHEET_QUERY = '(max-width: 680px)'
 
 export function useAvaSheetViewport({ open, panelRef }) {
-  const [keyboardOpen, setKeyboardOpen] = useState(false)
+  const metricsRef = useRef({
+    maxHeight: '',
+    keyboardOpen: false,
+  })
 
   const applyViewportMetrics = useCallback(() => {
     const panel = panelRef.current
@@ -16,30 +19,40 @@ export function useAvaSheetViewport({ open, panelRef }) {
 
     if (!mobile || !viewport) {
       panel.style.removeProperty('--ava-sheet-max-height')
-      setKeyboardOpen((current) => (current ? false : current))
+      metricsRef.current = { maxHeight: '', keyboardOpen: false }
       return
     }
 
     const visibleHeight = viewport.height
-    const keyboard =
-      visibleHeight < window.innerHeight * 0.82 &&
-      visibleHeight < window.innerHeight - 72
-
-    setKeyboardOpen((current) => (current === keyboard ? current : keyboard))
+    const innerHeight = window.innerHeight
+    const previousKeyboard = metricsRef.current.keyboardOpen
+    const keyboard = previousKeyboard
+      ? visibleHeight < innerHeight * 0.88
+      : visibleHeight < innerHeight * 0.82 && visibleHeight < innerHeight - 72
 
     const topPad = keyboard ? 6 : 12
     const bottomPad = keyboard ? 6 : 12
     const available = visibleHeight - topPad - bottomPad
-    panel.style.setProperty(
-      '--ava-sheet-max-height',
-      `${Math.max(220, Math.floor(available))}px`,
-    )
+    const maxHeight = `${Math.max(220, Math.floor(available))}px`
+    const currentMaxHeight = panel.style.getPropertyValue('--ava-sheet-max-height')
+
+    if (currentMaxHeight !== maxHeight) {
+      panel.style.setProperty('--ava-sheet-max-height', maxHeight)
+    }
+
+    metricsRef.current = {
+      maxHeight,
+      keyboardOpen: keyboard,
+    }
+
+    panel.dataset.avaKeyboardOpen = keyboard ? 'true' : 'false'
   }, [panelRef])
 
   useLayoutEffect(() => {
     if (!open) {
-      setKeyboardOpen(false)
       panelRef.current?.style.removeProperty('--ava-sheet-max-height')
+      panelRef.current?.removeAttribute('data-ava-keyboard-open')
+      metricsRef.current = { maxHeight: '', keyboardOpen: false }
       return undefined
     }
 
@@ -57,10 +70,12 @@ export function useAvaSheetViewport({ open, panelRef }) {
       window.removeEventListener('resize', applyViewportMetrics)
       window.removeEventListener('orientationchange', applyViewportMetrics)
       panelRef.current?.style.removeProperty('--ava-sheet-max-height')
+      panelRef.current?.removeAttribute('data-ava-keyboard-open')
+      metricsRef.current = { maxHeight: '', keyboardOpen: false }
     }
   }, [open, applyViewportMetrics, panelRef])
 
-  return { keyboardOpen }
+  return { keyboardOpen: false }
 }
 
 export default useAvaSheetViewport

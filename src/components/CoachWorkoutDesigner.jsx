@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { COMMON_EXERCISES } from '../data/commonExercises'
+import { createRuntimeId } from '../lib/createRuntimeId'
 
 const MUSCLES = [
   'Chest','Back','Shoulders','Traps','Biceps','Triceps','Rear Delts',
@@ -19,7 +20,7 @@ const MUSCLES = [
 ]
 
 const makeExercise = (name = 'New Exercise', muscle = 'Other') => ({
-  id: crypto.randomUUID(),
+  id: createRuntimeId(),
   name,
   muscle,
   sets: 3,
@@ -36,7 +37,7 @@ const makeExercise = (name = 'New Exercise', muscle = 'Other') => ({
 const normalizeExercise = (exercise) => ({
   ...makeExercise(exercise?.name, exercise?.muscle),
   ...exercise,
-  id: exercise?.id ?? crypto.randomUUID(),
+  id: exercise?.id ?? createRuntimeId(),
   sets: Number(exercise?.sets) || 3,
 })
 

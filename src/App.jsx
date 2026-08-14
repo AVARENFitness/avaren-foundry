@@ -41,6 +41,7 @@ import MoreScreen from './screens/MoreScreen'
 import TrainHubScreen from './screens/TrainHubScreen'
 import AthleteInPersonScheduleScreen from './screens/AthleteInPersonScheduleScreen'
 import { AthleteAppointmentsProvider } from './hooks/useAthleteAppointments'
+import { createRuntimeId } from './lib/createRuntimeId'
 import { resetDocumentModalLayer } from './hooks/useAppModalLayer'
 import NutritionScreen from './screens/NutritionScreen'
 import { createNutritionState, nutritionDateKey, nutritionTotals } from './lib/nutrition'
@@ -1417,7 +1418,7 @@ function App() {
 
   const completeMobilityFlow = () => {
     const completion = {
-      id: crypto.randomUUID(),
+      id: createRuntimeId(),
       flowId: mobilityFlow?.id,
       title: mobilityFlow?.title,
       movementIds:

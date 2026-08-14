@@ -7,6 +7,12 @@ import CoachScheduleSessionSheet from '../components/CoachScheduleSessionSheet'
 
 describe('CoachScheduleSessionSheet', () => {
   it('opens immediately as a focused dialog without requiring page scroll', () => {
+    if (!document.getElementById('root')) {
+      const root = document.createElement('div')
+      root.id = 'root'
+      document.body.appendChild(root)
+    }
+
     render(
       <CoachScheduleSessionSheet
         open
@@ -31,7 +37,8 @@ describe('CoachScheduleSessionSheet', () => {
     expect(screen.getByText('Today')).toBeInTheDocument()
     expect(screen.getByText('Tomorrow')).toBeInTheDocument()
     expect(screen.getByText('Schedule Session')).toBeInTheDocument()
-    expect(document.body.style.overflow).toBe('hidden')
+    expect(document.getElementById('root').style.position).toBe('fixed')
+    expect(document.documentElement.style.overflow).toBe('hidden')
   })
 
   it('does not render when closed', () => {

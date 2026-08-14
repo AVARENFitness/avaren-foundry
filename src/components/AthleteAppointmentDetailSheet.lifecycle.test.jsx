@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import AthleteAppointmentDetailSheet from './AthleteAppointmentDetailSheet'
 import { coachBackend } from '../lib/coachBackend'
@@ -35,8 +35,14 @@ const appointment = {
 describe('AthleteAppointmentDetailSheet modal lifecycle', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    if (!document.getElementById('root')) {
+      const root = document.createElement('div')
+      root.id = 'root'
+      document.body.appendChild(root)
+    }
     document.body.style.overflow = ''
     document.body.style.position = ''
+    document.getElementById('root').style.position = ''
     coachBackend.listAthleteFollowUps.mockResolvedValue([])
     coachBackend.updateSessionRsvp.mockResolvedValue({
       ok: true,
@@ -77,7 +83,7 @@ describe('AthleteAppointmentDetailSheet modal lifecycle', () => {
     await waitFor(() => {
       expect(document.querySelector('[data-app-ui-backdrop="open"]')).toBeNull()
     })
-    expect(document.body.style.overflow).not.toBe('hidden')
+    expect(document.getElementById('root').style.position).not.toBe('fixed')
     expect(document.body.style.position).not.toBe('fixed')
   })
 })

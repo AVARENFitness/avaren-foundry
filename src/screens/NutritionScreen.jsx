@@ -37,6 +37,7 @@ import {
 } from '../lib/nutritionActions'
 import { COMMON_FOODS, FOOD_CATEGORIES } from '../data/commonFoods'
 import { appUi } from '../lib/appUi'
+import { createRuntimeId } from '../lib/createRuntimeId'
 
 const tabs = [
   { label: 'Today', value: 'Today' },
@@ -158,7 +159,7 @@ export default function NutritionScreen({ nutrition, onChange }) {
 
   const saveFood = () => {
     if (!foodDraft.name.trim()) return setNotice('Add a food name first.')
-    const saved = { ...foodDraft, id: crypto.randomUUID(), servings: 1 }
+    const saved = { ...foodDraft, id: createRuntimeId(), servings: 1 }
     patch((current) => ({ ...current, savedFoods: [saved, ...(current.savedFoods ?? [])] }))
     setNotice(`${saved.name} saved.`)
   }
@@ -209,7 +210,7 @@ export default function NutritionScreen({ nutrition, onChange }) {
       ingredients: [
         ...(current.ingredients ?? []),
         {
-          id: crypto.randomUUID(),
+          id: createRuntimeId(),
           foodId: food.id ?? null,
           name: food.name,
           serving: food.serving ?? '1 serving',
@@ -239,7 +240,7 @@ export default function NutritionScreen({ nutrition, onChange }) {
     if (!name) return setNotice('Name the recipe first.')
     if (!(recipeDraft.ingredients ?? []).length) return setNotice('Add at least one ingredient.')
     const recipe = {
-      id: crypto.randomUUID(),
+      id: createRuntimeId(),
       name,
       servings,
       remainingServings: servings,
@@ -258,7 +259,7 @@ export default function NutritionScreen({ nutrition, onChange }) {
     recipes: [
       {
         ...recipe,
-        id: crypto.randomUUID(),
+        id: createRuntimeId(),
         name: `${recipe.name} Copy`,
         remainingServings: recipe.servings,
         createdAt: new Date().toISOString(),

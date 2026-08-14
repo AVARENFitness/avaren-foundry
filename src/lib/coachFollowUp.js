@@ -1,3 +1,5 @@
+import { createRuntimeId } from './createRuntimeId'
+
 export const FOLLOWUP_REASON_TYPE = {
   PAIN_OR_DISCOMFORT: 'PAIN_OR_DISCOMFORT',
   SCHEDULE_CONFLICT: 'SCHEDULE_CONFLICT',
@@ -42,7 +44,7 @@ export const FOLLOWUP_REASON_LABEL = {
 }
 
 export const normalizeCoachFollowUp = (row = {}) => ({
-  id: row.id ?? row.followUpId ?? crypto.randomUUID(),
+  id: row.id ?? row.followUpId ?? createRuntimeId(),
   coachId: row.coach_id ?? row.coachId ?? null,
   athleteId: row.athlete_id ?? row.athleteId ?? null,
   reasonType: row.reason_type ?? row.reasonType ?? FOLLOWUP_REASON_TYPE.ATHLETE_QUESTION,

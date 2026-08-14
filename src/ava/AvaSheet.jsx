@@ -46,9 +46,9 @@ import AvaFollowUpProposalCard from './AvaFollowUpProposalCard'
 import { buildConfirmationPreview } from './buildConfirmationPreview'
 import { useAva } from './useAva'
 import { useFocusTrap } from './useFocusTrap'
-import { useBodyScrollLock } from './useBodyScrollLock'
-import { resetDocumentModalLayer } from '../hooks/useAppModalLayer'
+import { useAppModalLayer } from '../hooks/useAppModalLayer'
 import { useAvaSheetViewport } from './useAvaSheetViewport'
+import AvaSheetErrorBoundary from './AvaSheetErrorBoundary'
 import {
   isNearTranscriptBottom,
   scrollTranscriptToBottom,
@@ -139,14 +139,8 @@ export default function AvaSheet({
   }, [nutrition, undoRevision, session, open])
 
   useFocusTrap(panelRef, open)
-  useBodyScrollLock(open)
-  useEffect(() => {
-    if (!open) {
-      resetDocumentModalLayer()
-    }
-  }, [open])
-  useEffect(() => () => resetDocumentModalLayer(), [])
-  const { keyboardOpen } = useAvaSheetViewport({
+  useAppModalLayer(open)
+  useAvaSheetViewport({
     open,
     panelRef,
   })
@@ -161,6 +155,13 @@ export default function AvaSheet({
     if (event.target !== event.currentTarget) return
     if (Date.now() - openedAtRef.current < 400) return
     onClose?.()
+  }
+
+  const handleComposerFocus = () => {
+    stickToBottomRef.current = true
+    requestAnimationFrame(() => {
+      scrollTranscriptToBottom(transcriptRef.current, 'auto')
+    })
   }
 
   useEffect(() => {
@@ -181,18 +182,20 @@ export default function AvaSheet({
 
   useEffect(() => {
     if (!open) {
-      openedRef.current = false
-      setInput('')
-      setLoading(false)
-      setMessages([])
-      setSuggestedPrompts([])
-      setPendingResponse(null)
-      setShowPreview(false)
-      setClarification(null)
-      setPendingUserMessage('')
-      setPendingContextLabel(null)
-      setUndoMessageId(null)
-      clearNutritionTransactionFingerprints()
+      if (openedRef.current) {
+        openedRef.current = false
+        setInput('')
+        setLoading(false)
+        setMessages([])
+        setSuggestedPrompts([])
+        setPendingResponse(null)
+        setShowPreview(false)
+        setClarification(null)
+        setPendingUserMessage('')
+        setPendingContextLabel(null)
+        setUndoMessageId(null)
+        clearNutritionTransactionFingerprints()
+      }
       return
     }
 
@@ -238,13 +241,6 @@ export default function AvaSheet({
 
   const handleTranscriptScroll = () => {
     stickToBottomRef.current = isNearTranscriptBottom(transcriptRef.current)
-  }
-
-  const handleComposerFocus = () => {
-    stickToBottomRef.current = true
-    requestAnimationFrame(() => {
-      scrollTranscriptToBottom(transcriptRef.current, 'auto')
-    })
   }
 
   const syncCandidatesFromPending = () => {
@@ -723,19 +719,20 @@ export default function AvaSheet({
 
   if (!open) return null
 
-  // AVA sheet keeps its own keyboard viewport contract (backdropRef) but must
-  // still expose the canonical open marker so app-ui.css does not hide it.
+  // AVA sheet keeps its own keyboard viewport contract but must still expose the
+  // canonical open marker so app-ui.css does not hide it.
   return createPortal(
-    <div
-      ref={backdropRef}
-      className={`ava-sheet-backdrop app-ui-backdrop${keyboardOpen ? ' ava-sheet-backdrop--keyboard' : ''}`}
-      role="presentation"
-      data-app-ui-backdrop="open"
-      onClick={handleBackdropClick}
-    >
+    <AvaSheetErrorBoundary onClose={onClose}>
+      <div
+        ref={backdropRef}
+        className="ava-sheet-backdrop app-ui-backdrop"
+        role="presentation"
+        data-app-ui-backdrop="open"
+        onClick={handleBackdropClick}
+      >
       <section
         ref={panelRef}
-        className={`ava-sheet ava-sheet--conversation${keyboardOpen ? ' ava-sheet--keyboard' : ''}`}
+        className="ava-sheet ava-sheet--conversation"
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
@@ -978,7 +975,8 @@ export default function AvaSheet({
           </button>
         </form>
       </section>
-    </div>,
+      </div>
+    </AvaSheetErrorBoundary>,
     document.body,
   )
 }

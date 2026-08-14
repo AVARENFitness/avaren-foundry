@@ -18763,6 +18763,7 @@ input, textarea, select {
 
   .ava-sheet-backdrop {
     align-items: flex-end;
+    pointer-events: auto;
   }
 
   .ava-sheet-backdrop--keyboard {
@@ -18771,7 +18772,9 @@ input, textarea, select {
 
   .ava-sheet--conversation,
   .ava-sheet {
+    width: 100%;
     max-height: var(--ava-sheet-max-height, min(92dvh, 720px));
+    margin: 0 auto;
   }
 
   .ava-sheet--keyboard {

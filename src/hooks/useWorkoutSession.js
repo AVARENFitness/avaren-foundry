@@ -24,8 +24,10 @@ import {
   findAppointmentLinkedToAssignment,
 } from '../lib/coachingAppointment'
 
+import { createRuntimeId } from '../lib/createRuntimeId'
+
 const makeSet = (number, type = 'Working') => ({
-  id: crypto.randomUUID(),
+  id: createRuntimeId(),
   number,
   type,
   weight: '',
@@ -91,13 +93,13 @@ export function useWorkoutSession({
     const definitions = state.program.workouts[name] ?? []
 
     return {
-      id: crypto.randomUUID(),
+      id: createRuntimeId(),
       name,
       date: new Date().toISOString().slice(0, 10),
       startedAt: new Date().toISOString(),
       activeExerciseIndex: 0,
       exercises: definitions.map((exercise) => ({
-        id: crypto.randomUUID(),
+        id: createRuntimeId(),
         name: exercise.name,
         muscle: exercise.muscle,
         supersetGroup: exercise.supersetGroup || '',
@@ -340,7 +342,7 @@ export function useWorkoutSession({
     }
 
     const activeWorkout = {
-      id: crypto.randomUUID(),
+      id: createRuntimeId(),
       assignmentId: assignment.id,
       name: definition.name,
       date: new Date().toISOString().slice(0, 10),
@@ -349,7 +351,7 @@ export function useWorkoutSession({
       coachNotes: assignment.coach_notes ?? '',
       exercises: definition.exercises.map(
         (exercise) => ({
-          id: crypto.randomUUID(),
+          id: createRuntimeId(),
           name: exercise.name,
           muscle: exercise.muscle ?? 'Other',
           supersetGroup:
@@ -497,7 +499,7 @@ export function useWorkoutSession({
     setState((current) => {
       const activeWorkout = structuredClone(current.activeWorkout)
       activeWorkout.exercises.push({
-        id: crypto.randomUUID(),
+        id: createRuntimeId(),
         name,
         muscle,
         oneTime: true,
@@ -687,7 +689,7 @@ export function useWorkoutSession({
             ? [
                 ...current.achievements,
                 {
-                  id: crypto.randomUUID(),
+                  id: createRuntimeId(),
                   name: 'First Foundry Workout',
                   earnedAt: new Date().toISOString(),
                 },

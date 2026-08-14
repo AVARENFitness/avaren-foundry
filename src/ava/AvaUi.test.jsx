@@ -5,6 +5,7 @@ import { createNutritionState } from '../lib/nutrition'
 import { nutritionDateKey } from '../lib/nutrition'
 import { AvaProvider } from './AvaContext'
 import { AvaUiProvider } from './AvaUiProvider'
+import { clearNutritionTransactionFingerprints } from './avaNutritionExecutor'
 
 function renderAvaUi({ enabled = true, nutrition = createNutritionState() } = {}) {
   const onNutritionChange = vi.fn()
@@ -27,6 +28,7 @@ function renderAvaUi({ enabled = true, nutrition = createNutritionState() } = {}
 describe('AVA UI', () => {
   beforeEach(() => {
     vi.restoreAllMocks()
+    clearNutritionTransactionFingerprints()
   })
 
   it('never opens AVA automatically', () => {

@@ -3,6 +3,7 @@ import {
   emptyNutritionDay,
   nutritionDateKey,
 } from './nutrition'
+import { createRuntimeId } from './createRuntimeId'
 
 export const nutritionRound = (value) =>
   Math.round(Number(value || 0) * 10) / 10
@@ -11,7 +12,7 @@ export function buildFoodEntry(food, source = 'manual', entryId = null) {
   const servings = Number(food.servings || 1)
 
   return {
-    id: entryId ?? crypto.randomUUID(),
+    id: entryId ?? createRuntimeId(),
     source,
     name: food.name.trim(),
     servings,

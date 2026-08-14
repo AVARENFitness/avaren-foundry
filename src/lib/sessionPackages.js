@@ -1,3 +1,5 @@
+import { createRuntimeId } from './createRuntimeId'
+
 const DAY_MS = 86400000
 
 export const todayKey = (date = new Date()) =>
@@ -101,7 +103,7 @@ export const recordSessionOnPackage = (
   }
 
   const historyEntry = {
-    id: options.historyId ?? crypto.randomUUID(),
+    id: options.historyId ?? createRuntimeId(),
     packageId: pkg.id,
     sessionDate: options.sessionDate ?? todayKey(options.now),
     coachLabel: options.coachLabel ?? 'Coach',

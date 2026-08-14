@@ -12,6 +12,7 @@ import {
   SESSION_MODE,
   sessionModeLabel,
 } from '../../lib/sessionMode'
+import { createRuntimeId } from '../../lib/createRuntimeId'
 import {
   buildPainExecutionResponse,
   extractMentionedExercise,
@@ -86,7 +87,7 @@ const buildFollowUpProposal = ({
   scheduledSessionId = null,
   coachId = null,
 } = {}) => ({
-  id: crypto.randomUUID(),
+  id: createRuntimeId(),
   reasonType,
   summary,
   exerciseName,

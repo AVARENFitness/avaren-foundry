@@ -8,6 +8,7 @@ import { buildMilestones } from './milestones'
 import { calculateRecoveryIntelligence } from '../data/mobility'
 import { calculateReadiness } from './readiness'
 import { buildTrainingRecommendation } from './trainingRecommendations'
+import { createRuntimeId } from './createRuntimeId'
 import { resolveTodayWorkoutContext } from './todayWorkout'
 
 export const COACH_CATEGORIES = {
@@ -65,7 +66,7 @@ const makeInsight = ({
   key,
   expiresInDays = 3,
 }) => ({
-  id: crypto.randomUUID(),
+  id: createRuntimeId(),
   category,
   priority,
   title,

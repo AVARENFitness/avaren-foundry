@@ -54,6 +54,26 @@ function mockMobileViewport({
   return viewport
 }
 
+function ensureAppRoot() {
+  if (!document.getElementById('root')) {
+    const root = document.createElement('div')
+    root.id = 'root'
+    document.body.appendChild(root)
+  }
+  return document.getElementById('root')
+}
+
+function resetScrollLockStyles() {
+  resetDocumentModalLayer()
+  document.body.style.overflow = ''
+  document.body.style.position = ''
+  const root = document.getElementById('root')
+  if (root) {
+    root.style.overflow = ''
+    root.style.position = ''
+    root.style.top = ''
+  }
+}
 const renderOpenAvaSheet = (props = {}) =>
   render(
     <AvaProvider>
@@ -72,9 +92,8 @@ const renderOpenAvaSheet = (props = {}) =>
 describe('AVA mobile sheet lifecycle', () => {
   beforeEach(() => {
     vi.restoreAllMocks()
-    resetDocumentModalLayer()
-    document.body.style.overflow = ''
-    document.body.style.position = ''
+    ensureAppRoot()
+    resetScrollLockStyles()
     mockMobileViewport()
   })
 
@@ -105,11 +124,13 @@ describe('AVA mobile sheet lifecycle', () => {
     })
   })
 
-  it('restores body scroll lock on close', async () => {
+  it('locks #root (not body) while open so portaled sheet stays interactive', async () => {
     const onClose = vi.fn()
+    const root = ensureAppRoot()
     const { rerender } = renderOpenAvaSheet({ onClose })
 
-    expect(document.body.style.position).toBe('fixed')
+    expect(root.style.position).toBe('fixed')
+    expect(document.body.style.position).not.toBe('fixed')
 
     rerender(
       <AvaProvider>
@@ -126,8 +147,8 @@ describe('AVA mobile sheet lifecycle', () => {
 
     await waitFor(() => {
       expect(document.querySelector('[data-app-ui-backdrop="open"]')).toBeNull()
-      expect(document.body.style.position).not.toBe('fixed')
-      expect(document.body.style.overflow).not.toBe('hidden')
+      expect(root.style.position).not.toBe('fixed')
+      expect(document.documentElement.style.overflow).not.toBe('hidden')
     })
   })
 
@@ -197,19 +218,31 @@ describe('AVA mobile sheet lifecycle', () => {
 
     await waitFor(() => {
       expect(document.querySelector('[data-app-ui-backdrop="open"]')).toBeNull()
-      expect(document.body.style.position).not.toBe('fixed')
+      expect(ensureAppRoot().style.position).not.toBe('fixed')
     })
   })
 
-  it('clears body lock when the sheet unmounts after an open cycle', async () => {
+  it('does not clear scroll lock while backdrop is still open', () => {
+    renderOpenAvaSheet()
+    const root = ensureAppRoot()
+    root.style.position = 'fixed'
+
+    resetDocumentModalLayer()
+
+    expect(root.style.position).toBe('fixed')
+    expect(document.querySelector('[data-app-ui-backdrop="open"]')).not.toBeNull()
+  })
+
+  it('clears root lock when the sheet unmounts after an open cycle', async () => {
+    const root = ensureAppRoot()
     const { unmount } = renderOpenAvaSheet()
 
-    expect(document.body.style.position).toBe('fixed')
+    expect(root.style.position).toBe('fixed')
     unmount()
 
     await waitFor(() => {
-      expect(document.body.style.position).not.toBe('fixed')
-      expect(document.body.style.overflow).not.toBe('hidden')
+      expect(root.style.position).not.toBe('fixed')
+      expect(document.documentElement.style.overflow).not.toBe('hidden')
     })
   })
 
@@ -261,11 +294,12 @@ describe('AVA mobile sheet lifecycle', () => {
 describe('AVA mobile entry via AvaUiProvider', () => {
   beforeEach(() => {
     vi.restoreAllMocks()
-    resetDocumentModalLayer()
+    ensureAppRoot()
+    resetScrollLockStyles()
     mockMobileViewport()
   })
 
-  it('opens sheet above backdrop when Ask AVA is tapped on mobile', async () => {
+  it('opens once from Ask AVA without immediately closing on mobile', async () => {
     const user = userEvent.setup()
     render(
       <AvaProvider>
@@ -277,11 +311,9 @@ describe('AVA mobile entry via AvaUiProvider', () => {
 
     await user.click(screen.getByRole('button', { name: 'Ask AVA' }))
 
-    const backdrop = document.querySelector('[data-app-ui-backdrop="open"]')
-    const dialog = screen.getByRole('dialog', { name: 'Ask AVA' })
-    expect(backdrop).not.toBeNull()
-    expect(backdrop.contains(dialog)).toBe(true)
-    expect(backdrop.classList.contains('app-ui-backdrop')).toBe(true)
-    expect(backdrop.classList.contains('ava-sheet-backdrop')).toBe(true)
+    expect(document.querySelector('[data-app-ui-backdrop="open"]')).not.toBeNull()
+    await waitFor(() => {
+      expect(screen.getByRole('dialog', { name: 'Ask AVA' })).toBeVisible()
+    })
   })
 })

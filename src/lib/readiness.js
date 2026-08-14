@@ -1,3 +1,5 @@
+import { createRuntimeId } from './createRuntimeId'
+
 const SCORE_MIN = 1
 const SCORE_MAX = 5
 
@@ -71,7 +73,7 @@ export const saveReadinessEntry = (
   const entry = {
     id:
       readinessEntryForDate(readinessState, date)?.id ??
-      crypto.randomUUID(),
+      createRuntimeId(),
     date: dateKey,
     sleep: normalizeRating(values.sleep),
     energy: normalizeRating(values.energy),
