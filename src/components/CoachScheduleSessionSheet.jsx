@@ -1,5 +1,9 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
-import { CalendarDays, ChevronDown } from 'lucide-react'
+import {
+  CalendarDays,
+  ChevronDown,
+  ChevronUp,
+} from 'lucide-react'
 import AppUiBackdrop from './ui/AppUiBackdrop'
 import AppUiCloseButton from './ui/AppUiCloseButton'
 import { getClientDisplayName } from '../lib/clientDisplayName'
@@ -43,6 +47,7 @@ export default function CoachScheduleSessionSheet({
   const dateInputRef = useRef(null)
   const [timeError, setTimeError] = useState('')
   const [openMenu, setOpenMenu] = useState(null)
+  const [showMoreOptions, setShowMoreOptions] = useState(false)
 
   const todayKey = dateKey(new Date(), scheduleTimezone)
   const tomorrowKey = addDaysKey(todayKey, 1)
@@ -90,6 +95,7 @@ export default function CoachScheduleSessionSheet({
     panelRef.current?.scrollTo?.(0, 0)
     setTimeError('')
     setOpenMenu(null)
+    setShowMoreOptions(false)
 
     return () => {
       window.removeEventListener('keydown', onKeyDown)
@@ -176,8 +182,7 @@ export default function CoachScheduleSessionSheet({
       >
         <header className="coach-schedule-session-sheet-header">
           <div>
-            <span className="eyebrow">SCHEDULE SESSION</span>
-            <h2 id={titleId}>In-person training</h2>
+            <h2 id={titleId}>Schedule appointment</h2>
           </div>
           <AppUiCloseButton onClick={onClose} />
         </header>
@@ -359,7 +364,23 @@ export default function CoachScheduleSessionSheet({
             </div>
           </div>
 
-          <div className="coach-schedule-field-group">
+          <button
+            type="button"
+            className="coach-schedule-more-toggle"
+            aria-expanded={showMoreOptions}
+            onClick={() => setShowMoreOptions((current) => !current)}
+          >
+            More options
+            {showMoreOptions ? (
+              <ChevronUp size={16} strokeWidth={1.75} aria-hidden="true" />
+            ) : (
+              <ChevronDown size={16} strokeWidth={1.75} aria-hidden="true" />
+            )}
+          </button>
+
+          {showMoreOptions ? (
+            <>
+          <div className="coach-schedule-field-group coach-schedule-field-group--secondary">
             <span className="coach-schedule-field-label">Location</span>
             <div className="coach-schedule-picker">
               <button
@@ -514,6 +535,13 @@ export default function CoachScheduleSessionSheet({
               />
             </div>
           </label>
+            </>
+          ) : null}
+
+          <div className="coach-schedule-field-group coach-schedule-field-group--secondary coach-schedule-repeat-placeholder">
+            <span className="coach-schedule-field-label">Repeat</span>
+            <p className="coach-schedule-repeat-copy">Recurring appointments coming soon.</p>
+          </div>
 
         </div>
 
@@ -531,7 +559,7 @@ export default function CoachScheduleSessionSheet({
             disabled={submitting || !draft.athleteId}
             onClick={handleSubmit}
           >
-            {submitting ? 'Scheduling…' : 'Schedule Session'}
+            {submitting ? 'Saving…' : 'Save appointment'}
           </button>
         </footer>
       </section>

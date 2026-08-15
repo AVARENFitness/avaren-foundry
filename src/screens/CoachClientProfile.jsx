@@ -121,6 +121,7 @@ export default function CoachClientProfile({
   onAssignProgram,
   onBuildProgram,
   onOpenWeeklyReview,
+  onScheduleAppointment,
   notice = '',
   onClientUpdated,
   onClientArchived,
@@ -706,9 +707,9 @@ export default function CoachClientProfile({
               <button
                 type="button"
                 className="coach-secondary-button"
-                onClick={() => setActiveSection('sessions')}
+                onClick={onScheduleAppointment}
               >
-                Schedule
+                Schedule appointment
               </button>
               <button
                 type="button"

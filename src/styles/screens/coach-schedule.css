@@ -320,3 +320,162 @@
     width: 100%;
   }
 }
+
+/* ===== PATCH 8.14A · COACH CALENDAR USABILITY ===== */
+
+.coach-session-calendar-screen {
+  gap: 18px;
+  padding-top: max(0px, env(safe-area-inset-top));
+}
+
+.coach-session-calendar-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.coach-session-calendar-title-row h1 {
+  margin: 0;
+  font-size: clamp(1.45rem, 4vw, 1.85rem);
+}
+
+.coach-session-calendar-header {
+  display: grid;
+  gap: 14px;
+}
+
+.coach-session-calendar-view-toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding: 4px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--ink) 88%, transparent);
+  border: 1px solid color-mix(in srgb, var(--gold) 10%, transparent);
+}
+
+.coach-session-calendar-view-toggle button {
+  min-height: 44px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 650;
+}
+
+.coach-session-calendar-view-toggle button.active {
+  background: color-mix(in srgb, var(--gold) 12%, transparent);
+  color: var(--cream);
+}
+
+.coach-session-calendar-schedule {
+  min-height: 44px;
+  white-space: nowrap;
+}
+
+.coach-session-calendar-day-heading h2 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 650;
+  color: var(--cream);
+}
+
+.coach-session-calendar-day-chip em {
+  font-style: normal;
+  font-size: 0.68rem;
+  color: var(--muted);
+}
+
+.coach-session-calendar-empty {
+  display: grid;
+  gap: 12px;
+  justify-items: start;
+  padding: 8px 0;
+}
+
+.coach-session-calendar-empty p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.coach-session-calendar-hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.coach-session-calendar-loading {
+  margin: 0;
+  color: var(--muted);
+}
+
+.coach-appointment-card--past {
+  opacity: 0.58;
+}
+
+.coach-appointment-card--next {
+  border-color: color-mix(in srgb, var(--gold) 34%, transparent);
+  background: color-mix(in srgb, var(--gold) 6%, var(--surface-elevated));
+}
+
+.coach-appointment-card-next-label {
+  display: inline-flex;
+  align-self: start;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--gold) 14%, transparent);
+  color: var(--gold-bright);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.coach-schedule-more-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid color-mix(in srgb, var(--gold) 12%, transparent);
+  border-radius: 12px;
+  background: transparent;
+  color: color-mix(in srgb, var(--cream) 78%, var(--muted));
+  font: inherit;
+  font-weight: 650;
+}
+
+.coach-schedule-repeat-placeholder {
+  opacity: 0.72;
+}
+
+.coach-schedule-repeat-copy {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+@media (max-width: 420px) {
+  .coach-session-calendar-week-strip {
+    overflow-x: auto;
+    grid-template-columns: repeat(7, minmax(72px, 1fr));
+    padding-bottom: 4px;
+    scrollbar-width: none;
+  }
+
+  .coach-session-calendar-week-strip::-webkit-scrollbar {
+    display: none;
+  }
+
+  .coach-session-calendar-title-row {
+    flex-wrap: wrap;
+  }
+
+  .coach-session-calendar-schedule {
+    width: 100%;
+    justify-content: center;
+  }
+}

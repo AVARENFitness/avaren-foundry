@@ -1,9 +1,6 @@
 import { getClientDisplayName } from '../../lib/clientDisplayName'
-import {
-  coachAppointmentCardStatus,
-  formatAppointmentDuration,
-  locationLabel,
-} from '../../lib/coachingAppointment'
+import { coachAppointmentRowStatus } from '../../lib/coachCalendarUi'
+import { formatAppointmentDuration } from '../../lib/coachingAppointment'
 import { formatScheduledSessionTime } from '../../lib/sessionTimezone'
 import { isRsvpException } from '../../lib/sessionRsvp'
 
@@ -12,35 +9,41 @@ export default function CoachAppointmentCard({
   client = null,
   onClick,
   className = '',
+  isPast = false,
+  isNext = false,
 }) {
   const clientName = getClientDisplayName(client ?? {}) || 'Client'
   const time = formatScheduledSessionTime(session)
   const duration = formatAppointmentDuration(session)
-  const place = locationLabel(session)
-  const placeLabel =
-    place && place !== 'Default location' ? place : 'AVAREN Gym'
-  const status = coachAppointmentCardStatus(session)
-  const showStatus =
-    status !== 'Scheduled' ||
-    isRsvpException(session) ||
-    session?.rsvpStatus === 'confirmed' ||
-    session?.rsvpStatus === 'awaiting_response'
+  const status = coachAppointmentRowStatus(session)
+  const needsAttention = isRsvpException(session)
 
   return (
     <button
       type="button"
-      className={`coach-appointment-card${isRsvpException(session) ? ' coach-appointment-card--attention' : ''} ${className}`.trim()}
+      className={[
+        'coach-appointment-card',
+        isPast ? 'coach-appointment-card--past' : '',
+        isNext ? 'coach-appointment-card--next' : '',
+        needsAttention ? 'coach-appointment-card--attention' : '',
+        className,
+      ]
+        .filter(Boolean)
+        .join(' ')}
       onClick={() => onClick?.(session)}
       data-testid="coach-appointment-card"
+      data-past={isPast ? 'true' : 'false'}
+      data-next={isNext ? 'true' : 'false'}
     >
       <div className="coach-appointment-card-main">
+        {isNext ? (
+          <span className="coach-appointment-card-next-label">Next</span>
+        ) : null}
         <strong className="coach-appointment-card-time">{time}</strong>
         <span className="coach-appointment-card-client">{clientName}</span>
-        <span className="coach-appointment-card-meta">
-          {duration} · {placeLabel}
-        </span>
+        <span className="coach-appointment-card-meta">{duration}</span>
       </div>
-      {showStatus ? (
+      {status ? (
         <span
           className={`coach-appointment-card-status coach-appointment-card-status--${status.toLowerCase().replace(/\s+/g, '-')}`}
         >

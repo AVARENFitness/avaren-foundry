@@ -1,11 +1,19 @@
 import {
-  CalendarDays,
   ChevronLeft,
   ChevronRight,
   Plus,
 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { appointmentLinkageUserMessage } from '../lib/coachBusinessClientLinkage'
+import {
+  COACH_CALENDAR_VIEW,
+  appointmentsForCoachDayAgenda,
+  countActiveAppointmentsByDay,
+  formatCoachCalendarDayHeading,
+  formatCoachCalendarWeekHeading,
+  identifyNextCoachAppointment,
+  isPastCoachAppointment,
+} from '../lib/coachCalendarUi'
 import { appUi } from '../lib/appUi'
 import { coachBackend } from '../lib/coachBackend'
 import {
@@ -27,21 +35,14 @@ import {
 import CoachPassSelectionModal from './coach/CoachPassSelectionModal'
 import CoachMissedChargeSheet from './coach/CoachMissedChargeSheet'
 import CoachSessionDetailSheet from './coach/CoachSessionDetailSheet'
-import EmptyState from './ui/EmptyState'
 import CoachAppointmentCard from './coach/CoachAppointmentCard'
 import CoachScheduleSessionSheet from './CoachScheduleSessionSheet'
 import { getClientDisplayName } from '../lib/clientDisplayName'
 import { useCoachSessionDetail } from '../hooks/useCoachSessionDetail'
-import {
-  formatCoachCalendarEmptyHint,
-  partitionCoachCalendarAppointments,
-  appointmentsOnSelectedDay,
-} from '../lib/coachingAppointment'
+import { formatCoachCalendarEmptyHint } from '../lib/coachingAppointment'
 import {
   buildCoachRsvpAlert,
   isRsvpException,
-  rsvpCoachLabel,
-  sortSessionsForCoachToday,
 } from '../lib/sessionRsvp'
 
 const ICON = { size: 18, strokeWidth: 1.75 }
@@ -67,9 +68,11 @@ export default function CoachSessionCalendar({
   initialClientId = '',
   initialOpenComposer = false,
   onComposerOpened,
+  onScheduleComplete,
   initialFocusedSessionId = null,
   onFocusedSessionOpened,
 }) {
+  const [viewMode, setViewMode] = useState(COACH_CALENDAR_VIEW.TODAY)
   const [anchor, setAnchor] = useState(new Date())
   const [selectedDayKey, setSelectedDayKey] = useState(() => dateKey(new Date()))
   const [sessions, setSessions] = useState([])
@@ -89,6 +92,14 @@ export default function CoachSessionCalendar({
   })
 
   useEffect(() => {
+    if (!initialClientId) return
+    setDraft((current) => ({
+      ...current,
+      athleteId: initialClientId,
+    }))
+  }, [initialClientId])
+
+  useEffect(() => {
     if (!initialOpenComposer) return
     setShowComposer(true)
     onComposerOpened?.()
@@ -103,7 +114,12 @@ export default function CoachSessionCalendar({
     () => Array.from({ length: 7 }, (_, index) => addDays(weekStart, index)),
     [weekStart],
   )
+  const weekDayKeys = useMemo(
+    () => weekDays.map((day) => dateKey(day)),
+    [weekDays],
+  )
   const todayKey = dateKey(new Date())
+  const now = useMemo(() => new Date(), [sessions, selectedDayKey, todayKey])
 
   const loadSessions = useCallback(async () => {
     setLoading(true)
@@ -125,9 +141,9 @@ export default function CoachSessionCalendar({
 
   useEffect(() => {
     setSelectedDayKey((current) =>
-      weekDays.some((day) => dateKey(day) === current) ? current : todayKey,
+      weekDayKeys.includes(current) ? current : todayKey,
     )
-  }, [weekDays, todayKey])
+  }, [weekDayKeys, todayKey])
 
   useEffect(() => {
     loadSessions()
@@ -203,25 +219,25 @@ export default function CoachSessionCalendar({
     [sessions],
   )
 
-  const weekStartKey = dateKey(weekDays[0])
+  const dayCounts = useMemo(
+    () => countActiveAppointmentsByDay(sortedSessions, weekDayKeys),
+    [sortedSessions, weekDayKeys],
+  )
 
-  const calendarPartitions = useMemo(
+  const agendaDayKey = selectedDayKey
+
+  const agendaSessions = useMemo(
+    () => appointmentsForCoachDayAgenda(sortedSessions, agendaDayKey),
+    [sortedSessions, agendaDayKey],
+  )
+
+  const nextAppointment = useMemo(
     () =>
-      partitionCoachCalendarAppointments(sortedSessions, {
-        todayKey,
-        weekStartKey,
+      identifyNextCoachAppointment(sortedSessions, {
+        now,
+        dayKey: agendaDayKey,
       }),
-    [sortedSessions, todayKey, weekStartKey],
-  )
-
-  const selectedDaySessions = useMemo(
-    () => appointmentsOnSelectedDay(sortedSessions, selectedDayKey),
-    [sortedSessions, selectedDayKey],
-  )
-
-  const todaySessions = useMemo(
-    () => sortSessionsForCoachToday(calendarPartitions.today),
-    [calendarPartitions.today],
+    [sortedSessions, now, agendaDayKey],
   )
 
   const emptyHint = useMemo(
@@ -231,7 +247,7 @@ export default function CoachSessionCalendar({
 
   const todayRsvpAlerts = useMemo(
     () =>
-      todaySessions
+      agendaSessions
         .filter(isRsvpException)
         .map((session) => ({
           id: session.id,
@@ -241,35 +257,50 @@ export default function CoachSessionCalendar({
           ),
         }))
         .filter((entry) => entry.message),
-    [todaySessions, clientByAthleteId],
+    [agendaSessions, clientByAthleteId],
   )
 
   const jumpToToday = () => {
-    const now = new Date()
-    setAnchor(now)
-    setSelectedDayKey(dateKey(now))
+    const current = new Date()
+    setAnchor(current)
+    setSelectedDayKey(dateKey(current))
+    setViewMode(COACH_CALENDAR_VIEW.TODAY)
   }
 
-  const renderDayGroup = ({ date, items }) => {
-    const label = new Date(`${date}T12:00:00`).toLocaleDateString([], {
-      weekday: 'long',
-      month: 'short',
-      day: 'numeric',
-    })
+  const shiftSelectedDay = (delta) => {
+    const nextKey = addDaysKey(selectedDayKey, delta)
+    setSelectedDayKey(nextKey)
+    setAnchor(new Date(`${nextKey}T12:00:00`))
+  }
+
+  const renderAgendaList = (items, { dayKey = agendaDayKey } = {}) => {
+    if (!items.length) {
+      return (
+        <div className="coach-session-calendar-empty">
+          <p>Nothing scheduled {dayKey === todayKey ? 'today' : 'this day'}</p>
+          <button
+            type="button"
+            className="gold-button machined coach-primary-action"
+            onClick={openScheduleComposer}
+          >
+            Schedule appointment
+          </button>
+        </div>
+      )
+    }
 
     return (
-      <div key={date} className="coach-session-calendar-day-group">
-        <h4>{label}</h4>
-        <div className="coach-session-calendar-list">
-          {items.map((session) => (
-            <CoachAppointmentCard
-              key={session.id}
-              session={session}
-              client={clientByAthleteId[session.athleteId]}
-              onClick={sessionDetail.openSession}
-            />
-          ))}
-        </div>
+      <div className="coach-session-calendar-list">
+        {items.map((session) => (
+          <CoachAppointmentCard
+            key={session.id}
+            session={session}
+            client={clientByAthleteId[session.athleteId]}
+            onClick={sessionDetail.openSession}
+            isPast={isPastCoachAppointment(session, now)}
+            isNext={nextAppointment?.id === session.id}
+          />
+        ))}
       </div>
     )
   }
@@ -341,6 +372,9 @@ export default function CoachSessionCalendar({
         setSessions((current) => sortScheduledSessions([...current, normalized]))
       }
       await loadSessions()
+      setSelectedDayKey(scheduledDate)
+      setAnchor(new Date(`${scheduledDate}T12:00:00`))
+      onScheduleComplete?.()
     } catch (error) {
       logAppointmentCreate({
         success: false,
@@ -360,169 +394,173 @@ export default function CoachSessionCalendar({
     }
   }
 
-  const selectedDayLabel = useMemo(() => {
-    const date = new Date(`${selectedDayKey}T12:00:00`)
-    return date.toLocaleDateString([], {
-      weekday: 'long',
-      month: 'short',
-      day: 'numeric',
-    })
-  }, [selectedDayKey])
+  const dayHeading = formatCoachCalendarDayHeading(agendaDayKey)
+  const weekHeading = formatCoachCalendarWeekHeading(dateKey(weekDays[0]))
 
   return (
     <section className="coach-session-calendar-screen">
       <header className="coach-session-calendar-header">
-        <div>
-          <span className="eyebrow">COACH CALENDAR</span>
-          <h2>Training sessions</h2>
-          <p>Today first — in-person sessions stay separate from workout assignments.</p>
+        <div className="coach-session-calendar-title-row">
+          <h1>Calendar</h1>
+          <button
+            type="button"
+            className="gold-button machined coach-primary-action coach-session-calendar-schedule"
+            data-testid="coach-schedule-session-button"
+            onClick={openScheduleComposer}
+          >
+            <Plus {...ICON} />
+            Schedule
+          </button>
         </div>
-        <button
-          type="button"
-          className="gold-button machined coach-primary-action"
-          data-testid="coach-schedule-session-button"
-          onClick={openScheduleComposer}
+
+        <div
+          className="coach-session-calendar-view-toggle"
+          role="tablist"
+          aria-label="Calendar view"
         >
-          <Plus {...ICON} />
-          Schedule Session
-        </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={viewMode === COACH_CALENDAR_VIEW.TODAY}
+            className={viewMode === COACH_CALENDAR_VIEW.TODAY ? 'active' : ''}
+            data-testid="coach-calendar-view-today"
+            onClick={() => {
+              setViewMode(COACH_CALENDAR_VIEW.TODAY)
+              setSelectedDayKey(todayKey)
+              setAnchor(new Date())
+            }}
+          >
+            Today
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={viewMode === COACH_CALENDAR_VIEW.WEEK}
+            className={viewMode === COACH_CALENDAR_VIEW.WEEK ? 'active' : ''}
+            data-testid="coach-calendar-view-week"
+            onClick={() => setViewMode(COACH_CALENDAR_VIEW.WEEK)}
+          >
+            Week
+          </button>
+        </div>
       </header>
 
-      <div className="coach-session-calendar-nav">
-        <div className="coach-session-calendar-toolbar">
+      {viewMode === COACH_CALENDAR_VIEW.TODAY ? (
+        <div className="coach-session-calendar-nav">
+          <div className="coach-session-calendar-toolbar">
+            <button
+              type="button"
+              aria-label="Previous day"
+              onClick={() => shiftSelectedDay(-1)}
+            >
+              <ChevronLeft {...ICON} />
+            </button>
+            <strong>{dayHeading}</strong>
+            <button
+              type="button"
+              aria-label="Next day"
+              onClick={() => shiftSelectedDay(1)}
+            >
+              <ChevronRight {...ICON} />
+            </button>
+          </div>
+          {selectedDayKey !== todayKey ? (
+            <button
+              type="button"
+              className="coach-secondary-button coach-session-calendar-today"
+              data-testid="coach-calendar-jump-today"
+              onClick={jumpToToday}
+            >
+              Today
+            </button>
+          ) : null}
+        </div>
+      ) : (
+        <div className="coach-session-calendar-nav">
+          <div className="coach-session-calendar-toolbar">
+            <button
+              type="button"
+              aria-label="Previous week"
+              onClick={() => setAnchor(addDays(anchor, -7))}
+            >
+              <ChevronLeft {...ICON} />
+            </button>
+            <strong>{weekHeading}</strong>
+            <button
+              type="button"
+              aria-label="Next week"
+              onClick={() => setAnchor(addDays(anchor, 7))}
+            >
+              <ChevronRight {...ICON} />
+            </button>
+          </div>
           <button
             type="button"
-            aria-label="Previous week"
-            onClick={() => setAnchor(addDays(anchor, -7))}
+            className="coach-secondary-button coach-session-calendar-today"
+            data-testid="coach-calendar-jump-today"
+            onClick={jumpToToday}
           >
-            <ChevronLeft {...ICON} />
-          </button>
-          <strong>{selectedDayLabel}</strong>
-          <button
-            type="button"
-            aria-label="Next week"
-            onClick={() => setAnchor(addDays(anchor, 7))}
-          >
-            <ChevronRight {...ICON} />
+            Today
           </button>
         </div>
-        <button
-          type="button"
-          className="coach-secondary-button coach-session-calendar-today"
-          onClick={jumpToToday}
+      )}
+
+      {viewMode === COACH_CALENDAR_VIEW.WEEK ? (
+        <div
+          className="coach-session-calendar-week-strip"
+          role="tablist"
+          aria-label="Week days"
         >
-          Today
-        </button>
-      </div>
+          {weekDays.map((day) => {
+            const key = dateKey(day)
+            const isSelected = key === selectedDayKey
+            const isToday = key === todayKey
+            const count = dayCounts[key] ?? 0
 
-      <div className="coach-session-calendar-week-strip" role="tablist" aria-label="Week days">
-        {weekDays.map((day) => {
-          const key = dateKey(day)
-          const isSelected = key === selectedDayKey
-          const isToday = key === todayKey
-
-          return (
-            <button
-              key={key}
-              type="button"
-              role="tab"
-              aria-selected={isSelected}
-              className={`coach-session-calendar-day-chip${isSelected ? ' is-selected' : ''}${isToday ? ' is-today' : ''}`}
-              onClick={() => setSelectedDayKey(key)}
-            >
-              <span>{day.toLocaleDateString([], { weekday: 'short' })}</span>
-              <strong>{day.getDate()}</strong>
-            </button>
-          )
-        })}
-      </div>
+            return (
+              <button
+                key={key}
+                type="button"
+                role="tab"
+                aria-selected={isSelected}
+                className={`coach-session-calendar-day-chip${isSelected ? ' is-selected' : ''}${isToday ? ' is-today' : ''}`}
+                onClick={() => setSelectedDayKey(key)}
+              >
+                <span>{day.toLocaleDateString([], { weekday: 'short' })}</span>
+                <strong>{day.getDate()}</strong>
+                <em>{count ? `${count} session${count === 1 ? '' : 's'}` : 'Open'}</em>
+              </button>
+            )
+          })}
+        </div>
+      ) : null}
 
       {loading ? (
-        <p>Loading sessions…</p>
+        <p className="coach-session-calendar-loading">Loading sessions…</p>
       ) : (
-        <>
-          {selectedDayKey === todayKey ? (
-            <section className="coach-session-calendar-day-block">
-              <header>
-                <span className="eyebrow">TODAY</span>
-                <h3>{selectedDayLabel}</h3>
-              </header>
-              {todayRsvpAlerts.length > 0 && (
-                <div className="coach-session-rsvp-alerts" role="status">
-                  {todayRsvpAlerts.map((alert) => (
-                    <p key={alert.id}>{alert.message}</p>
-                  ))}
-                </div>
-              )}
-              {todaySessions.length ? (
-                <div className="coach-session-calendar-list">
-                  {todaySessions.map((session) => (
-                    <CoachAppointmentCard
-                      key={session.id}
-                      session={session}
-                      client={clientByAthleteId[session.athleteId]}
-                      onClick={sessionDetail.openSession}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <EmptyState
-                  icon={CalendarDays}
-                  title="No sessions today"
-                  description={
-                    emptyHint ??
-                    'Schedule an in-person session when you are ready.'
-                  }
-                />
-              )}
-            </section>
-          ) : (
-            <section className="coach-session-calendar-day-block">
-              <header>
-                <span className="eyebrow">SELECTED DAY</span>
-                <h3>{selectedDayLabel}</h3>
-              </header>
-              {selectedDaySessions.length ? (
-                <div className="coach-session-calendar-list">
-                  {selectedDaySessions.map((session) => (
-                    <CoachAppointmentCard
-                      key={session.id}
-                      session={session}
-                      client={clientByAthleteId[session.athleteId]}
-                      onClick={sessionDetail.openSession}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <EmptyState
-                  icon={CalendarDays}
-                  title="No sessions this day"
-                  description="Choose another day or schedule a new session."
-                />
-              )}
-            </section>
-          )}
+        <section className="coach-session-calendar-day-block">
+          <header className="coach-session-calendar-day-heading">
+            <h2>{dayHeading}</h2>
+          </header>
 
-          {calendarPartitions.thisWeekByDay.length > 0 && (
-            <section className="coach-session-calendar-day-block">
-              <header>
-                <span className="eyebrow">THIS WEEK</span>
-                <h3>Later this week</h3>
-              </header>
-              {calendarPartitions.thisWeekByDay.map(renderDayGroup)}
-            </section>
-          )}
+          {viewMode === COACH_CALENDAR_VIEW.TODAY &&
+          agendaDayKey === todayKey &&
+          todayRsvpAlerts.length > 0 ? (
+            <div className="coach-session-rsvp-alerts" role="status">
+              {todayRsvpAlerts.map((alert) => (
+                <p key={alert.id}>{alert.message}</p>
+              ))}
+            </div>
+          ) : null}
 
-          {calendarPartitions.upcomingByDay.length > 0 && (
-            <section className="coach-session-calendar-day-block">
-              <header>
-                <span className="eyebrow">UPCOMING</span>
-                <h3>Future sessions</h3>
-              </header>
-              {calendarPartitions.upcomingByDay.map(renderDayGroup)}
-            </section>
-          )}
-        </>
+          {renderAgendaList(agendaSessions, { dayKey: agendaDayKey })}
+
+          {viewMode === COACH_CALENDAR_VIEW.TODAY &&
+          !agendaSessions.length &&
+          emptyHint ? (
+            <p className="coach-session-calendar-hint">{emptyHint}</p>
+          ) : null}
+        </section>
       )}
 
       <CoachScheduleSessionSheet

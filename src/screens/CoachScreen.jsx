@@ -66,6 +66,8 @@ export default function CoachScreen({
   const [historicalReviewId,setHistoricalReviewId]=useState(null)
   const [coachLabelsEnabled,setCoachLabelsEnabled]=useState(false)
   const [openScheduleComposer,setOpenScheduleComposer]=useState(false)
+  const [scheduleClientId,setScheduleClientId]=useState('')
+  const [scheduleReturnClient,setScheduleReturnClient]=useState(null)
   const [showCreateClient,setShowCreateClient]=useState(false)
   const [creatingClient,setCreatingClient]=useState(false)
 
@@ -165,6 +167,24 @@ export default function CoachScreen({
       setBuildView('home')
     }
   }, [screen])
+
+  const openScheduleForClient = (client) => {
+    if (!client) return
+    setScheduleClientId(client.athlete_id ?? '')
+    setScheduleReturnClient(client)
+    setOpenScheduleComposer(true)
+    onNavigateCoachScreen?.('calendar')
+  }
+
+  const handleScheduleComplete = () => {
+    const returnClient = scheduleReturnClient
+    setScheduleClientId('')
+    setScheduleReturnClient(null)
+    if (returnClient) {
+      setSelectedClient(returnClient)
+      onNavigateCoachScreen?.('clients')
+    }
+  }
 
   const openDesigner = ({ clientId = '', template = null } = {}) => {
     setDesignerClientId(clientId || selectedClient?.athlete_id || '')
@@ -427,6 +447,7 @@ export default function CoachScreen({
       onAssignProgram={() => setClientProgramFlow('assign')}
       onBuildProgram={() => setClientProgramFlow('build')}
       onOpenWeeklyReview={()=>openWeeklyReview(selectedClient)}
+      onScheduleAppointment={() => openScheduleForClient(selectedClient)}
       notice={notice}
       onClientUpdated={async (updated, options = {}) => {
         const normalized = normalizeBusinessClientRecord(updated)
@@ -465,9 +486,10 @@ export default function CoachScreen({
           clients={clients}
           assignments={assignments}
           coachEmail={coachEmail}
-          initialClientId={selectedClient?.athlete_id ?? ''}
+          initialClientId={scheduleClientId || selectedClient?.athlete_id || ''}
           initialOpenComposer={openScheduleComposer}
           onComposerOpened={() => setOpenScheduleComposer(false)}
+          onScheduleComplete={handleScheduleComplete}
           initialFocusedSessionId={initialFocusedSessionId}
           onFocusedSessionOpened={onFocusedSessionOpened}
           onOpenClientProfile={(client) => {
