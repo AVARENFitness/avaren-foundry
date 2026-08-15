@@ -122,10 +122,11 @@ describe('HomeScreen athlete runtime', () => {
       />,
     )
 
-    expect(screen.getByRole('heading', { level: 2, name: 'Workout complete' })).toBeInTheDocument()
-    expect(screen.getByText(/Arms · Today/)).toBeInTheDocument()
-    expect(screen.getByText(/Next workout: Legs \+ Core/)).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 2, name: 'Log your food' })).toBeInTheDocument()
+    expect(screen.getByText(/Track nutrition after training/i)).toBeInTheDocument()
+    expect(screen.queryByText(/Next workout:/i)).not.toBeInTheDocument()
     expect(screen.queryByText(/Start Chest/i)).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Start Session/i })).not.toBeInTheDocument()
   })
 
   it('hides weekly check-in reminder when requirement is not_required', () => {

@@ -1,12 +1,16 @@
-import { Bell, Dumbbell, Home, LineChart, UserRound, Utensils } from 'lucide-react'
+import { Bell, CalendarDays, Dumbbell, Home, LineChart, UserRound } from 'lucide-react'
 
 const tabs = [
   { id: 'home', label: 'Home', Icon: Home },
   { id: 'train', label: 'Train', Icon: Dumbbell },
-  { id: 'nutrition', label: 'Nutrition', Icon: Utensils },
+  { id: 'schedule', label: 'Schedule', Icon: CalendarDays },
   { id: 'progress', label: 'Progress', Icon: LineChart },
   { id: 'more', label: 'Account', Icon: UserRound },
 ]
+
+const isTabActive = (screen, tabId) =>
+  screen === tabId ||
+  (tabId === 'schedule' && screen === 'in-person-schedule')
 
 export default function AppShell({
   screen,
@@ -65,7 +69,7 @@ export default function AppShell({
           {tabs.map(({ id, label, Icon }) => (
             <button
               key={id}
-              className={screen === id ? 'active' : ''}
+              className={isTabActive(screen, id) ? 'active' : ''}
               onClick={() => setScreen(id)}
             >
               <Icon size={21} strokeWidth={1.65} />

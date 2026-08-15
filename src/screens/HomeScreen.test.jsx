@@ -249,7 +249,7 @@ describe('HomeScreen weekly check-in discoverability', () => {
       onOpenWeeklyCheckIn: vi.fn(),
     })
 
-    expect(screen.getByText(/DAILY READINESS/i)).toBeInTheDocument()
+    expect(screen.getAllByText(/DAILY READINESS/i).length).toBeGreaterThan(0)
     expect(screen.getByText(/How are you today/i)).toBeInTheDocument()
     expect(screen.getByText(/WEEKLY CHECK-IN/i)).toBeInTheDocument()
     expect(

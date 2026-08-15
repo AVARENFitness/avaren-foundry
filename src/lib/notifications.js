@@ -1,7 +1,10 @@
 import { forgeSnapshot } from './forge'
 import { calculateReadiness } from './readiness'
-import { buildTrainingWeek } from './trainingWeek'
+import { POST_WORKOUT_RECOVERY_WINDOW_MS } from './athleteHomeState'
+import { localCalendarDateKey } from './localCalendarDay'
+import { resolveMissedWorkoutObligations } from './missedWorkoutObligations'
 import { isWeeklyCheckInDue } from './weeklyCheckIn'
+import { assignmentDisplayName } from './coachAssignments'
 
 export const NOTIFICATION_TYPES = {
   READINESS: 'readiness',
@@ -26,8 +29,7 @@ export const NOTIFICATION_ACTIONS = {
 
 const DAY_MS = 86400000
 
-const isoDate = (value = new Date()) =>
-  new Date(value).toISOString().slice(0, 10)
+const isoDate = localCalendarDateKey
 
 const makeNotification = ({
   id,
@@ -79,6 +81,10 @@ const withinHours = (value, hours) => {
 }
 
 const weeklyCheckInNotifications = (state) => {
+  if (state.weeklyCheckInRequired === false) {
+    return []
+  }
+
   const capability = state.weeklyCheckInCapability
   if (
     capability &&
@@ -95,6 +101,10 @@ const weeklyCheckInNotifications = (state) => {
   }
 
   if (!isWeeklyCheckInDue(weeklyState)) {
+    return []
+  }
+
+  if (weeklyState.status === 'not_required') {
     return []
   }
 
@@ -141,34 +151,9 @@ const readinessNotifications = (state) => {
   ]
 }
 
-const workoutNotifications = (state) => {
-  const week = buildTrainingWeek(state)
-  const today = week.find((day) => day.isToday)
+const workoutNotifications = () => []
 
-  if (
-    !today ||
-    today.isRest ||
-    today.completedWorkout ||
-    state.activeWorkout
-  ) {
-    return []
-  }
-
-  return [
-    makeNotification({
-      id: `workout-${today.dateKey}`,
-      type: NOTIFICATION_TYPES.WORKOUT,
-      priority: 78,
-      title: `${today.plannedWorkout} is scheduled today`,
-      body:
-        'Your planned session is ready whenever you are.',
-      action: NOTIFICATION_ACTIONS.START_WORKOUT,
-      actionLabel: 'Start Workout',
-      fingerprint: `workout:${today.dateKey}:${today.plannedWorkout}`,
-      expiresAt: `${today.dateKey}T23:59:59`,
-    }),
-  ]
-}
+export { workoutNotifications }
 
 const recoveryNotifications = (state) => {
   const lastWorkout = latestWorkout(state.history ?? [])
@@ -178,7 +163,7 @@ const recoveryNotifications = (state) => {
     lastWorkout.finishedAt ??
     `${lastWorkout.date}T12:00:00`
 
-  if (!withinHours(finishedAt, 36)) return []
+  if (!withinHours(finishedAt, POST_WORKOUT_RECOVERY_WINDOW_MS / 3600000)) return []
 
   const hasRecoveryFlow = (
     state.mobility?.completed ?? []
@@ -209,30 +194,24 @@ const recoveryNotifications = (state) => {
 }
 
 const missedNotifications = (state) => {
-  const week = buildTrainingWeek(state)
-  const missed = [...week]
-    .filter((day) => day.status === 'missed')
-    .sort((first, second) =>
-      second.dateKey.localeCompare(first.dateKey),
-    )[0]
+  const overdue = resolveMissedWorkoutObligations(state)
 
-  if (!missed) return []
+  if (!overdue.length) return []
+
+  const assignment = overdue[0]
+  const name = assignmentDisplayName(assignment) ?? 'Coach assignment'
 
   return [
     makeNotification({
-      id: `missed-${missed.dateKey}`,
+      id: `missed-assignment-${assignment.id}`,
       type: NOTIFICATION_TYPES.MISSED,
       priority: 68,
-      title: `Missed ${missed.plannedWorkout}`,
-      body:
-        'Review your weekly plan or move the session to a better day.',
-      action: NOTIFICATION_ACTIONS.OPEN_PLANNER,
-      actionLabel: 'Review Plan',
-      fingerprint: `missed:${missed.dateKey}:${missed.plannedWorkout}`,
-      expiresAt: new Date(
-        new Date(`${missed.dateKey}T12:00:00`).getTime() +
-          4 * DAY_MS,
-      ).toISOString(),
+      title: `Overdue: ${name}`,
+      body: 'Your coach assigned this workout and the due date has passed.',
+      action: NOTIFICATION_ACTIONS.START_WORKOUT,
+      actionLabel: 'View Assignment',
+      fingerprint: `missed-assignment:${assignment.id}:${assignment.due_date}`,
+      expiresAt: null,
     }),
   ]
 }

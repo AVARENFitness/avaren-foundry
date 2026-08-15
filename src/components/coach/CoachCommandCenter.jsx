@@ -161,15 +161,13 @@ export default function CoachCommandCenter({
       <header className="coach-command-hero coach-command-hero--compact">
         <div>
           <span className="eyebrow">COACH HUB</span>
-          <h1>Command Center</h1>
+          <h1>Today</h1>
           {!loading && !portfolioLoading && hero ? (
             <p className="coach-command-summary">
               {hero.activeClients} active
-              {attentionCount > 0 ? ` · ${attentionCount} need attention` : ' · all caught up'}
+              {attentionCount > 0 ? ` · ${attentionCount} need attention` : ''}
             </p>
-          ) : (
-            <p>Today&apos;s sessions, who needs you, and quick access to every client.</p>
-          )}
+          ) : null}
         </div>
       </header>
 
@@ -291,10 +289,9 @@ export default function CoachCommandCenter({
       </section>
 
       <section className="coach-command-panel coach-command-tools">
-        <header className="coach-command-panel-header">
+        <header className="coach-command-panel-header coach-command-panel-header--compact">
           <div>
             <span className="eyebrow">QUICK ACTIONS</span>
-            <h2>Go deeper</h2>
           </div>
         </header>
         <div className="coach-command-tools-grid">

@@ -23,7 +23,7 @@ import {
   resolveClientIdentityBadge,
 } from './coachBusinessClient.js'
 import { isPortfolioAthleteClient } from './coachClientRoster.js'
-import { isWeeklyCheckInEligible } from './weeklyCheckInEligibility.js'
+import { isWeeklyCheckInEligible, resolveAthleteCheckInRosterStatus } from './weeklyCheckInEligibility.js'
 import {
   buildCoachAttentionQueue,
   mapAttentionQueueToHubItems,
@@ -1355,11 +1355,11 @@ export const buildCoachPortfolioIntelligence = ({
     const currentCheckIn = weeklyCheckInsByAthleteId[client.athlete_id] ?? null
     const reviewedThisWeek =
       currentReview?.weekStart === weekRange.weekStart
-    const athleteCheckInStatus = isWeeklyCheckInEligible(client)
-      ? isSubmittedWeeklyCheckIn(currentCheckIn, now)
-        ? 'submitted'
-        : 'missing'
-      : 'n/a'
+    const athleteCheckInStatus = resolveAthleteCheckInRosterStatus({
+      client,
+      weeklyCheckIn: currentCheckIn,
+      now,
+    })
 
     return {
       ...entry,

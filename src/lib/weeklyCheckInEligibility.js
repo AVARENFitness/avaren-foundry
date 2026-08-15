@@ -11,15 +11,10 @@ import {
   normalizeCoachingRequirements,
   WEEKLY_CHECK_IN_REQUIREMENT,
 } from './coachClientRequirements.js'
-import { getWeeklyCheckInStatus } from './weeklyCheckIn.js'
+import { getWeeklyCheckInStatus, isSubmittedWeeklyCheckIn } from './weeklyCheckIn.js'
 
 export const isAthleteWeeklyCheckInRequired = (requirements = null) => {
-  const normalized = normalizeCoachingRequirements(
-    requirements ?? {
-      [COACHING_REQUIREMENT_KEYS.WEEKLY_CHECK_IN]:
-        WEEKLY_CHECK_IN_REQUIREMENT.NOT_REQUIRED,
-    },
-  )
+  const normalized = normalizeCoachingRequirements(requirements)
 
   return (
     normalized[COACHING_REQUIREMENT_KEYS.WEEKLY_CHECK_IN] ===
@@ -63,6 +58,34 @@ export const isWeeklyCheckInEligible = (client = {}) => {
 export const isWeeklyCheckInObligationActive = (client = {}) =>
   isWeeklyCheckInEligible(client) &&
   createsActiveWeeklyCheckInObligation(client)
+
+export const isWeeklyCheckInRequired = (coachingRequirements = null) =>
+  isAthleteWeeklyCheckInRequired(coachingRequirements)
+
+export const ROSTER_ATHLETE_CHECK_IN_STATUS = {
+  SUBMITTED: 'submitted',
+  MISSING: 'missing',
+  NOT_REQUIRED: 'not_required',
+  NOT_APPLICABLE: 'n/a',
+}
+
+export const resolveAthleteCheckInRosterStatus = ({
+  client = null,
+  weeklyCheckIn = null,
+  now = new Date(),
+} = {}) => {
+  if (!isWeeklyCheckInEligible(client)) {
+    return ROSTER_ATHLETE_CHECK_IN_STATUS.NOT_APPLICABLE
+  }
+
+  if (!isWeeklyCheckInObligationActive(client)) {
+    return ROSTER_ATHLETE_CHECK_IN_STATUS.NOT_REQUIRED
+  }
+
+  return isSubmittedWeeklyCheckIn(weeklyCheckIn, now)
+    ? ROSTER_ATHLETE_CHECK_IN_STATUS.SUBMITTED
+    : ROSTER_ATHLETE_CHECK_IN_STATUS.MISSING
+}
 
 export const canLoadAthleteIntelligence = (client = {}) =>
   Boolean(resolveAthleteDataId(client))

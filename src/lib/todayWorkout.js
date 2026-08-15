@@ -2,18 +2,18 @@ import {
   assignmentDisplayName,
   resolveActiveCoachAssignment,
 } from './coachAssignments'
+import {
+  localCalendarDateKey,
+  sessionLocalCalendarDateKey,
+} from './localCalendarDay'
 
-const todayKey = (date = new Date()) =>
-  new Date(date).toISOString().slice(0, 10)
+const todayKey = localCalendarDateKey
 
 const findCompletedWorkoutToday = (history = [], now = new Date()) => {
   const key = todayKey(now)
-  return (history ?? []).find((session) => {
-    const finished =
-      session?.finishedAt ??
-      (session?.date ? `${session.date}T12:00:00` : null)
-    return finished && todayKey(new Date(finished)) === key
-  })
+  return (history ?? []).find(
+    (session) => sessionLocalCalendarDateKey(session) === key,
+  )
 }
 
 const normalizeWorkoutName = (value) => {
@@ -44,14 +44,15 @@ const resolveAssignment = (context = {}, now = new Date()) =>
  * 1. Active workout in progress
  * 2. Active coach assignment (assigned/started)
  * 3. state.selectedWorkout
- * 4. Weekly schedule entry for today (when not Rest)
- * 5. program.nextWorkout
+ * 4. program.nextWorkout (rotation pointer — canonical training sequence)
+ *
+ * weeklySchedule informs rest-day context only; it is not a workout obligation.
  */
 export const resolveTodayWorkoutContext = (state = {}, context = {}) => {
   const now = context.now ?? new Date()
   const activeAssignment = resolveAssignment(context, now)
   const scheduled = state.weeklySchedule?.[now.getDay()] ?? null
-  const isRestDay = scheduled === 'Rest'
+  const programWorkout = normalizeWorkoutName(state.program?.nextWorkout)
 
   if (state.activeWorkout?.name) {
     return {
@@ -122,7 +123,7 @@ export const resolveTodayWorkoutContext = (state = {}, context = {}) => {
       startable: Boolean(
         explicitSelection && state.program?.workouts?.[explicitSelection],
       ),
-      isRestDay: isRestDay && !explicitSelection,
+      isRestDay: scheduled === 'Rest' && !explicitSelection && !programWorkout,
       scheduledWorkout: scheduled,
       scheduledFor: todayKey(now),
       date: todayKey(now),
@@ -134,16 +135,13 @@ export const resolveTodayWorkoutContext = (state = {}, context = {}) => {
 
   const name =
     normalizeWorkoutName(state.selectedWorkout) ||
-    (scheduled && scheduled !== 'Rest' ? scheduled : null) ||
-    normalizeWorkoutName(state.program?.nextWorkout) ||
+    programWorkout ||
     null
 
   let source = WORKOUT_SOURCE.NONE
   if (name) {
     if (state.selectedWorkout && name === state.selectedWorkout) {
       source = WORKOUT_SOURCE.SELECTED
-    } else if (scheduled && scheduled !== 'Rest' && name === scheduled) {
-      source = WORKOUT_SOURCE.SCHEDULED
     } else if (
       state.program?.nextWorkout &&
       name === normalizeWorkoutName(state.program.nextWorkout)
@@ -165,7 +163,7 @@ export const resolveTodayWorkoutContext = (state = {}, context = {}) => {
     coachAssigned: false,
     isStartable: Boolean(name && state.program?.workouts?.[name]),
     startable: Boolean(name && state.program?.workouts?.[name]),
-    isRestDay: isRestDay && !name,
+    isRestDay: scheduled === 'Rest' && !name,
     scheduledWorkout: scheduled,
     scheduledFor: todayKey(now),
     date: todayKey(now),

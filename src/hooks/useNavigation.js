@@ -1,15 +1,25 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import {
   COACH_ACTIVE_MODE,
   writeLastActiveMode,
 } from '../lib/coachModePersistence'
 import { canAccessCoachHub } from './useCoachAccess'
 
+const COACH_MODE_SCREEN = 'coach-hub'
+const DEFAULT_ATHLETE_SCREEN = 'home'
+
+export const normalizeAthleteReturnScreen = (screen) => {
+  if (!screen || screen === COACH_MODE_SCREEN) return DEFAULT_ATHLETE_SCREEN
+  if (screen === 'in-person-schedule') return 'schedule'
+  return screen
+}
+
 export function useNavigation({ session, setCoachWorkspace, coachAuthorized = false }) {
   const [screen, setScreen] = useState('home')
   const [coachScreen, setCoachScreen] = useState('clients')
   const [selectedCoachClient, setSelectedCoachClient] = useState(null)
   const [transitioning, setTransitioning] = useState(false)
+  const lastAthleteScreenRef = useRef(DEFAULT_ATHLETE_SCREEN)
 
   const navigate = useCallback((nextScreen, callback) => {
     setTransitioning(true)
@@ -26,6 +36,10 @@ export function useNavigation({ session, setCoachWorkspace, coachAuthorized = fa
       return
     }
 
+    if (screen !== COACH_MODE_SCREEN) {
+      lastAthleteScreenRef.current = normalizeAthleteReturnScreen(screen)
+    }
+
     setCoachWorkspace((current) => ({
       ...current,
       role: 'coach',
@@ -33,7 +47,7 @@ export function useNavigation({ session, setCoachWorkspace, coachAuthorized = fa
     }))
     setSelectedCoachClient(null)
     setCoachScreen('clients')
-    setScreen('coach-hub')
+    setScreen(COACH_MODE_SCREEN)
     if (session?.user?.id) {
       writeLastActiveMode(session.user.id, COACH_ACTIVE_MODE.COACH)
     }
@@ -41,7 +55,7 @@ export function useNavigation({ session, setCoachWorkspace, coachAuthorized = fa
       top: 0,
       behavior: 'auto',
     })
-  }, [session, coachAuthorized, setCoachWorkspace])
+  }, [session, coachAuthorized, setCoachWorkspace, screen])
 
   const exitCoachMode = useCallback(() => {
     setCoachWorkspace((current) => ({
@@ -51,7 +65,9 @@ export function useNavigation({ session, setCoachWorkspace, coachAuthorized = fa
     if (session?.user?.id) {
       writeLastActiveMode(session.user.id, COACH_ACTIVE_MODE.ATHLETE)
     }
-    setScreen('more')
+    setScreen(
+      lastAthleteScreenRef.current ?? DEFAULT_ATHLETE_SCREEN,
+    )
     window.scrollTo({
       top: 0,
       behavior: 'auto',
@@ -69,5 +85,6 @@ export function useNavigation({ session, setCoachWorkspace, coachAuthorized = fa
     navigate,
     enterCoachMode,
     exitCoachMode,
+    lastAthleteScreenBeforeCoach: lastAthleteScreenRef.current,
   }
 }

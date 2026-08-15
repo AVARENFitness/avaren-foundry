@@ -1,3 +1,9 @@
+import {
+  localCalendarDateKey,
+  localStartOfDay,
+  sessionLocalCalendarDateKey,
+} from './localCalendarDay'
+
 const DAY_MS = 86400000
 
 export const WEEKDAY_NAMES = [
@@ -12,14 +18,9 @@ export const WEEKDAY_NAMES = [
 
 export const WEEKDAY_SHORT = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
 
-const startOfDay = (value = new Date()) => {
-  const date = new Date(value)
-  date.setHours(0, 0, 0, 0)
-  return date
-}
+const startOfDay = localStartOfDay
 
-const isoDate = (value) =>
-  startOfDay(value).toISOString().slice(0, 10)
+const isoDate = localCalendarDateKey
 
 const addDays = (value, amount) => {
   const date = startOfDay(value)
@@ -33,13 +34,12 @@ export const startOfWeekSunday = (value = new Date()) => {
   return date
 }
 
-const sessionDate = (session) =>
-  session?.date ??
-  session?.finishedAt?.slice(0, 10) ??
-  null
+const sessionDate = (session) => sessionLocalCalendarDateKey(session)
 
-const mobilityDate = (entry) =>
-  entry?.completedAt?.slice(0, 10) ?? null
+const mobilityDate = (entry) => {
+  if (!entry?.completedAt) return null
+  return localCalendarDateKey(new Date(entry.completedAt))
+}
 
 export function buildTrainingWeek(state = {}, referenceDate = new Date()) {
   const weekStart = startOfWeekSunday(referenceDate)
@@ -76,7 +76,7 @@ export function buildTrainingWeek(state = {}, referenceDate = new Date()) {
       status = 'completed'
     } else if (isToday) {
       status = isRest ? 'rest-today' : 'today'
-    } else if (isPast && !isRest) {
+    } else if (isPast && !isRest && !completedWorkout) {
       status = 'missed'
     } else if (isRest) {
       status = 'rest'

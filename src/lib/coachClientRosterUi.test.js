@@ -51,6 +51,39 @@ describe('coachClientRosterUi', () => {
     expect(resolveRosterAttentionLabel(entry)).toBeNull()
   })
 
+  it('does not show Check-in due when weekly check-in is not required', () => {
+    const entry = {
+      client: {
+        status: 'active',
+        linked_user_id: 'a1',
+        athlete_id: 'a1',
+        coaching_requirements: { weekly_check_in: 'not_required' },
+      },
+      attentionCount: 0,
+      intelligence: null,
+      athleteCheckInStatus: 'not_required',
+      weeklyReviewStatus: 'REVIEW DUE',
+    }
+
+    expect(resolveRosterAttentionLabel(entry)).toBe('Review open')
+  })
+
+  it('shows Check-in due only when status is missing', () => {
+    expect(
+      resolveRosterAttentionLabel({
+        athleteCheckInStatus: 'missing',
+        weeklyReviewStatus: 'N/A',
+      }),
+    ).toBe('Check-in due')
+
+    expect(
+      resolveRosterAttentionLabel({
+        athleteCheckInStatus: 'not_required',
+        weeklyReviewStatus: 'N/A',
+      }),
+    ).toBeNull()
+  })
+
   it('surfaces actionable attention as a single compact label', () => {
     const entry = {
       intelligence: {

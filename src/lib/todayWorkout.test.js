@@ -39,7 +39,7 @@ describe('todayWorkout', () => {
     expect(context.displayName).not.toBe('Arms')
   })
 
-  it('CASE 2: uses scheduled workout when selectedWorkout is absent', () => {
+  it('CASE 2: uses program.nextWorkout when selectedWorkout is absent', () => {
     const state = {
       ...baseState,
       selectedWorkout: null,
@@ -47,8 +47,8 @@ describe('todayWorkout', () => {
 
     const context = resolveTodayWorkoutContext(state, { now: monday })
 
-    expect(context.displayName).toBe('Chest + Back')
-    expect(context.source).toBe(WORKOUT_SOURCE.SCHEDULED)
+    expect(context.displayName).toBe('Arms')
+    expect(context.source).toBe(WORKOUT_SOURCE.PROGRAM)
   })
 
   it('CASE 3: coach-assigned workout overrides rotation and selected workout', () => {

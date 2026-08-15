@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import {
   CalendarDays,
   ClipboardList,
@@ -44,6 +45,24 @@ export default function CoachShell({
   onExit,
   profileMode = false,
 }) {
+  const mainRef = useRef(null)
+
+  useEffect(() => {
+    document.body.classList.add('coach-mode-active')
+    document.documentElement.classList.add('coach-mode-active')
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
+
+    return () => {
+      document.body.classList.remove('coach-mode-active')
+      document.documentElement.classList.remove('coach-mode-active')
+    }
+  }, [])
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
+    mainRef.current?.scrollTo?.({ top: 0, left: 0, behavior: 'auto' })
+  }, [screen, profileMode])
+
   return (
     <div className={`coach-shell${profileMode ? ' coach-shell--profile' : ''}`}>
       {!profileMode && (
@@ -55,14 +74,14 @@ export default function CoachShell({
             <strong>{coachName}</strong>
           </div>
 
-          <button onClick={onExit}>
+          <button type="button" onClick={onExit}>
             <LogOut size={16} />
             Athlete App
           </button>
         </header>
       )}
 
-      <main className="coach-shell-main">
+      <main ref={mainRef} className="coach-shell-main">
         {children}
       </main>
 
@@ -72,6 +91,7 @@ export default function CoachShell({
             ({ id, label, Icon }) => (
               <button
                 key={id}
+                type="button"
                 className={
                   screen === id
                     ? 'active'

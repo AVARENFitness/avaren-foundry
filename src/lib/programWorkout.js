@@ -1,7 +1,12 @@
 import { resolveTodayWorkoutContext, WORKOUT_SOURCE } from './todayWorkout'
+import {
+  localCalendarDateKey,
+  localTomorrowDateKey,
+  localTomorrowLabel,
+  sessionLocalCalendarDateKey,
+} from './localCalendarDay'
 
-const todayKey = (date = new Date()) =>
-  new Date(date).toISOString().slice(0, 10)
+const todayKey = localCalendarDateKey
 
 export const WORKOUT_RECOMMENDATION_STATE = {
   ACTIVE_WORKOUT: 'active-workout',
@@ -16,10 +21,8 @@ export const WORKOUT_RECOMMENDATION_STATE = {
 export const findCompletedWorkoutToday = (history = [], now = new Date()) => {
   const key = todayKey(now)
   return (history ?? []).find((session) => {
-    const finished =
-      session?.finishedAt ??
-      (session?.date ? `${session.date}T12:00:00` : null)
-    return finished && todayKey(new Date(finished)) === key
+    const sessionDay = sessionLocalCalendarDateKey(session)
+    return sessionDay === key
   })
 }
 
@@ -93,21 +96,9 @@ export const listProgramWorkoutChoices = (state = {}) => {
   return [...ordered, ...extras]
 }
 
-const tomorrowLabel = (now = new Date()) => {
-  const tomorrow = new Date(now)
-  tomorrow.setDate(tomorrow.getDate() + 1)
-  return tomorrow.toLocaleDateString([], {
-    weekday: 'long',
-    month: 'short',
-    day: 'numeric',
-  })
-}
+const tomorrowLabel = localTomorrowLabel
 
-const tomorrowDateKey = (now = new Date()) => {
-  const tomorrow = new Date(now)
-  tomorrow.setDate(tomorrow.getDate() + 1)
-  return tomorrow.toISOString().slice(0, 10)
-}
+const tomorrowDateKey = localTomorrowDateKey
 
 /**
  * Canonical workout recommendation — all athlete surfaces should consume this.

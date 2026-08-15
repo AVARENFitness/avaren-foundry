@@ -15,7 +15,10 @@ import {
 import { normalizeAthleteScheduledSession } from '../lib/coachScheduledSessions'
 import { canAthleteUpdateRsvp, RSVP_STATUS, rsvpAthleteLabel } from '../lib/sessionRsvp'
 
-export default function AthleteInPersonScheduleScreen({ onBack }) {
+export default function AthleteInPersonScheduleScreen({
+  onBack,
+  embedded = false,
+}) {
   const {
     upcomingAppointments,
     loading,
@@ -58,15 +61,19 @@ export default function AthleteInPersonScheduleScreen({ onBack }) {
   return (
     <div className="athlete-in-person-schedule-screen">
       <header className="athlete-in-person-schedule-header">
-        <button type="button" className="ui-btn-tertiary athlete-schedule-back" onClick={onBack}>
-          <ChevronLeft size={18} strokeWidth={1.75} aria-hidden="true" />
-          Back
-        </button>
+        {!embedded ? (
+          <button type="button" className="ui-btn-tertiary athlete-schedule-back" onClick={onBack}>
+            <ChevronLeft size={18} strokeWidth={1.75} aria-hidden="true" />
+            Back
+          </button>
+        ) : null}
         <div>
           <span className="eyebrow">SCHEDULE</span>
-          <h1>In-person sessions</h1>
+          <h1>{embedded ? 'Your schedule' : 'In-person sessions'}</h1>
           <p className="athlete-in-person-schedule-lede">
-            Upcoming sessions with your coach.
+            {embedded
+              ? 'Upcoming coaching sessions — date, time, and confirmation status.'
+              : 'Upcoming sessions with your coach.'}
           </p>
         </div>
       </header>
@@ -117,7 +124,8 @@ export default function AthleteInPersonScheduleScreen({ onBack }) {
       ) : ready ? (
         <div className="athlete-in-person-schedule-empty">
           <CalendarDays size={28} strokeWidth={1.5} />
-          <p>No upcoming in-person sessions.</p>
+          <p>No upcoming coaching sessions.</p>
+          <span>When your coach schedules a session, it will appear here.</span>
         </div>
       ) : null}
 

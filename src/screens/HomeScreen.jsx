@@ -10,6 +10,7 @@ import {
   Utensils,
 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
+import { useLocalCalendarDay } from '../hooks/useLocalCalendarDay'
 import { useAvaUi } from '../ava/useAvaUi'
 import AthleteAssignmentHome from '../components/AthleteAssignmentHome'
 import AvaDailyBriefing from '../components/AvaDailyBriefing'
@@ -19,6 +20,11 @@ import { coachBackend } from '../lib/coachBackend'
 import { resolveActiveCoachAssignment } from '../lib/coachAssignments'
 import { recentPRs, sessionVolume } from '../lib/metrics'
 import { resolveTodayWorkoutContext } from '../lib/todayWorkout'
+import {
+  getAthleteHomeState,
+  HOME_ACTION_IDS,
+  mobilityCompletedToday,
+} from '../lib/athleteHomeState'
 import {
   listProgramWorkoutChoices,
   normalizeProgramWorkoutName,
@@ -67,14 +73,6 @@ const sessionDate = (session) =>
   session?.finishedAt ??
   (session?.date ? `${session.date}T12:00:00` : null)
 
-const completedToday = (completions = [], flowId) => {
-  const today = new Date().toISOString().slice(0, 10)
-  return completions.some((item) => {
-    const date = String(item?.completedAt ?? '').slice(0, 10)
-    return date === today && (!flowId || item?.flowId === flowId)
-  })
-}
-
 export default function HomeScreen({
   state,
   onStart,
@@ -98,8 +96,10 @@ export default function HomeScreen({
   onSelectWorkout,
   weeklyCheckInRequired = true,
   navigateToBuilder,
+  trainingRecommendation = null,
 }) {
   const { openAva } = useAvaUi()
+  const localCalendarDay = useLocalCalendarDay()
   const [assignments, setAssignments] = useState([])
   const [showWorkoutSelector, setShowWorkoutSelector] = useState(false)
   const {
@@ -279,14 +279,122 @@ export default function HomeScreen({
   const readinessLabel = readiness?.completed
     ? readiness.status ?? 'Ready'
     : "Complete today's readiness"
-  const movementDone = completedToday(
+  const movementDone = mobilityCompletedToday(
     state.mobility?.completed,
     'daily-reset',
   )
-  const resetDone = completedToday(
+  const resetDone = mobilityCompletedToday(
     state.mobility?.completed,
     'recovery-flow',
   )
+
+  const weeklyCheckInDue =
+    weeklyCheckInRequired && isWeeklyCheckInDue(currentWeeklyCheckInState)
+  const readinessDue = !readiness?.completed
+
+  const homeState = useMemo(() => {
+    const now = new Date()
+    const nextAppt = appointmentsReady
+      ? nextAppointment ?? nextUpcomingAppointmentFromRpc(scheduledSessions)
+      : null
+    const loadAdjusted = Boolean(
+      trainingRecommendation?.recommendation &&
+        trainingRecommendation.recommendation !== 'train-normal',
+    )
+
+    return getAthleteHomeState({
+      now,
+      state,
+      readiness,
+      nutritionSummary,
+      nextAppointment: nextAppt,
+      weeklyCheckInDue,
+      readinessDue,
+      weeklyCheckInRequired,
+      loadAdjusted,
+      readinessFactors: readiness?.factors ?? [],
+      assignments,
+      activeCoachAssignment,
+    })
+  }, [
+    state,
+    readiness,
+    nutritionSummary,
+    nextAppointment,
+    scheduledSessions,
+    appointmentsReady,
+    weeklyCheckInDue,
+    readinessDue,
+    weeklyCheckInRequired,
+    trainingRecommendation,
+    assignments,
+    activeCoachAssignment,
+    localCalendarDay,
+  ])
+
+  const handlePrimaryHomeAction = () => {
+    const action = homeState.primaryAction
+    if (!action?.id) return
+
+    switch (action.id) {
+      case HOME_ACTION_IDS.CONTINUE_WORKOUT:
+      case HOME_ACTION_IDS.START_WORKOUT: {
+        const assignmentId = action.meta?.assignmentId
+        if (assignmentId && activeCoachAssignment?.id === assignmentId) {
+          onStartCoachAssignment?.(activeCoachAssignment)
+          return
+        }
+        onStart()
+        return
+      }
+      case HOME_ACTION_IDS.RECOVERY_FLOW:
+        onOpenReset()
+        return
+      case HOME_ACTION_IDS.MORNING_MOVEMENT:
+        onOpenMobility()
+        return
+      case HOME_ACTION_IDS.NUTRITION:
+        setScreen('nutrition')
+        return
+      case HOME_ACTION_IDS.APPOINTMENT:
+      case HOME_ACTION_IDS.VIEW_SCHEDULE:
+        setScreen('schedule')
+        return
+      case HOME_ACTION_IDS.READINESS:
+        onOpenReadiness()
+        return
+      case HOME_ACTION_IDS.WEEKLY_CHECKIN:
+        onOpenWeeklyCheckIn?.()
+        return
+      case HOME_ACTION_IDS.VIEW_TRAIN:
+        setScreen('train')
+        return
+      default:
+        break
+    }
+  }
+
+  const handleSecondaryHomeAction = (action) => {
+    if (!action?.id) return
+
+    switch (action.id) {
+      case HOME_ACTION_IDS.RECOVERY_FLOW:
+        onOpenReset()
+        return
+      case HOME_ACTION_IDS.MORNING_MOVEMENT:
+        onOpenMobility()
+        return
+      case HOME_ACTION_IDS.NUTRITION:
+        setScreen('nutrition')
+        return
+      case HOME_ACTION_IDS.APPOINTMENT:
+      case HOME_ACTION_IDS.VIEW_SCHEDULE:
+        setScreen('schedule')
+        return
+      default:
+        break
+    }
+  }
 
   const dailyPreview = [
     readiness?.completed
@@ -294,10 +402,6 @@ export default function HomeScreen({
       : 'Readiness pending',
     `${nutritionSummary?.calories || 0} cal logged`,
   ].join(' · ')
-
-  const weeklyCheckInDue =
-    weeklyCheckInRequired && isWeeklyCheckInDue(currentWeeklyCheckInState)
-  const readinessDue = !readiness?.completed
 
   const handleAvaAction = (action) => {
     if (!action) return
@@ -328,6 +432,9 @@ export default function HomeScreen({
         return
       case AVA_ACTION_TYPES.VIEW_PLAN:
         setScreen('train')
+        return
+      case AVA_ACTION_TYPES.OPEN_NUTRITION:
+        setScreen('nutrition')
         return
       default:
         break
@@ -380,22 +487,18 @@ export default function HomeScreen({
       />
 
       <section className="home-today-plan">
-        <span className="eyebrow">TODAY</span>
-        {dashboard.workoutDaySummary?.completedToday && !state.activeWorkout ? (
+        <span className="eyebrow">
+          {homeState.primaryAction?.eyebrow ?? 'TODAY'}
+        </span>
+        {homeState.sections.showWorkoutCompleteState &&
+        !state.activeWorkout ? (
           <>
-            <h2>Workout complete</h2>
-            <p>
-              {dashboard.workoutDaySummary.completedWorkoutName} · Today
-            </p>
-            {dashboard.workoutDaySummary.nextRecommendedWorkout ? (
-              <p className="home-next-workout-note">
-                Next workout: {dashboard.workoutDaySummary.nextRecommendedWorkout}
-                {dashboard.workoutDaySummary.nextRecommendedLabel
-                  ? ` · ${dashboard.workoutDaySummary.nextRecommendedLabel}`
-                  : ''}
-              </p>
+            <h2>{homeState.primaryAction?.label ?? 'Workout complete'}</h2>
+            {homeState.primaryAction?.detail ? (
+              <p>{homeState.primaryAction.detail}</p>
             ) : null}
-            {!activeCoachAssignment ? (
+            {!activeCoachAssignment &&
+            homeState.recommendation?.canStartAnotherToday ? (
               <button
                 type="button"
                 className="ui-btn-secondary athlete-choose-workout-action home-choose-workout-link"
@@ -406,12 +509,15 @@ export default function HomeScreen({
               </button>
             ) : null}
           </>
-        ) : dashboard.isRestDay && !activeCoachAssignment ? (
+        ) : dashboard.isRestDay &&
+          !activeCoachAssignment &&
+          !state.activeWorkout ? (
           <>
             <h2>Rest day</h2>
             <p>Your schedule calls for recovery today.</p>
           </>
-        ) : dashboard.workoutName ? (
+        ) : homeState.primaryAction?.id === HOME_ACTION_IDS.START_WORKOUT ||
+          homeState.primaryAction?.id === HOME_ACTION_IDS.CONTINUE_WORKOUT ? (
           <>
             {dashboard.coachLabel ? (
               <span className="home-coach-ownership eyebrow">{dashboard.coachLabel}</span>
@@ -430,21 +536,13 @@ export default function HomeScreen({
                 ? 'Your coach programmed this session.'
                 : 'Scheduled on your weekly plan.'}
             </p>
-            {(activeCoachAssignment || state.activeWorkout || dashboard.workoutName) && (
-              <button
-                type="button"
-                className="gold-button machined home-start-session"
-                onClick={() => {
-                  if (activeCoachAssignment) {
-                    onStartCoachAssignment?.(activeCoachAssignment)
-                    return
-                  }
-                  onStart()
-                }}
-              >
-                {state.activeWorkout ? 'Continue Session' : 'Start Session'}
-              </button>
-            )}
+            <button
+              type="button"
+              className="gold-button machined home-start-session"
+              onClick={handlePrimaryHomeAction}
+            >
+              {homeState.primaryAction?.label ?? 'Start Session'}
+            </button>
             {!state.activeWorkout && dashboard.programWorkouts.length > 1 ? (
               <button
                 type="button"
@@ -456,23 +554,63 @@ export default function HomeScreen({
               </button>
             ) : null}
           </>
+        ) : homeState.primaryAction ? (
+          <>
+            <h2>{homeState.primaryAction.label}</h2>
+            {homeState.primaryAction.detail ? (
+              <p>{homeState.primaryAction.detail}</p>
+            ) : null}
+            {[
+              HOME_ACTION_IDS.RECOVERY_FLOW,
+              HOME_ACTION_IDS.MORNING_MOVEMENT,
+              HOME_ACTION_IDS.NUTRITION,
+              HOME_ACTION_IDS.APPOINTMENT,
+              HOME_ACTION_IDS.READINESS,
+              HOME_ACTION_IDS.WEEKLY_CHECKIN,
+            ].includes(homeState.primaryAction.id) ? (
+              <button
+                type="button"
+                className="gold-button machined home-start-session"
+                onClick={handlePrimaryHomeAction}
+              >
+                {homeState.primaryAction.label}
+              </button>
+            ) : null}
+          </>
         ) : (
           <>
             <h2>Open schedule</h2>
             <p>Review your week and choose the next session that fits.</p>
           </>
         )}
-        <button
-          type="button"
-          className="home-today-plan-link"
-          onClick={() => {
-            setDetailAppointment(null)
-            setScreen('in-person-schedule')
-          }}
-        >
-          View schedule
-          <ChevronRight size={16} strokeWidth={1.75} />
-        </button>
+
+        {homeState.secondaryActions.length > 0 ? (
+          <div className="home-secondary-actions">
+            {homeState.secondaryActions.slice(0, 2).map((action) => (
+              <button
+                key={action.id}
+                type="button"
+                className="home-today-plan-link"
+                onClick={() => handleSecondaryHomeAction(action)}
+              >
+                {action.label}
+                <ChevronRight size={16} strokeWidth={1.75} />
+              </button>
+            ))}
+          </div>
+        ) : (
+          <button
+            type="button"
+            className="home-today-plan-link"
+            onClick={() => {
+              setDetailAppointment(null)
+              setScreen('schedule')
+            }}
+          >
+            View schedule
+            <ChevronRight size={16} strokeWidth={1.75} />
+          </button>
+        )}
       </section>
 
       <AthleteAppointmentWeekStrip

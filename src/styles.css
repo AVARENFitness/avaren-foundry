@@ -12882,8 +12882,9 @@ textarea::placeholder {
 }
 
 .coach-shell-header {
-  position: relative;
-  top: auto;
+  position: sticky;
+  top: 0;
+  z-index: 25;
   flex: 0 0 auto;
 }
 
@@ -12942,7 +12943,7 @@ textarea::placeholder {
   }
 }
 
-
+html.coach-mode-active,body.coach-mode-active{overflow:hidden;height:100%;width:100%;max-width:100%}body.coach-mode-active{position:fixed;inset:0;overscroll-behavior:none}body.coach-mode-active #root{height:100%;overflow:hidden}
 /* ===== SPRINT 6.3.2 · ASSIGNMENT NOTIFICATIONS ===== */
 .app-header-actions{display:flex;align-items:center;gap:10px}
 .app-notification-button{position:relative;display:grid;place-items:center;width:44px;height:44px;min-height:44px;padding:0;border:1px solid rgba(216,184,109,.12);border-radius:13px;background:rgba(216,184,109,.025);color:#cdb678}
@@ -18129,6 +18130,7 @@ input, textarea, select {
   line-height: 1.5;
 }
 
+.home-secondary-actions{display:grid;gap:8px;margin-top:12px}
 .home-today-plan-link {
   display: inline-flex;
   align-items: center;

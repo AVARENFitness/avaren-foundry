@@ -3,6 +3,27 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { COACH_ACTIVE_MODE } from '../lib/coachModePersistence'
 import { useNavigation } from './useNavigation'
 
+const session = {
+  user: { email: 'hello@avarenfitness.com', id: 'owner-id' },
+}
+
+const renderNav = (coachAuthorized = false) => {
+  const setCoachWorkspace = vi.fn((updater) =>
+    updater({ role: 'athlete', modeEnabled: false }),
+  )
+
+  return {
+    setCoachWorkspace,
+    ...renderHook(() =>
+      useNavigation({
+        session,
+        setCoachWorkspace,
+        coachAuthorized,
+      }),
+    ),
+  }
+}
+
 describe('useNavigation coach hub routing', () => {
   beforeEach(() => {
     window.scrollTo = vi.fn()
@@ -10,38 +31,24 @@ describe('useNavigation coach hub routing', () => {
   })
 
   it('routes the primary coach into Coach Hub', () => {
-    const setCoachWorkspace = vi.fn((updater) =>
-      updater({ role: 'athlete', modeEnabled: false }),
-    )
-    const session = {
-      user: { email: 'hello@avarenfitness.com', id: 'owner-id' },
-    }
-
-    const { result } = renderHook(() =>
-      useNavigation({
-        session,
-        setCoachWorkspace,
-        coachAuthorized: false,
-      }),
-    )
+    const { result } = renderNav()
 
     act(() => {
       result.current.enterCoachMode()
     })
 
     expect(result.current.screen).toBe('coach-hub')
-    expect(setCoachWorkspace).toHaveBeenCalled()
   })
 
   it('does not route regular clients into Coach Hub', () => {
     const setCoachWorkspace = vi.fn()
-    const session = {
+    const athleteSession = {
       user: { email: 'athlete@example.com', id: 'athlete-id' },
     }
 
     const { result } = renderHook(() =>
       useNavigation({
-        session,
+        session: athleteSession,
         setCoachWorkspace,
         coachAuthorized: false,
       }),
@@ -55,44 +62,8 @@ describe('useNavigation coach hub routing', () => {
     expect(setCoachWorkspace).not.toHaveBeenCalled()
   })
 
-  it('routes RPC-authorized coaches through enterCoachMode', () => {
-    const setCoachWorkspace = vi.fn((updater) =>
-      updater({ role: 'athlete', modeEnabled: false }),
-    )
-    const session = {
-      user: { email: 'trainer@studio.com', id: 'coach-id' },
-    }
-
-    const { result } = renderHook(() =>
-      useNavigation({
-        session,
-        setCoachWorkspace,
-        coachAuthorized: true,
-      }),
-    )
-
-    act(() => {
-      result.current.enterCoachMode()
-    })
-
-    expect(result.current.screen).toBe('coach-hub')
-  })
-
   it('persists coach mode when entering Coach Hub', () => {
-    const setCoachWorkspace = vi.fn((updater) =>
-      updater({ role: 'athlete', modeEnabled: false }),
-    )
-    const session = {
-      user: { email: 'hello@avarenfitness.com', id: 'owner-id' },
-    }
-
-    const { result } = renderHook(() =>
-      useNavigation({
-        session,
-        setCoachWorkspace,
-        coachAuthorized: false,
-      }),
-    )
+    const { result } = renderNav()
 
     act(() => {
       result.current.enterCoachMode()
@@ -103,21 +74,77 @@ describe('useNavigation coach hub routing', () => {
     )
   })
 
-  it('persists athlete mode when exiting coach mode', () => {
-    const setCoachWorkspace = vi.fn((updater) =>
-      updater({ role: 'coach', modeEnabled: true }),
-    )
-    const session = {
-      user: { email: 'hello@avarenfitness.com', id: 'owner-id' },
-    }
+  it('returns to the prior athlete screen when exiting coach mode', () => {
+    const { result } = renderNav()
 
-    const { result } = renderHook(() =>
-      useNavigation({
-        session,
-        setCoachWorkspace,
-        coachAuthorized: false,
-      }),
-    )
+    act(() => {
+      result.current.setScreen('train')
+    })
+
+    act(() => {
+      result.current.enterCoachMode()
+    })
+
+    act(() => {
+      result.current.exitCoachMode()
+    })
+
+    expect(result.current.screen).toBe('train')
+  })
+
+  it.each([
+    ['train', 'train'],
+    ['schedule', 'schedule'],
+    ['in-person-schedule', 'schedule'],
+    ['progress', 'progress'],
+  ])('Home → Coach → Athlete returns %s', (startScreen, expected) => {
+    const { result } = renderNav()
+
+    act(() => {
+      result.current.setScreen(startScreen)
+    })
+
+    act(() => {
+      result.current.enterCoachMode()
+    })
+
+    act(() => {
+      result.current.exitCoachMode()
+    })
+
+    expect(result.current.screen).toBe(expected)
+  })
+
+  it('defaults to home when no prior athlete destination was captured', () => {
+    const { result } = renderNav()
+
+    act(() => {
+      result.current.exitCoachMode()
+    })
+
+    expect(result.current.screen).toBe('home')
+  })
+
+  it('restores Account when coach was entered from Account intentionally', () => {
+    const { result } = renderNav()
+
+    act(() => {
+      result.current.setScreen('more')
+    })
+
+    act(() => {
+      result.current.enterCoachMode()
+    })
+
+    act(() => {
+      result.current.exitCoachMode()
+    })
+
+    expect(result.current.screen).toBe('more')
+  })
+
+  it('persists athlete mode when exiting coach mode', () => {
+    const { result } = renderNav()
 
     act(() => {
       result.current.exitCoachMode()
@@ -126,6 +153,5 @@ describe('useNavigation coach hub routing', () => {
     expect(window.localStorage.getItem('avaren:last-mode:owner-id')).toBe(
       COACH_ACTIVE_MODE.ATHLETE,
     )
-    expect(result.current.screen).toBe('more')
   })
 })

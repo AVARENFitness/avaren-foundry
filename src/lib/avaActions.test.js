@@ -201,6 +201,24 @@ describe('avaActions', () => {
     expect(action.type).toBe(AVA_ACTION_TYPES.START_WORKOUT)
   })
 
+  it('does not suggest morning movement after 11 AM local time', () => {
+    const afternoon = new Date(morning)
+    afternoon.setHours(11, 30, 0, 0)
+
+    const ctx = buildAvaContext(
+      {
+        ...baseState,
+        history: [workout({ daysAgo: 1 })],
+        mobility: { completed: [] },
+      },
+      { now: afternoon },
+    )
+
+    expect(
+      shouldSuggestMorningMovement(ctx, AVA_DAILY_STATES.MANAGE_LOAD),
+    ).toBe(false)
+  })
+
   it('prioritizes recovery flow prep when recent training supports it', () => {
     const ctx = buildAvaContext(
       {

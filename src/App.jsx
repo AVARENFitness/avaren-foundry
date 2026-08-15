@@ -566,6 +566,7 @@ function App() {
       ...state,
       weeklyCheckInState: currentWeeklyCheckInState,
       weeklyCheckInCapability,
+      weeklyCheckInRequired,
     })
   const mappedRemoteNotifications =
     remoteNotifications.map(mapAssignmentNotification)
@@ -1761,9 +1762,12 @@ function App() {
       )
     }
 
-    if (screen === 'in-person-schedule') {
+    if (screen === 'schedule' || screen === 'in-person-schedule') {
       return (
-        <AthleteInPersonScheduleScreen onBack={() => navigate('home')} />
+        <AthleteInPersonScheduleScreen
+          embedded={screen === 'schedule'}
+          onBack={() => navigate('home')}
+        />
       )
     }
 

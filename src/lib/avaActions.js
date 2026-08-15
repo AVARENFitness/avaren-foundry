@@ -79,9 +79,13 @@ export const shouldSuggestRecoveryFlowPrep = (ctx, dailyState) => {
 }
 
 export const shouldSuggestMorningMovement = (ctx, dailyState) => {
-  const { readiness, mobilityResetDone } = ctx
+  const { readiness, mobilityResetDone, now = new Date() } = ctx
 
   if (!hasTrainingToday(ctx, dailyState) || mobilityResetDone) {
+    return false
+  }
+
+  if (now.getHours() >= 11) {
     return false
   }
 
@@ -212,13 +216,7 @@ export const selectPrimaryAvaAction = (ctx, dailyState) => {
       ctx.workoutRecommendation?.completedWorkoutName ??
         ctx.workoutContext?.completedWorkoutName,
     )
-    const nextName = formatWorkoutName(ctx.workoutRecommendation?.nextWorkout)
-    const detail =
-      completedName && nextName
-        ? `${completedName} · Today. Next: ${nextName} · Tomorrow`
-        : completedName
-          ? `${completedName} · Today`
-          : null
+    const detail = completedName ? `${completedName} · Today` : null
 
     return buildAction({
       type: AVA_ACTION_TYPES.VIEW_PLAN,

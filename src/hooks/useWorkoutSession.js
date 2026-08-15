@@ -9,6 +9,7 @@ import {
   TRAINING_RECOMMENDATIONS,
 } from '../lib/trainingRecommendations'
 import { advanceProgramNextWorkout } from '../lib/programWorkout'
+import { localCalendarDateKey } from '../lib/localCalendarDay'
 import { resolveTodayWorkoutContext } from '../lib/todayWorkout'
 import {
   attachExecutionMetadataToSession,
@@ -95,7 +96,7 @@ export function useWorkoutSession({
     return {
       id: createRuntimeId(),
       name,
-      date: new Date().toISOString().slice(0, 10),
+      date: localCalendarDateKey(),
       startedAt: new Date().toISOString(),
       activeExerciseIndex: 0,
       exercises: definitions.map((exercise) => ({
@@ -345,7 +346,7 @@ export function useWorkoutSession({
       id: createRuntimeId(),
       assignmentId: assignment.id,
       name: definition.name,
-      date: new Date().toISOString().slice(0, 10),
+      date: localCalendarDateKey(),
       startedAt: new Date().toISOString(),
       activeExerciseIndex: 0,
       coachNotes: assignment.coach_notes ?? '',
