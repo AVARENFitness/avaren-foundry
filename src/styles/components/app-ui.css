@@ -5,7 +5,7 @@
   --app-layer-nav: 50;
   --app-layer-fab: 48;
   --app-layer-modal: 120;
-  --app-layer-toast: 130;
+  --app-layer-toast: 2000;
 }
 
 .ava-entry-button {
@@ -90,4 +90,19 @@
   align-items: center;
   padding: 16px;
   padding-bottom: calc(16px + env(safe-area-inset-bottom));
+}
+
+#app-ui-portal-root {
+  position: fixed;
+  inset: 0;
+  z-index: var(--app-layer-toast);
+  pointer-events: none;
+}
+
+.app-toast-stack {
+  z-index: var(--app-layer-toast);
+}
+
+body.coach-mode-active #app-ui-portal-root .app-toast-stack {
+  bottom: calc(88px + env(safe-area-inset-bottom));
 }

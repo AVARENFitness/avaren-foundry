@@ -1,8 +1,25 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { appUi } from '../../lib/appUi'
 import { createRuntimeId } from '../../lib/createRuntimeId'
 import ConfirmationDialog from './ConfirmationDialog'
 import { ToastStack } from './Toast'
+
+const APP_UI_PORTAL_ID = 'app-ui-portal-root'
+
+function getAppUiPortalTarget() {
+  if (typeof document === 'undefined') return null
+
+  let node = document.getElementById(APP_UI_PORTAL_ID)
+  if (!node) {
+    node = document.createElement('div')
+    node.id = APP_UI_PORTAL_ID
+    node.setAttribute('data-testid', 'app-ui-portal')
+    document.body.appendChild(node)
+  }
+
+  return node
+}
 
 const TOAST_DURATION_MS = 4200
 const UNDO_TOAST_DURATION_MS = 10000
@@ -96,9 +113,9 @@ export default function AppUiProvider({ children }) {
     [],
   )
 
-  return (
+  const portalTarget = getAppUiPortalTarget()
+  const overlayUi = (
     <>
-      {children}
       <ConfirmationDialog
         open={Boolean(dialog)}
         title={dialog?.title}
@@ -111,6 +128,13 @@ export default function AppUiProvider({ children }) {
         onCancel={() => finishDialog(false)}
       />
       <ToastStack toasts={toasts} onDismiss={dismissToast} />
+    </>
+  )
+
+  return (
+    <>
+      {children}
+      {portalTarget ? createPortal(overlayUi, portalTarget) : overlayUi}
     </>
   )
 }

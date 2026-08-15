@@ -14,7 +14,7 @@ import { useMemo, useState } from 'react'
 import { COMMON_EXERCISES } from '../data/commonExercises'
 import { createRuntimeId } from '../lib/createRuntimeId'
 import { getClientDisplayName } from '../lib/clientDisplayName'
-import { appUi } from '../lib/appUi'
+import { toastWorkoutAssigned } from '../lib/writeFeedback'
 import {
   LOAD_TYPE_OPTIONS,
   normalizeLoadType,
@@ -207,7 +207,7 @@ export default function CoachWorkoutDesigner({
       const clientName = getClientDisplayName(
         selectedClient ?? { athlete_email: draft.athleteId },
       )
-      appUi.toast(`Workout assigned to ${clientName}`, 'success')
+      toastWorkoutAssigned(clientName)
       onClose?.()
     } catch (assignError) {
       setNotice(

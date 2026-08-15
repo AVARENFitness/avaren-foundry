@@ -1,12 +1,10 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import CoachWorkoutDesigner from './CoachWorkoutDesigner'
-import { appUi } from '../lib/appUi'
+import { toastWorkoutAssigned } from '../lib/writeFeedback'
 
-vi.mock('../lib/appUi', () => ({
-  appUi: {
-    toast: vi.fn(),
-  },
+vi.mock('../lib/writeFeedback', () => ({
+  toastWorkoutAssigned: vi.fn(),
 }))
 
 const jake = {
@@ -30,7 +28,7 @@ describe('CoachWorkoutDesigner assignment confirmation', () => {
     vi.clearAllMocks()
   })
 
-  it('13. successful assignment shows confirmation toast with client name', async () => {
+  it('successful assignment calls app-level toast with client name', async () => {
     const onAssign = vi.fn().mockResolvedValue({ id: 'assignment-1' })
 
     render(
@@ -47,15 +45,35 @@ describe('CoachWorkoutDesigner assignment confirmation', () => {
     fireEvent.click(screen.getByRole('button', { name: /^Assign Workout$/i }))
 
     await waitFor(() => {
-      expect(appUi.toast).toHaveBeenCalledWith(
-        'Workout assigned to Jake',
-        'success',
-      )
+      expect(toastWorkoutAssigned).toHaveBeenCalledWith('Jake')
     })
     expect(baseProps.onClose).toHaveBeenCalled()
   })
 
-  it('15. failed assignment shows error and keeps designer open', async () => {
+  it('closes designer after successful assignment', async () => {
+    const onAssign = vi.fn().mockResolvedValue({ id: 'assignment-1' })
+    const onClose = vi.fn()
+
+    render(
+      <CoachWorkoutDesigner
+        {...baseProps}
+        onClose={onClose}
+        onAssign={onAssign}
+      />,
+    )
+
+    fireEvent.change(screen.getByLabelText(/Workout name/i), {
+      target: { value: 'Upper Body' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: /Custom exercise/i }))
+    fireEvent.click(screen.getByRole('button', { name: /^Assign Workout$/i }))
+
+    await waitFor(() => {
+      expect(onClose).toHaveBeenCalled()
+    })
+  })
+
+  it('failed assignment does not show success toast', async () => {
     const onAssign = vi.fn().mockRejectedValue(new Error('Network failed'))
 
     render(
@@ -75,12 +93,33 @@ describe('CoachWorkoutDesigner assignment confirmation', () => {
       expect(screen.getByRole('alert')).toHaveTextContent(/Network failed/i)
     })
 
-    expect(appUi.toast).not.toHaveBeenCalled()
+    expect(toastWorkoutAssigned).not.toHaveBeenCalled()
     expect(baseProps.onClose).not.toHaveBeenCalled()
     expect(screen.getByTestId('coach-workout-designer')).toBeInTheDocument()
   })
 
-  it('16. repeated tap while pending does not duplicate assignment', async () => {
+  it('failed assignment keeps builder open', async () => {
+    const onAssign = vi.fn().mockRejectedValue(new Error('Network failed'))
+
+    render(
+      <CoachWorkoutDesigner
+        {...baseProps}
+        onAssign={onAssign}
+      />,
+    )
+
+    fireEvent.change(screen.getByLabelText(/Workout name/i), {
+      target: { value: 'Upper Body' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: /Custom exercise/i }))
+    fireEvent.click(screen.getByRole('button', { name: /^Assign Workout$/i }))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('coach-workout-designer')).toBeInTheDocument()
+    })
+  })
+
+  it('repeated tap while pending does not duplicate assignment', async () => {
     let resolveAssign
     const onAssign = vi.fn(
       () =>
@@ -110,7 +149,7 @@ describe('CoachWorkoutDesigner assignment confirmation', () => {
     resolveAssign?.({ id: 'assignment-1' })
 
     await waitFor(() => {
-      expect(appUi.toast).toHaveBeenCalled()
+      expect(toastWorkoutAssigned).toHaveBeenCalledWith('Jake')
     })
   })
 })

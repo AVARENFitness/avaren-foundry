@@ -56,7 +56,12 @@ export function ToastStack({ toasts, onDismiss }) {
   if (!toasts.length) return null
 
   return (
-    <div className="app-toast-stack" aria-label="Notifications">
+    <div
+      className="app-toast-stack"
+      data-testid="app-toast-stack"
+      aria-label="Notifications"
+      aria-live="polite"
+    >
       {toasts.map((toast) => (
         <Toast
           key={toast.id}
