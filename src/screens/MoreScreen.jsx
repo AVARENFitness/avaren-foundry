@@ -24,6 +24,7 @@ import CollapsibleIdentityPanel, {
   IDENTITY_EDITOR_MODE,
 } from '../components/ui/CollapsibleIdentityPanel'
 import ImportBackupButton from '../components/ImportBackupButton'
+import { deactivatePushSubscriptionForDevice } from '../lib/pushNotifications'
 import AthleteCoachPanel from '../components/AthleteCoachPanel'
 import AthleteSessionPackageCard from '../components/AthleteSessionPackageCard'
 import AthleteScheduledSessions from '../components/AthleteScheduledSessions'
@@ -109,6 +110,7 @@ export default function MoreScreen({
   session,
   onDevResetWeeklyCheckIn = null,
   weeklyCheckInDevResetEnabled = false,
+  onBack,
 }) {
   const [activeSection, setActiveSection] = useState(() =>
     resolveInitialAccountSection(),
@@ -240,6 +242,11 @@ export default function MoreScreen({
 
   return (
     <div className="more-screen-redesign profile-hub">
+      {onBack ? (
+        <button type="button" className="more-screen-back" onClick={onBack}>
+          Back
+        </button>
+      ) : null}
       <header className="more-hero profile-hub-hero">
         <div>
           <span className="eyebrow">YOUR AVAREN</span>
@@ -425,6 +432,11 @@ export default function MoreScreen({
               }
             }} /></div>
             <MoreItem icon={LogOut} title="Sign Out" description="Sign out of this account" onClick={async () => {
+              try {
+                await deactivatePushSubscriptionForDevice()
+              } catch {
+                // Best-effort release before auth session ends.
+              }
               const { error } = await supabase.auth.signOut()
               if (error) appUi.toast(error.message, 'error')
             }} />

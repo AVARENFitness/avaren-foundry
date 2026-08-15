@@ -87,6 +87,7 @@ describe('CoachScreen coach hub render', () => {
       <CoachScreen
         workspace={{}}
         setWorkspace={vi.fn()}
+        screen="today"
         selectedClient={null}
         setSelectedClient={vi.fn()}
         onCoachAvaContextChange={onCoachAvaContextChange}

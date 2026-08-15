@@ -7,16 +7,25 @@ import { canAccessCoachHub } from './useCoachAccess'
 
 const COACH_MODE_SCREEN = 'coach-hub'
 const DEFAULT_ATHLETE_SCREEN = 'home'
+const PRIMARY_ATHLETE_TABS = new Set([
+  'home',
+  'train',
+  'nutrition',
+  'schedule',
+  'progress',
+])
 
 export const normalizeAthleteReturnScreen = (screen) => {
   if (!screen || screen === COACH_MODE_SCREEN) return DEFAULT_ATHLETE_SCREEN
   if (screen === 'in-person-schedule') return 'schedule'
-  return screen
+  if (PRIMARY_ATHLETE_TABS.has(screen)) return screen
+  if (screen === 'more') return DEFAULT_ATHLETE_SCREEN
+  return DEFAULT_ATHLETE_SCREEN
 }
 
 export function useNavigation({ session, setCoachWorkspace, coachAuthorized = false }) {
   const [screen, setScreen] = useState('home')
-  const [coachScreen, setCoachScreen] = useState('clients')
+  const [coachScreen, setCoachScreen] = useState('today')
   const [selectedCoachClient, setSelectedCoachClient] = useState(null)
   const [transitioning, setTransitioning] = useState(false)
   const lastAthleteScreenRef = useRef(DEFAULT_ATHLETE_SCREEN)
@@ -46,7 +55,7 @@ export function useNavigation({ session, setCoachWorkspace, coachAuthorized = fa
       modeEnabled: true,
     }))
     setSelectedCoachClient(null)
-    setCoachScreen('clients')
+    setCoachScreen('today')
     setScreen(COACH_MODE_SCREEN)
     if (session?.user?.id) {
       writeLastActiveMode(session.user.id, COACH_ACTIVE_MODE.COACH)

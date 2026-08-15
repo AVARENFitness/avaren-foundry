@@ -17,6 +17,16 @@ import {
 import { resolveTodayWorkoutContext, WORKOUT_SOURCE } from './todayWorkout'
 import { resolveWorkoutRecommendation } from './programWorkout'
 import { nutritionTotals } from './nutrition'
+import {
+  mapTrustedExercise,
+  mapTrustedSessionSets,
+} from './trustedExerciseMapping'
+
+export {
+  mapTrustedCompletedSet,
+  mapTrustedExercise,
+  mapTrustedSessionSets,
+} from './trustedExerciseMapping'
 
 export const AVA_TRUST_LEVELS = {
   SERVER_TRUSTED: 'server-trusted',
@@ -64,11 +74,7 @@ export const sanitizeAthleteCoachAssignment = (assignment) => {
     athleteNotes: assignment.coach_notes ?? null,
     exercises: (assignment.workout_payload?.exercises ?? [])
       .slice(0, MAX_EXERCISES)
-      .map((item) => ({
-        name: item.name ?? item.exercise ?? 'Exercise',
-        sets: item.sets ?? null,
-        muscle: item.muscle ?? null,
-      })),
+      .map(mapTrustedExercise),
   }
 }
 
@@ -95,20 +101,12 @@ export const resolveWorkoutExercises = (
   if (assignment?.workout_payload?.exercises?.length) {
     return assignment.workout_payload.exercises
       .slice(0, MAX_EXERCISES)
-      .map((item) => ({
-        name: item.name ?? item.exercise ?? 'Exercise',
-        sets: item.sets ?? null,
-        muscle: item.muscle ?? null,
-      }))
+      .map(mapTrustedExercise)
   }
 
   const programExercises = foundryState?.program?.workouts?.[workoutName]
   if (Array.isArray(programExercises) && programExercises.length) {
-    return programExercises.slice(0, MAX_EXERCISES).map((item) => ({
-      name: item.name ?? item.exercise ?? 'Exercise',
-      sets: item.sets ?? null,
-      muscle: item.muscle ?? null,
-    }))
+    return programExercises.slice(0, MAX_EXERCISES).map(mapTrustedExercise)
   }
 
   return []
@@ -202,9 +200,11 @@ export const buildTrustedRecentTraining = (
     lastSessionDate: lastSession
       ? String(sessionDate(lastSession)).slice(0, 10)
       : null,
+    lastSessionSets: lastSession ? mapTrustedSessionSets(lastSession) : [],
     recentSessions: recent.slice(-MAX_RECENT_SESSIONS).map((session) => ({
       name: session.name ?? null,
       date: String(sessionDate(session)).slice(0, 10),
+      sets: mapTrustedSessionSets(session, 8),
     })),
   }
 }

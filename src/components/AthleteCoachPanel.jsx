@@ -1,6 +1,7 @@
 import { CalendarDays, Check, ClipboardList, UserCheck, UserX } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { coachBackend } from '../lib/coachBackend'
+import AssignmentExercisePreview from './AssignmentExercisePreview'
 import EmptyState from './ui/EmptyState'
 
 export default function AthleteCoachPanel({ onStartAssignment }) {
@@ -38,7 +39,12 @@ export default function AthleteCoachPanel({ onStartAssignment }) {
         <article className={`athlete-assignment-card status-${assignment.status}`} key={assignment.id}>
           <div><span className="eyebrow">{assignment.status === 'completed' ? 'COMPLETED ASSIGNMENT' : 'ASSIGNED WORKOUT'}</span><h3>{assignment.title}</h3>
           {assignment.coach_notes && <p>{assignment.coach_notes}</p>}
-          {assignment.due_date && <small><CalendarDays size={14}/>Due {new Date(`${assignment.due_date}T12:00:00`).toLocaleDateString()}</small>}</div>
+          {assignment.due_date && <small><CalendarDays size={14}/>Due {new Date(`${assignment.due_date}T12:00:00`).toLocaleDateString()}</small>}
+          <AssignmentExercisePreview
+            exercises={assignment.workout_payload?.exercises ?? []}
+            compact
+          />
+          </div>
           {['assigned','started'].includes(assignment.status) && <button className="gold-button machined" onClick={() => onStartAssignment?.(assignment)}><Check size={17}/>Start Assignment</button>}
         </article>
       )) : !loading && <EmptyState icon={ClipboardList} title="No assignments yet" description="Accepted coach assignments will appear here." />}

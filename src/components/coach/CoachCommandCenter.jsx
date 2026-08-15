@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   CalendarRange,
-  ClipboardList,
+  Hammer,
   Search,
   UserPlus,
   Users,
@@ -51,8 +51,7 @@ export default function CoachCommandCenter({
   query = '',
   onQueryChange,
   onSelectClient,
-  onAssignWorkout,
-  onViewAssignments,
+  onOpenBuild,
   onInvite,
   onAddClient,
   inviteEmail = '',
@@ -62,9 +61,10 @@ export default function CoachCommandCenter({
   onSchedule,
   notice = '',
   assignments = [],
+  rosterOnly = false,
 }) {
   const [hubScheduleRefresh, setHubScheduleRefresh] = useState(0)
-  const [rosterExpanded, setRosterExpanded] = useState(false)
+  const [rosterExpanded, setRosterExpanded] = useState(rosterOnly)
   const [rosterFilter, setRosterFilter] = useState(ROSTER_HUB_FILTER.ACTIVE)
   const [upcomingByBusinessClientId, setUpcomingByBusinessClientId] = useState({})
 
@@ -122,11 +122,11 @@ export default function CoachCommandCenter({
 
   if (!clients.length && !loading) {
     return (
-      <section className="coach-hub-screen coach-command-center coach-command-center--calm">
+      <section className={`coach-hub-screen coach-command-center coach-command-center--calm${rosterOnly ? ' coach-clients-roster' : ''}`}>
         <header className="coach-hub-page-header">
           <div>
-            <span className="eyebrow">COACH HUB</span>
-            <h1>Command Center</h1>
+            <span className="eyebrow">{rosterOnly ? 'CLIENTS' : 'COACH HUB'}</span>
+            <h1>{rosterOnly ? 'Clients' : 'Command Center'}</h1>
             <p>Add your first client to begin.</p>
           </div>
         </header>
@@ -157,185 +157,191 @@ export default function CoachCommandCenter({
       onMutated={() => setHubScheduleRefresh((current) => current + 1)}
     >
       {(openSession) => (
-    <section className="coach-hub-screen coach-command-center coach-command-center--calm">
-      <header className="coach-command-hero coach-command-hero--compact">
-        <div>
-          <span className="eyebrow">COACH HUB</span>
-          <h1>Today</h1>
-          {!loading && !portfolioLoading && hero ? (
-            <p className="coach-command-summary">
-              {hero.activeClients} active
-              {attentionCount > 0 ? ` · ${attentionCount} need attention` : ''}
-            </p>
-          ) : null}
-        </div>
-      </header>
-
-      {portfolioError && (
-        <p className="coach-hub-notice">{portfolioError}</p>
-      )}
-
-      <CoachTodaySchedule
-        clients={clients}
-        onSchedule={onSchedule ?? (() => onNavigateCoachScreen?.('calendar'))}
-        onOpenCalendar={() => onNavigateCoachScreen?.('calendar')}
-        onOpenClient={onSelectClient}
-        onOpenSession={openSession}
-        refreshSignal={hubScheduleRefresh}
-      />
-
-      <CoachAttentionQueue
-        items={portfolio?.attentionQueue ?? []}
-        totalCount={portfolio?.attentionQueue?.length ?? 0}
-        onViewClient={onSelectClient}
-        onViewAll={() => {
-          setRosterExpanded(true)
-          setRosterFilter(ROSTER_HUB_FILTER.ATTENTION)
-        }}
-      />
-
-      <section className="coach-command-panel coach-command-roster">
-        <header className="coach-command-panel-header coach-command-panel-header--compact">
-          <div>
-            <span className="eyebrow">CLIENTS</span>
-            <h2>{rosterExpanded ? 'All clients' : 'Client preview'}</h2>
-          </div>
-          {rosterExpanded ? (
-            <button
-              type="button"
-              className="coach-secondary-button coach-command-inline-action"
-              onClick={() => setRosterExpanded(false)}
-            >
-              Show preview
-            </button>
-          ) : null}
-        </header>
-
-        <label className="coach-roster-search-shell coach-roster-search-shell--compact">
-          <Search {...SEARCH_ICON} aria-hidden="true" />
-          <input
-            type="search"
-            value={query}
-            onChange={(event) => onQueryChange?.(event.target.value)}
-            placeholder="Search clients"
-            aria-label="Search clients"
-          />
-        </label>
-
-        <div className="coach-command-sort-row coach-command-sort-row--compact coach-roster-filter-row">
-          {ROSTER_FILTER_OPTIONS.map((option) => (
-            <button
-              key={option.id}
-              type="button"
-              className={rosterFilter === option.id ? 'active' : ''}
-              onClick={() => setRosterFilter(option.id)}
-            >
-              {option.label}
-            </button>
-          ))}
-        </div>
-
-        {loading || portfolioLoading ? (
-          <div className="coach-roster-list">
-            {[1, 2, 3, 4].map((item) => (
-              <article key={item} className="coach-roster-row skeleton" />
-            ))}
-          </div>
-        ) : filteredRoster.length ? (
-          <div className="coach-roster-list">
-            {visibleRoster.map((entry) => {
-              const businessClientId = resolveRecordBusinessClientId(entry.client)
-              return (
-                <CoachClientCard
-                  key={businessClientId ?? entry.client.id ?? entry.clientName}
-                  entry={entry}
-                  onSelect={onSelectClient}
-                  nextSession={upcomingByBusinessClientId[businessClientId] ?? null}
-                  passSummary={resolveRosterPassSummary(
-                    entry,
-                    passAvaContextByBusinessClientId,
-                  )}
-                />
-              )
-            })}
-          </div>
-        ) : (
-          <EmptyState
-            icon={Users}
-            title={
-              rosterFilter === ROSTER_HUB_FILTER.ATTENTION
-                ? 'All caught up'
-                : rosterFilter === ROSTER_HUB_FILTER.PAST
-                  ? 'No past clients'
-                  : 'No matching clients'
-            }
-            description={
-              rosterFilter === ROSTER_HUB_FILTER.ATTENTION
-                ? 'Nothing needs your attention in this filter.'
-                : 'Try another search or filter.'
-            }
-          />
-        )}
-
-        {!rosterExpanded && hiddenRosterCount > 0 ? (
-          <button
-            type="button"
-            className="coach-roster-view-all-button"
-            onClick={() => setRosterExpanded(true)}
-          >
-            View all clients ({filteredRoster.length})
-          </button>
-        ) : null}
-      </section>
-
-      <section className="coach-command-panel coach-command-tools">
-        <header className="coach-command-panel-header coach-command-panel-header--compact">
-          <div>
-            <span className="eyebrow">QUICK ACTIONS</span>
-          </div>
-        </header>
-        <div className="coach-command-tools-grid">
-          <button
-            type="button"
-            className="coach-secondary-button"
-            onClick={onSchedule ?? (() => onNavigateCoachScreen?.('calendar'))}
-          >
-            <CalendarRange size={16} />
-            Schedule
-          </button>
-          <button type="button" className="coach-secondary-button" onClick={onAddClient}>
-            <UserPlus size={16} />
-            Add client
-          </button>
-          <button type="button" className="coach-secondary-button" onClick={onViewAssignments}>
-            <ClipboardList size={16} />
-            Assignments
-            {hero?.activeAssignments > 0 ? ` (${hero.activeAssignments})` : ''}
-          </button>
-          <button
-            type="button"
-            className="coach-secondary-button"
-            onClick={() => onNavigateCoachScreen?.('programs')}
-          >
-            <Users size={16} />
-            Programs
-          </button>
-        </div>
-      </section>
-
-      {notice && <p className="coach-hub-notice">{notice}</p>}
-
-      {invitations.length > 0 && (
-        <section className="coach-pending-section coach-pending-section--compact">
-          <header>
+        <section
+          className={`coach-hub-screen coach-command-center coach-command-center--calm${rosterOnly ? ' coach-clients-roster' : ''}`}
+          data-testid={rosterOnly ? 'coach-clients-roster' : 'coach-command-center'}
+        >
+          <header className="coach-command-hero coach-command-hero--compact">
             <div>
-              <span className="eyebrow">INVITATIONS</span>
-              <h2>{invitations.filter((item) => item.status === 'pending').length} pending</h2>
+              <span className="eyebrow">{rosterOnly ? 'CLIENTS' : 'COACH HUB'}</span>
+              <h1>{rosterOnly ? 'Clients' : 'Today'}</h1>
+              {!loading && !portfolioLoading && hero ? (
+                <p className="coach-command-summary">
+                  {hero.activeClients} active
+                  {!rosterOnly && attentionCount > 0
+                    ? ` · ${attentionCount} need attention`
+                    : ''}
+                </p>
+              ) : null}
             </div>
           </header>
+
+          {!rosterOnly && portfolioError ? (
+            <p className="coach-hub-notice">{portfolioError}</p>
+          ) : null}
+
+          {!rosterOnly ? (
+            <>
+              <CoachTodaySchedule
+                clients={clients}
+                onSchedule={onSchedule ?? (() => onNavigateCoachScreen?.('calendar'))}
+                onOpenCalendar={() => onNavigateCoachScreen?.('calendar')}
+                onOpenClient={onSelectClient}
+                onOpenSession={openSession}
+                refreshSignal={hubScheduleRefresh}
+              />
+
+              <CoachAttentionQueue
+                items={portfolio?.attentionQueue ?? []}
+                totalCount={portfolio?.attentionQueue?.length ?? 0}
+                onViewClient={onSelectClient}
+                onViewAll={() => {
+                  onNavigateCoachScreen?.('clients')
+                  setRosterFilter(ROSTER_HUB_FILTER.ATTENTION)
+                }}
+              />
+            </>
+          ) : null}
+
+          <section className="coach-command-panel coach-command-roster">
+            <header className="coach-command-panel-header coach-command-panel-header--compact">
+              <div>
+                {!rosterOnly ? <span className="eyebrow">CLIENTS</span> : null}
+                <h2>
+                  {rosterOnly || rosterExpanded ? 'All clients' : 'Client preview'}
+                </h2>
+              </div>
+              {!rosterOnly && rosterExpanded ? (
+                <button
+                  type="button"
+                  className="coach-secondary-button coach-command-inline-action"
+                  onClick={() => setRosterExpanded(false)}
+                >
+                  Show preview
+                </button>
+              ) : null}
+            </header>
+
+            <label className="coach-roster-search-shell coach-roster-search-shell--compact">
+              <Search {...SEARCH_ICON} aria-hidden="true" />
+              <input
+                type="search"
+                value={query}
+                onChange={(event) => onQueryChange?.(event.target.value)}
+                placeholder="Search clients"
+                aria-label="Search clients"
+              />
+            </label>
+
+            <div className="coach-command-sort-row coach-command-sort-row--compact coach-roster-filter-row">
+              {ROSTER_FILTER_OPTIONS.map((option) => (
+                <button
+                  key={option.id}
+                  type="button"
+                  className={rosterFilter === option.id ? 'active' : ''}
+                  onClick={() => setRosterFilter(option.id)}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+
+            {loading || portfolioLoading ? (
+              <div className="coach-roster-list">
+                {[1, 2, 3, 4].map((item) => (
+                  <article key={item} className="coach-roster-row skeleton" />
+                ))}
+              </div>
+            ) : filteredRoster.length ? (
+              <div className="coach-roster-list">
+                {visibleRoster.map((entry) => {
+                  const businessClientId = resolveRecordBusinessClientId(entry.client)
+                  return (
+                    <CoachClientCard
+                      key={businessClientId ?? entry.client.id ?? entry.clientName}
+                      entry={entry}
+                      onSelect={onSelectClient}
+                      nextSession={upcomingByBusinessClientId[businessClientId] ?? null}
+                      passSummary={resolveRosterPassSummary(
+                        entry,
+                        passAvaContextByBusinessClientId,
+                      )}
+                    />
+                  )
+                })}
+              </div>
+            ) : (
+              <EmptyState
+                icon={Users}
+                title={
+                  rosterFilter === ROSTER_HUB_FILTER.ATTENTION
+                    ? 'All caught up'
+                    : rosterFilter === ROSTER_HUB_FILTER.PAST
+                      ? 'No past clients'
+                      : 'No matching clients'
+                }
+                description={
+                  rosterFilter === ROSTER_HUB_FILTER.ATTENTION
+                    ? 'Nothing needs your attention in this filter.'
+                    : 'Try another search or filter.'
+                }
+              />
+            )}
+
+            {!rosterOnly && !rosterExpanded && hiddenRosterCount > 0 ? (
+              <button
+                type="button"
+                className="coach-roster-view-all-button"
+                onClick={() => onNavigateCoachScreen?.('clients')}
+              >
+                View all clients ({filteredRoster.length})
+              </button>
+            ) : null}
+          </section>
+
+          {!rosterOnly ? (
+            <section className="coach-command-panel coach-command-tools">
+              <header className="coach-command-panel-header coach-command-panel-header--compact">
+                <div>
+                  <span className="eyebrow">QUICK ACTIONS</span>
+                </div>
+              </header>
+              <div className="coach-command-tools-grid">
+                <button
+                  type="button"
+                  className="coach-secondary-button"
+                  onClick={onSchedule ?? (() => onNavigateCoachScreen?.('calendar'))}
+                >
+                  <CalendarRange size={16} />
+                  Schedule
+                </button>
+                <button type="button" className="coach-secondary-button" onClick={onAddClient}>
+                  <UserPlus size={16} />
+                  Add client
+                </button>
+                <button type="button" className="coach-secondary-button" onClick={onOpenBuild}>
+                  <Hammer size={16} />
+                  Build
+                </button>
+              </div>
+            </section>
+          ) : null}
+
+          {notice ? <p className="coach-hub-notice">{notice}</p> : null}
+
+          {!rosterOnly && invitations.length > 0 ? (
+            <section className="coach-pending-section coach-pending-section--compact">
+              <header>
+                <div>
+                  <span className="eyebrow">INVITATIONS</span>
+                  <h2>
+                    {invitations.filter((item) => item.status === 'pending').length} pending
+                  </h2>
+                </div>
+              </header>
+            </section>
+          ) : null}
         </section>
-      )}
-    </section>
       )}
     </CoachSessionDetailHost>
   )

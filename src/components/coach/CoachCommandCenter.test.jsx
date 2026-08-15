@@ -95,8 +95,9 @@ describe('CoachCommandCenter roster density', () => {
     card: {},
   }))
 
-  it('shows preview limit and expands to full roster', async () => {
+  it('shows preview limit and routes to the Clients tab for full roster', async () => {
     const user = userEvent.setup()
+    const onNavigateCoachScreen = vi.fn()
 
     render(
       <CoachCommandCenter
@@ -105,12 +106,13 @@ describe('CoachCommandCenter roster density', () => {
         passAvaContextByBusinessClientId={{}}
         loading={false}
         portfolioLoading={false}
+        onNavigateCoachScreen={onNavigateCoachScreen}
       />,
     )
 
     expect(screen.getAllByRole('button', { name: /^open client /i })).toHaveLength(6)
     await user.click(screen.getByRole('button', { name: /view all clients/i }))
-    expect(screen.getAllByRole('button', { name: /^open client /i })).toHaveLength(10)
+    expect(onNavigateCoachScreen).toHaveBeenCalledWith('clients')
     expect(coachBackend.listScheduledSessions).toHaveBeenCalled()
   })
 })

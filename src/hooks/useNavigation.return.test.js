@@ -9,4 +9,16 @@ describe('normalizeAthleteReturnScreen', () => {
   it('falls back to home for coach hub', () => {
     expect(normalizeAthleteReturnScreen('coach-hub')).toBe('home')
   })
+
+  it('preserves nutrition as the Food tab return destination', () => {
+    expect(normalizeAthleteReturnScreen('nutrition')).toBe('nutrition')
+  })
+
+  it('maps Account overlay to home for coach return capture', () => {
+    expect(normalizeAthleteReturnScreen('more')).toBe('home')
+  })
+
+  it('15. preserves schedule for coach return capture', () => {
+    expect(normalizeAthleteReturnScreen('schedule')).toBe('schedule')
+  })
 })

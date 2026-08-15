@@ -125,7 +125,7 @@ describe('useNavigation coach hub routing', () => {
     expect(result.current.screen).toBe('home')
   })
 
-  it('restores Account when coach was entered from Account intentionally', () => {
+  it('returns to home when coach was entered from Account overlay', () => {
     const { result } = renderNav()
 
     act(() => {
@@ -140,7 +140,25 @@ describe('useNavigation coach hub routing', () => {
       result.current.exitCoachMode()
     })
 
-    expect(result.current.screen).toBe('more')
+    expect(result.current.screen).toBe('home')
+  })
+
+  it('14. Food → Coach → Athlete returns Food', () => {
+    const { result } = renderNav()
+
+    act(() => {
+      result.current.setScreen('nutrition')
+    })
+
+    act(() => {
+      result.current.enterCoachMode()
+    })
+
+    act(() => {
+      result.current.exitCoachMode()
+    })
+
+    expect(result.current.screen).toBe('nutrition')
   })
 
   it('persists athlete mode when exiting coach mode', () => {

@@ -1,11 +1,18 @@
-import { Bell, CalendarDays, Dumbbell, Home, LineChart, UserRound } from 'lucide-react'
+import {
+  Bell,
+  CalendarDays,
+  Dumbbell,
+  Home,
+  LineChart,
+  UtensilsCrossed,
+} from 'lucide-react'
 
 const tabs = [
   { id: 'home', label: 'Home', Icon: Home },
   { id: 'train', label: 'Train', Icon: Dumbbell },
+  { id: 'nutrition', label: 'Food', Icon: UtensilsCrossed },
   { id: 'schedule', label: 'Schedule', Icon: CalendarDays },
   { id: 'progress', label: 'Progress', Icon: LineChart },
-  { id: 'more', label: 'Account', Icon: UserRound },
 ]
 
 const isTabActive = (screen, tabId) =>
@@ -21,6 +28,9 @@ export default function AppShell({
   immersive = false,
   notificationCount = 0,
   onOpenNotifications,
+  onOpenAccount,
+  accountLabel = 'Account',
+  accountInitial = 'A',
 }) {
   return (
     <div
@@ -53,6 +63,16 @@ export default function AppShell({
             )}
           </button>
 
+          <button
+            type="button"
+            className={`app-profile-button${screen === 'more' ? ' active' : ''}`}
+            onClick={onOpenAccount}
+            aria-label={accountLabel}
+            data-testid="app-profile-button"
+          >
+            <span aria-hidden="true">{accountInitial}</span>
+          </button>
+
           <div className={`status-pill ${activeWorkout ? 'active' : ''}`}>
             <span />
             {activeWorkout ? 'ACTIVE' : 'READY'}
@@ -65,7 +85,7 @@ export default function AppShell({
       </div>
 
       {!immersive && (
-        <nav className="bottom-nav">
+        <nav className="bottom-nav" aria-label="Primary">
           {tabs.map(({ id, label, Icon }) => (
             <button
               key={id}

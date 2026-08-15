@@ -1,10 +1,9 @@
 import {
-  ClipboardList,
-  Edit3,
-  Plus,
-  Trash2,
-} from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
 import { coachBackend } from '../lib/coachBackend'
 import { appUi } from '../lib/appUi'
 import { assignmentNotificationBackend } from '../lib/assignmentNotifications'
@@ -13,6 +12,12 @@ import { enrichCoachClientRecord, getClientDisplayName, sanitizeCoachLabelDraft 
 import { openClientReview } from '../lib/coachReviewNavigation'
 import { coachClientLabelsBackend } from '../lib/coachClientLabelsBackend'
 import { getIdentityCapabilities, probeIdentityCapabilities } from '../lib/identityCapabilities'
+import {
+  buildViewForLegacyScreen,
+  COACH_SCREENS,
+  isLegacyCoachScreen,
+  normalizeCoachScreen,
+} from '../lib/coachNavigation'
 import { useCoachPortfolio } from '../hooks/useCoachPortfolio'
 import {
   normalizeBusinessClientRecord,
@@ -25,24 +30,36 @@ import {
   mapLifecycleUserMessage,
 } from '../lib/coachClientUi'
 import { invalidateCoachPortfolioCache } from '../lib/coachPortfolioService'
+import CoachBuildHub from '../components/coach/CoachBuildHub'
+import CoachCommandCenter from '../components/coach/CoachCommandCenter'
+import CoachWeeklyReview from '../components/coach/CoachWeeklyReview'
 import CoachCreateClientSheet from '../components/coach/CoachCreateClientSheet'
 import CoachClientProfile from './CoachClientProfile'
 import CoachWorkoutDesigner from '../components/CoachWorkoutDesigner'
 import CoachSessionCalendar from '../components/CoachSessionCalendar'
 import CoachPrograms from '../components/CoachPrograms'
-import CoachCommandCenter from '../components/coach/CoachCommandCenter'
-import CoachWeeklyReview from '../components/coach/CoachWeeklyReview'
-import SectionHeader from '../components/ui/SectionHeader'
-import EmptyState from '../components/ui/EmptyState'
 
-const today = () => new Date().toISOString().slice(0,10)
-const formatDate = (value) => value ? new Date(`${value}T12:00:00`).toLocaleDateString([], { month:'short', day:'numeric' }) : 'No due date'
-const ICON = { size: 18, strokeWidth: 1.75 }
-
-export default function CoachScreen({ workspace, setWorkspace, screen='clients', program, selectedClient, setSelectedClient, coachEmail='Coach', onOpenClientProfile, onNavigateCoachScreen, onCoachAvaContextChange, onRegisterCoachScreenApi, initialFocusedSessionId = null, onFocusedSessionOpened }) {
+export default function CoachScreen({
+  workspace,
+  setWorkspace,
+  screen = COACH_SCREENS.TODAY,
+  program,
+  selectedClient,
+  setSelectedClient,
+  coachEmail = 'Coach',
+  onOpenClientProfile,
+  onNavigateCoachScreen,
+  onCoachAvaContextChange,
+  onRegisterCoachScreenApi,
+  initialFocusedSessionId = null,
+  onFocusedSessionOpened,
+}) {
   const [clients,setClients]=useState([]), [invitations,setInvitations]=useState([]), [assignments,setAssignments]=useState([]), [templates,setTemplates]=useState([])
   const [query,setQuery]=useState(''), [inviteEmail,setInviteEmail]=useState(''), [notice,setNotice]=useState(''), [loading,setLoading]=useState(true)
-  const [showDesigner,setShowDesigner]=useState(false), [designerTemplate,setDesignerTemplate]=useState(null), [clientNotes,setClientNotes]=useState(''), [notesUpdatedAt,setNotesUpdatedAt]=useState(null)
+  const [showDesigner,setShowDesigner]=useState(false), [designerTemplate,setDesignerTemplate]=useState(null), [designerClientId,setDesignerClientId]=useState(''), [clientNotes,setClientNotes]=useState(''), [notesUpdatedAt,setNotesUpdatedAt]=useState(null)
+  const [buildView, setBuildView] = useState('home')
+  const [clientProgramFlow, setClientProgramFlow] = useState(null)
+  const previousScreenRef = useRef(screen)
   const [deliveryStatus,setDeliveryStatus]=useState({})
   const [sortKey,setSortKey]=useState(COACH_CLIENT_SORT.NEEDS_ATTENTION)
   const [weeklyReviewClient,setWeeklyReviewClient]=useState(null)
@@ -128,6 +145,42 @@ export default function CoachScreen({ workspace, setWorkspace, screen='clients',
     }
   }, [refreshPortfolio])
   useEffect(()=>{if(screen!=='clients')setSelectedClient?.(null)},[screen,setSelectedClient])
+
+  useEffect(() => {
+    if (isLegacyCoachScreen(screen)) {
+      setBuildView(buildViewForLegacyScreen(screen))
+      onNavigateCoachScreen?.(normalizeCoachScreen(screen))
+    }
+  }, [screen, onNavigateCoachScreen])
+
+  useEffect(() => {
+    const previousScreen = previousScreenRef.current
+    previousScreenRef.current = screen
+    const normalized = normalizeCoachScreen(screen)
+    if (
+      normalized === COACH_SCREENS.BUILD &&
+      previousScreen !== COACH_SCREENS.BUILD &&
+      !isLegacyCoachScreen(previousScreen)
+    ) {
+      setBuildView('home')
+    }
+  }, [screen])
+
+  const openDesigner = ({ clientId = '', template = null } = {}) => {
+    setDesignerClientId(clientId || selectedClient?.athlete_id || '')
+    setDesignerTemplate(template)
+    setShowDesigner(true)
+  }
+
+  const openBuildWorkouts = () => {
+    setBuildView('workouts')
+    onNavigateCoachScreen?.(COACH_SCREENS.BUILD)
+  }
+
+  const openBuildPrograms = () => {
+    setBuildView('programs')
+    onNavigateCoachScreen?.(COACH_SCREENS.BUILD)
+  }
   useEffect(() => {
     if (!selectedClient) return
 
@@ -230,7 +283,34 @@ export default function CoachScreen({ workspace, setWorkspace, screen='clients',
   const unassign=async(assignment)=>{if(!(await appUi.confirm({ message:`Cancel ${assignment.title}? It will leave active schedules but remain in assignment history.`, tone:'danger', confirmLabel:'Cancel' })))return;try{await coachBackend.cancelAssignment(assignment.id);setNotice('Assignment cancelled and removed from active schedules.');await load()}catch(e){setNotice(e.message)}}
   const deleteAssignment=async(assignment)=>{if(assignment.status==='completed'){setNotice('Completed workouts cannot be deleted. Archive them instead.');return}if(!(await appUi.confirm({ message:`Permanently delete ${assignment.title}? This removes it from Coach Hub, Calendar, the athlete account, and notifications.`, tone:'danger', confirmLabel:'Delete' })))return;try{await coachBackend.deleteAssignment(assignment.id);setNotice('Assignment permanently deleted.');await load()}catch(e){setNotice(e.message)}}
 
-  const designer = showDesigner ? <CoachWorkoutDesigner clients={clients} program={program} templates={templates} initialClientId={selectedClient?.athlete_id??''} initialTemplate={designerTemplate} onClose={()=>{setShowDesigner(false);setDesignerTemplate(null)}} onSaveTemplate={saveTemplate} onAssign={assignCustom}/> : null
+  const designer = showDesigner ? <CoachWorkoutDesigner clients={clients} program={program} templates={templates} initialClientId={designerClientId} initialTemplate={designerTemplate} onClose={()=>{setShowDesigner(false);setDesignerTemplate(null);setDesignerClientId('')}} onSaveTemplate={saveTemplate} onAssign={assignCustom}/> : null
+
+  const clientProgramContext =
+    clientProgramFlow && selectedClient?.athlete_id
+      ? {
+          mode: clientProgramFlow,
+          athleteId: selectedClient.athlete_id,
+          clientName: getClientDisplayName(selectedClient),
+          onClose: () => setClientProgramFlow(null),
+          onRequestBuild: () => setClientProgramFlow('build'),
+        }
+      : null
+
+  const clientProgramPanel = clientProgramContext ? (
+    <CoachPrograms
+      clients={clients}
+      templates={templates}
+      program={program}
+      onRefresh={load}
+      clientContext={clientProgramContext}
+      onAssigned={() => {
+        setNotice('Program assigned.')
+        setClientProgramFlow(null)
+      }}
+    />
+  ) : null
+
+  const normalizedScreen = normalizeCoachScreen(screen)
 
   const openWeeklyReview = (client, reviewId = null) => {
     const result = openClientReview({
@@ -267,6 +347,8 @@ export default function CoachScreen({ workspace, setWorkspace, screen='clients',
         setWeeklyReviewClient(client)
         setHistoricalReviewId(reviewId)
       },
+      openBuildWorkouts,
+      openBuildPrograms,
       setAttentionSort: () => setSortKey(COACH_CLIENT_SORT.NEEDS_ATTENTION),
     })
 
@@ -340,7 +422,10 @@ export default function CoachScreen({ workspace, setWorkspace, screen='clients',
       coachLabelsEnabled={coachLabelsEnabled || getIdentityCapabilities().coachClientLabels}
       coachEmail={coachEmail}
       onBack={()=>setSelectedClient(null)}
-      onAssignWorkout={()=>setShowDesigner(true)}
+      onAssignWorkout={()=>openDesigner({ clientId: selectedClient?.athlete_id ?? '' })}
+      onBuildWorkout={()=>openDesigner({ clientId: selectedClient?.athlete_id ?? '' })}
+      onAssignProgram={() => setClientProgramFlow('assign')}
+      onBuildProgram={() => setClientProgramFlow('build')}
       onOpenWeeklyReview={()=>openWeeklyReview(selectedClient)}
       notice={notice}
       onClientUpdated={async (updated, options = {}) => {
@@ -370,19 +455,121 @@ export default function CoachScreen({ workspace, setWorkspace, screen='clients',
       }}
     />
     {designer}
+    {clientProgramPanel}
   </>
 
-  if(screen==='calendar') return <CoachSessionCalendar clients={clients} assignments={assignments} coachEmail={coachEmail} initialClientId={selectedClient?.athlete_id??''} initialOpenComposer={openScheduleComposer} onComposerOpened={()=>setOpenScheduleComposer(false)} initialFocusedSessionId={initialFocusedSessionId} onFocusedSessionOpened={onFocusedSessionOpened} onOpenClientProfile={(client)=>{if(!client)return; if(onOpenClientProfile) onOpenClientProfile(client); else setSelectedClient(client)}} />
+  if (normalizedScreen === COACH_SCREENS.CALENDAR || screen === 'calendar') {
+    return (
+      <>
+        <CoachSessionCalendar
+          clients={clients}
+          assignments={assignments}
+          coachEmail={coachEmail}
+          initialClientId={selectedClient?.athlete_id ?? ''}
+          initialOpenComposer={openScheduleComposer}
+          onComposerOpened={() => setOpenScheduleComposer(false)}
+          initialFocusedSessionId={initialFocusedSessionId}
+          onFocusedSessionOpened={onFocusedSessionOpened}
+          onOpenClientProfile={(client) => {
+            if (!client) return
+            if (onOpenClientProfile) onOpenClientProfile(client)
+            else setSelectedClient(client)
+          }}
+        />
+        {designer}
+      </>
+    )
+  }
 
-  if(screen==='programs') return <CoachPrograms clients={clients} templates={templates} program={program} onRefresh={load}/>
+  if (normalizedScreen === COACH_SCREENS.BUILD) {
+    return (
+      <>
+        <CoachBuildHub
+          view={buildView}
+          onViewChange={setBuildView}
+          clients={clients}
+          templates={templates}
+          assignments={assignments}
+          program={program}
+          deliveryStatus={deliveryStatus}
+          notice={notice}
+          onRefresh={load}
+          onNewWorkout={() => openDesigner()}
+          onEditTemplate={(template) => openDesigner({ template })}
+          onCreateWorkoutFromProgram={() => openDesigner()}
+          onUnassign={unassign}
+          onDeleteAssignment={deleteAssignment}
+        />
+        {designer}
+      </>
+    )
+  }
 
-  if(screen==='assignments') return <><section className="coach-hub-screen"><SectionHeader eyebrow="PROGRAM DELIVERY" title="Assignments" description="Design, send, track, edit, and unassign client workouts." action={<button className="gold-button machined coach-primary-action" disabled={!clients.length} onClick={()=>setShowDesigner(true)}><Plus {...ICON}/>Create Workout</button>}/>
-    {!clients.length&&<p className="coach-hub-notice">Connect a client before creating an assignment.</p>}
-    {notice&&<p className="coach-hub-notice">{notice}</p>}
-    <section className="coach-profile-panel"><SectionHeader eyebrow="YOUR LIBRARY" title="Workout templates" description="Reusable starting points for individualized programming." action={<button className="coach-secondary-button" onClick={()=>setShowDesigner(true)}><Plus {...ICON}/>New Template</button>}/>{templates.length?<div className="coach-template-grid">{templates.map(template=><article key={template.id}><div><strong>{template.name}</strong><span>{template.workout_payload?.exercises?.length??0} exercises</span></div><div><button onClick={()=>{setDesignerTemplate(template);setShowDesigner(true)}}><Edit3 {...ICON}/>Use</button><button onClick={async()=>{if(await appUi.confirm({ message:`Delete ${template.name}?`, tone:'danger', confirmLabel:'Delete' })){await coachBackend.deleteWorkoutTemplate(template.id);await load()}}}><Trash2 {...ICON}/></button></div></article>)}</div>:<EmptyState icon={ClipboardList} title="No custom templates yet" description="Create a workout once, then reuse and personalize it for any client."/>}</section>
-    {assignments.length?<div className="coach-assignment-list">{assignments.map(a=><article className={`priority-${a.priority??'normal'} coach-assignment-row status-${a.status}`} key={a.id}><div><strong>{a.title}</strong><span>{getClientDisplayName(clients.find(c=>c.athlete_id===a.athlete_id) ?? { athlete_email: a.athlete_id })} · {formatDate(a.due_date)}</span></div><div className="coach-assignment-row-actions"><small>{a.status} · {deliveryStatus[a.id]??'Queued'}</small><div className="coach-assignment-lifecycle-actions">{['assigned','started'].includes(a.status)&&<button className="coach-cancel-button" onClick={()=>unassign(a)}>Cancel</button>}{a.status!=='completed'&&<button className="coach-delete-button" onClick={()=>deleteAssignment(a)}><Trash2 size={15}/>Delete</button>}</div></div></article>)}</div>:<EmptyState icon={ClipboardList} title="No assignments yet" description="Create an individualized workout for any connected client."/>}</section>{designer}</>
+  if (normalizedScreen === COACH_SCREENS.MORE || screen === 'settings') {
+    return (
+      <section className="coach-hub-screen coach-more-screen">
+        <header className="coach-build-hub-header">
+          <span className="eyebrow">COACH</span>
+          <h1>More</h1>
+          <p className="coach-build-subcopy">Settings and workspace overview.</p>
+        </header>
+        <section className="coach-settings-card">
+          <article>
+            <span>Connected clients</span>
+            <strong>{clients.length}</strong>
+          </article>
+          <article>
+            <span>Pending invitations</span>
+            <strong>{invitations.filter((item) => item.status === 'pending').length}</strong>
+          </article>
+          <article>
+            <span>Active assignments</span>
+            <strong>{assignments.length}</strong>
+          </article>
+          <article>
+            <span>Saved workouts</span>
+            <strong>{templates.length}</strong>
+          </article>
+        </section>
+        {notice ? <p className="coach-hub-notice">{notice}</p> : null}
+      </section>
+    )
+  }
 
-  if(screen==='settings') return <section className="coach-hub-screen"><SectionHeader eyebrow="COACH WORKSPACE" title="Coach settings" description="Database-backed access and private client relationships are active."/><section className="coach-settings-card"><article><span>Connected clients</span><strong>{clients.length}</strong></article><article><span>Pending invitations</span><strong>{invitations.filter(i=>i.status==='pending').length}</strong></article><article><span>Assignments</span><strong>{assignments.length}</strong></article><article><span>Saved templates</span><strong>{templates.length}</strong></article></section>{notice&&<p className="coach-hub-notice">{notice}</p>}</section>
+  if (normalizedScreen === COACH_SCREENS.CLIENTS && !selectedClient) {
+    return (
+      <>
+        <CoachCommandCenter
+          rosterOnly
+          clients={clients}
+          invitations={invitations}
+          assignments={assignments}
+          portfolio={sortedPortfolio}
+          portfolioLoading={portfolioLoading}
+          portfolioError={portfolioError}
+          passAvaContextByBusinessClientId={passAvaContextByBusinessClientId}
+          loading={loading}
+          query={query}
+          onQueryChange={setQuery}
+          onSelectClient={setSelectedClient}
+          onOpenBuild={openBuildWorkouts}
+          onNavigateCoachScreen={onNavigateCoachScreen}
+          onAddClient={openAddClient}
+          notice={notice}
+        />
+        <CoachCreateClientSheet
+          open={showCreateClient}
+          submitting={creatingClient}
+          onClose={() => {
+            setShowCreateClient(false)
+            setNotice('')
+          }}
+          onSubmit={handleCreateClient}
+        />
+        {designer}
+      </>
+    )
+  }
 
   return <>
     <CoachCommandCenter
@@ -396,9 +583,11 @@ export default function CoachScreen({ workspace, setWorkspace, screen='clients',
       loading={loading}
       query={query}
       onQueryChange={setQuery}
-      onSelectClient={setSelectedClient}
-      onAssignWorkout={()=>setShowDesigner(true)}
-      onViewAssignments={()=>onNavigateCoachScreen?.('assignments')}
+      onSelectClient={(client) => {
+        setSelectedClient(client)
+        onNavigateCoachScreen?.(COACH_SCREENS.CLIENTS)
+      }}
+      onOpenBuild={openBuildWorkouts}
       onNavigateCoachScreen={onNavigateCoachScreen}
       onSchedule={() => {
         setOpenScheduleComposer(true)

@@ -13,6 +13,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useLocalCalendarDay } from '../hooks/useLocalCalendarDay'
 import { useAvaUi } from '../ava/useAvaUi'
 import AthleteAssignmentHome from '../components/AthleteAssignmentHome'
+import AssignmentExercisePreview from '../components/AssignmentExercisePreview'
 import AvaDailyBriefing from '../components/AvaDailyBriefing'
 import { buildAvaDailyBriefing } from '../lib/avaIntelligence'
 import { AVA_ACTION_TYPES } from '../lib/avaActions'
@@ -536,6 +537,15 @@ export default function HomeScreen({
                 ? 'Your coach programmed this session.'
                 : 'Scheduled on your weekly plan.'}
             </p>
+            {activeCoachAssignment ? (
+              <AssignmentExercisePreview
+                exercises={
+                  activeCoachAssignment.workout_payload?.exercises ?? []
+                }
+                coachNotes={activeCoachAssignment.coach_notes ?? ''}
+                compact
+              />
+            ) : null}
             <button
               type="button"
               className="gold-button machined home-start-session"

@@ -117,6 +117,9 @@ export default function CoachClientProfile({
   coachEmail = 'Coach',
   onBack,
   onAssignWorkout,
+  onBuildWorkout,
+  onAssignProgram,
+  onBuildProgram,
   onOpenWeeklyReview,
   notice = '',
   onClientUpdated,
@@ -761,14 +764,33 @@ export default function CoachClientProfile({
               title="Programming"
             description="Goals, program focus, and assignment workflow."
             primaryAction={
-              <button
-                type="button"
-                className="gold-button machined coach-primary-action coach-client-profile-section-action"
-                onClick={onAssignWorkout}
-              >
-                <Plus {...ICON} />
-                Assign Workout
-              </button>
+              <div className="coach-client-training-actions">
+                <button
+                  type="button"
+                  className="gold-button machined coach-primary-action coach-client-profile-section-action"
+                  onClick={onAssignWorkout}
+                >
+                  <Plus {...ICON} />
+                  Assign Workout
+                </button>
+                <div className="coach-client-training-secondary-actions">
+                  <button
+                    type="button"
+                    className="coach-secondary-button coach-client-profile-section-action"
+                    onClick={onBuildWorkout}
+                  >
+                    Build New Workout
+                  </button>
+                  <button
+                    type="button"
+                    className="coach-secondary-button coach-client-profile-section-action"
+                    onClick={onAssignProgram}
+                    data-testid="coach-client-assign-program"
+                  >
+                    Assign Program
+                  </button>
+                </div>
+              </div>
             }
           >
             <div className="coach-client-profile-overview">

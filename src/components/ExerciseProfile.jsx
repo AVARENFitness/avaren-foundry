@@ -1,4 +1,5 @@
 import { ChevronRight } from 'lucide-react'
+import { formatLegacyCompletedSetDisplay } from '../lib/exerciseLoad'
 import { exerciseProfile } from '../lib/metrics'
 
 export default function ExerciseProfile({ history, exercise }) {
@@ -33,7 +34,7 @@ export default function ExerciseProfile({ history, exercise }) {
             <div className="profile-session-sets">
               {session.sets.map((set, index) => (
                 <span key={`${session.id}-${index}`}>
-                  {set.weight} × {set.reps}
+                  {formatLegacyCompletedSetDisplay(set)}
                 </span>
               ))}
             </div>

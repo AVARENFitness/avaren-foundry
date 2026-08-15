@@ -10,6 +10,10 @@ import {
   Unlink,
 } from 'lucide-react'
 import { useMemo, useState } from 'react'
+import {
+  LOAD_TYPE_OPTIONS,
+  suggestDefaultLoadType,
+} from '../lib/exerciseLoad'
 
 const MUSCLES = [
   'Chest','Back','Shoulders','Traps','Biceps','Triceps','Rear Delts',
@@ -67,6 +71,7 @@ export default function WorkoutBuilderScreen({
         sets: 3,
         muscle: 'Other',
         supersetGroup: '',
+        loadType: suggestDefaultLoadType('New Exercise'),
       })
       return next
     })
@@ -282,6 +287,21 @@ export default function WorkoutBuilderScreen({
                 </select>
               </div>
             </div>
+
+            <label>Load type</label>
+            <select
+              value={exercise.loadType ?? suggestDefaultLoadType(exercise.name)}
+              aria-label="Load type"
+              onChange={(event) =>
+                updateExercise(index, 'loadType', event.target.value)
+              }
+            >
+              {LOAD_TYPE_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
 
             <label>Superset</label>
             <div className="builder-superset-control">

@@ -3,10 +3,10 @@ import { render, screen } from '@testing-library/react'
 import CoachShell from '../components/CoachShell'
 
 describe('CoachShell mobile layout', () => {
-  it('locks body scroll and exposes athlete mode switch immediately', () => {
+  it('locks body scroll, exposes Build, and keeps athlete mode switch reachable', () => {
     const { unmount } = render(
       <CoachShell
-        screen="clients"
+        screen="today"
         setScreen={vi.fn()}
         coachName="Coach Jake"
         onExit={vi.fn()}
@@ -16,9 +16,8 @@ describe('CoachShell mobile layout', () => {
     )
 
     expect(document.body.classList.contains('coach-mode-active')).toBe(true)
-    expect(
-      screen.getByRole('button', { name: /Athlete App/i }),
-    ).toBeVisible()
+    expect(screen.getByRole('button', { name: /^Build$/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Athlete App/i })).toBeVisible()
 
     unmount()
 

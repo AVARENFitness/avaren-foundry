@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useAuthSession } from './hooks/useAuthSession'
 import { appUi } from './lib/appUi'
-import { useNavigation } from './hooks/useNavigation'
+import { normalizeAthleteReturnScreen, useNavigation } from './hooks/useNavigation'
 import { useWorkoutSession } from './hooks/useWorkoutSession'
 import AppShell from './components/AppShell'
 import ErrorBoundary from './components/ErrorBoundary'
@@ -25,7 +25,8 @@ import {
   resolveDefaultActiveMode,
   shouldRestoreCoachMode,
 } from './lib/coachModePersistence'
-import { registerPushWorker, syncPushSubscription } from './lib/pushNotifications'
+import { registerPushWorker, syncPushSubscription, deactivatePushSubscriptionForDevice } from './lib/pushNotifications'
+import { supabase } from './lib/supabase'
 import {
   buildPushDeepLinkDedupeKey,
   parsePushDeepLinkUrl,
@@ -321,9 +322,29 @@ function App() {
   )
 
   const closeSubScreen = useCallback(() => {
-    navigate(screenReturnTo ?? 'more')
+    navigate(screenReturnTo ?? 'home')
     setScreenReturnTo(null)
   }, [navigate, screenReturnTo])
+
+  const openAccount = useCallback(() => {
+    if (screen !== 'more') {
+      setScreenReturnTo(normalizeAthleteReturnScreen(screen))
+    }
+    navigate('more')
+  }, [navigate, screen])
+
+  const closeAccount = useCallback(() => {
+    navigate(screenReturnTo ?? 'home')
+    setScreenReturnTo(null)
+  }, [navigate, screenReturnTo])
+
+  const handleAthleteTabChange = useCallback(
+    (nextScreen) => {
+      setScreenReturnTo(null)
+      navigate(nextScreen)
+    },
+    [navigate],
+  )
 
   useEffect(() => {
     resetDocumentModalLayer()
@@ -468,6 +489,7 @@ function App() {
     updateWorkoutMeta,
     updateRestTimer,
     updateSet,
+    updateExercise,
     addSet,
     repeatPreviousSet,
     skipExercise,
@@ -644,6 +666,18 @@ function App() {
   }, [session?.user?.id, cloudReady])
 
   useEffect(() => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_OUT') {
+        deactivatePushSubscriptionForDevice().catch(() => {})
+      }
+    })
+
+    return () => subscription.unsubscribe()
+  }, [])
+
+  useEffect(() => {
     if (!session?.user || !cloudReady) return undefined
 
     let active = true
@@ -795,8 +829,9 @@ function App() {
       }
 
       if (notification.action === 'open-coach-assignment') {
-        setCoachScreen('assignments')
         enterCoachMode()
+        setCoachScreen('build')
+        coachScreenApiRef.current?.openBuildWorkouts?.()
         return
       }
 
@@ -1036,7 +1071,7 @@ function App() {
   })
   const coachAvaSnapshotRef = useRef({
     coachHub: false,
-    coachScreen: 'clients',
+    coachScreen: 'today',
     selectedClientId: null,
     weeklyReviewOpen: false,
     profileOpen: false,
@@ -1229,7 +1264,7 @@ function App() {
     ({ focus = 'clients' } = {}) => {
       coachAvaSnapshotRef.current = {
         coachHub: true,
-        coachScreen: 'clients',
+        coachScreen: 'today',
         selectedClientId: null,
         weeklyReviewOpen: false,
         profileOpen: false,
@@ -1632,6 +1667,7 @@ function App() {
             activeExercise={activeExercise}
             setActiveExercise={setActiveExercise}
             onSetChange={updateSet}
+            onExerciseChange={updateExercise}
             onWorkoutMetaChange={updateWorkoutMeta}
             onAddSet={addSet}
             onFinish={finishWorkout}
@@ -1910,6 +1946,7 @@ function App() {
           state={state}
           setState={setState}
           fallbackState={createInitialState(session?.user?.id)}
+          onBack={screenReturnTo ? closeAccount : undefined}
           onOpenBuilder={() => navigate('builder')}
           onOpenPlanner={() => navigate('planner')}
           onOpenHistory={() => navigate('history')}
@@ -2184,12 +2221,22 @@ function App() {
     >
       <AppShell
         screen={screen}
-        setScreen={(next) => navigate(next)}
+        setScreen={handleAthleteTabChange}
         activeWorkout={state.activeWorkout}
         transitioning={transitioning}
         immersive={isImmersiveScreen(screen, { mobilityFlow })}
         notificationCount={notifications.unreadCount}
         onOpenNotifications={() => navigate('notifications')}
+        onOpenAccount={openAccount}
+        accountLabel="Account"
+        accountInitial={(
+          session?.user?.user_metadata?.display_name ??
+          session?.user?.email ??
+          'A'
+        )
+          .trim()
+          .charAt(0)
+          .toUpperCase()}
       >
         <CloudStatus status={cloudStatus} />
         {activeScreen}

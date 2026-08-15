@@ -15,8 +15,8 @@ import {
   Trophy,
 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
-import { sessionVolume } from '../lib/metrics'
 import { MILESTONE_TYPES } from '../lib/milestones'
+import { resolveSessionVolumeDisplay } from '../lib/sessionVolumeDisplay'
 
 const MILESTONE_META = {
   [MILESTONE_TYPES.FIRST_WORKOUT]: {
@@ -113,7 +113,8 @@ export default function CompletionScreen({
     if (!session) return null
 
     const sets = session.sets ?? []
-    const volume = sessionVolume(session)
+    const volumeDisplay = resolveSessionVolumeDisplay(session)
+    const volume = volumeDisplay.show ? volumeDisplay.value : 0
     const exerciseNames = [
       ...new Set(
         sets.map((set) => set.exercise),
@@ -207,6 +208,7 @@ export default function CompletionScreen({
     return {
       sets,
       volume,
+      volumeDisplay,
       exerciseNames,
       muscles,
       durationSeconds,
@@ -278,15 +280,17 @@ export default function CompletionScreen({
             </div>
           </article>
 
-          <article>
-            <Gauge size={16} />
-            <div>
-              <strong>
-                {summary.volume.toLocaleString()}
-              </strong>
-              <span>lb volume</span>
-            </div>
-          </article>
+          {summary.volumeDisplay.show ? (
+            <article>
+              <Gauge size={16} />
+              <div>
+                <strong>
+                  {summary.volumeDisplay.value.toLocaleString()}
+                </strong>
+                <span>{summary.volumeDisplay.label.toLowerCase()} (lb)</span>
+              </div>
+            </article>
+          ) : null}
         </div>
 
         <p className="completion-coach-followup-note">

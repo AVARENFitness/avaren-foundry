@@ -5,6 +5,189 @@ const MAX_RECENT_SESSIONS = 5
 const DAY_MS = 86400000
 const ACTIVE_STATUSES = ['assigned', 'started']
 
+const LOAD_TYPES = {
+  EXTERNAL: 'external',
+  BODYWEIGHT: 'bodyweight',
+  BODYWEIGHT_ADDED: 'bodyweight_added',
+  ASSISTED: 'assisted',
+} as const
+
+const LOAD_TYPE_LABELS: Record<string, string> = {
+  external: 'Weight',
+  bodyweight: 'Bodyweight',
+  bodyweight_added: 'Bodyweight + weight',
+  assisted: 'Assisted',
+}
+
+const normalizeRepTarget = (value: unknown) => {
+  if (value == null || value === '') return null
+
+  if (typeof value === 'object' && !Array.isArray(value)) {
+    const record = value as { min?: unknown; max?: unknown }
+    const min = Number(record.min)
+    const max = Number(record.max ?? record.min)
+    if (!Number.isFinite(min) || min <= 0) return null
+    return {
+      min,
+      max: Number.isFinite(max) && max > 0 ? max : min,
+    }
+  }
+
+  const text = String(value).trim()
+  if (!text) return null
+
+  const rangeMatch = text.match(/^(\d+)\s*[-–—]\s*(\d+)$/)
+  if (rangeMatch) {
+    const min = Number(rangeMatch[1])
+    const max = Number(rangeMatch[2])
+    if (min > 0 && max >= min) return { min, max }
+  }
+
+  const exact = Number(text)
+  if (Number.isFinite(exact) && exact > 0) return { min: exact, max: exact }
+  return null
+}
+
+const normalizePrescription = (exercise: Record<string, unknown> = {}) => {
+  const prescription = exercise.prescription as
+    | { sets?: unknown; reps?: unknown }
+    | undefined
+
+  if (prescription?.sets != null) {
+    const sets = Number(prescription.sets)
+    const reps = normalizeRepTarget(prescription.reps)
+    return {
+      sets: Number.isFinite(sets) && sets > 0 ? sets : 3,
+      reps,
+    }
+  }
+
+  const sets = Number(exercise.sets)
+  const reps = normalizeRepTarget(exercise.reps)
+
+  return {
+    sets: Number.isFinite(sets) && sets > 0 ? sets : 3,
+    reps,
+  }
+}
+
+const formatRepTarget = (prescription: { reps?: { min: number; max: number } | null }) => {
+  const reps = prescription.reps
+  if (!reps) return null
+  if (reps.min === reps.max) return `${reps.min} reps`
+  return `${reps.min}–${reps.max} reps`
+}
+
+const formatPrescriptionDisplay = (prescription: {
+  sets: number
+  reps?: { min: number; max: number } | null
+}) => {
+  const repLabel = formatRepTarget(prescription)
+  if (repLabel) return `${prescription.sets} sets · ${repLabel}`
+  return `${prescription.sets} sets`
+}
+
+const suggestDefaultLoadType = (exerciseName = '') => {
+  const name = String(exerciseName).trim().toLowerCase()
+  if (
+    /pull-up|pullup|chin-up|chinup|push-up|pushup|dip|leg raise|plank hold/i.test(
+      name,
+    )
+  ) {
+    return LOAD_TYPES.BODYWEIGHT
+  }
+  return LOAD_TYPES.EXTERNAL
+}
+
+const normalizeLoadType = (value: unknown, exerciseName = '') => {
+  const text = String(value ?? '')
+  if (Object.values(LOAD_TYPES).includes(text as typeof LOAD_TYPES.EXTERNAL)) {
+    return text
+  }
+  return suggestDefaultLoadType(exerciseName)
+}
+
+const loadTypeLabel = (loadType: string) =>
+  LOAD_TYPE_LABELS[loadType] ?? 'Weight'
+
+const mapTrustedExercise = (item: Record<string, unknown> = {}) => {
+  const prescription = normalizePrescription(item)
+  const loadType = normalizeLoadType(item.loadType, String(item.name ?? ''))
+
+  return {
+    name: item.name ?? item.exercise ?? 'Exercise',
+    sets: prescription.sets,
+    muscle: item.muscle ?? null,
+    loadType,
+    prescription,
+    summary: [
+      formatPrescriptionDisplay(prescription),
+      loadType !== LOAD_TYPES.EXTERNAL ? loadTypeLabel(loadType) : null,
+    ]
+      .filter(Boolean)
+      .join(' · '),
+  }
+}
+
+const resolveSetLoadType = (
+  set: Record<string, unknown>,
+  exerciseLoadType?: unknown,
+) => normalizeLoadType(set.loadType ?? exerciseLoadType, String(set.exercise ?? ''))
+
+const formatCompletedSetDisplay = (set: Record<string, unknown> = {}) => {
+  const loadType = resolveSetLoadType(set, set.loadType)
+  const reps = Number(set.reps ?? 0)
+
+  if (loadType === LOAD_TYPES.BODYWEIGHT) {
+    return reps > 0 ? `BW × ${reps}` : 'BW'
+  }
+
+  if (loadType === LOAD_TYPES.BODYWEIGHT_ADDED) {
+    const added = Number(set.addedWeight ?? set.weight ?? 0)
+    return added > 0 ? `BW + ${added} lb × ${reps}` : `BW × ${reps}`
+  }
+
+  if (loadType === LOAD_TYPES.ASSISTED) {
+    const assistance = Number(set.assistance ?? set.weight ?? 0)
+    return assistance > 0
+      ? `${assistance} lb assist × ${reps}`
+      : `Assist × ${reps}`
+  }
+
+  const weight = Number(set.weight ?? 0)
+  if (weight > 0 && reps > 0) return `${weight} × ${reps}`
+  if (reps > 0) return `${reps} reps`
+  return '—'
+}
+
+const formatLegacyCompletedSetDisplay = (set: Record<string, unknown> = {}) => {
+  if (set.loadType) return formatCompletedSetDisplay(set)
+
+  const weight = Number(set.weight ?? 0)
+  const reps = Number(set.reps ?? 0)
+  if (weight > 0 && reps > 0) return `${weight} × ${reps}`
+  if (reps > 0 && weight === 0) return `${reps} reps`
+  return '—'
+}
+
+const mapTrustedCompletedSet = (set: Record<string, unknown> = {}) => ({
+  exercise: set.exercise ?? null,
+  muscle: set.muscle ?? null,
+  loadType: resolveSetLoadType(set, set.loadType),
+  reps: Number(set.reps ?? 0) || null,
+  display: set.loadType
+    ? formatCompletedSetDisplay(set)
+    : formatLegacyCompletedSetDisplay(set),
+})
+
+const mapTrustedSessionSets = (
+  session: Record<string, unknown>,
+  limit = 12,
+) =>
+  ((session.sets as Array<Record<string, unknown>> | undefined) ?? [])
+    .slice(0, limit)
+    .map(mapTrustedCompletedSet)
+
 const todayKey = (date = new Date()) =>
   new Date(date).toISOString().slice(0, 10)
 
@@ -197,11 +380,9 @@ const resolveWorkoutExercises = (
     | undefined
 
   if (payload?.exercises?.length) {
-    return payload.exercises.slice(0, MAX_EXERCISES).map((item) => ({
-      name: item.name ?? item.exercise ?? 'Exercise',
-      sets: item.sets ?? null,
-      muscle: item.muscle ?? null,
-    }))
+    return payload.exercises
+      .slice(0, MAX_EXERCISES)
+      .map((item) => mapTrustedExercise(item))
   }
 
   const program = foundryState.program as
@@ -213,11 +394,9 @@ const resolveWorkoutExercises = (
     : null
 
   if (Array.isArray(programExercises) && programExercises.length) {
-    return programExercises.slice(0, MAX_EXERCISES).map((item) => ({
-      name: item.name ?? item.exercise ?? 'Exercise',
-      sets: item.sets ?? null,
-      muscle: item.muscle ?? null,
-    }))
+    return programExercises
+      .slice(0, MAX_EXERCISES)
+      .map((item) => mapTrustedExercise(item))
   }
 
   return []
@@ -279,9 +458,11 @@ const buildTrustedRecentTraining = (
     lastSessionDate: lastSession
       ? String(sessionDate(lastSession)).slice(0, 10)
       : null,
+    lastSessionSets: lastSession ? mapTrustedSessionSets(lastSession) : [],
     recentSessions: recent.slice(-MAX_RECENT_SESSIONS).map((session) => ({
       name: (session.name as string | undefined) ?? null,
       date: String(sessionDate(session)).slice(0, 10),
+      sets: mapTrustedSessionSets(session, 8),
     })),
   }
 }

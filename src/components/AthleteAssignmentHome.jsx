@@ -7,6 +7,7 @@ import {
 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { coachBackend } from '../lib/coachBackend'
+import AssignmentExercisePreview from './AssignmentExercisePreview'
 
 const dueLabel = (value) => {
   if (!value) return 'No due date'
@@ -44,7 +45,7 @@ export default function AthleteAssignmentHome({ onStartAssignment, compact = fal
   const primary = upcoming[0]
   const isWorkout = primary.kind === 'workout'
   return <section className={`athlete-schedule-feature ${compact ? 'athlete-schedule-feature--compact' : ''}`}>
-    <header><div><span className="eyebrow">YOUR SCHEDULE</span><h2>{isWorkout ? primary.title : primary.title || (primary.kind==='rest'?'Rest Day':'Deload Day')}</h2><p>{primary.coach_notes || primary.notes || (isWorkout?'Your next coached session is ready.':'Recovery is part of the program.')}</p><small><CalendarDays size={14}/>{dueLabel(primary.scheduled_date)}</small></div>{isWorkout?<button className={compact ? 'avaren-secondary-button athlete-schedule-start' : 'gold-button machined'} onClick={()=>onStartAssignment?.(primary)}>Start Session <ChevronRight size={17}/></button>:<div className="athlete-schedule-kind">{primary.kind==='rest'?<Moon size={20}/>:<RefreshCcw size={20}/>}<span>{primary.kind}</span></div>}</header>
+    <header><div><span className="eyebrow">YOUR SCHEDULE</span><h2>{isWorkout ? primary.title : primary.title || (primary.kind==='rest'?'Rest Day':'Deload Day')}</h2><p>{primary.coach_notes || primary.notes || (isWorkout?'Your next coached session is ready.':'Recovery is part of the program.')}</p><small><CalendarDays size={14}/>{dueLabel(primary.scheduled_date)}</small>{isWorkout ? <AssignmentExercisePreview exercises={primary.workout_payload?.exercises ?? []} coachNotes="" compact /> : null}</div>{isWorkout?<button className={compact ? 'avaren-secondary-button athlete-schedule-start' : 'gold-button machined'} onClick={()=>onStartAssignment?.(primary)}>Start Session <ChevronRight size={17}/></button>:<div className="athlete-schedule-kind">{primary.kind==='rest'?<Moon size={20}/>:<RefreshCcw size={20}/>}<span>{primary.kind}</span></div>}</header>
     {upcoming.length>1&&<div className="athlete-upcoming-strip">{upcoming.slice(1).map(item=><article key={`${item.id}-${item.kind}`}><span>{item.kind==='workout'?<ClipboardList size={15}/>:item.kind==='rest'?<Moon size={15}/>:<RefreshCcw size={15}/>}</span><div><strong>{item.title}</strong><small>{dueLabel(item.scheduled_date)}</small></div></article>)}</div>}
   </section>
 }

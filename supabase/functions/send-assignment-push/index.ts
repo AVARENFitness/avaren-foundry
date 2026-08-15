@@ -104,7 +104,17 @@ export default {
 
       let delivered = 0
 
-      for (const subscription of subscriptions ?? []) {
+      const deliverable = (subscriptions ?? []).filter(
+        (subscription) =>
+          subscription.user_id === assignment.athlete_id && subscription.active,
+      )
+
+      const seenEndpoints = new Set<string>()
+
+      for (const subscription of deliverable) {
+        if (seenEndpoints.has(subscription.endpoint)) continue
+        seenEndpoints.add(subscription.endpoint)
+
         try {
           await webpush.sendNotification(
             {

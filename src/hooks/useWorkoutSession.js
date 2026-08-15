@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { coachBackend } from '../lib/coachBackend'
 import { appUi } from '../lib/appUi'
 import { newlyUnlockedForgeAchievements } from '../lib/forge'
-import { estimatedOneRepMax } from '../lib/metrics'
 import { newlyEarnedMilestones } from '../lib/milestones'
 import {
   applyRecommendationToWorkout,
@@ -26,15 +25,14 @@ import {
 } from '../lib/coachingAppointment'
 
 import { createRuntimeId } from '../lib/createRuntimeId'
+import { buildCompletedSet, isActiveSetEntered } from '../lib/exerciseLoad'
+import {
+  materializeWorkoutExercise,
+  makeActiveSet,
+} from '../lib/materializeWorkoutExercise'
+import { sessionLoadVolume } from '../lib/workoutMetrics'
 
-const makeSet = (number, type = 'Working') => ({
-  id: createRuntimeId(),
-  number,
-  type,
-  weight: '',
-  reps: '',
-  done: false,
-})
+const makeSet = makeActiveSet
 
 export function useWorkoutSession({
   state,
@@ -99,23 +97,7 @@ export function useWorkoutSession({
       date: localCalendarDateKey(),
       startedAt: new Date().toISOString(),
       activeExerciseIndex: 0,
-      exercises: definitions.map((exercise) => ({
-        id: createRuntimeId(),
-        name: exercise.name,
-        muscle: exercise.muscle,
-        supersetGroup: exercise.supersetGroup || '',
-        sets: Array.from({ length: exercise.sets }, (_, index) =>
-          makeSet(
-            index + 1,
-            index === 0 &&
-              ['Bench Press', 'Barbell Squats', 'Standing Barbell Press'].includes(
-                exercise.name,
-              )
-              ? 'Warm-up'
-              : 'Working',
-          ),
-        ),
-      })),
+      exercises: definitions.map((exercise) => materializeWorkoutExercise(exercise)),
     }
   }, [state.program.workouts])
 
@@ -124,11 +106,8 @@ export function useWorkoutSession({
     if (!currentWorkout || currentWorkout.name === name) return
 
     const hasEnteredData = currentWorkout.exercises.some((exercise) =>
-      exercise.sets.some(
-        (set) =>
-          set.weight !== '' ||
-          set.reps !== '' ||
-          set.done,
+      exercise.sets.some((set) =>
+        isActiveSetEntered(set, exercise.loadType) || set.done,
       ),
     )
 
@@ -159,14 +138,10 @@ export function useWorkoutSession({
     const currentWorkout = state.activeWorkout
     if (!currentWorkout) return
 
-    const hasEnteredData = currentWorkout.exercises.some(
-      (exercise) =>
-        exercise.sets.some(
-          (set) =>
-            set.weight !== '' ||
-            set.reps !== '' ||
-            set.done,
-        ),
+    const hasEnteredData = currentWorkout.exercises.some((exercise) =>
+      exercise.sets.some((set) =>
+        isActiveSetEntered(set, exercise.loadType) || set.done,
+      ),
     )
 
     if (
@@ -202,14 +177,10 @@ export function useWorkoutSession({
     const currentWorkout = state.activeWorkout
     if (!currentWorkout) return
 
-    const hasEnteredData = currentWorkout.exercises.some(
-      (exercise) =>
-        exercise.sets.some(
-          (set) =>
-            set.weight !== '' ||
-            set.reps !== '' ||
-            set.done,
-        ),
+    const hasEnteredData = currentWorkout.exercises.some((exercise) =>
+      exercise.sets.some((set) =>
+        isActiveSetEntered(set, exercise.loadType) || set.done,
+      ),
     )
 
     const message = hasEnteredData
@@ -350,19 +321,8 @@ export function useWorkoutSession({
       startedAt: new Date().toISOString(),
       activeExerciseIndex: 0,
       coachNotes: assignment.coach_notes ?? '',
-      exercises: definition.exercises.map(
-        (exercise) => ({
-          id: createRuntimeId(),
-          name: exercise.name,
-          muscle: exercise.muscle ?? 'Other',
-          supersetGroup:
-            exercise.supersetGroup ?? '',
-          sets: Array.from(
-            { length: Number(exercise.sets) || 3 },
-            (_, index) =>
-              makeSet(index + 1, 'Working'),
-          ),
-        }),
+      exercises: definition.exercises.map((exercise) =>
+        materializeWorkoutExercise(exercise),
       ),
     }
 
@@ -544,23 +504,25 @@ export function useWorkoutSession({
     const workout = state.activeWorkout
     if (!workout) return
 
+    const athleteBodyweight = Number(state.profile?.weight ?? state.bodyweight ?? 0)
+    const bodyweightSnapshot =
+      Number.isFinite(athleteBodyweight) && athleteBodyweight > 0
+        ? athleteBodyweight
+        : null
+
     const sets = workout.exercises
       .filter((exercise) => !exercise.skipped)
       .flatMap((exercise) =>
-      exercise.sets
-        .filter((set) => Number(set.reps) > 0)
-        .map((set) => ({
-          exercise: exercise.name,
-          muscle: exercise.muscle,
-          type: set.type,
-          weight: Number(set.weight || 0),
-          reps: Number(set.reps || 0),
-          estimatedOneRepMax: estimatedOneRepMax(
-            Number(set.weight || 0),
-            Number(set.reps || 0),
+        exercise.sets
+          .filter((set) => Number(set.reps) > 0)
+          .map((set) =>
+            buildCompletedSet({
+              exercise,
+              set,
+              bodyweightAtSession: bodyweightSnapshot,
+            }),
           ),
-        })),
-    )
+      )
 
     if (sets.length === 0) {
       appUi.toast('Log at least one set before finishing.', 'error')
@@ -571,7 +533,7 @@ export function useWorkoutSession({
     const incompleteEnteredSets = workout.exercises.flatMap((exercise) =>
       exercise.sets.filter(
         (set) =>
-          (set.weight !== '' || set.reps !== '') &&
+          isActiveSetEntered(set, exercise.loadType) &&
           !set.done,
       ),
     )
@@ -611,6 +573,8 @@ export function useWorkoutSession({
           name: exercise.name,
           skipped: Boolean(exercise.skipped),
           oneTime: Boolean(exercise.oneTime),
+          loadType: exercise.loadType ?? null,
+          prescription: exercise.prescription ?? null,
           sets: exercise.sets.filter((set) => Number(set.reps) > 0),
         })),
         sets,
@@ -637,13 +601,7 @@ export function useWorkoutSession({
                   60000,
               ),
             ),
-            volume: completedWorkoutSession.sets.reduce(
-              (total, set) =>
-                total +
-                Number(set.weight || 0) *
-                  Number(set.reps || 0),
-              0,
-            ),
+            volume: sessionLoadVolume(completedWorkoutSession),
             sets: completedWorkoutSession.sets.length,
             exercises: [
               ...new Set(
@@ -741,6 +699,18 @@ export function useWorkoutSession({
     }))
   }, [setState])
 
+  const updateExercise = useCallback((exerciseIndex, patch) => {
+    setState((current) => {
+      if (!current.activeWorkout) return current
+      const activeWorkout = structuredClone(current.activeWorkout)
+      activeWorkout.exercises[exerciseIndex] = {
+        ...activeWorkout.exercises[exerciseIndex],
+        ...patch,
+      }
+      return { ...current, activeWorkout }
+    })
+  }, [setState])
+
   const resetWorkoutSession = useCallback(() => {
     setActiveExerciseState(0)
     setCompletedSession(null)
@@ -770,6 +740,7 @@ export function useWorkoutSession({
     updateWorkoutMeta,
     updateRestTimer,
     updateSet,
+    updateExercise,
     addSet,
     repeatPreviousSet,
     skipExercise,

@@ -13,6 +13,17 @@ import {
 import { useMemo, useState } from 'react'
 import { COMMON_EXERCISES } from '../data/commonExercises'
 import { createRuntimeId } from '../lib/createRuntimeId'
+import { getClientDisplayName } from '../lib/clientDisplayName'
+import { appUi } from '../lib/appUi'
+import {
+  LOAD_TYPE_OPTIONS,
+  normalizeLoadType,
+  suggestDefaultLoadType,
+} from '../lib/exerciseLoad'
+import {
+  formatPrescriptionForCoachPayload,
+  normalizePrescription,
+} from '../lib/exercisePrescription'
 
 const MUSCLES = [
   'Chest','Back','Shoulders','Traps','Biceps','Triceps','Rear Delts',
@@ -25,6 +36,8 @@ const makeExercise = (name = 'New Exercise', muscle = 'Other') => ({
   muscle,
   sets: 3,
   reps: '8-12',
+  loadType: suggestDefaultLoadType(name),
+  prescription: { sets: 3, reps: { min: 8, max: 12 } },
   weightGuidance: '',
   restSeconds: 90,
   tempo: '',
@@ -34,12 +47,22 @@ const makeExercise = (name = 'New Exercise', muscle = 'Other') => ({
   notes: '',
 })
 
-const normalizeExercise = (exercise) => ({
-  ...makeExercise(exercise?.name, exercise?.muscle),
-  ...exercise,
-  id: exercise?.id ?? createRuntimeId(),
-  sets: Number(exercise?.sets) || 3,
-})
+const normalizeExercise = (exercise) => {
+  const prescription = normalizePrescription(exercise)
+  return {
+    ...makeExercise(exercise?.name, exercise?.muscle),
+    ...exercise,
+    id: exercise?.id ?? createRuntimeId(),
+    sets: prescription.sets,
+    loadType: normalizeLoadType(exercise?.loadType, exercise?.name),
+    prescription,
+    reps: exercise?.reps ?? (prescription.reps
+      ? prescription.reps.min === prescription.reps.max
+        ? String(prescription.reps.min)
+        : `${prescription.reps.min}-${prescription.reps.max}`
+      : '8-12'),
+  }
+}
 
 export default function CoachWorkoutDesigner({
   clients = [],
@@ -84,6 +107,7 @@ export default function CoachWorkoutDesigner({
   const [query, setQuery] = useState('')
   const [muscleFilter, setMuscleFilter] = useState('All')
   const [notice, setNotice] = useState('')
+  const [assigning, setAssigning] = useState(false)
   const [recentlyAddedId, setRecentlyAddedId] = useState('')
 
   const filteredLibrary = library.filter((exercise) => {
@@ -121,7 +145,9 @@ export default function CoachWorkoutDesigner({
     setNotice(`${added.name} added to the workout.`)
 
     window.setTimeout(() => {
-      document.getElementById(`coach-exercise-${added.id}`)?.scrollIntoView({
+      document
+        .getElementById(`coach-exercise-${added.id}`)
+        ?.scrollIntoView?.({
         behavior: 'smooth',
         block: 'center',
       })
@@ -141,18 +167,59 @@ export default function CoachWorkoutDesigner({
 
   const workoutPayload = () => ({
     name: draft.name.trim() || 'Custom Workout',
-    exercises: draft.exercises.map(({ id, ...exercise }) => exercise),
+    exercises: draft.exercises.map(({ id, ...exercise }) =>
+      formatPrescriptionForCoachPayload(exercise),
+    ),
   })
 
-  const validate = ({ assigning = false } = {}) => {
+  const validate = ({ assigning: isAssigning = false } = {}) => {
     if (!draft.name.trim()) return 'Name the workout first.'
     if (!draft.exercises.length) return 'Add at least one exercise.'
-    if (assigning && !draft.athleteId) return 'Select a client.'
+    if (isAssigning && !draft.athleteId) return 'Select a client.'
     return ''
   }
 
+  const selectedClient = clients.find(
+    (client) => client.athlete_id === draft.athleteId,
+  )
+
+  const handleAssign = async () => {
+    const error = validate({ assigning: true })
+    if (error) {
+      setNotice(error)
+      return
+    }
+    if (assigning) return
+
+    setAssigning(true)
+    setNotice('')
+
+    try {
+      await onAssign?.({
+        athleteId: draft.athleteId,
+        title: draft.name.trim(),
+        workout: workoutPayload(),
+        dueDate: draft.dueDate,
+        priority: draft.priority,
+        coachNotes: draft.coachNotes,
+      })
+
+      const clientName = getClientDisplayName(
+        selectedClient ?? { athlete_email: draft.athleteId },
+      )
+      appUi.toast(`Workout assigned to ${clientName}`, 'success')
+      onClose?.()
+    } catch (assignError) {
+      setNotice(
+        assignError?.message ?? 'Could not assign workout. Try again.',
+      )
+    } finally {
+      setAssigning(false)
+    }
+  }
+
   return (
-    <section className="coach-designer-overlay">
+    <section className="coach-designer-overlay" data-testid="coach-workout-designer">
       <div className="coach-designer-shell">
         <header className="coach-designer-header">
           <div>
@@ -182,7 +249,17 @@ export default function CoachWorkoutDesigner({
           </aside>
 
           <main className="coach-designer-main">
-            {notice && <div className="coach-builder-feedback" role="status"><Check size={16}/><span>{notice}</span><strong>{draft.exercises.length} total</strong></div>}
+            {notice && (
+              <div
+                className={`coach-builder-feedback${/failed|could not/i.test(notice) ? ' coach-builder-feedback--error' : ''}`}
+                role={/failed|could not/i.test(notice) ? 'alert' : 'status'}
+                aria-live="polite"
+              >
+                <Check size={16} />
+                <span>{notice}</span>
+                <strong>{draft.exercises.length} total</strong>
+              </div>
+            )}
             <section className="coach-designer-meta">
               <label><span>Workout name</span><input value={draft.name} onChange={(event)=>setDraft((current)=>({...current,name:event.target.value}))}/></label>
               <div className="coach-designer-meta-grid">
@@ -201,8 +278,9 @@ export default function CoachWorkoutDesigner({
                 <div className="coach-designed-grid">
                   <label className="wide"><span>Exercise</span><input value={exercise.name} onChange={(event)=>updateExercise(index,{name:event.target.value})}/></label>
                   <label><span>Muscle</span><select value={exercise.muscle} onChange={(event)=>updateExercise(index,{muscle:event.target.value})}>{MUSCLES.map((muscle)=><option key={muscle}>{muscle}</option>)}</select></label>
-                  <label><span>Sets</span><input type="number" min="1" max="12" value={exercise.sets} onChange={(event)=>updateExercise(index,{sets:Number(event.target.value)})}/></label>
-                  <label><span>Reps</span><input value={exercise.reps} onChange={(event)=>updateExercise(index,{reps:event.target.value})} placeholder="8-12"/></label>
+                  <label><span>Sets</span><input type="number" min="1" max="12" value={exercise.sets} onChange={(event)=>{const sets=Number(event.target.value)||3;updateExercise(index,{sets,prescription:{...exercise.prescription,sets}})}}/></label>
+                  <label><span>Reps</span><input value={exercise.reps} onChange={(event)=>{const reps=event.target.value;const prescription=normalizePrescription({...exercise,reps});updateExercise(index,{reps,prescription})}} placeholder="8-12 or 10"/></label>
+                  <label><span>Load type</span><select value={exercise.loadType} aria-label="Load type" onChange={(event)=>updateExercise(index,{loadType:event.target.value})}>{LOAD_TYPE_OPTIONS.map((option)=><option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
                   <label><span>Weight guidance</span><input value={exercise.weightGuidance} onChange={(event)=>updateExercise(index,{weightGuidance:event.target.value})} placeholder="Moderate / 70%"/></label>
                   <label><span>Rest (sec)</span><input type="number" min="0" step="15" value={exercise.restSeconds} onChange={(event)=>updateExercise(index,{restSeconds:Number(event.target.value)})}/></label>
                   <label><span>Tempo</span><input value={exercise.tempo} onChange={(event)=>updateExercise(index,{tempo:event.target.value})} placeholder="3-1-1"/></label>
@@ -216,7 +294,16 @@ export default function CoachWorkoutDesigner({
 
             <footer className="coach-designer-actions">
               <button className="coach-secondary-button" onClick={async()=>{const error=validate();if(error)return setNotice(error);await onSaveTemplate?.({name:draft.name.trim(),workout:workoutPayload()});setNotice('Template saved.')}}><Save size={17}/>Save Template</button>
-              <button className="gold-button machined" onClick={async()=>{const error=validate({assigning:true});if(error)return setNotice(error);await onAssign?.({athleteId:draft.athleteId,title:draft.name.trim(),workout:workoutPayload(),dueDate:draft.dueDate,priority:draft.priority,coachNotes:draft.coachNotes});onClose?.();}}><Check size={17}/>Assign Workout</button>
+              <button
+                type="button"
+                className="gold-button machined"
+                disabled={assigning}
+                aria-busy={assigning}
+                onClick={handleAssign}
+              >
+                <Check size={17} />
+                {assigning ? 'Assigning…' : 'Assign Workout'}
+              </button>
             </footer>
           </main>
         </div>

@@ -1,18 +1,29 @@
 import { useEffect, useRef } from 'react'
 import {
   CalendarDays,
-  ClipboardList,
-  CalendarRange,
+  Hammer,
   LogOut,
-  Settings2,
+  MoreHorizontal,
+  Sun,
   Users,
 } from 'lucide-react'
+import { normalizeCoachScreen } from '../lib/coachNavigation'
 
 const tabs = [
+  {
+    id: 'today',
+    label: 'Today',
+    Icon: Sun,
+  },
   {
     id: 'clients',
     label: 'Clients',
     Icon: Users,
+  },
+  {
+    id: 'build',
+    label: 'Build',
+    Icon: Hammer,
   },
   {
     id: 'calendar',
@@ -20,19 +31,9 @@ const tabs = [
     Icon: CalendarDays,
   },
   {
-    id: 'assignments',
-    label: 'Assignments',
-    Icon: ClipboardList,
-  },
-  {
-    id: 'programs',
-    label: 'Programs',
-    Icon: CalendarRange,
-  },
-  {
-    id: 'settings',
-    label: 'Coach',
-    Icon: Settings2,
+    id: 'more',
+    label: 'More',
+    Icon: MoreHorizontal,
   },
 ]
 
@@ -93,7 +94,7 @@ export default function CoachShell({
                 key={id}
                 type="button"
                 className={
-                  screen === id
+                  normalizeCoachScreen(screen) === id
                     ? 'active'
                     : ''
                 }

@@ -26,9 +26,13 @@ import {
 } from '../lib/journey'
 import { appUi } from '../lib/appUi'
 import {
+  formatLegacyCompletedSetDisplay,
+} from '../lib/exerciseLoad'
+import {
   recentPRs,
   sessionVolume,
 } from '../lib/metrics'
+import { resolveSessionVolumeDisplay } from '../lib/sessionVolumeDisplay'
 
 const FILTERS = [
   ['all', 'All'],
@@ -126,7 +130,10 @@ function SessionDetail({ session, history, onClose, onDelete, onUpdate }) {
     () => recentPRs(history, 1000).filter((pr) => String(pr.id).startsWith(`${session.id}-`)),
     [history, session.id],
   )
-  const volume = sessionVolume(session)
+  const volumeDisplay = useMemo(
+    () => resolveSessionVolumeDisplay(session),
+    [session],
+  )
 
   return (
     <section className="session-detail-screen">
@@ -147,7 +154,13 @@ function SessionDetail({ session, history, onClose, onDelete, onUpdate }) {
         <div className="session-detail-stats">
           <article><Clock3 size={17} /><strong>{formatDuration(session)}</strong><span>Duration</span></article>
           <article><Dumbbell size={17} /><strong>{session.sets?.length ?? 0}</strong><span>Sets</span></article>
-          <article><Target size={17} /><strong>{Math.round(volume).toLocaleString()}</strong><span>lb volume</span></article>
+          {volumeDisplay.show ? (
+            <article>
+              <Target size={17} />
+              <strong>{Math.round(volumeDisplay.value).toLocaleString()}</strong>
+              <span>{volumeDisplay.label.toLowerCase()} (lb)</span>
+            </article>
+          ) : null}
           <article><Trophy size={17} /><strong>{prs.length}</strong><span>PRs</span></article>
         </div>
       </section>
@@ -179,8 +192,7 @@ function SessionDetail({ session, history, onClose, onDelete, onUpdate }) {
                 {sets.map((set, index) => (
                   <div key={`${exercise}-${index}`}>
                     <span>{String(index + 1).padStart(2, '0')}</span>
-                    <strong>{set.weight} lb</strong>
-                    <strong>{set.reps} reps</strong>
+                    <strong>{formatLegacyCompletedSetDisplay(set)}</strong>
                     <small>{set.type || 'Working'}</small>
                   </div>
                 ))}

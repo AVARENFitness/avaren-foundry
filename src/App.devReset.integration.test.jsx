@@ -183,6 +183,7 @@ vi.mock('./lib/cloudSync', () => ({
 vi.mock('./lib/pushNotifications', () => ({
   registerPushWorker: vi.fn(async () => {}),
   syncPushSubscription: vi.fn(async () => {}),
+  deactivatePushSubscriptionForDevice: vi.fn(async () => {}),
 }))
 
 vi.mock('./lib/assignmentNotifications', () => ({
@@ -335,7 +336,7 @@ const advancePastSplash = async () => {
 }
 
 const openAccountMoreScreen = async (user) => {
-  await user.click(screen.getByRole('button', { name: 'Account' }))
+  await user.click(screen.getByTestId('app-profile-button'))
   await vi.advanceTimersByTimeAsync(300)
   const sectionNav = screen.getByRole('navigation', {
     name: 'Profile sections',

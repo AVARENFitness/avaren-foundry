@@ -1,4 +1,11 @@
 import { COMMON_EXERCISES } from '../data/commonExercises'
+import {
+  externalLoadAmount,
+  isComparableForLoadPr,
+  LOAD_TYPES,
+  normalizeLoadType,
+  resolveSetLoadType,
+} from './exerciseLoad'
 import { estimatedOneRepMax as calcE1rm } from './metrics'
 
 export const MEASUREMENT_MODES = {
@@ -111,6 +118,25 @@ export const parseSetNumbers = (set = {}) => {
 export const isValidStrengthSet = (set = {}) => {
   const exercise = String(set?.exercise ?? '').trim()
   if (!exercise) return false
+
+  const loadType = resolveSetLoadType(set, set.loadType)
+  if (
+    loadType === LOAD_TYPES.BODYWEIGHT ||
+    loadType === LOAD_TYPES.ASSISTED
+  ) {
+    return false
+  }
+
+  if (set.loadType) {
+    const { reps } = parseSetNumbers(set)
+    const load = externalLoadAmount(set, loadType)
+    if (!Number.isFinite(reps) || reps <= 0) return false
+    if (load <= 0 || load > MAX_REASONABLE_WEIGHT || reps > MAX_REASONABLE_REPS) {
+      return false
+    }
+    return true
+  }
+
   if (!isLoadTrackedExercise(exercise, set)) return false
 
   const { weight, reps } = parseSetNumbers(set)
@@ -122,19 +148,34 @@ export const isValidStrengthSet = (set = {}) => {
 }
 
 export const setLoadVolume = (set = {}) => {
+  const { reps } = parseSetNumbers(set)
+  if (!Number.isFinite(reps) || reps <= 0) return 0
+
+  const loadType = resolveSetLoadType(set, set.loadType)
+  const load = externalLoadAmount(set, loadType)
+
+  if (loadType === LOAD_TYPES.BODYWEIGHT || loadType === LOAD_TYPES.ASSISTED) {
+    return 0
+  }
+
+  if (set.loadType) {
+    return load > 0 ? load * reps : 0
+  }
+
   if (!isValidStrengthSet(set)) return 0
-  const { weight, reps } = parseSetNumbers(set)
-  return weight * reps
+  return load * reps
 }
 
 export const setEstimatedOneRepMax = (set = {}) => {
   if (!isValidStrengthSet(set)) return null
 
-  const { weight, reps } = parseSetNumbers(set)
+  const loadType = resolveSetLoadType(set, set.loadType)
+  const { reps } = parseSetNumbers(set)
+  const load = externalLoadAmount(set, loadType)
   const stored = Number(set.estimatedOneRepMax)
   if (Number.isFinite(stored) && stored > 0) return stored
 
-  return calcE1rm(weight, reps)
+  return calcE1rm(load, reps)
 }
 
 export const sessionLoadVolume = (session = {}) => {
@@ -185,20 +226,23 @@ export const recentValidatedPRs = (history = [], limit = 12) => {
     const grouped = {}
     session.sets.forEach((set) => {
       if (!isValidStrengthSet(set)) return
-      grouped[set.exercise] ??= []
-      grouped[set.exercise].push(set)
+      if (!isComparableForLoadPr(set)) return
+      const key = `${set.exercise}::${resolveSetLoadType(set, set.loadType)}`
+      grouped[key] ??= { exercise: set.exercise, sets: [] }
+      grouped[key].sets.push(set)
     })
 
-    Object.entries(grouped).forEach(([exercise, sets]) => {
+    Object.entries(grouped).forEach(([key, group]) => {
+      const { exercise, sets } = group
       const heaviest = Math.max(
-        ...sets.map((set) => parseSetNumbers(set).weight),
+        ...sets.map((set) => externalLoadAmount(set, resolveSetLoadType(set, set.loadType))),
       )
       const bestE1RM = Math.max(
         ...sets.map((set) => setEstimatedOneRepMax(set) ?? 0),
       )
       const volume = sets.reduce((sum, set) => sum + setLoadVolume(set), 0)
 
-      const previous = records[exercise] ?? {
+      const previous = records[key] ?? {
         heaviest: 0,
         bestE1RM: 0,
         volume: 0,
@@ -206,10 +250,12 @@ export const recentValidatedPRs = (history = [], limit = 12) => {
 
       if (heaviest > previous.heaviest) {
         const bestSet = sets.find(
-          (set) => parseSetNumbers(set).weight === heaviest,
+          (set) =>
+            externalLoadAmount(set, resolveSetLoadType(set, set.loadType)) ===
+            heaviest,
         )
         prs.push({
-          id: `${session.id}-${exercise}-weight`,
+          id: `${session.id}-${key}-weight`,
           date: session.date,
           exercise,
           type: 'Heaviest Set',
@@ -219,7 +265,7 @@ export const recentValidatedPRs = (history = [], limit = 12) => {
 
       if (bestE1RM > previous.bestE1RM) {
         prs.push({
-          id: `${session.id}-${exercise}-e1rm`,
+          id: `${session.id}-${key}-e1rm`,
           date: session.date,
           exercise,
           type: 'Estimated 1RM',
@@ -229,7 +275,7 @@ export const recentValidatedPRs = (history = [], limit = 12) => {
 
       if (volume > previous.volume && volume >= 100) {
         prs.push({
-          id: `${session.id}-${exercise}-volume`,
+          id: `${session.id}-${key}-volume`,
           date: session.date,
           exercise,
           type: 'Session Volume',
@@ -237,7 +283,7 @@ export const recentValidatedPRs = (history = [], limit = 12) => {
         })
       }
 
-      records[exercise] = {
+      records[key] = {
         heaviest: Math.max(previous.heaviest, heaviest),
         bestE1RM: Math.max(previous.bestE1RM, bestE1RM),
         volume: Math.max(previous.volume, volume),

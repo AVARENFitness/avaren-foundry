@@ -1,4 +1,16 @@
 import { Check, ChevronLeft, ChevronRight, Plus } from 'lucide-react'
+import {
+  formatCompletedSetDisplay,
+  isActiveSetEntered,
+  LOAD_TYPE_OPTIONS,
+  loadTypeLabel,
+  loadTypeRequiresWeightInput,
+  normalizeLoadType,
+} from '../lib/exerciseLoad'
+import {
+  formatPrescriptionDisplay,
+  gymModeSetLabel,
+} from '../lib/exercisePrescription'
 import Stepper from './Stepper'
 
 export default function SupersetFocus({
@@ -7,6 +19,7 @@ export default function SupersetFocus({
   round,
   totalRounds,
   onSetChange,
+  onLoadTypeChange,
   onPreviousRound,
   onNextRound,
   onAddRound,
@@ -22,32 +35,83 @@ export default function SupersetFocus({
       </header>
 
       <div className="superset-exercises">
-        {exercises.map((exercise, exerciseIndex) => {
+        {exercises.map((exercise) => {
           const set = exercise.sets[round]
           if (!set) return null
 
+          const loadType = normalizeLoadType(
+            exercise.loadType,
+            exercise.name,
+          )
+          const showWeightInput = loadTypeRequiresWeightInput(loadType)
+          const weightFieldLabel =
+            loadType === 'assisted'
+              ? 'Assistance'
+              : loadType === 'bodyweight_added'
+                ? 'Added weight'
+                : 'Weight'
+
           return (
-            <section className={`superset-exercise-card ${set.done ? 'done' : ''}`} key={exercise.id}>
+            <section
+              className={`superset-exercise-card ${set.done ? 'done' : ''}`}
+              key={exercise.id}
+            >
               <div className="superset-exercise-title">
                 <div>
                   <span>{exercise.muscle}</span>
                   <h2>{exercise.name}</h2>
+                  {exercise.prescription ? (
+                    <p className="focus-prescription-label">
+                      {formatPrescriptionDisplay(exercise.prescription)}
+                    </p>
+                  ) : null}
                 </div>
                 <strong>{set.type}</strong>
               </div>
 
+              <label className="focus-load-type">
+                <span>Load type</span>
+                <select
+                  value={loadType}
+                  aria-label={`Load type for ${exercise.name}`}
+                  onChange={(event) =>
+                    onLoadTypeChange?.(exercise.id, event.target.value)
+                  }
+                >
+                  {LOAD_TYPE_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              {!showWeightInput ? (
+                <p className="focus-load-type-hint">{loadTypeLabel(loadType)}</p>
+              ) : null}
+
+              <div className="lift-current-label">
+                {gymModeSetLabel(
+                  round,
+                  exercise.prescription ?? { sets: exercise.sets.length },
+                )}
+              </div>
+
               <div className="focus-control-grid">
-                <div className="focus-control">
-                  <label>Weight</label>
-                  <Stepper
-                    value={set.weight}
-                    step={5}
-                    inputMode="decimal"
-                    onChange={(value) =>
-                      onSetChange(exercise.id, round, 'weight', value)
-                    }
-                  />
-                </div>
+                {showWeightInput ? (
+                  <div className="focus-control">
+                    <label>{weightFieldLabel}</label>
+                    <Stepper
+                      value={set.weight}
+                      step={5}
+                      inputMode="decimal"
+                      onChange={(value) =>
+                        onSetChange(exercise.id, round, 'weight', value)
+                      }
+                    />
+                  </div>
+                ) : null}
+
                 <div className="focus-control">
                   <label>Reps</label>
                   <Stepper
@@ -75,7 +139,11 @@ export default function SupersetFocus({
                 />
                 <span>
                   <Check size={18} />
-                  {set.done ? 'Set complete' : 'Complete set'}
+                  {set.done
+                    ? formatCompletedSetDisplay({ ...set, loadType })
+                    : isActiveSetEntered(set, loadType)
+                      ? 'Complete set'
+                      : 'Complete set'}
                 </span>
               </label>
             </section>

@@ -35,6 +35,7 @@ export const describeCoachView = (snapshot = {}) => {
     return 'coach-weekly-review'
   }
   if (snapshot.coachScreen === 'clients') return 'coach-clients'
+  if (snapshot.coachScreen === 'today') return 'coach-today'
   return `coach-${snapshot.coachScreen ?? 'hub'}`
 }
 

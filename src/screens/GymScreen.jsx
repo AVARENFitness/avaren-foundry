@@ -24,6 +24,7 @@ const MUSCLE_LIGHTS = {
   Other: '#6c6a65',
 }
 import { recentExerciseSets } from '../lib/metrics'
+import { isActiveSetEntered } from '../lib/exerciseLoad'
 import {
   exerciseExecutionRole,
   isExecutionPlanCurrent,
@@ -36,6 +37,7 @@ export default function GymScreen({
   activeExercise,
   setActiveExercise,
   onSetChange,
+  onExerciseChange,
   onWorkoutMetaChange,
   onAddSet,
   onFinish,
@@ -173,8 +175,8 @@ export default function GymScreen({
   }
 
   const completedExercises = workout.exercises.filter((exercise) => {
-    const entered = exercise.sets.filter(
-      (set) => set.weight !== '' && set.reps !== '',
+    const entered = exercise.sets.filter((set) =>
+      isActiveSetEntered(set, exercise.loadType),
     )
     return entered.length > 0 && entered.every((set) => set.done)
   }).length
@@ -411,6 +413,12 @@ export default function GymScreen({
             )
             onSetChange(exerciseIndex, setIndex, key, value)
           }}
+          onLoadTypeChange={(exerciseId, loadType) => {
+            const exerciseIndex = workout.exercises.findIndex(
+              (exercise) => exercise.id === exerciseId,
+            )
+            onExerciseChange?.(exerciseIndex, { loadType })
+          }}
           onPreviousRound={() =>
             setSupersetRound(Math.max(0, supersetRound - 1))
           }
@@ -439,6 +447,9 @@ export default function GymScreen({
           executionRole={currentExerciseRole}
           onSetChange={(setIndex, key, value) =>
             onSetChange(activeExercise, setIndex, key, value)
+          }
+          onLoadTypeChange={(loadType) =>
+            onExerciseChange?.(activeExercise, { loadType })
           }
           onAddSet={() => onAddSet(activeExercise)}
           onPrevious={goPrevious}

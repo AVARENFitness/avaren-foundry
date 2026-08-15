@@ -9,6 +9,21 @@ import {
   Trophy,
 } from 'lucide-react'
 import { useState } from 'react'
+import {
+  formatCompletedSetDisplay,
+  formatLegacyCompletedSetDisplay,
+  isActiveSetEntered,
+  isComparableForLoadPr,
+  LOAD_TYPE_OPTIONS,
+  loadTypeLabel,
+  loadTypeRequiresWeightInput,
+  normalizeLoadType,
+  externalLoadAmount,
+} from '../lib/exerciseLoad'
+import {
+  formatPrescriptionDisplay,
+  gymModeSetLabel,
+} from '../lib/exercisePrescription'
 import Stepper from './Stepper'
 
 const SET_TYPES = [
@@ -68,11 +83,24 @@ export default function FocusExercise({
   onRemoveSet,
   onUndoSkip,
   onSetCompleted,
+  onLoadTypeChange,
   navigationDirection,
   executionRole = 'standard',
 }) {
   const [showPrevious, setShowPrevious] =
     useState(false)
+
+  const loadType = normalizeLoadType(
+    exercise.loadType,
+    exercise.name,
+  )
+  const showWeightInput = loadTypeRequiresWeightInput(loadType)
+  const weightFieldLabel =
+    loadType === 'assisted'
+      ? 'Assistance'
+      : loadType === 'bodyweight_added'
+        ? 'Added weight'
+        : 'Weight'
 
   const activeSetIndex = Math.max(
     0,
@@ -82,21 +110,20 @@ export default function FocusExercise({
   )
 
   const lastSessionBest = previousSets.length
-    ? previousSets.reduce(
-        (best, set) =>
-          Number(set.weight || 0) >
-          Number(best?.weight || 0)
-            ? set
-            : best,
-        previousSets[0],
-      )
+    ? previousSets.reduce((best, set) => {
+        const bestLoad = externalLoadAmount(best, loadType)
+        const setLoad = externalLoadAmount(set, loadType)
+        if (setLoad > bestLoad) return set
+        if (setLoad === bestLoad && Number(set.reps) > Number(best?.reps || 0)) {
+          return set
+        }
+        return best
+      }, previousSets[0])
     : null
 
   const previousBestWeight = Math.max(
     0,
-    ...previousSets.map(
-      (set) => Number(set.weight || 0),
-    ),
+    ...previousSets.map((set) => externalLoadAmount(set, loadType)),
   )
 
   const previousBestEstimatedMax = Math.max(
@@ -109,15 +136,17 @@ export default function FocusExercise({
     ),
   )
 
-  const entered = exercise.sets.filter(
-    (set) =>
-      set.weight !== '' &&
-      set.reps !== '',
+  const entered = exercise.sets.filter((set) =>
+    isActiveSetEntered(set, loadType),
   )
 
   const complete =
     entered.length > 0 &&
     entered.every((set) => set.done)
+
+  const prescriptionLabel = exercise.prescription
+    ? formatPrescriptionDisplay(exercise.prescription)
+    : null
 
   return (
     <article
@@ -152,6 +181,31 @@ export default function FocusExercise({
 
         <h1>{exercise.name}</h1>
 
+        {prescriptionLabel ? (
+          <p className="focus-prescription-label">{prescriptionLabel}</p>
+        ) : null}
+
+        <label className="focus-load-type">
+          <span>Load type</span>
+          <select
+            value={loadType}
+            aria-label="Load type"
+            onChange={(event) =>
+              onLoadTypeChange?.(event.target.value)
+            }
+          >
+            {LOAD_TYPE_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        {!showWeightInput ? (
+          <p className="focus-load-type-hint">{loadTypeLabel(loadType)}</p>
+        ) : null}
+
         {executionRole === 'priority' ? (
           <span className="execution-role-badge execution-role-badge--priority">
             Priority
@@ -177,7 +231,7 @@ export default function FocusExercise({
             <small>LAST SESSION</small>
             <strong>
               {lastSessionBest
-                ? `${lastSessionBest.weight} × ${lastSessionBest.reps}`
+                ? formatLegacyCompletedSetDisplay(lastSessionBest)
                 : 'No previous workout'}
             </strong>
           </span>
@@ -198,7 +252,7 @@ export default function FocusExercise({
                         `Set ${index + 1}`}
                     </span>
                     <strong>
-                      {set.weight} × {set.reps}
+                      {formatLegacyCompletedSetDisplay(set)}
                     </strong>
                   </div>
                 ),
@@ -224,22 +278,20 @@ export default function FocusExercise({
               )
 
             const potentialWeightPr =
-              Number(set.weight || 0) >
-              previousBestWeight
+              isComparableForLoadPr({ loadType }) &&
+              externalLoadAmount({ ...set, loadType }, loadType) >
+                previousBestWeight
 
             const potentialStrengthPr =
+              isComparableForLoadPr({ loadType }) &&
               previousBestEstimatedMax > 0 &&
               currentEstimatedMax >
                 previousBestEstimatedMax
 
             const potentialPr =
               previousSets.length > 0 &&
-              set.weight !== '' &&
-              set.reps !== '' &&
-              (
-                potentialWeightPr ||
-                potentialStrengthPr
-              )
+              isActiveSetEntered(set, loadType) &&
+              (potentialWeightPr || potentialStrengthPr)
 
             return (
               <section
@@ -326,7 +378,10 @@ export default function FocusExercise({
                   setIndex ===
                     activeSetIndex && (
                     <div className="lift-current-label">
-                      CURRENT SET
+                      {gymModeSetLabel(
+                        setIndex,
+                        exercise.prescription ?? { sets: exercise.sets.length },
+                      )}
                     </div>
                   )}
 
@@ -343,57 +398,59 @@ export default function FocusExercise({
                   )}
 
                 <div className="focus-control-grid">
-                  <div className="focus-control">
-                    <label>Weight</label>
+                  {showWeightInput ? (
+                    <div className="focus-control">
+                      <label>{weightFieldLabel}</label>
 
-                    <Stepper
-                      value={set.weight}
-                      step={5}
-                      inputMode="decimal"
-                      onChange={(value) =>
-                        onSetChange(
-                          setIndex,
-                          'weight',
-                          value,
-                        )
-                      }
-                    />
-
-                    <div className="quick-adjust">
-                      <button
-                        onClick={() =>
+                      <Stepper
+                        value={set.weight}
+                        step={5}
+                        inputMode="decimal"
+                        onChange={(value) =>
                           onSetChange(
                             setIndex,
                             'weight',
-                            Math.max(
-                              0,
+                            value,
+                          )
+                        }
+                      />
+
+                      <div className="quick-adjust">
+                        <button
+                          onClick={() =>
+                            onSetChange(
+                              setIndex,
+                              'weight',
+                              Math.max(
+                                0,
+                                Number(
+                                  set.weight ||
+                                    0,
+                                ) - 10,
+                              ),
+                            )
+                          }
+                        >
+                          −10
+                        </button>
+
+                        <button
+                          onClick={() =>
+                            onSetChange(
+                              setIndex,
+                              'weight',
                               Number(
                                 set.weight ||
                                   0,
-                              ) - 10,
-                            ),
-                          )
-                        }
-                      >
-                        −10
-                      </button>
-
-                      <button
-                        onClick={() =>
-                          onSetChange(
-                            setIndex,
-                            'weight',
-                            Number(
-                              set.weight ||
-                                0,
-                            ) + 10,
-                          )
-                        }
-                      >
-                        +10
-                      </button>
+                              ) + 10,
+                            )
+                          }
+                        >
+                          +10
+                        </button>
+                      </div>
                     </div>
-                  </div>
+                  ) : null}
 
                   <div className="focus-control">
                     <label>Reps</label>
@@ -475,7 +532,10 @@ export default function FocusExercise({
                   <span>
                     <Check size={19} />
                     {set.done
-                      ? `${set.weight} × ${set.reps}`
+                      ? formatCompletedSetDisplay({
+                          ...set,
+                          loadType,
+                        })
                       : 'Complete set'}
                   </span>
                 </label>
