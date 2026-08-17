@@ -50,4 +50,32 @@ describe('TrainHubScreen choose-workout visual contract', () => {
     expect(startButton).not.toBeNull()
     expect(startButton?.textContent).toMatch(/Start Session/i)
   })
+
+  it('shows Resume Workout when an active session exists', () => {
+    const { container } = render(
+      <TrainHubScreen
+        state={{
+          selectedWorkout: 'Arms',
+          activeWorkout: {
+            id: 'session-1',
+            name: 'Arms',
+            exercises: [],
+          },
+          program: {
+            rotation: ['Arms'],
+            workouts: {
+              Arms: [{ name: 'Curls', sets: 3, muscle: 'Biceps' }],
+            },
+          },
+          history: [],
+          nutrition: createNutritionState(),
+        }}
+        onStart={() => {}}
+        navigate={() => {}}
+      />,
+    )
+
+    const resumeButton = container.querySelector('.gold-button')
+    expect(resumeButton?.textContent).toMatch(/Resume Workout/i)
+  })
 })

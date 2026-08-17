@@ -13,6 +13,7 @@ import './styles/screens/coach-schedule.css'
 import './styles/screens/coach-pass.css'
 import './styles/components/app-ui.css'
 import './styles/screens/athlete-appointments.css'
+import './styles/screens/gym.css'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>

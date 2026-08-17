@@ -128,7 +128,7 @@ export default function TrainHubScreen({
         </div>
         <button className="gold-button machined" onClick={onStart}>
           <Dumbbell size={18} />
-          {activeWorkout ? 'Continue Session' : 'Start Session'}
+          {activeWorkout ? 'Resume Workout' : 'Start Session'}
           <ArrowRight size={17} />
         </button>
         {!activeWorkout && programWorkouts.length > 1 ? (

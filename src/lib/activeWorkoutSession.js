@@ -6,10 +6,26 @@ export const computeRestRemainingSeconds = (endsAt, now = Date.now()) => {
   )
 }
 
+export const getRestTimerRemainingSeconds = (restTimer, now = Date.now()) => {
+  if (!restTimer?.endsAt) return 0
+  if (restTimer.paused) {
+    return Math.max(0, Number(restTimer.pausedRemaining) || 0)
+  }
+  return computeRestRemainingSeconds(restTimer.endsAt, now)
+}
+
 export const isRestTimerActive = (restTimer, now = Date.now()) =>
   Boolean(
     restTimer?.endsAt &&
+      !restTimer.paused &&
       computeRestRemainingSeconds(restTimer.endsAt, now) > 0,
+  )
+
+export const isRestTimerVisible = (restTimer, now = Date.now()) =>
+  Boolean(
+    restTimer?.endsAt &&
+      (restTimer.paused ||
+        computeRestRemainingSeconds(restTimer.endsAt, now) > 0),
   )
 
 export const shouldResumeActiveWorkoutScreen = ({

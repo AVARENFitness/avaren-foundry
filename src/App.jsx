@@ -487,6 +487,7 @@ function App() {
     restartActiveWorkout,
     endActiveWorkoutWithoutSaving,
     updateWorkoutMeta,
+    updateSupersetRound,
     updateRestTimer,
     updateSet,
     updateExercise,
@@ -1682,6 +1683,7 @@ function App() {
             onRestartWorkout={restartActiveWorkout}
             onEndWorkout={endActiveWorkoutWithoutSaving}
             onRestTimerChange={updateRestTimer}
+            onSupersetRoundChange={updateSupersetRound}
             recommendation={trainingRecommendation}
           />
         </ErrorBoundary>

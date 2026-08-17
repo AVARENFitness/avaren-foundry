@@ -26,6 +26,23 @@ const MUSCLE_LIGHTS = {
 import { recentExerciseSets } from '../lib/metrics'
 import { isActiveSetEntered } from '../lib/exerciseLoad'
 import {
+  getContinueActionLabel,
+  getInitialSupersetRound,
+  getNextExerciseIndex,
+  getNextWorkoutStep,
+  getPreviousExerciseIndex,
+  getSupersetRoundCount,
+  hasRemainingExercisesAfter,
+  isSupersetComplete,
+  shouldShowContinueAction,
+  shouldShowFinishWorkoutPrimary,
+} from '../lib/workoutProgression'
+import {
+  getRestTimerRemainingSeconds,
+  isRestTimerActive,
+  isRestTimerVisible,
+} from '../lib/activeWorkoutSession'
+import {
   exerciseExecutionRole,
   isExecutionPlanCurrent,
 } from '../lib/sessionExecutionPlan'
@@ -51,12 +68,12 @@ export default function GymScreen({
   onRestartWorkout,
   onEndWorkout,
   onRestTimerChange,
+  onSupersetRoundChange,
   recommendation,
   isFinishing = false,
 }) {
   const workout = state.activeWorkout
   const [showQuickAdd, setShowQuickAdd] = useState(false)
-  const [supersetRound, setSupersetRound] = useState(0)
   const [navigationDirection, setNavigationDirection] = useState('next')
   const [showWorkoutPicker, setShowWorkoutPicker] = useState(false)
   const [showWorkoutMenu, setShowWorkoutMenu] = useState(false)
@@ -68,39 +85,51 @@ export default function GymScreen({
   )
   const [now, setNow] = useState(() => Date.now())
   const persistedRestTimer = workout?.restTimer ?? null
-  const [restDuration, setRestDuration] = useState(
-    persistedRestTimer?.duration ?? 90,
+  const restDuration = persistedRestTimer?.duration ?? 90
+  const restRemaining = getRestTimerRemainingSeconds(
+    persistedRestTimer,
+    now,
   )
-  const computeRestRemaining = (endsAt) => {
-    if (!endsAt) return 0
-    return Math.max(
-      0,
-      Math.ceil((new Date(endsAt).getTime() - Date.now()) / 1000),
-    )
-  }
-  const [restRemaining, setRestRemaining] = useState(() =>
-    computeRestRemaining(persistedRestTimer?.endsAt),
-  )
-  const [restRunning, setRestRunning] = useState(() =>
-    Boolean(
-      persistedRestTimer?.endsAt &&
-        computeRestRemaining(persistedRestTimer.endsAt) > 0,
-    ),
-  )
-  const [restContext, setRestContext] = useState(
-    persistedRestTimer?.context ?? null,
-  )
+  const restRunning = isRestTimerActive(persistedRestTimer, now)
+  const restVisible = isRestTimerVisible(persistedRestTimer, now)
+  const restContext = persistedRestTimer?.context ?? null
 
   const goPrevious = () => {
+    if (!workout) return
     setNavigationDirection('previous')
-    setActiveExercise(Math.max(0, activeExercise - 1))
+    setActiveExercise(
+      getPreviousExerciseIndex(workout.exercises, activeExercise),
+    )
   }
 
   const goNext = () => {
+    if (!workout) return
     setNavigationDirection('next')
-    setActiveExercise(
-      Math.min(workout.exercises.length - 1, activeExercise + 1),
+    const next = getNextExerciseIndex(workout.exercises, activeExercise)
+    if (next !== activeExercise) {
+      setActiveExercise(next)
+    }
+  }
+
+  const continueWorkout = () => {
+    if (!workout) return
+
+    const step = getNextWorkoutStep(
+      workout.exercises,
+      activeExercise,
+      workout.supersetRoundByGroup ?? {},
     )
+
+    if (step.type === 'superset_round' && step.supersetGroup) {
+      onSupersetRoundChange?.(step.supersetGroup, step.supersetRound)
+      setActiveExercise(step.exerciseIndex)
+      return
+    }
+
+    if (step.type === 'exercise') {
+      setNavigationDirection('next')
+      setActiveExercise(step.exerciseIndex)
+    }
   }
   const executionPlan = isExecutionPlanCurrent(state.sessionExecutionPlan)
     ? state.sessionExecutionPlan
@@ -123,37 +152,13 @@ export default function GymScreen({
   }, [workout?.startedAt])
 
   useEffect(() => {
-    if (!restRunning || restRemaining <= 0) return
-
-    const timer = window.setInterval(() => {
-      setRestRemaining((current) => {
-        const next = Math.max(0, current - 1)
-        return next
-      })
-      setNow(Date.now())
-    }, 1000)
-
-    return () => window.clearInterval(timer)
-  }, [restRunning, restRemaining])
-
-  useEffect(() => {
-    if (!restRunning || !workout?.restTimer?.endsAt) return
-
-    const remaining = computeRestRemaining(workout.restTimer.endsAt)
-    if (remaining !== restRemaining) {
-      setRestRemaining(remaining)
-    }
-  }, [now, restRunning, workout?.restTimer?.endsAt])
-
-  useEffect(() => {
     if (
-      restRemaining !== 0 ||
-      !restRunning
+      !restRunning ||
+      restRemaining !== 0
     ) {
       return
     }
 
-    setRestRunning(false)
     onRestTimerChange?.(null)
 
     if (navigator.vibrate) {
@@ -238,13 +243,11 @@ export default function GymScreen({
       potentialPr,
     }
     const endsAt = new Date(Date.now() + restDuration * 1000).toISOString()
-    setRestContext(context)
-    setRestRemaining(restDuration)
-    setRestRunning(true)
     onRestTimerChange?.({
       endsAt,
       duration: restDuration,
       context,
+      paused: false,
     })
 
     if (navigator.vibrate) {
@@ -257,8 +260,25 @@ export default function GymScreen({
     running = restRunning,
     context = restContext,
     duration = restDuration,
+    paused = false,
   } = {}) => {
-    if (!running || remaining <= 0 || !context) {
+    if (!context) {
+      onRestTimerChange?.(null)
+      return
+    }
+
+    if (paused) {
+      onRestTimerChange?.({
+        endsAt: persistedRestTimer?.endsAt ?? new Date().toISOString(),
+        duration,
+        context,
+        paused: true,
+        pausedRemaining: remaining,
+      })
+      return
+    }
+
+    if (!running || remaining <= 0) {
       onRestTimerChange?.(null)
       return
     }
@@ -267,6 +287,7 @@ export default function GymScreen({
       endsAt: new Date(Date.now() + remaining * 1000).toISOString(),
       duration,
       context,
+      paused: false,
     })
   }
 
@@ -276,9 +297,42 @@ export default function GymScreen({
         (exercise) => exercise.supersetGroup === supersetGroup,
       )
     : []
-  const supersetRounds = supersetExercises.length
-    ? Math.max(...supersetExercises.map((exercise) => exercise.sets.length))
+  const supersetRounds = supersetGroup
+    ? getSupersetRoundCount(workout.exercises, supersetGroup)
     : 0
+  const supersetRoundByGroup = workout.supersetRoundByGroup ?? {}
+  const supersetRound = supersetGroup
+    ? supersetRoundByGroup[supersetGroup] ??
+      getInitialSupersetRound(workout.exercises, supersetGroup)
+    : 0
+  const clampedSupersetRound = Math.min(
+    supersetRound,
+    Math.max(0, supersetRounds - 1),
+  )
+  const supersetComplete = supersetGroup
+    ? isSupersetComplete(workout.exercises, supersetGroup)
+    : false
+  const canGoPreviousExercise = activeExercise > 0
+  const canGoNextExercise = hasRemainingExercisesAfter(
+    workout.exercises,
+    activeExercise,
+  )
+  const showContinuePrimary =
+    Boolean(supersetGroup) &&
+    shouldShowContinueAction(
+      workout.exercises,
+      activeExercise,
+      supersetRoundByGroup,
+    )
+  const continueActionLabel = getContinueActionLabel(
+    workout.exercises,
+    activeExercise,
+    supersetRoundByGroup,
+  )
+  const showFinishPrimary = shouldShowFinishWorkoutPrimary(
+    workout.exercises,
+    activeExercise,
+  )
 
   return (
     <div
@@ -405,7 +459,7 @@ export default function GymScreen({
         <SupersetFocus
           exercises={supersetExercises}
           group={supersetGroup}
-          round={Math.min(supersetRound, Math.max(0, supersetRounds - 1))}
+          round={clampedSupersetRound}
           totalRounds={supersetRounds}
           onSetChange={(exerciseId, setIndex, key, value) => {
             const exerciseIndex = workout.exercises.findIndex(
@@ -420,11 +474,15 @@ export default function GymScreen({
             onExerciseChange?.(exerciseIndex, { loadType })
           }}
           onPreviousRound={() =>
-            setSupersetRound(Math.max(0, supersetRound - 1))
+            onSupersetRoundChange?.(
+              supersetGroup,
+              Math.max(0, clampedSupersetRound - 1),
+            )
           }
           onNextRound={() =>
-            setSupersetRound(
-              Math.min(supersetRounds - 1, supersetRound + 1),
+            onSupersetRoundChange?.(
+              supersetGroup,
+              Math.min(supersetRounds - 1, clampedSupersetRound + 1),
             )
           }
           onAddRound={() => {
@@ -434,8 +492,14 @@ export default function GymScreen({
               )
               onAddSet(exerciseIndex)
             })
-            setSupersetRound(supersetRounds)
+            onSupersetRoundChange?.(supersetGroup, supersetRounds)
           }}
+          onPreviousExercise={goPrevious}
+          onNextExercise={goNext}
+          canGoPreviousExercise={canGoPreviousExercise}
+          canGoNextExercise={canGoNextExercise}
+          nextExerciseLabel={continueActionLabel}
+          supersetComplete={supersetComplete}
         />
       ) : (
         <FocusExercise
@@ -646,7 +710,7 @@ export default function GymScreen({
         />
       )}
 
-      {restContext && (
+      {restVisible && restContext && (
         <section
           className={`lift-rest-dock ${
             restRunning ? 'running' : 'paused'
@@ -673,17 +737,19 @@ export default function GymScreen({
           <div className="lift-rest-actions">
             <button
               onClick={() => {
-                setRestRunning((current) => {
-                  const next = !current
-                  if (next) {
-                    persistRestTimer({
-                      remaining: restRemaining,
-                      running: true,
-                    })
-                  } else {
-                    onRestTimerChange?.(null)
-                  }
-                  return next
+                if (restRunning) {
+                  persistRestTimer({
+                    remaining: restRemaining,
+                    running: false,
+                    paused: true,
+                  })
+                  return
+                }
+
+                persistRestTimer({
+                  remaining: restRemaining,
+                  running: true,
+                  paused: false,
                 })
               }}
               disabled={restRemaining === 0}
@@ -702,14 +768,11 @@ export default function GymScreen({
 
             <button
               onClick={() => {
-                setRestRemaining((current) => {
-                  const next = current + 30
-                  setRestRunning(true)
-                  persistRestTimer({
-                    remaining: next,
-                    running: true,
-                  })
-                  return next
+                const next = restRemaining + 30
+                persistRestTimer({
+                  remaining: next,
+                  running: true,
+                  paused: false,
                 })
               }}
               aria-label="Add 30 seconds"
@@ -719,11 +782,10 @@ export default function GymScreen({
 
             <button
               onClick={() => {
-                setRestRemaining(restDuration)
-                setRestRunning(true)
                 persistRestTimer({
                   remaining: restDuration,
                   running: true,
+                  paused: false,
                 })
               }}
               aria-label="Restart rest timer"
@@ -734,9 +796,6 @@ export default function GymScreen({
             <button
               className="lift-rest-dismiss"
               onClick={() => {
-                setRestRunning(false)
-                setRestContext(null)
-                setRestRemaining(0)
                 onRestTimerChange?.(null)
               }}
             >
@@ -773,13 +832,35 @@ export default function GymScreen({
         >
           <MoreHorizontal />
         </button>
-        <button
-          className="gold-button machined"
-          disabled={isFinishing}
-          onClick={onFinish}
-        >
-          {isFinishing ? 'Saving Workout…' : 'Finish Workout'}
-        </button>
+        {showContinuePrimary ? (
+          <>
+            <button
+              className="gold-button machined focus-continue-button"
+              onClick={continueWorkout}
+            >
+              {continueActionLabel}
+            </button>
+            <button
+              className="focus-secondary-finish-button"
+              disabled={isFinishing}
+              onClick={onFinish}
+            >
+              Finish Workout
+            </button>
+          </>
+        ) : (
+          <button
+            className="gold-button machined"
+            disabled={isFinishing}
+            onClick={onFinish}
+          >
+            {isFinishing
+              ? 'Saving Workout…'
+              : showFinishPrimary
+                ? 'Finish Workout'
+                : 'Finish Workout'}
+          </button>
+        )}
       </div>
     </div>
   )

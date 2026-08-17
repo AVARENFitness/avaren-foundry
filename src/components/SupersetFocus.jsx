@@ -23,6 +23,12 @@ export default function SupersetFocus({
   onPreviousRound,
   onNextRound,
   onAddRound,
+  onPreviousExercise,
+  onNextExercise,
+  canGoPreviousExercise = false,
+  canGoNextExercise = false,
+  nextExerciseLabel = 'Next Exercise',
+  supersetComplete = false,
 }) {
   const roundComplete = exercises.every((exercise) => exercise.sets[round]?.done)
 
@@ -168,6 +174,34 @@ export default function SupersetFocus({
             <Plus size={18} /> Add Round
           </button>
         )}
+      </footer>
+
+      <footer className="exercise-pager superset-exercise-pager">
+        <button
+          className="previous-exercise-button"
+          disabled={!canGoPreviousExercise}
+          onClick={onPreviousExercise}
+        >
+          <ChevronLeft size={19} />
+          Previous
+        </button>
+
+        <button
+          className={`next-exercise-button ${supersetComplete && canGoNextExercise ? 'ready' : ''}`}
+          disabled={!canGoNextExercise}
+          onClick={onNextExercise}
+        >
+          <span>
+            <small>
+              {supersetComplete
+                ? 'SUPERSET COMPLETE'
+                : 'FINISH ALL ROUNDS FIRST'}
+            </small>
+            <strong>{nextExerciseLabel}</strong>
+          </span>
+
+          <ChevronRight size={19} />
+        </button>
       </footer>
     </article>
   )

@@ -31,6 +31,7 @@ import {
   makeActiveSet,
 } from '../lib/materializeWorkoutExercise'
 import { sessionLoadVolume } from '../lib/workoutMetrics'
+import { getNextExerciseIndex } from '../lib/workoutProgression'
 
 const makeSet = makeActiveSet
 
@@ -49,6 +50,7 @@ export function useWorkoutSession({
   const [earnedMilestones, setEarnedMilestones] = useState([])
   const [earnedForgeAchievements, setEarnedForgeAchievements] = useState([])
   const [isFinishing, setIsFinishing] = useState(false)
+  const [isStarting, setIsStarting] = useState(false)
 
   const setActiveExercise = useCallback((value) => {
     setActiveExerciseState((currentIndex) => {
@@ -213,11 +215,15 @@ export function useWorkoutSession({
       return
     }
 
+    if (isStarting) return
+
     const { name } = resolveTodayWorkoutContext(state)
     if (!name) {
       appUi.toast('Choose a workout to start.', 'error')
       return
     }
+
+    setIsStarting(true)
 
     const activeWorkout = attachSessionModeMetadata(
       buildActiveWorkout(name),
@@ -227,8 +233,9 @@ export function useWorkoutSession({
     setActiveExercise(0)
     navigate('gym', () => {
       setState((current) => ({ ...current, activeWorkout }))
+      setIsStarting(false)
     })
-  }, [state.activeWorkout, state.weeklySchedule, state.selectedWorkout, state.program.nextWorkout, buildActiveWorkout, navigate, setState, setActiveExercise])
+  }, [state.activeWorkout, state.weeklySchedule, state.selectedWorkout, state.program.nextWorkout, buildActiveWorkout, navigate, setState, setActiveExercise, isStarting])
 
   const startWorkoutWithRecommendation = useCallback((
     recommendation,
@@ -313,6 +320,19 @@ export function useWorkoutSession({
       return
     }
 
+    if (state.activeWorkout) {
+      if (state.activeWorkout.assignmentId === assignment.id) {
+        navigate('gym')
+        return
+      }
+
+      navigate('gym')
+      return
+    }
+
+    if (isStarting) return
+    setIsStarting(true)
+
     const activeWorkout = {
       id: createRuntimeId(),
       assignmentId: assignment.id,
@@ -332,6 +352,7 @@ export function useWorkoutSession({
       )
     } catch (error) {
       appUi.toast(error.message, 'error')
+      setIsStarting(false)
       return
     }
 
@@ -370,8 +391,9 @@ export function useWorkoutSession({
         selectedWorkout: definition.name,
         activeWorkout: coachedWorkout,
       }))
+      setIsStarting(false)
     })
-  }, [navigate, setState, setActiveExercise])
+  }, [navigate, setState, setActiveExercise, state.activeWorkout, isStarting])
 
   const updateWorkoutMeta = useCallback((key, value) => {
     setState((current) => {
@@ -382,6 +404,23 @@ export function useWorkoutSession({
         activeWorkout: {
           ...current.activeWorkout,
           [key]: value,
+        },
+      }
+    })
+  }, [setState])
+
+  const updateSupersetRound = useCallback((group, round) => {
+    setState((current) => {
+      if (!current.activeWorkout || !group) return current
+
+      return {
+        ...current,
+        activeWorkout: {
+          ...current.activeWorkout,
+          supersetRoundByGroup: {
+            ...(current.activeWorkout.supersetRoundByGroup ?? {}),
+            [group]: round,
+          },
         },
       }
     })
@@ -449,10 +488,8 @@ export function useWorkoutSession({
       return { ...current, activeWorkout }
     })
 
-    const next = Math.min(
-      (state.activeWorkout?.exercises.length ?? 1) - 1,
-      exerciseIndex + 1,
-    )
+    const exercises = state.activeWorkout?.exercises ?? []
+    const next = getNextExerciseIndex(exercises, exerciseIndex)
     setActiveExercise(next)
   }, [state.activeWorkout, setActiveExercise, setState])
 
@@ -502,7 +539,20 @@ export function useWorkoutSession({
     if (isFinishing) return
     setIsFinishing(true)
     const workout = state.activeWorkout
-    if (!workout) return
+    if (!workout) {
+      setIsFinishing(false)
+      return
+    }
+
+    if (state.history.some((session) => session.id === workout.id)) {
+      setState((current) => ({
+        ...current,
+        activeWorkout: null,
+      }))
+      setIsFinishing(false)
+      navigate('home')
+      return
+    }
 
     const athleteBodyweight = Number(state.profile?.weight ?? state.bodyweight ?? 0)
     const bodyweightSnapshot =
@@ -738,6 +788,7 @@ export function useWorkoutSession({
     restartActiveWorkout,
     endActiveWorkoutWithoutSaving,
     updateWorkoutMeta,
+    updateSupersetRound,
     updateRestTimer,
     updateSet,
     updateExercise,
