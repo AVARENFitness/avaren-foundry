@@ -73,6 +73,15 @@ describe('appointmentNotifications athlete lifecycle events', () => {
     expect(isConnectedAthleteAppointment(offlineAppointment())).toBe(false)
   })
 
+  it('skips athlete scheduled event for recurring series materialized rows', () => {
+    expect(
+      shouldCreateAthleteScheduledNotification({
+        appointment: connectedAppointment({ recurrenceSeriesId: 'series-1' }),
+        isInsert: true,
+      }),
+    ).toBe(false)
+  })
+
   it('sends one rescheduled event when canonical start changes', () => {
     const before = connectedAppointment()
     const after = connectedAppointment({

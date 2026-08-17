@@ -21,6 +21,7 @@ vi.mock('../lib/coachBackend', () => ({
     listClientPassBalances: vi.fn(),
     getSessionPackage: vi.fn(),
     createScheduledSession: vi.fn(),
+    createRecurringAppointmentSeries: vi.fn(),
   },
 }))
 
@@ -265,5 +266,38 @@ describe('CoachSessionCalendar usability', () => {
   it('exports stable calendar view constants', () => {
     expect(COACH_CALENDAR_VIEW.TODAY).toBe('today')
     expect(COACH_CALENDAR_VIEW.WEEK).toBe('week')
+  })
+
+  it('creates recurring series through backend RPC when repeat is enabled', async () => {
+    const user = userEvent.setup()
+    coachBackend.createRecurringAppointmentSeries.mockResolvedValue({
+      seriesId: 'series-1',
+      materializedCount: 12,
+    })
+
+    render(
+      <CoachSessionCalendar
+        clients={[jake]}
+        assignments={[]}
+        initialClientId="athlete-jake"
+        initialOpenComposer
+      />,
+    )
+
+    const sheet = await screen.findByTestId('coach-schedule-session-sheet')
+    fireEvent.click(within(sheet).getByRole('button', { name: /^custom$/i }))
+    fireEvent.click(within(sheet).getByRole('button', { name: /^on date$/i }))
+
+    const endDateInput = within(sheet).getByDisplayValue('')
+    fireEvent.change(endDateInput, { target: { value: '2026-11-13' } })
+
+    await user.click(
+      within(sheet).getByRole('button', { name: /^save appointment$/i }),
+    )
+
+    await waitFor(() => {
+      expect(coachBackend.createRecurringAppointmentSeries).toHaveBeenCalled()
+    })
+    expect(coachBackend.createScheduledSession).not.toHaveBeenCalled()
   })
 })

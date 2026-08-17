@@ -3,6 +3,7 @@ export const APPOINTMENT_DEEP_LINK_EVENT = 'avaren:open-appointment'
 export const PUSH_DEEP_LINK_TYPES = {
   APPOINTMENT_DETAIL: 'appointment-detail',
   COACH_CALENDAR: 'coach-calendar',
+  ATHLETE_SCHEDULE: 'athlete-schedule',
   SESSION_RSVP: 'session-rsvp',
   RSVP_ACTION: 'rsvp-action',
   ASSIGNMENT: 'assignment',
@@ -67,6 +68,13 @@ export const parsePushDeepLinkUrl = (rawUrl) => {
       }
     }
 
+    if (openTarget === PUSH_DEEP_LINK_TYPES.ATHLETE_SCHEDULE) {
+      return {
+        type: PUSH_DEEP_LINK_TYPES.ATHLETE_SCHEDULE,
+        role: 'athlete',
+      }
+    }
+
     if (openTarget === 'session-rsvp' || (sessionId && !openTarget)) {
       return {
         type: PUSH_DEEP_LINK_TYPES.SESSION_RSVP,
@@ -113,6 +121,10 @@ export const resolvePushDeepLinkNavigation = (request) => {
         coachMode: true,
         coachScreen: 'calendar',
         focusSessionId: request.sessionId ?? null,
+      }
+    case PUSH_DEEP_LINK_TYPES.ATHLETE_SCHEDULE:
+      return {
+        screen: 'in-person-schedule',
       }
     case PUSH_DEEP_LINK_TYPES.RSVP_ACTION:
       return {

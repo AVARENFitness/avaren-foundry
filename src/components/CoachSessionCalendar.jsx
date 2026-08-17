@@ -34,12 +34,19 @@ import {
 } from '../lib/coachScheduledSessions'
 import CoachPassSelectionModal from './coach/CoachPassSelectionModal'
 import CoachMissedChargeSheet from './coach/CoachMissedChargeSheet'
+import RecurrenceScopeDialog from './coach/RecurrenceScopeDialog'
 import CoachSessionDetailSheet from './coach/CoachSessionDetailSheet'
 import CoachAppointmentCard from './coach/CoachAppointmentCard'
 import CoachScheduleSessionSheet from './CoachScheduleSessionSheet'
 import { getClientDisplayName } from '../lib/clientDisplayName'
 import { useCoachSessionDetail } from '../hooks/useCoachSessionDetail'
 import { formatCoachCalendarEmptyHint } from '../lib/coachingAppointment'
+import {
+  emptyRecurrenceDraft,
+  RECURRENCE_END,
+  resolveRecurrenceWeekdays,
+  validateRecurrenceDraft,
+} from '../lib/recurringAppointments'
 import {
   buildCoachRsvpAlert,
   isRsvpException,
@@ -89,6 +96,7 @@ export default function CoachSessionCalendar({
     locationType: 'default',
     locationName: '',
     assignments: [],
+    recurrence: emptyRecurrenceDraft(),
   })
 
   useEffect(() => {
@@ -311,6 +319,15 @@ export default function CoachSessionCalendar({
       return
     }
 
+    const recurrenceError = validateRecurrenceDraft(
+      draft.recurrence ?? emptyRecurrenceDraft(),
+      draft.sessionDate,
+    )
+    if (recurrenceError) {
+      appUi.toast(recurrenceError, 'error')
+      return
+    }
+
     if (
       isScheduleTimeInPast({
         sessionDate: draft.sessionDate,
@@ -329,23 +346,67 @@ export default function CoachSessionCalendar({
 
     try {
       const selectedClient = clientByAthleteId[draft.athleteId]
-      const created = await coachBackend.createScheduledSession({
-        athleteId: draft.athleteId,
-        businessClientId:
-          selectedClient?.business_client_id ??
-          selectedClient?.businessClientId ??
-          null,
-        sessionDate: scheduledDate,
-        startTime: scheduledTime,
-        durationMinutes: draft.durationMinutes
-          ? Number(draft.durationMinutes)
-          : null,
-        coachNote: draft.coachNote.trim(),
-        assignmentId: draft.assignmentId ?? null,
-        locationType: draft.locationType ?? 'default',
-        locationName: draft.locationName ?? '',
-        existingSessions: sessions,
-      })
+
+      if (draft.recurrence?.enabled) {
+        const weekdays = resolveRecurrenceWeekdays({
+          mode: draft.recurrence.mode,
+          weekdays: draft.recurrence.weekdays,
+          startsOn: draft.sessionDate,
+        })
+
+        await coachBackend.createRecurringAppointmentSeries({
+          businessClientId:
+            selectedClient?.business_client_id ??
+            selectedClient?.businessClientId ??
+            null,
+          startsOn: draft.sessionDate,
+          startTime: draft.startTime,
+          durationMinutes: draft.durationMinutes
+            ? Number(draft.durationMinutes)
+            : 60,
+          weekdays,
+          endsOn:
+            draft.recurrence.endType === RECURRENCE_END.ON_DATE
+              ? draft.recurrence.endsOn
+              : null,
+          occurrenceLimit:
+            draft.recurrence.endType === RECURRENCE_END.AFTER_COUNT
+              ? Number(draft.recurrence.occurrenceLimit)
+              : null,
+          scheduleTimezone: DEFAULT_COACH_SCHEDULE_TIMEZONE,
+          coachNote: draft.coachNote.trim(),
+          assignmentId: draft.assignmentId ?? null,
+          locationType: draft.locationType ?? 'default',
+          locationName: draft.locationName ?? '',
+        })
+      } else {
+        const created = await coachBackend.createScheduledSession({
+          athleteId: draft.athleteId,
+          businessClientId:
+            selectedClient?.business_client_id ??
+            selectedClient?.businessClientId ??
+            null,
+          sessionDate: scheduledDate,
+          startTime: scheduledTime,
+          durationMinutes: draft.durationMinutes
+            ? Number(draft.durationMinutes)
+            : null,
+          coachNote: draft.coachNote.trim(),
+          assignmentId: draft.assignmentId ?? null,
+          locationType: draft.locationType ?? 'default',
+          locationName: draft.locationName ?? '',
+          existingSessions: sessions,
+        })
+        logAppointmentCreate({
+          success: true,
+          selectedLocalDate: scheduledDate,
+          selectedLocalTime: scheduledTime,
+          timezone: DEFAULT_COACH_SCHEDULE_TIMEZONE,
+          row: created,
+        })
+        logCoachCreateCheckpoint(created, { expectedAthleteId: draft.athleteId })
+      }
+
       setShowComposer(false)
       setDraft((current) => ({
         ...current,
@@ -354,23 +415,14 @@ export default function CoachSessionCalendar({
         startTime: '09:00',
         durationMinutes: '60',
         assignmentId: null,
+        recurrence: emptyRecurrenceDraft(),
       }))
       appUi.toast(
-        `Session scheduled · ${formatScheduleDateLong(scheduledDate)} · ${formatTime12Hour(scheduledTime)}`,
+        draft.recurrence?.enabled
+          ? 'Recurring appointments saved.'
+          : `Session scheduled · ${formatScheduleDateLong(scheduledDate)} · ${formatTime12Hour(scheduledTime)}`,
         'success',
       )
-      const normalized = normalizeScheduledSession(created)
-      logAppointmentCreate({
-        success: true,
-        selectedLocalDate: scheduledDate,
-        selectedLocalTime: scheduledTime,
-        timezone: DEFAULT_COACH_SCHEDULE_TIMEZONE,
-        row: created,
-      })
-      logCoachCreateCheckpoint(created, { expectedAthleteId: draft.athleteId })
-      if (normalized) {
-        setSessions((current) => sortScheduledSessions([...current, normalized]))
-      }
       await loadSessions()
       setSelectedDayKey(scheduledDate)
       setAnchor(new Date(`${scheduledDate}T12:00:00`))
@@ -384,8 +436,8 @@ export default function CoachSessionCalendar({
         error,
       })
       appUi.toast(
-        appointmentLinkageUserMessage(error.message) ??
-          error.message ??
+        error.message ??
+          appointmentLinkageUserMessage(error.message) ??
           'Could not schedule session.',
         'error',
       )
@@ -620,6 +672,22 @@ export default function CoachSessionCalendar({
         onClose={() => sessionDetail.setMissedChargeSession(null)}
         onNoCharge={sessionDetail.handleMissedNoCharge}
         onCharge={sessionDetail.handleMissedCharge}
+      />
+
+      <RecurrenceScopeDialog
+        open={Boolean(sessionDetail.recurrenceScopePrompt)}
+        title={
+          sessionDetail.recurrenceScopePrompt?.action === 'cancel'
+            ? 'Cancel recurring appointment'
+            : 'Apply schedule changes to'
+        }
+        description={
+          sessionDetail.recurrenceScopePrompt?.action === 'cancel'
+            ? 'Choose whether to cancel only this session or the rest of the series.'
+            : 'This and future updates time and duration only. Past appointments stay unchanged.'
+        }
+        onClose={() => sessionDetail.setRecurrenceScopePrompt(null)}
+        onSelect={sessionDetail.applyRecurrenceScope}
       />
     </section>
   )

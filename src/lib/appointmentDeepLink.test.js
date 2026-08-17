@@ -87,6 +87,14 @@ describe('appointmentDeepLink navigation resolution', () => {
     })
   })
 
+  it('series notification push resolves to athlete schedule', () => {
+    const request = parsePushDeepLinkUrl('/?open=athlete-schedule')
+
+    expect(resolvePushDeepLinkNavigation(request)).toEqual({
+      screen: 'in-person-schedule',
+    })
+  })
+
   it('normal launch without deep link params resolves to null', () => {
     expect(parsePushDeepLinkUrl('/')).toBeNull()
     expect(resolvePushDeepLinkNavigation(null)).toBeNull()

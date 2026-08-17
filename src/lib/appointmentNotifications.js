@@ -1,4 +1,5 @@
 import { hasOpenScheduleConflictFollowUp } from './appointmentScheduleConflict'
+import { shouldSuppressOccurrenceScheduledNotification } from './appointmentSeriesNotifications'
 import { formatAppointmentDayLabel } from './appointmentWhen'
 import {
   DEFAULT_COACH_SCHEDULE_TIMEZONE,
@@ -21,6 +22,9 @@ export const APPOINTMENT_NOTIFICATION_TYPES = {
   ATHLETE_RSVP_CANNOT_ATTEND: 'appointment-athlete-cannot-attend',
   ATHLETE_REMINDER_2H: 'appointment-athlete-reminder-2h',
   COACH_REMINDER_2H: 'appointment-coach-reminder-2h',
+  SERIES_CREATED: 'appointment-series-created',
+  SERIES_UPDATED: 'appointment-series-updated',
+  SERIES_CANCELLED: 'appointment-series-cancelled',
 }
 
 export const REMINDER_LEAD_MS = 2 * 60 * 60 * 1000
@@ -110,6 +114,7 @@ export const shouldCreateAthleteScheduledNotification = ({
 } = {}) => {
   if (!isInsert) return false
   if (!isConnectedAthleteAppointment(appointment)) return false
+  if (shouldSuppressOccurrenceScheduledNotification(appointment)) return false
   if (String(appointment.status ?? '') !== 'scheduled') return false
   return true
 }

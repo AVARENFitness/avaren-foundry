@@ -13,6 +13,7 @@ import {
   rsvpStatusLabel,
 } from '../../lib/coachingAppointment'
 import { rsvpCoachLabel } from '../../lib/sessionRsvp'
+import { isRecurringSession } from '../../lib/recurringAppointments'
 
 const ICON = { size: 18, strokeWidth: 1.75 }
 
@@ -78,6 +79,9 @@ export default function CoachSessionDetailSheet({
                 ? locationLabel(session)
                 : 'AVAREN Gym'}
             </p>
+            {isRecurringSession(session) ? (
+              <p className="coach-session-detail-recurrence">Recurring appointment</p>
+            ) : null}
                 <div className="coach-session-detail-status-grid">
                   <div>
                     <span className="coach-session-detail-status-label">RSVP</span>

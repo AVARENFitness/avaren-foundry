@@ -18,6 +18,14 @@ import {
   formatTime12Hour,
   isScheduleTimeInPast,
 } from '../lib/appointmentScheduling'
+import {
+  RECURRENCE_END,
+  RECURRENCE_MODE,
+  WEEKDAY_ORDER,
+  WEEKDAY_SHORT_LABELS,
+  emptyRecurrenceDraft,
+  weekdayFromDateKey,
+} from '../lib/recurringAppointments'
 
 const ICON = { size: 18, strokeWidth: 1.75 }
 
@@ -538,10 +546,192 @@ export default function CoachScheduleSessionSheet({
             </>
           ) : null}
 
-          <div className="coach-schedule-field-group coach-schedule-field-group--secondary coach-schedule-repeat-placeholder">
+          <div className="coach-schedule-field-group">
             <span className="coach-schedule-field-label">Repeat</span>
-            <p className="coach-schedule-repeat-copy">Recurring appointments coming soon.</p>
+            <div
+              className="coach-schedule-segmented"
+              role="group"
+              aria-label="Repeat"
+            >
+              {[
+                { value: RECURRENCE_MODE.NONE, label: 'Does not repeat' },
+                { value: RECURRENCE_MODE.WEEKLY, label: 'Weekly' },
+                { value: RECURRENCE_MODE.CUSTOM, label: 'Custom' },
+              ].map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  className={`coach-schedule-segment ${
+                    (draft.recurrence?.enabled
+                      ? draft.recurrence.mode
+                      : RECURRENCE_MODE.NONE) === option.value ||
+                    (!draft.recurrence?.enabled && option.value === RECURRENCE_MODE.NONE)
+                      ? 'active'
+                      : ''
+                  }`}
+                  onClick={() => {
+                    if (option.value === RECURRENCE_MODE.NONE) {
+                      onDraftChange?.({
+                        ...draft,
+                        recurrence: emptyRecurrenceDraft(),
+                      })
+                      return
+                    }
+
+                    const nextRecurrence = {
+                      ...(draft.recurrence ?? emptyRecurrenceDraft()),
+                      enabled: true,
+                      mode: option.value,
+                      weekdays:
+                        option.value === RECURRENCE_MODE.WEEKLY
+                          ? [weekdayFromDateKey(draft.sessionDate)]
+                          : draft.recurrence?.weekdays?.length
+                            ? draft.recurrence.weekdays
+                            : [weekdayFromDateKey(draft.sessionDate)],
+                    }
+
+                    onDraftChange?.({ ...draft, recurrence: nextRecurrence })
+                  }}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
           </div>
+
+          {draft.recurrence?.enabled ? (
+            <>
+              {draft.recurrence.mode === RECURRENCE_MODE.CUSTOM ? (
+                <div className="coach-schedule-field-group">
+                  <span className="coach-schedule-field-label">Days</span>
+                  <div
+                    className="coach-schedule-weekday-grid"
+                    role="group"
+                    aria-label="Repeat days"
+                  >
+                    {WEEKDAY_ORDER.map((day) => {
+                      const selected = draft.recurrence.weekdays?.includes(day)
+                      return (
+                        <button
+                          key={day}
+                          type="button"
+                          className={`coach-schedule-weekday-chip${selected ? ' active' : ''}`}
+                          aria-pressed={selected}
+                          onClick={() => {
+                            const current = draft.recurrence.weekdays ?? []
+                            const weekdays = selected
+                              ? current.filter((entry) => entry !== day)
+                              : [...current, day]
+                            onDraftChange?.({
+                              ...draft,
+                              recurrence: {
+                                ...draft.recurrence,
+                                weekdays,
+                              },
+                            })
+                          }}
+                        >
+                          {WEEKDAY_SHORT_LABELS[day]}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              ) : null}
+
+              <div className="coach-schedule-field-group">
+                <span className="coach-schedule-field-label">Ends</span>
+                <div
+                  className="coach-schedule-segmented"
+                  role="group"
+                  aria-label="Recurrence end"
+                >
+                  <button
+                    type="button"
+                    className={`coach-schedule-segment ${
+                      draft.recurrence.endType === RECURRENCE_END.ON_DATE
+                        ? 'active'
+                        : ''
+                    }`}
+                    onClick={() =>
+                      onDraftChange?.({
+                        ...draft,
+                        recurrence: {
+                          ...draft.recurrence,
+                          endType: RECURRENCE_END.ON_DATE,
+                        },
+                      })
+                    }
+                  >
+                    On date
+                  </button>
+                  <button
+                    type="button"
+                    className={`coach-schedule-segment ${
+                      draft.recurrence.endType === RECURRENCE_END.AFTER_COUNT
+                        ? 'active'
+                        : ''
+                    }`}
+                    onClick={() =>
+                      onDraftChange?.({
+                        ...draft,
+                        recurrence: {
+                          ...draft.recurrence,
+                          endType: RECURRENCE_END.AFTER_COUNT,
+                        },
+                      })
+                    }
+                  >
+                    After count
+                  </button>
+                </div>
+              </div>
+
+              {draft.recurrence.endType === RECURRENCE_END.ON_DATE ? (
+                <label className="coach-schedule-field-group">
+                  <span className="coach-schedule-field-label">End date</span>
+                  <div className="coach-schedule-control coach-schedule-control--input">
+                    <input
+                      type="date"
+                      className="coach-schedule-inline-input"
+                      min={draft.sessionDate}
+                      value={draft.recurrence.endsOn ?? ''}
+                      onChange={(event) =>
+                        onDraftChange?.({
+                          ...draft,
+                          recurrence: {
+                            ...draft.recurrence,
+                            endsOn: event.target.value,
+                          },
+                        })
+                      }
+                    />
+                  </div>
+                </label>
+              ) : (
+                <label className="coach-schedule-field-group">
+                  <span className="coach-schedule-field-label">Occurrences</span>
+                  <div className="coach-schedule-control coach-schedule-control--input">
+                    <input
+                      type="number"
+                      min="1"
+                      className="coach-schedule-inline-input"
+                      value={draft.recurrence.occurrenceLimit ?? ''}
+                      onChange={(event) =>
+                        onDraftChange?.({
+                          ...draft,
+                          recurrence: {
+                            ...draft.recurrence,
+                            occurrenceLimit: event.target.value,
+                          },
+                        })
+                      }
+                    />
+                  </div>
+                </label>
+              )}
+            </>
+          ) : null}
 
         </div>
 

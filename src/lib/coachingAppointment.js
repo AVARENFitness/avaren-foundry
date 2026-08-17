@@ -336,7 +336,14 @@ export const buildScheduleConflictSummaryFromAppointment = (appointment = {}) =>
 
 export const mapAppointmentOverlapError = (error = null) => {
   const message = String(error?.message ?? error ?? '')
-  if (message.includes('appointment_overlap')) {
+  const code = String(error?.code ?? error?.sqlState ?? '')
+
+  if (
+    message.includes('appointment_overlap') ||
+    code === '99001' ||
+    code === '23P01' ||
+    /coach_scheduled_sessions_no_overlap/i.test(message)
+  ) {
     return {
       ok: false,
       error: 'appointment_overlap',
@@ -344,6 +351,60 @@ export const mapAppointmentOverlapError = (error = null) => {
     }
   }
   return null
+}
+
+export const parseRecurrenceConflictDetail = (error = null) => {
+  const message = String(error?.message ?? error ?? '')
+  if (!message.includes('recurrence_conflict')) return null
+
+  const rawDetail = error?.details ?? error?.detail ?? ''
+  if (typeof rawDetail === 'string' && rawDetail.trim().startsWith('{')) {
+    try {
+      return JSON.parse(rawDetail)
+    } catch {
+      return { hasConflicts: true, conflicts: [] }
+    }
+  }
+
+  if (rawDetail && typeof rawDetail === 'object') {
+    return rawDetail
+  }
+
+  return { hasConflicts: true, conflicts: [] }
+}
+
+export const formatRecurrenceConflictMessage = (preflight = {}) => {
+  const conflicts = preflight?.conflicts ?? []
+  if (!conflicts.length) {
+    return 'This recurring schedule conflicts with another appointment.'
+  }
+
+  const lines = conflicts.slice(0, 3).map((conflict) => {
+    const when = formatAppointmentDayTime({
+      sessionDate: conflict.occurrenceDate,
+      startTime: conflict.startTime,
+    })
+    const client = conflict.conflictingClientName ?? 'Another client'
+    return `${when} — conflicts with ${client}`
+  })
+
+  if (conflicts.length > 3) {
+    lines.push(`+ ${conflicts.length - 3} more conflict${conflicts.length - 3 === 1 ? '' : 's'}`)
+  }
+
+  return lines.join('\n')
+}
+
+export const mapRecurrenceConflictError = (error = null) => {
+  const detail = parseRecurrenceConflictDetail(error)
+  if (!detail) return null
+
+  return {
+    ok: false,
+    error: 'recurrence_conflict',
+    message: formatRecurrenceConflictMessage(detail),
+    conflicts: detail.conflicts ?? [],
+  }
 }
 
 export const groupAppointmentsByDate = (appointments = []) => {

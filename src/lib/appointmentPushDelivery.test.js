@@ -38,6 +38,15 @@ describe('appointmentPushDelivery routing', () => {
     ).toBe('/?open=coach-calendar&session=appt-1')
   })
 
+  it('builds athlete schedule deep links for series notifications', () => {
+    expect(
+      buildAppointmentPushUrl({
+        action: 'open-athlete-schedule',
+        payload: { openTarget: 'athlete-schedule' },
+      }),
+    ).toBe('/?open=athlete-schedule')
+  })
+
   it('builds immediate push payload from durable notification rows', () => {
     const payload = buildAppointmentPushPayload({
       title: 'Training scheduled',

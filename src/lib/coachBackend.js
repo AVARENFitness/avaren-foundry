@@ -22,6 +22,7 @@ import {
 import {
   findOverlappingAppointment,
   mapAppointmentOverlapError,
+  mapRecurrenceConflictError,
 } from './coachingAppointment'
 import {
   logAppointmentReadDiagnostics,
@@ -1058,6 +1059,107 @@ export const coachBackend = {
       if (mapped) throw new Error(mapped.message)
       throw error
     }
+  },
+
+  async createRecurringAppointmentSeries({
+    businessClientId,
+    startsOn,
+    startTime,
+    durationMinutes = 60,
+    weekdays = [],
+    endsOn = null,
+    occurrenceLimit = null,
+    scheduleTimezone = DEFAULT_COACH_SCHEDULE_TIMEZONE,
+    coachNote = '',
+    assignmentId = null,
+    locationType = 'default',
+    locationName = '',
+    appointmentType = 'IN_PERSON_TRAINING',
+  }) {
+    try {
+      return await unwrap(
+        supabase.rpc('create_recurring_appointment_series', {
+          p_business_client_id: businessClientId,
+          p_starts_on: startsOn,
+          p_local_start_time: startTime,
+          p_duration_minutes: durationMinutes,
+          p_weekdays: weekdays,
+          p_ends_on: endsOn,
+          p_occurrence_limit: occurrenceLimit,
+          p_schedule_timezone: scheduleTimezone,
+          p_coach_note: coachNote,
+          p_assignment_id: assignmentId ?? null,
+          p_location_type: locationType,
+          p_location_name: locationName,
+          p_appointment_type: appointmentType,
+        }),
+      )
+    } catch (error) {
+      const recurrenceConflict = mapRecurrenceConflictError(error)
+      if (recurrenceConflict) {
+        const mapped = new Error(recurrenceConflict.message)
+        mapped.code = recurrenceConflict.error
+        mapped.conflicts = recurrenceConflict.conflicts
+        throw mapped
+      }
+
+      const overlap = mapAppointmentOverlapError(error)
+      if (overlap) {
+        const mapped = new Error(overlap.message)
+        mapped.code = overlap.error
+        throw mapped
+      }
+
+      throw error
+    }
+  },
+
+  async updateRecurringAppointmentOccurrence(sessionId, patch) {
+    return unwrap(
+      supabase.rpc('update_recurring_appointment_occurrence', {
+        p_session_id: sessionId,
+        p_session_date: patch.sessionDate,
+        p_start_time: patch.startTime,
+        p_duration_minutes: patch.durationMinutes ?? null,
+      }),
+    )
+  },
+
+  async updateRecurringAppointmentSeriesFuture(sessionId, patch) {
+    try {
+      return await unwrap(
+        supabase.rpc('update_recurring_appointment_series_future', {
+          p_session_id: sessionId,
+          p_start_time: patch.startTime,
+          p_duration_minutes: patch.durationMinutes ?? null,
+        }),
+      )
+    } catch (error) {
+      const recurrenceConflict = mapRecurrenceConflictError(error)
+      if (recurrenceConflict) {
+        const mapped = new Error(recurrenceConflict.message)
+        mapped.code = recurrenceConflict.error
+        mapped.conflicts = recurrenceConflict.conflicts
+        throw mapped
+      }
+      throw error
+    }
+  },
+
+  async cancelRecurringAppointmentOccurrence(sessionId) {
+    return unwrap(
+      supabase.rpc('cancel_recurring_appointment_occurrence', {
+        p_session_id: sessionId,
+      }),
+    )
+  },
+
+  async cancelRecurringAppointmentSeriesFuture(sessionId) {
+    return unwrap(
+      supabase.rpc('cancel_recurring_appointment_series_future', {
+        p_session_id: sessionId,
+      }),
+    )
   },
 
   async updateScheduledSession(id, patch, { existingSessions = null } = {}) {

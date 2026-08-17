@@ -58,6 +58,9 @@ export const normalizeScheduledSession = (row) => {
     linkedWorkoutTitle,
     workoutSessionId: row.workout_session_id ?? null,
     endsAt: row.ends_at ?? null,
+    recurrenceSeriesId: row.recurrence_series_id ?? null,
+    recurrenceOccurrenceDate: row.recurrence_occurrence_date ?? null,
+    recurrenceException: Boolean(row.recurrence_exception),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   }

@@ -29,7 +29,16 @@ import {
   logPassSelectionForensics,
 } from '../lib/coachPassForensics'
 import { buildSessionLinkageForensics } from '../lib/coachBusinessClientLinkage'
-import { mapAppointmentOverlapError } from '../lib/coachingAppointment'
+import {
+  mapAppointmentOverlapError,
+  mapRecurrenceConflictError,
+} from '../lib/coachingAppointment'
+import {
+  RECURRENCE_SCOPE,
+  buildThisAndFutureSchedulePatch,
+  canApplyThisAndFutureScheduleChange,
+  isRecurringSession,
+} from '../lib/recurringAppointments'
 
 const UPCOMING_HORIZON_DAYS = 56
 
@@ -66,6 +75,7 @@ export function useCoachSessionDetail({
   const [passSummaries, setPassSummaries] = useState({})
   const [packages, setPackages] = useState({})
   const [ledgerBySessionId, setLedgerBySessionId] = useState({})
+  const [recurrenceScopePrompt, setRecurrenceScopePrompt] = useState(null)
 
   const clientByAthleteId = useMemo(
     () => Object.fromEntries(clients.map((client) => [client.athlete_id, client])),
@@ -644,6 +654,11 @@ export function useCoachSessionDetail({
 
   const handleCancel = useCallback(
     async (session) => {
+      if (isRecurringSession(session)) {
+        setRecurrenceScopePrompt({ action: 'cancel', session })
+        return
+      }
+
       const result = cancelScheduledSession(session)
       if (!result.ok) return
 
@@ -664,6 +679,105 @@ export function useCoachSessionDetail({
       }
     },
     [setSessions, closeDetail, notifyMutated],
+  )
+
+  const applyRecurrenceScope = useCallback(
+    async (scope) => {
+      const prompt = recurrenceScopePrompt
+      if (!prompt?.session) return
+
+      try {
+        if (prompt.action === 'cancel') {
+          if (scope === RECURRENCE_SCOPE.THIS_AND_FUTURE) {
+            await coachBackend.cancelRecurringAppointmentSeriesFuture(prompt.session.id)
+            await onLoadSessions?.()
+          } else {
+            const saved = normalizeScheduledSession(
+              await coachBackend.cancelRecurringAppointmentOccurrence(
+                prompt.session.id,
+              ),
+            )
+            setSessions((current) =>
+              current.map((item) => (item.id === saved.id ? saved : item)),
+            )
+          }
+
+          closeDetail()
+          appUi.toast('Session cancelled.', 'success')
+          await notifyMutated()
+        }
+
+        if (prompt.action === 'reschedule' && prompt.patch) {
+          if (
+            scope === RECURRENCE_SCOPE.THIS_AND_FUTURE &&
+            !canApplyThisAndFutureScheduleChange({
+              originalSessionDate: prompt.session.sessionDate,
+              nextSessionDate: prompt.patch.sessionDate,
+            })
+          ) {
+            appUi.toast(
+              'Changing the date for all future sessions is not supported. Use This appointment, or change time and duration only.',
+              'error',
+            )
+            return
+          }
+
+          const futurePatch =
+            scope === RECURRENCE_SCOPE.THIS_AND_FUTURE
+              ? buildThisAndFutureSchedulePatch({
+                  originalSessionDate: prompt.session.sessionDate,
+                  startTime: prompt.patch.startTime,
+                  durationMinutes: prompt.patch.durationMinutes,
+                })
+              : prompt.patch
+
+          const saved =
+            scope === RECURRENCE_SCOPE.THIS_AND_FUTURE
+              ? await coachBackend.updateRecurringAppointmentSeriesFuture(
+                  prompt.session.id,
+                  futurePatch,
+                )
+              : normalizeScheduledSession(
+                  await coachBackend.updateRecurringAppointmentOccurrence(
+                    prompt.session.id,
+                    prompt.patch,
+                  ),
+                )
+
+          if (scope === RECURRENCE_SCOPE.THIS_ONLY && saved?.id) {
+            setSessions((current) =>
+              current.map((item) => (item.id === saved.id ? saved : item)),
+            )
+            setActiveSession(saved)
+          } else {
+            await onLoadSessions?.()
+          }
+
+          setRescheduleMode(false)
+          appUi.toast('Session rescheduled.', 'success')
+          await notifyMutated()
+        }
+      } catch (error) {
+        const recurrenceConflict = mapRecurrenceConflictError(error)
+        const overlap = mapAppointmentOverlapError(error)
+        appUi.toast(
+          recurrenceConflict?.message ??
+            overlap?.message ??
+            error.message ??
+            'Could not update session.',
+          'error',
+        )
+      } finally {
+        setRecurrenceScopePrompt(null)
+      }
+    },
+    [
+      recurrenceScopePrompt,
+      setSessions,
+      closeDetail,
+      notifyMutated,
+      onLoadSessions,
+    ],
   )
 
   const handleReschedule = useCallback(
@@ -711,14 +825,26 @@ export function useCoachSessionDetail({
 
   const saveReschedule = useCallback(() => {
     if (!activeSession) return
-    handleReschedule(activeSession, {
+
+    const patch = {
       sessionDate: rescheduleDraft.sessionDate,
       startTime: rescheduleDraft.startTime,
       durationMinutes: Number(rescheduleDraft.durationMinutes) || 60,
       assignmentId: rescheduleDraft.assignmentId,
       locationType: rescheduleDraft.locationType,
       locationName: rescheduleDraft.locationName,
-    })
+    }
+
+    if (isRecurringSession(activeSession)) {
+      setRecurrenceScopePrompt({
+        action: 'reschedule',
+        session: activeSession,
+        patch,
+      })
+      return
+    }
+
+    handleReschedule(activeSession, patch)
   }, [activeSession, rescheduleDraft, handleReschedule])
 
   const handleViewClient = useCallback(() => {
@@ -774,6 +900,9 @@ export function useCoachSessionDetail({
     handleMarkMissed,
     passDebitState,
     ledgerBySessionId,
+    recurrenceScopePrompt,
+    setRecurrenceScopePrompt,
+    applyRecurrenceScope,
     passSelection,
     setPassSelection,
     closePassSelection,

@@ -5,6 +5,7 @@ export const CRON_WORKER_AUTH_HEADER = 'apikey'
 export const CRON_WORKER_FUNCTIONS = [
   'dispatch-appointment-notifications',
   'process-appointment-reminders',
+  'extend-recurring-appointment-horizon',
 ]
 
 export const isCronWorkerPreflightRequest = (method) =>

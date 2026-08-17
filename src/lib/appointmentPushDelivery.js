@@ -3,6 +3,7 @@ import {
   buildAppointmentDeepLink,
   buildAppointmentNotificationCopy,
 } from './appointmentNotifications'
+import { APPOINTMENT_SERIES_NOTIFICATION_TYPES } from './appointmentSeriesNotifications'
 import { DELIVERY_STATUS } from './appointmentNotificationDeliveries'
 
 export const IMMEDIATE_APPOINTMENT_NOTIFICATION_TYPES = new Set([
@@ -11,6 +12,9 @@ export const IMMEDIATE_APPOINTMENT_NOTIFICATION_TYPES = new Set([
   APPOINTMENT_NOTIFICATION_TYPES.CANCELLED,
   APPOINTMENT_NOTIFICATION_TYPES.ATHLETE_RSVP_CONFIRMED,
   APPOINTMENT_NOTIFICATION_TYPES.ATHLETE_RSVP_CANNOT_ATTEND,
+  APPOINTMENT_SERIES_NOTIFICATION_TYPES.CREATED,
+  APPOINTMENT_SERIES_NOTIFICATION_TYPES.UPDATED,
+  APPOINTMENT_SERIES_NOTIFICATION_TYPES.CANCELLED,
 ])
 
 export const REMINDER_APPOINTMENT_NOTIFICATION_TYPES = new Set([
@@ -40,6 +44,17 @@ export const buildAppointmentPushUrl = ({
 
   if (action === 'open-coach-calendar' && sessionId) {
     return `/?open=coach-calendar&session=${encodeURIComponent(sessionId)}`
+  }
+
+  if (action === 'open-athlete-schedule') {
+    return '/?open=athlete-schedule'
+  }
+
+  if (
+    payload.openTarget === 'athlete-schedule' ||
+    payload.open_target === 'athlete-schedule'
+  ) {
+    return '/?open=athlete-schedule'
   }
 
   if (sessionId) {

@@ -10,6 +10,8 @@ import {
   findAppointmentLinkedToAssignment,
   findOverlappingAppointment,
   filterUpcomingAppointments,
+  mapAppointmentOverlapError,
+  mapRecurrenceConflictError,
   nextUpcomingAppointment,
   rsvpStatusLabel,
 } from './coachingAppointment'
@@ -162,5 +164,35 @@ describe('coachingAppointment', () => {
     const awaiting = baseAppointment({ rsvpStatus: 'awaiting_response' })
 
     expect(coachAppointmentCardStatus(awaiting)).toBe('Awaiting reply')
+  })
+
+  it('maps appointment overlap errors from exclusion constraint codes', () => {
+    expect(
+      mapAppointmentOverlapError({
+        code: '23P01',
+        message:
+          'conflicting key value violates exclusion constraint "coach_scheduled_sessions_no_overlap"',
+      })?.error,
+    ).toBe('appointment_overlap')
+  })
+
+  it('maps recurrence conflict errors with readable conflict lines', () => {
+    const mapped = mapRecurrenceConflictError({
+      message: 'recurrence_conflict',
+      details: JSON.stringify({
+        hasConflicts: true,
+        conflicts: [
+          {
+            occurrenceDate: '2026-08-19',
+            startTime: '16:00',
+            conflictingClientName: 'Sarah',
+          },
+        ],
+      }),
+    })
+
+    expect(mapped?.error).toBe('recurrence_conflict')
+    expect(mapped?.message).toContain('Sarah')
+    expect(mapped?.conflicts).toHaveLength(1)
   })
 })

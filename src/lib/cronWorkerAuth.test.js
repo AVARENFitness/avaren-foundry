@@ -17,12 +17,13 @@ const configuredSecretKeysRaw = JSON.stringify({
 })
 
 describe('cronWorkerAuth contract', () => {
-  it('documents secret-key auth for both appointment workers', () => {
+  it('documents secret-key auth for appointment and recurrence workers', () => {
     expect(CRON_WORKER_AUTH_MODE).toBe('secret')
     expect(CRON_WORKER_AUTH_HEADER).toBe('apikey')
     expect(CRON_WORKER_FUNCTIONS).toEqual([
       'dispatch-appointment-notifications',
       'process-appointment-reminders',
+      'extend-recurring-appointment-horizon',
     ])
   })
 

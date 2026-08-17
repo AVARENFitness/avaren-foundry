@@ -50,6 +50,17 @@ export const buildAppointmentPushUrl = ({
     return `/?open=coach-calendar&session=${encodeURIComponent(sessionId)}`
   }
 
+  if (action === 'open-athlete-schedule') {
+    return '/?open=athlete-schedule'
+  }
+
+  if (
+    payload.openTarget === 'athlete-schedule' ||
+    payload.open_target === 'athlete-schedule'
+  ) {
+    return '/?open=athlete-schedule'
+  }
+
   if (sessionId) {
     return `/?session=${encodeURIComponent(sessionId)}&open=appointment-detail`
   }
