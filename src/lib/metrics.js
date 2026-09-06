@@ -7,9 +7,12 @@ import {
   filterValidStrengthSets,
   parseSetNumbers,
 } from './workoutMetrics'
+import {
+  estimatedOneRepMax,
+  resolveExerciseStrength,
+} from './strengthEstimate'
 
-export const estimatedOneRepMax = (weight, reps) =>
-  reps > 0 ? Math.round(weight * (1 + reps / 30) * 10) / 10 : 0
+export { estimatedOneRepMax }
 
 export {
   isValidStrengthSet,
@@ -56,8 +59,13 @@ export const exerciseNames = (history) =>
     ),
   ].filter(Boolean)
 
-export const exerciseSessions = (history, exercise) =>
-  history
+export const exerciseSessions = (history, exercise) => {
+  const strength = resolveExerciseStrength(history, exercise)
+  const byId = new Map(
+    strength.sessions.map((session) => [session.id, session]),
+  )
+
+  return history
     .filter((session) =>
       (session.sets ?? []).some(
         (set) => set.exercise === exercise && isValidStrengthSet(set),
@@ -72,6 +80,12 @@ export const exerciseSessions = (history, exercise) =>
         (session.finishedAt
           ? String(session.finishedAt).slice(0, 10)
           : '')
+      const strengthPoint = byId.get(session.id)
+      const sessionPeak = Math.max(
+        0,
+        ...sets.map((set) => setEstimatedOneRepMax(set) ?? 0),
+      )
+
       return {
         id: session.id,
         date,
@@ -81,31 +95,29 @@ export const exerciseSessions = (history, exercise) =>
           0,
           ...sets.map((set) => Number(parseSetNumbers(set).weight || 0)),
         ),
-        bestE1RM: Math.max(
-          0,
-          ...sets.map((set) => setEstimatedOneRepMax(set) ?? 0),
-        ),
+        // Chart "Estimated 1RM" uses conservative current estimate after this session
+        // so a lighter workout does not snap the series downward.
+        bestE1RM:
+          strengthPoint?.currentEstimateAfter ??
+          sessionPeak,
+        sessionPeakE1RM: strengthPoint?.sessionPeakEstimate ?? sessionPeak,
         volume: sets.reduce((sum, set) => sum + setLoadVolume(set), 0),
       }
     })
+}
 
 export const exerciseProfile = (history, exercise) => {
   const sessions = exerciseSessions(history, exercise)
   const sets = sessions.flatMap((session) => session.sets)
+  const strength = resolveExerciseStrength(history, exercise)
 
   return {
     sessions,
     sessionCount: sessions.length,
     heaviest: Math.max(0, ...sets.map((set) => Number(set.weight || 0))),
-    bestE1RM: Math.max(
-      0,
-      ...sets.map((set) =>
-        Number(
-          set.estimatedOneRepMax ??
-            estimatedOneRepMax(Number(set.weight || 0), Number(set.reps || 0)),
-        ),
-      ),
-    ),
+    bestE1RM: strength.provenBest,
+    currentEstimate: strength.currentEstimate,
+    provenBest: strength.provenBest,
     lifetimeVolume: sets.reduce(
       (sum, set) => sum + Number(set.weight || 0) * Number(set.reps || 0),
       0,

@@ -23,6 +23,7 @@ import {
   gymModeSetLabel,
 } from '../lib/exercisePrescription'
 import { buildExerciseHistoryGlance } from '../lib/exercisePreviousContext'
+import { shouldPromptForRpe } from '../lib/strengthEstimate'
 import {
   expandToDifferentSides,
   isUnilateralExercise,
@@ -43,6 +44,8 @@ const SET_TYPES = [
   'AMRAP',
   'Superset',
 ]
+
+const RPE_OPTIONS = [7, 8, 9, 10]
 
 const ACCENTS = {
   Chest: '#6f2f36',
@@ -87,6 +90,10 @@ export default function FocusExercise({
 }) {
   const [showPrevious, setShowPrevious] =
     useState(false)
+  const [rpePromptConsumed, setRpePromptConsumed] =
+    useState(false)
+  const [rpePromptSetIndex, setRpePromptSetIndex] =
+    useState(null)
 
   const loadType = normalizeLoadType(
     exercise.loadType,
@@ -339,7 +346,9 @@ export default function FocusExercise({
               <section
                 className={`focus-set-card ${
                   set.done
-                    ? 'done collapsed'
+                    ? rpePromptSetIndex === setIndex
+                      ? 'done'
+                      : 'done collapsed'
                     : ''
                 } ${
                   !set.done &&
@@ -632,14 +641,31 @@ export default function FocusExercise({
                         checked,
                       )
 
-                      if (checked) {
-                        onSetCompleted?.({
-                          exercise,
-                          set: setWithExercise,
-                          setIndex,
-                          potentialPr,
-                        })
+                      if (!checked) {
+                        if (rpePromptSetIndex === setIndex) {
+                          setRpePromptSetIndex(null)
+                        }
+                        return
                       }
+
+                      const prompt = shouldPromptForRpe({
+                        set: setWithExercise,
+                        exerciseName: exercise.name,
+                        history: Array.isArray(history) ? history : [],
+                        alreadyPromptedForExercise: rpePromptConsumed,
+                      })
+
+                      if (prompt) {
+                        setRpePromptSetIndex(setIndex)
+                        return
+                      }
+
+                      onSetCompleted?.({
+                        exercise,
+                        set: setWithExercise,
+                        setIndex,
+                        potentialPr,
+                      })
                     }}
                   />
 
@@ -654,6 +680,54 @@ export default function FocusExercise({
                       : 'Complete set'}
                   </span>
                 </label>
+
+                {rpePromptSetIndex === setIndex && set.done ? (
+                  <div className="focus-rpe-prompt">
+                    <span>RPE (optional)</span>
+                    <div className="focus-rpe-options">
+                      {RPE_OPTIONS.map((value) => (
+                        <button
+                          key={value}
+                          type="button"
+                          className={
+                            Number(set.rpe) === value
+                              ? 'active'
+                              : undefined
+                          }
+                          onClick={() => {
+                            onSetChange(setIndex, 'rpe', value)
+                            setRpePromptConsumed(true)
+                            setRpePromptSetIndex(null)
+                            onSetCompleted?.({
+                              exercise,
+                              set: { ...setWithExercise, rpe: value },
+                              setIndex,
+                              potentialPr,
+                            })
+                          }}
+                        >
+                          {value}
+                        </button>
+                      ))}
+                      <button
+                        type="button"
+                        className="focus-rpe-skip"
+                        onClick={() => {
+                          setRpePromptConsumed(true)
+                          setRpePromptSetIndex(null)
+                          onSetCompleted?.({
+                            exercise,
+                            set: setWithExercise,
+                            setIndex,
+                            potentialPr,
+                          })
+                        }}
+                      >
+                        Skip
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
               </section>
             )
           },

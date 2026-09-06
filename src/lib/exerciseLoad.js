@@ -1,5 +1,5 @@
 import { COMMON_EXERCISES } from '../data/commonExercises'
-import { estimatedOneRepMax as calcE1rm } from './metrics'
+import { estimateSetOneRepMax } from './strengthEstimate'
 import {
   expandUnilateralPerformances,
   isUnilateralExercise,
@@ -288,32 +288,29 @@ export const buildCompletedSet = ({
 
   if (loadType === LOAD_TYPES.EXTERNAL) {
     if (completed.weight == null) completed.weight = rawWeight
-    const e1rmWeight =
-      mode === SIDES_MODE.SHARED
-        ? rawWeight
-        : mode === SIDES_MODE.DIFFERENT
-          ? Math.max(completed.left.weight, completed.right.weight)
-          : rawWeight
-    const e1rmReps =
-      mode === SIDES_MODE.SHARED
-        ? reps
-        : mode === SIDES_MODE.DIFFERENT
-          ? Math.max(completed.left.reps, completed.right.reps)
-          : reps
-    completed.estimatedOneRepMax =
-      e1rmWeight > 0 && e1rmReps > 0 ? calcE1rm(e1rmWeight, e1rmReps) : 0
+    completed.estimatedOneRepMax = estimateSetOneRepMax(
+      { ...set, ...completed, exercise: exercise.name },
+      exercise.name,
+    )
   } else if (loadType === LOAD_TYPES.BODYWEIGHT) {
     completed.weight = 0
     completed.estimatedOneRepMax = 0
   } else if (loadType === LOAD_TYPES.BODYWEIGHT_ADDED) {
     completed.addedWeight = rawWeight
     if (completed.weight == null) completed.weight = rawWeight
-    completed.estimatedOneRepMax =
-      rawWeight > 0 && reps > 0 ? calcE1rm(rawWeight, reps) : 0
+    completed.estimatedOneRepMax = estimateSetOneRepMax(
+      { ...set, ...completed, exercise: exercise.name },
+      exercise.name,
+    )
   } else if (loadType === LOAD_TYPES.ASSISTED) {
     completed.assistance = rawWeight
     completed.weight = 0
     completed.estimatedOneRepMax = 0
+  }
+
+  if (set.rpe != null && set.rpe !== '') {
+    const rpe = Number(set.rpe)
+    if (Number.isFinite(rpe)) completed.rpe = rpe
   }
 
   if (

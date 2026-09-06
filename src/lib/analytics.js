@@ -1,3 +1,5 @@
+import { estimatedOneRepMax } from './strengthEstimate'
+
 const DAY_MS = 86400000
 
 const toDate = (value) => {
@@ -36,13 +38,11 @@ const setE1RM = (set) => {
     return Number(set.estimatedOneRepMax)
   }
 
-  const weight = Number(set?.weight || 0)
-  const reps = Number(set?.reps || 0)
-
-  if (weight <= 0 || reps <= 0) return 0
-  if (reps === 1) return weight
-
-  return weight * (1 + reps / 30)
+  return estimatedOneRepMax(
+    Number(set?.weight || 0),
+    Number(set?.reps || 0),
+    set?.rpe ?? null,
+  )
 }
 
 const sessionDurationMinutes = (session) => {

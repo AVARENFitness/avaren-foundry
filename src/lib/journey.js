@@ -4,6 +4,7 @@ import {
 } from './analytics'
 import { buildMilestones } from './milestones'
 import { forgeJourneyEvents } from './forge'
+import { estimatedOneRepMax as estimateE1rm } from './strengthEstimate'
 
 export const JOURNEY_EVENT_TYPES = {
   WORKOUT: 'workout',
@@ -134,7 +135,7 @@ const prEvents = (history = []) => {
       const score =
         estimatedOneRepMax > 0
           ? estimatedOneRepMax
-          : weight * (1 + reps / 30)
+          : estimateE1rm(weight, reps, set?.rpe ?? null)
 
       if (score <= 0) return
 

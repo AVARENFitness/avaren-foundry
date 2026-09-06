@@ -6,11 +6,11 @@ import {
   normalizeLoadType,
   resolveSetLoadType,
 } from './exerciseLoad'
-import { estimatedOneRepMax as calcE1rm } from './metrics'
 import {
   resolveSidesMode,
   SIDES_MODE,
 } from './unilateralExercise'
+import { estimateSetOneRepMax } from './strengthEstimate'
 
 export const MEASUREMENT_MODES = {
   WEIGHTED_REPS: 'weighted-reps',
@@ -188,13 +188,11 @@ export const setLoadVolume = (set = {}) => {
 export const setEstimatedOneRepMax = (set = {}) => {
   if (!isValidStrengthSet(set)) return null
 
-  const loadType = resolveSetLoadType(set, set.loadType)
-  const { reps } = parseSetNumbers(set)
-  const load = externalLoadAmount(set, loadType)
   const stored = Number(set.estimatedOneRepMax)
   if (Number.isFinite(stored) && stored > 0) return stored
 
-  return calcE1rm(load, reps)
+  const estimated = estimateSetOneRepMax(set, set.exercise)
+  return estimated > 0 ? estimated : null
 }
 
 export const sessionLoadVolume = (session = {}) => {

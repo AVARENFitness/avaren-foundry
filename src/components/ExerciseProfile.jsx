@@ -21,7 +21,8 @@ export default function ExerciseProfile({
 
       <div className="profile-metric-grid">
         <div><span>Heaviest</span><strong>{profile.heaviest || '—'}{profile.heaviest ? ' lb' : ''}</strong></div>
-        <div><span>Best e1RM</span><strong>{profile.bestE1RM ? `${Math.round(profile.bestE1RM)} lb` : '—'}</strong></div>
+        <div><span>Best</span><strong>{profile.provenBest || profile.bestE1RM ? `${Math.round(profile.provenBest || profile.bestE1RM)} lb` : '—'}</strong></div>
+        <div><span>Current estimate</span><strong>{profile.currentEstimate ? `${Math.round(profile.currentEstimate)} lb` : '—'}</strong></div>
         <div><span>Sessions</span><strong>{profile.sessionCount}</strong></div>
         <div><span>Lifetime Volume</span><strong>{Math.round(profile.lifetimeVolume).toLocaleString()}</strong></div>
       </div>

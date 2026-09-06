@@ -3,6 +3,7 @@ import {
   FORGE_ACHIEVEMENTS,
   FORGE_CATEGORIES,
 } from '../data/forgeAchievements'
+import { estimatedOneRepMax as estimateE1rm } from './strengthEstimate'
 
 const clamp = (value, minimum = 0, maximum = 1) =>
   Math.max(minimum, Math.min(maximum, value))
@@ -32,9 +33,7 @@ const metricSnapshot = (state = {}) => {
         const score =
           estimatedOneRepMax > 0
             ? estimatedOneRepMax
-            : weight > 0 && reps > 0
-            ? weight * (1 + reps / 30)
-            : 0
+            : estimateE1rm(weight, reps, set?.rpe ?? null)
 
         if (score <= 0) return
 

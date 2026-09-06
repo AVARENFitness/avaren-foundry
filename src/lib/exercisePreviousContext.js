@@ -7,17 +7,10 @@ import {
 } from './exerciseLoad'
 import { recentExerciseSets } from './metrics'
 import { evaluateSetPr } from './setPrEvaluation'
+import { estimatedOneRepMax } from './strengthEstimate'
 import { resolveSidesMode, SIDES_MODE } from './unilateralExercise'
 
-export const estimatedOneRepMax = (weight, reps) => {
-  const numericWeight = Number(weight || 0)
-  const numericReps = Number(reps || 0)
-
-  if (!numericWeight || !numericReps) return 0
-  if (numericReps === 1) return numericWeight
-
-  return numericWeight * (1 + numericReps / 30)
-}
+export { estimatedOneRepMax }
 
 /**
  * Shared previous-session / PR context for FocusExercise and SupersetFocus.

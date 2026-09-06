@@ -361,3 +361,56 @@
 .focus-set-card.done.collapsed .lift-pr-preview {
   display: none;
 }
+
+.focus-rpe-prompt {
+  display: grid;
+  gap: 8px;
+  margin: 10px 12px 4px;
+  padding: 10px 12px;
+  border: 1px solid rgba(216, 184, 109, 0.18);
+  border-radius: 14px;
+  background: rgba(216, 184, 109, 0.05);
+}
+
+.focus-rpe-prompt > span {
+  color: #cbb892;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.focus-rpe-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.focus-rpe-options button {
+  min-width: 40px;
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #f2ebe0;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.focus-rpe-options button.active {
+  border-color: rgba(216, 184, 109, 0.4);
+  background: rgba(216, 184, 109, 0.14);
+  color: #e4ca84;
+}
+
+.focus-rpe-options .focus-rpe-skip {
+  margin-left: auto;
+  border: none;
+  background: transparent;
+  color: #a79c89;
+  font-size: 12px;
+  font-weight: 600;
+  min-width: auto;
+}

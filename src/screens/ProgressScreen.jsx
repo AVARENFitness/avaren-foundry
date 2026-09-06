@@ -16,7 +16,7 @@ import {
 } from '../lib/metrics'
 
 const METRICS = [
-  { id: 'e1rm', label: 'Estimated 1RM' },
+  { id: 'e1rm', label: 'Current estimate' },
   { id: 'heaviest', label: 'Heaviest Set' },
   { id: 'volume', label: 'Session Volume' },
 ]
