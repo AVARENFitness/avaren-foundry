@@ -69,6 +69,57 @@ describe('coach portfolio intelligence', () => {
     expect(portfolio.rosterEntries.every((entry) => entry.clientName)).toBe(true)
   })
 
+  it('counts only active business clients in hero activeClients', () => {
+    const clients = [
+      {
+        ...client('1', 'active-unlinked@example.com'),
+        status: 'active',
+        linked_user_id: null,
+        athlete_id: null,
+        business_client_id: 'bc-1',
+        id: 'bc-1',
+      },
+      {
+        ...client('2', 'active-linked@example.com'),
+        status: 'active',
+        linked_user_id: '2',
+        athlete_id: '2',
+        business_client_id: 'bc-2',
+        id: 'bc-2',
+      },
+      {
+        ...client('3', 'archived-linked@example.com'),
+        status: 'archived',
+        linked_user_id: '3',
+        athlete_id: '3',
+        business_client_id: 'bc-3',
+        id: 'bc-3',
+        ended_at: '2026-01-01T00:00:00.000Z',
+      },
+      {
+        ...client('4', 'ended@example.com'),
+        status: 'archived',
+        linked_user_id: null,
+        athlete_id: null,
+        business_client_id: 'bc-4',
+        id: 'bc-4',
+        ended_at: '2026-02-01T00:00:00.000Z',
+      },
+    ]
+
+    const portfolio = buildCoachPortfolioIntelligence({
+      clients,
+      assignments: [],
+      now: new Date('2026-08-07T12:00:00.000Z'),
+    })
+
+    expect(portfolio.hero.activeClients).toBe(2)
+    expect(portfolio.rosterEntries).toHaveLength(4)
+    expect(
+      portfolio.rosterEntries.filter((entry) => entry.client.status === 'archived'),
+    ).toHaveLength(2)
+  })
+
   it('ranks attention items with inactivity highest', () => {
     const inactiveClient = client('inactive', 'inactive@example.com')
     const activeClient = client('active', 'active@example.com')

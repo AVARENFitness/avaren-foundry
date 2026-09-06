@@ -23,6 +23,7 @@ import {
   normalizeBusinessClientRecord,
   resolveRecordBusinessClientId,
   resolveAthleteDataId,
+  countActiveBusinessClients,
 } from '../lib/coachBusinessClient'
 import {
   validateInviteEmail,
@@ -593,8 +594,8 @@ export default function CoachScreen({
         </header>
         <section className="coach-settings-card">
           <article>
-            <span>Connected clients</span>
-            <strong>{clients.length}</strong>
+            <span>Active clients</span>
+            <strong>{countActiveBusinessClients(clients)}</strong>
           </article>
           <article>
             <span>Pending invitations</span>

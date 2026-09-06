@@ -3,6 +3,7 @@ import {
   attachCoachingRequirementsToBusinessClients,
   buildScheduledSessionClientPayload,
   CLIENT_IDENTITY_BADGE,
+  countActiveBusinessClients,
   filterActiveRoster,
   filterArchivedRoster,
   isOfflineBusinessClient,
@@ -162,8 +163,56 @@ describe('coachBusinessClient', () => {
 
     expect(filterActiveRoster(clients)).toHaveLength(1)
     expect(filterArchivedRoster(clients)).toHaveLength(1)
+    expect(countActiveBusinessClients(clients)).toBe(1)
     expect(resolveClientIdentityBadge(clients[1])).toBe(
       CLIENT_IDENTITY_BADGE.PAST,
     )
+  })
+
+  it('counts only active business clients for Active clients metric', () => {
+    const clients = [
+      {
+        id: 'bc-1',
+        businessClientId: 'bc-1',
+        status: 'active',
+        linked_user_id: null,
+        athlete_id: null,
+        display_name: 'Unlinked Active',
+      },
+      {
+        id: 'bc-2',
+        businessClientId: 'bc-2',
+        status: 'active',
+        linked_user_id: 'user-2',
+        athlete_id: 'user-2',
+        display_name: 'Linked Active',
+      },
+      {
+        id: 'bc-3',
+        businessClientId: 'bc-3',
+        status: 'archived',
+        linked_user_id: 'user-3',
+        athlete_id: 'user-3',
+        display_name: 'Archived Linked',
+        ended_at: '2026-01-01',
+      },
+      {
+        id: 'bc-4',
+        businessClientId: 'bc-4',
+        status: 'archived',
+        linked_user_id: null,
+        athlete_id: null,
+        display_name: 'Ended Client',
+        ended_at: '2026-02-01',
+      },
+    ]
+
+    expect(countActiveBusinessClients(clients)).toBe(2)
+    expect(filterActiveRoster(clients).map((client) => client.id)).toEqual([
+      'bc-1',
+      'bc-2',
+    ])
+    expect(filterArchivedRoster(clients)).toHaveLength(2)
+    expect(clients).toHaveLength(4)
   })
 })

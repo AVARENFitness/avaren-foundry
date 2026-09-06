@@ -4,6 +4,8 @@ import {
   appointmentPassEffectLabel,
   auditDirectPassMutations,
   buildCoachPassAvaContext,
+  derivePassFundingUsageDisplay,
+  formatPassFundingUsageLabel,
   formatPassLedgerLabel,
   indexLedgerBySessionId,
   lowPassLabel,
@@ -13,6 +15,7 @@ import {
   normalizePassUsageRpcResult,
   passUsageResultUserMessage,
   PASS_LEDGER_ENTRY_TYPE,
+  PASS_STATUS,
   parsePassUsageRpcPayload,
   resolvePassCandidateId,
   summarizeClientPasses,
@@ -158,6 +161,211 @@ describe('coachPass', () => {
 
     expect(context.sessionsRemaining).toBe(4)
     expect(context.lastSessionDate).toBe('2026-02-01')
+  })
+
+  it('1 carryover + 12 purchase => effective total 13', () => {
+    const passes = [
+      {
+        id: 'old',
+        status: PASS_STATUS.ACTIVE,
+        balance: 1,
+        sessionsPurchased: 12,
+        name: 'Old pack',
+      },
+      {
+        id: 'new',
+        status: PASS_STATUS.ACTIVE,
+        balance: 12,
+        sessionsPurchased: 12,
+        name: 'New pack',
+      },
+    ]
+    const ledger = [
+      {
+        entryType: PASS_LEDGER_ENTRY_TYPE.PURCHASE,
+        quantity: 12,
+        createdAt: '2026-08-01T10:00:00.000Z',
+        passId: 'old',
+      },
+      {
+        entryType: PASS_LEDGER_ENTRY_TYPE.SESSION_USED,
+        quantity: 11,
+        createdAt: '2026-08-15T10:00:00.000Z',
+        passId: 'old',
+      },
+      {
+        entryType: PASS_LEDGER_ENTRY_TYPE.PURCHASE,
+        quantity: 12,
+        createdAt: '2026-09-01T10:00:00.000Z',
+        passId: 'new',
+      },
+    ]
+
+    const usage = derivePassFundingUsageDisplay({ passes, ledger })
+    expect(usage.remaining).toBe(13)
+    expect(usage.used).toBe(0)
+    expect(usage.effectiveTotal).toBe(13)
+    expect(formatPassFundingUsageLabel(usage)).toBe('0 of 13 used')
+  })
+
+  it('after 2 uses on carried pool => 11 remaining / 2 of 13 used', () => {
+    const passes = [
+      {
+        id: 'old',
+        status: PASS_STATUS.ACTIVE,
+        balance: 0,
+        sessionsPurchased: 12,
+        name: 'Old pack',
+      },
+      {
+        id: 'new',
+        status: PASS_STATUS.ACTIVE,
+        balance: 11,
+        sessionsPurchased: 12,
+        name: 'New pack',
+      },
+    ]
+    const ledger = [
+      {
+        entryType: PASS_LEDGER_ENTRY_TYPE.PURCHASE,
+        quantity: 12,
+        createdAt: '2026-08-01T10:00:00.000Z',
+        passId: 'old',
+      },
+      {
+        entryType: PASS_LEDGER_ENTRY_TYPE.SESSION_USED,
+        quantity: 11,
+        createdAt: '2026-08-15T10:00:00.000Z',
+        passId: 'old',
+      },
+      {
+        entryType: PASS_LEDGER_ENTRY_TYPE.PURCHASE,
+        quantity: 12,
+        createdAt: '2026-09-01T10:00:00.000Z',
+        passId: 'new',
+      },
+      {
+        entryType: PASS_LEDGER_ENTRY_TYPE.SESSION_USED,
+        quantity: 1,
+        createdAt: '2026-09-03T10:00:00.000Z',
+        passId: 'old',
+      },
+      {
+        entryType: PASS_LEDGER_ENTRY_TYPE.SESSION_USED,
+        quantity: 1,
+        createdAt: '2026-09-05T10:00:00.000Z',
+        passId: 'new',
+      },
+    ]
+
+    const usage = derivePassFundingUsageDisplay({ passes, ledger })
+    expect(usage.remaining).toBe(11)
+    expect(usage.used).toBe(2)
+    expect(usage.effectiveTotal).toBe(13)
+    expect(formatPassFundingUsageLabel(usage)).toBe('2 of 13 used')
+  })
+
+  it('0 carryover + 12 purchase behaves as 12', () => {
+    const passes = [
+      {
+        id: 'new',
+        status: PASS_STATUS.ACTIVE,
+        balance: 12,
+        sessionsPurchased: 12,
+        name: 'New pack',
+      },
+    ]
+    const ledger = [
+      {
+        entryType: PASS_LEDGER_ENTRY_TYPE.PURCHASE,
+        quantity: 12,
+        createdAt: '2026-09-01T10:00:00.000Z',
+        passId: 'new',
+      },
+    ]
+
+    const usage = derivePassFundingUsageDisplay({ passes, ledger })
+    expect(usage.remaining).toBe(12)
+    expect(usage.used).toBe(0)
+    expect(usage.effectiveTotal).toBe(12)
+  })
+
+  it('repeated renewal preserves carryover into the next funded pool', () => {
+    const passes = [
+      {
+        id: 'a',
+        status: PASS_STATUS.ACTIVE,
+        balance: 0,
+        sessionsPurchased: 12,
+      },
+      {
+        id: 'b',
+        status: PASS_STATUS.ACTIVE,
+        balance: 0,
+        sessionsPurchased: 12,
+      },
+      {
+        id: 'c',
+        status: PASS_STATUS.ACTIVE,
+        balance: 23,
+        sessionsPurchased: 12,
+      },
+    ]
+    const ledger = [
+      {
+        entryType: PASS_LEDGER_ENTRY_TYPE.PURCHASE,
+        quantity: 12,
+        createdAt: '2026-07-01T10:00:00.000Z',
+      },
+      {
+        entryType: PASS_LEDGER_ENTRY_TYPE.PURCHASE,
+        quantity: 12,
+        createdAt: '2026-08-01T10:00:00.000Z',
+      },
+      {
+        entryType: PASS_LEDGER_ENTRY_TYPE.SESSION_USED,
+        quantity: 1,
+        createdAt: '2026-08-10T10:00:00.000Z',
+      },
+      {
+        entryType: PASS_LEDGER_ENTRY_TYPE.PURCHASE,
+        quantity: 12,
+        createdAt: '2026-09-01T10:00:00.000Z',
+      },
+    ]
+
+    const usage = derivePassFundingUsageDisplay({ passes, ledger })
+    expect(usage.remaining).toBe(23)
+    expect(usage.used).toBe(0)
+    expect(usage.effectiveTotal).toBe(23)
+  })
+
+  it('does not mutate ledger history while deriving usage display', () => {
+    const ledger = [
+      {
+        entryType: PASS_LEDGER_ENTRY_TYPE.PURCHASE,
+        quantity: 12,
+        createdAt: '2026-09-01T10:00:00.000Z',
+      },
+      {
+        entryType: PASS_LEDGER_ENTRY_TYPE.SESSION_USED,
+        quantity: 2,
+        createdAt: '2026-09-05T10:00:00.000Z',
+      },
+    ]
+    const snapshot = structuredClone(ledger)
+    derivePassFundingUsageDisplay({
+      passes: [
+        {
+          id: 'p1',
+          status: PASS_STATUS.ACTIVE,
+          balance: 10,
+          sessionsPurchased: 12,
+        },
+      ],
+      ledger,
+    })
+    expect(ledger).toEqual(snapshot)
   })
 
   it('uses distinct ledger labels for credit restored vs package refund', () => {

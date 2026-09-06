@@ -314,5 +314,8 @@ export const buildScheduledSessionClientPayload = ({
 export const filterActiveRoster = (clients = []) =>
   clients.filter((client) => isActiveBusinessClient(client))
 
+export const countActiveBusinessClients = (clients = []) =>
+  filterActiveRoster(clients).length
+
 export const filterArchivedRoster = (clients = []) =>
   clients.filter((client) => isArchivedBusinessClient(client))

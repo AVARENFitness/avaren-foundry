@@ -210,6 +210,36 @@ describe('coachAttention signal quality', () => {
     ).toBe(true)
   })
 
+  it('does not flag LOW_SESSION_BALANCE for archived clients', () => {
+    expect(
+      shouldFlagLowSessionBalance({
+        client: archivedClient,
+        passSummary: { totalBalance: 0, activeCount: 1 },
+        upcoming: { id: 'appt-archived' },
+        recentMissed: null,
+        lastCompleted: null,
+      }),
+    ).toBe(false)
+
+    const result = getCoachAttentionItems({
+      rosterEntries: [{ client: archivedClient, clientName: 'Past Client' }],
+      upcomingByBusinessClientId: { 'biz-2': { id: 'appt-archived' } },
+      passSummaryByBusinessClientId: {
+        'biz-2': { totalBalance: 0, activeCount: 1 },
+      },
+      recentMissedByBusinessClientId: {},
+      lastCompletedByBusinessClientId: {},
+      coachFollowUpsByAthleteId: {},
+      portfolioStatus: 'ready',
+    })
+
+    expect(
+      result.items.some(
+        (item) => item.category === COACH_ATTENTION_CATEGORY.LOW_SESSION_BALANCE,
+      ),
+    ).toBe(false)
+  })
+
   it('dedupes one client with multiple signals to the highest-priority reason', () => {
     const now = new Date('2026-09-06T12:00:00.000Z')
     const result = getCoachAttentionItems(

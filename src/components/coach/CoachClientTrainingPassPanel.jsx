@@ -4,6 +4,8 @@ import { coachBackend } from '../../lib/coachBackend'
 import { formatPackageDate } from '../../lib/sessionPackages'
 import {
   buildCoachPassAvaContext,
+  derivePassFundingUsageDisplay,
+  formatPassFundingUsageLabel,
   lowPassLabel,
   normalizePassBalanceViewRow,
   normalizePassLedgerEntry,
@@ -116,20 +118,16 @@ export default function CoachClientTrainingPassPanel({
   }, [loadPassData])
 
   const summary = useMemo(() => summarizeClientPasses(passes), [passes])
+  const usageDisplay = useMemo(
+    () => derivePassFundingUsageDisplay({ passes, ledger }),
+    [passes, ledger],
+  )
   const primaryPass = summary.primaryPass
   const hasActivePass = summary.totalBalance > 0
   const lowPassNotice =
     hasActivePass && summary.totalBalance <= 2
       ? lowPassLabel(summary.totalBalance)
       : null
-
-  const usedOnPrimaryPass = primaryPass
-    ? Math.max(
-        0,
-        Number(primaryPass.sessionsPurchased ?? 0) -
-          Number(primaryPass.balance ?? 0),
-      )
-    : 0
 
   useEffect(() => {
     onPassContextChange?.(
@@ -344,9 +342,12 @@ export default function CoachClientTrainingPassPanel({
         <p className="coach-client-in-person-loading">Loading training pass…</p>
       ) : hasActivePass && primaryPass ? (
         <article className="coach-client-training-pass-summary">
-          <strong>{summary.totalBalance} remaining</strong>
+          <strong>{usageDisplay.remaining} remaining</strong>
           <p>
-            {usedOnPrimaryPass} of {primaryPass.sessionsPurchased} used
+            {formatPassFundingUsageLabel({
+              used: usageDisplay.used,
+              effectiveTotal: usageDisplay.effectiveTotal,
+            })}
           </p>
           <p className="coach-client-training-pass-name">{primaryPass.name}</p>
           {primaryPass.startsAt ? (

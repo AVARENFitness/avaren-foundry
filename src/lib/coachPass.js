@@ -442,6 +442,111 @@ export const summarizeClientPasses = (passes = []) => {
   }
 }
 
+const PASS_DEBIT_ENTRY_TYPES = new Set([
+  PASS_LEDGER_ENTRY_TYPE.SESSION_USED,
+  PASS_LEDGER_ENTRY_TYPE.NO_SHOW_CHARGED,
+  PASS_LEDGER_ENTRY_TYPE.MANUAL_DEBIT,
+  PASS_LEDGER_ENTRY_TYPE.PACKAGE_REFUND,
+  PASS_LEDGER_ENTRY_TYPE.EXPIRED_FORFEIT,
+  PASS_LEDGER_ENTRY_TYPE.LEGACY_MIGRATION_DEBIT,
+])
+
+const ledgerEntryType = (entry = {}) =>
+  entry.entryType ?? entry.entry_type ?? null
+
+const ledgerQuantity = (entry = {}) => {
+  const value = Number(entry.quantity ?? 0)
+  return Number.isFinite(value) ? Math.abs(value) : 0
+}
+
+const ledgerOccurredAt = (entry = {}) =>
+  entry.occurredAt ??
+  entry.occurred_at ??
+  entry.createdAt ??
+  entry.created_at ??
+  null
+
+/**
+ * Current funded-pool usage display.
+ * remaining + usedSinceLastPurchase = effectiveTotal (includes carryover).
+ * Does not rewrite ledger history; reads it only.
+ */
+export const derivePassFundingUsageDisplay = ({
+  passes = [],
+  ledger = [],
+} = {}) => {
+  const summary = summarizeClientPasses(passes)
+  const remaining = Number(summary.totalBalance ?? 0)
+
+  const sortedLedger = [...(ledger ?? [])].sort((first, second) => {
+    const firstTime = new Date(ledgerOccurredAt(first) || 0).getTime()
+    const secondTime = new Date(ledgerOccurredAt(second) || 0).getTime()
+    return firstTime - secondTime
+  })
+
+  let lastPurchaseIndex = -1
+  for (let index = sortedLedger.length - 1; index >= 0; index -= 1) {
+    if (ledgerEntryType(sortedLedger[index]) === PASS_LEDGER_ENTRY_TYPE.PURCHASE) {
+      lastPurchaseIndex = index
+      break
+    }
+  }
+
+  if (lastPurchaseIndex >= 0) {
+    const sincePurchase = sortedLedger.slice(lastPurchaseIndex + 1)
+    const used = sincePurchase.reduce((sum, entry) => {
+      const type = ledgerEntryType(entry)
+      if (!PASS_DEBIT_ENTRY_TYPES.has(type)) return sum
+      return sum + ledgerQuantity(entry)
+    }, 0)
+
+    return {
+      remaining,
+      used,
+      effectiveTotal: remaining + used,
+      primaryPass: summary.primaryPass,
+      activeCount: summary.activeCount,
+      source: 'ledger_since_purchase',
+    }
+  }
+
+  // No purchase ledger available: avoid using a single package size as denominator.
+  const activeWithBalance = (summary.passes ?? []).filter(
+    (pass) =>
+      pass?.status === PASS_STATUS.ACTIVE && Number(pass.balance ?? 0) > 0,
+  )
+  if (activeWithBalance.length === 1 && sortedLedger.length === 0) {
+    const pass = activeWithBalance[0]
+    const purchased = Number(pass.sessionsPurchased ?? 0)
+    const balance = Number(pass.balance ?? 0)
+    if (purchased > 0 && balance <= purchased) {
+      const used = Math.max(0, purchased - balance)
+      return {
+        remaining: balance,
+        used,
+        effectiveTotal: purchased,
+        primaryPass: summary.primaryPass,
+        activeCount: summary.activeCount,
+        source: 'single_pass_fallback',
+      }
+    }
+  }
+
+  return {
+    remaining,
+    used: 0,
+    effectiveTotal: remaining,
+    primaryPass: summary.primaryPass,
+    activeCount: summary.activeCount,
+    source: 'remaining_only',
+  }
+}
+
+export const formatPassFundingUsageLabel = ({
+  used = 0,
+  effectiveTotal = 0,
+} = {}) => `${used} of ${effectiveTotal} used`
+
 export const lowPassLabel = (balance) => {
   const value = Number(balance ?? 0)
   if (value <= 0) return 'No sessions remaining'
@@ -456,19 +561,13 @@ export const buildCoachPassAvaContext = ({
   appointments = [],
 } = {}) => {
   const summary = summarizeClientPasses(passes)
+  const usage = derivePassFundingUsageDisplay({ passes, ledger })
   const completed = (appointments ?? []).filter(
     (item) => item?.status === APPOINTMENT_STATUS.COMPLETED,
   )
   const snapshot = {
-    remainingSessions: summary.totalBalance,
-    usedSessions: Math.max(
-      0,
-      summary.passes.reduce(
-        (sum, pass) =>
-          sum + Math.max(0, pass.sessionsPurchased - pass.balance),
-        0,
-      ),
-    ),
+    remainingSessions: usage.remaining,
+    usedSessions: usage.used,
   }
 
   const lastCompleted = [...completed].sort((a, b) =>

@@ -18,6 +18,7 @@ import {
 import { getCoachWeekRange, isDateInWeek } from './weeklyReview'
 import { isSubmittedWeeklyCheckIn } from './weeklyCheckIn'
 import {
+  isActiveBusinessClient,
   isArchivedBusinessClient,
   isOfflineBusinessClient,
   resolveClientIdentityBadge,
@@ -1136,7 +1137,9 @@ export const buildCoachPortfolioSnapshot = ({
   ).length
 
   return {
-    activeClients: rosterEntries.length,
+    activeClients: rosterEntries.filter((entry) =>
+      isActiveBusinessClient(entry.client),
+    ).length,
     trainedThisWeek,
     needsAttention,
     activeAssignments: activeAssignments.length,

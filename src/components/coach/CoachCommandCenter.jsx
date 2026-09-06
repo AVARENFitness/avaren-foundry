@@ -22,8 +22,12 @@ import {
   buildRecentMissedByBusinessClientId,
   getCoachAttentionItems,
 } from '../../lib/coachAttention'
+import { countActiveBusinessClients } from '../../lib/coachBusinessClient'
 import { isLeadFollowUpDue } from '../../lib/coachLead'
-import { LOW_PASS_ATTENTION_THRESHOLD } from '../../lib/coachPassAttention'
+import {
+  countActiveClientsWithLowPasses,
+  LOW_PASS_ATTENTION_THRESHOLD,
+} from '../../lib/coachPassAttention'
 import {
   normalizeScheduledSession,
   sortScheduledSessions,
@@ -125,12 +129,12 @@ export default function CoachCommandCenter({
   )
   const lowPassCount = useMemo(
     () =>
-      Object.values(passSummaryByBusinessClientId).filter(
-        (summary) =>
-          Number(summary?.activeCount ?? 0) > 0 &&
-          Number(summary?.totalBalance ?? 0) <= LOW_PASS_ATTENTION_THRESHOLD,
-      ).length,
-    [passSummaryByBusinessClientId],
+      countActiveClientsWithLowPasses({
+        clients,
+        passSummaryByBusinessClientId,
+        threshold: LOW_PASS_ATTENTION_THRESHOLD,
+      }),
+    [clients, passSummaryByBusinessClientId],
   )
 
   const loadUpcomingSessions = useCallback(async () => {
@@ -291,7 +295,9 @@ export default function CoachCommandCenter({
                 </article>
                 <article>
                   <span>Active clients</span>
-                  <strong>{hero?.activeClients ?? clients.length}</strong>
+                  <strong>
+                    {hero?.activeClients ?? countActiveBusinessClients(clients)}
+                  </strong>
                 </article>
                 <article>
                   <span>Low passes</span>
