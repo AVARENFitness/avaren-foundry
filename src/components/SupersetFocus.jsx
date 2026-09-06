@@ -1,6 +1,8 @@
-import { Check, ChevronLeft, ChevronRight, Plus } from 'lucide-react'
+import { Check, ChevronDown, ChevronLeft, ChevronRight, Plus, Trophy } from 'lucide-react'
+import { useState } from 'react'
 import {
   formatCompletedSetDisplay,
+  formatLegacyCompletedSetDisplay,
   isActiveSetEntered,
   LOAD_TYPE_OPTIONS,
   loadTypeLabel,
@@ -11,6 +13,10 @@ import {
   formatPrescriptionDisplay,
   gymModeSetLabel,
 } from '../lib/exercisePrescription'
+import {
+  buildExerciseHistoryGlance,
+} from '../lib/exercisePreviousContext'
+import ExerciseHistoryGlance from './ExerciseHistoryGlance'
 import Stepper from './Stepper'
 
 export default function SupersetFocus({
@@ -18,6 +24,7 @@ export default function SupersetFocus({
   group,
   round,
   totalRounds,
+  history = [],
   onSetChange,
   onLoadTypeChange,
   onPreviousRound,
@@ -30,6 +37,7 @@ export default function SupersetFocus({
   nextExerciseLabel = 'Next Exercise',
   supersetComplete = false,
 }) {
+  const [openPreviousById, setOpenPreviousById] = useState({})
   const roundComplete = exercises.every((exercise) => exercise.sets[round]?.done)
 
   return (
@@ -57,10 +65,28 @@ export default function SupersetFocus({
                 ? 'Added weight'
                 : 'Weight'
 
+          const previousGlance = buildExerciseHistoryGlance(
+            history,
+            exercise,
+            loadType,
+          )
+          const {
+            previousSets,
+            lastSessionBest,
+            potentialPrForSet,
+            previousDisplay,
+            bestDisplay,
+            hasHistory,
+            emptyLabel,
+          } = previousGlance
+          const { potentialWeightPr, potentialPr } = potentialPrForSet(set)
+          const showPrevious = Boolean(openPreviousById[exercise.id])
+
           return (
             <section
               className={`superset-exercise-card ${set.done ? 'done' : ''}`}
               key={exercise.id}
+              data-testid={`superset-exercise-${exercise.id}`}
             >
               <div className="superset-exercise-title">
                 <div>
@@ -74,6 +100,68 @@ export default function SupersetFocus({
                 </div>
                 <strong>{set.type}</strong>
               </div>
+
+              <ExerciseHistoryGlance
+                previousDisplay={previousDisplay}
+                bestDisplay={bestDisplay}
+                hasHistory={hasHistory}
+                emptyLabel={emptyLabel}
+                aria-label={`History for ${exercise.name}`}
+              />
+
+              {hasHistory ? (
+                <button
+                  type="button"
+                  className={`previous-session-toggle lift-reference ${
+                    showPrevious ? 'open' : ''
+                  }`}
+                  aria-expanded={showPrevious}
+                  aria-label={`Previous workout for ${exercise.name}`}
+                  onClick={() =>
+                    setOpenPreviousById((current) => ({
+                      ...current,
+                      [exercise.id]: !current[exercise.id],
+                    }))
+                  }
+                >
+                  <span>
+                    <small>LAST SESSION</small>
+                    <strong>
+                      {lastSessionBest
+                        ? formatLegacyCompletedSetDisplay(lastSessionBest)
+                        : emptyLabel}
+                    </strong>
+                  </span>
+                  <ChevronDown size={18} />
+                </button>
+              ) : null}
+
+              {showPrevious ? (
+                <div
+                  className="previous-session-panel"
+                  data-testid={`previous-session-${exercise.id}`}
+                >
+                  {previousSets.length ? (
+                    previousSets.map((historySet, index) => (
+                      <div
+                        key={`${exercise.id}-${historySet.weight}-${historySet.reps}-${index}`}
+                      >
+                        <span>
+                          {historySet.type || `Set ${index + 1}`}
+                        </span>
+                        <strong>
+                          {formatLegacyCompletedSetDisplay(historySet)}
+                        </strong>
+                      </div>
+                    ))
+                  ) : (
+                    <p>
+                      Your first session with this exercise will become the
+                      reference.
+                    </p>
+                  )}
+                </div>
+              ) : null}
 
               <label className="focus-load-type">
                 <span>Load type</span>
@@ -102,6 +190,20 @@ export default function SupersetFocus({
                   exercise.prescription ?? { sets: exercise.sets.length },
                 )}
               </div>
+
+              {potentialPr && !set.done ? (
+                <div
+                  className="lift-pr-preview"
+                  data-testid={`pr-preview-${exercise.id}`}
+                >
+                  <Trophy size={14} />
+                  <span>
+                    {potentialWeightPr
+                      ? 'Potential weight PR'
+                      : 'Potential strength PR'}
+                  </span>
+                </div>
+              ) : null}
 
               <div className="focus-control-grid">
                 {showWeightInput ? (

@@ -17,6 +17,7 @@ import {
 } from '../../lib/coachClientRosterUi'
 import { resolveRecordBusinessClientId } from '../../lib/coachBusinessClient'
 import {
+  buildLastCompletedByBusinessClientId,
   buildPassSummaryByBusinessClientId,
   buildRecentMissedByBusinessClientId,
   getCoachAttentionItems,
@@ -79,6 +80,8 @@ export default function CoachCommandCenter({
   const [upcomingByBusinessClientId, setUpcomingByBusinessClientId] = useState({})
   const [recentMissedByBusinessClientId, setRecentMissedByBusinessClientId] =
     useState({})
+  const [lastCompletedByBusinessClientId, setLastCompletedByBusinessClientId] =
+    useState({})
   const [todaySessionCount, setTodaySessionCount] = useState(0)
 
   const hero = portfolio?.hero
@@ -99,6 +102,7 @@ export default function CoachCommandCenter({
           upcomingByBusinessClientId,
           passSummaryByBusinessClientId,
           recentMissedByBusinessClientId,
+          lastCompletedByBusinessClientId,
           portfolioStatus: portfolio ? 'ready' : 'unloaded',
         },
         new Date(),
@@ -110,6 +114,7 @@ export default function CoachCommandCenter({
       upcomingByBusinessClientId,
       passSummaryByBusinessClientId,
       recentMissedByBusinessClientId,
+      lastCompletedByBusinessClientId,
     ],
   )
   const attentionItems = attentionResult.hubItems
@@ -134,13 +139,20 @@ export default function CoachCommandCenter({
       const past = new Date()
       past.setDate(past.getDate() - 14)
       const pastKey = past.toISOString().slice(0, 10)
-      const [upcomingRows, recentRows, todayRows] = await Promise.all([
+      const cadenceLookback = new Date()
+      cadenceLookback.setDate(cadenceLookback.getDate() - 90)
+      const cadenceKey = cadenceLookback.toISOString().slice(0, 10)
+      const [upcomingRows, recentRows, cadenceRows, todayRows] = await Promise.all([
         coachBackend.listScheduledSessions({
           startDate: today,
           endDate: upcomingRangeEnd(),
         }),
         coachBackend.listScheduledSessions({
           startDate: pastKey,
+          endDate: today,
+        }),
+        coachBackend.listScheduledSessions({
+          startDate: cadenceKey,
           endDate: today,
         }),
         coachBackend.listScheduledSessions({
@@ -154,11 +166,17 @@ export default function CoachCommandCenter({
       const normalizedRecent = sortScheduledSessions(
         (recentRows ?? []).map(normalizeScheduledSession).filter(Boolean),
       )
+      const normalizedCadence = sortScheduledSessions(
+        (cadenceRows ?? []).map(normalizeScheduledSession).filter(Boolean),
+      )
       setUpcomingByBusinessClientId(
         buildUpcomingSessionsByBusinessClientId(normalizedUpcoming, new Date()),
       )
       setRecentMissedByBusinessClientId(
         buildRecentMissedByBusinessClientId(normalizedRecent),
+      )
+      setLastCompletedByBusinessClientId(
+        buildLastCompletedByBusinessClientId(normalizedCadence),
       )
       setTodaySessionCount(
         sortScheduledSessions(
@@ -168,6 +186,7 @@ export default function CoachCommandCenter({
     } catch {
       setUpcomingByBusinessClientId({})
       setRecentMissedByBusinessClientId({})
+      setLastCompletedByBusinessClientId({})
       setTodaySessionCount(0)
     }
   }, [])

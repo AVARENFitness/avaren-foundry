@@ -27,6 +27,10 @@ import {
 import { createRuntimeId } from '../lib/createRuntimeId'
 import { buildCompletedSet, isActiveSetEntered } from '../lib/exerciseLoad'
 import {
+  rememberExerciseLoadType,
+  rememberLoadTypesFromSession,
+} from '../lib/exerciseLoadPreferences'
+import {
   materializeWorkoutExercise,
   makeActiveSet,
 } from '../lib/materializeWorkoutExercise'
@@ -97,6 +101,8 @@ export function useWorkoutSession({
 
   const buildActiveWorkout = useCallback((name) => {
     const definitions = state.program.workouts[name] ?? []
+    const loadPreferences = state.exerciseLoadPreferences ?? {}
+    const history = state.history ?? []
 
     return {
       id: createRuntimeId(),
@@ -104,9 +110,18 @@ export function useWorkoutSession({
       date: localCalendarDateKey(),
       startedAt: new Date().toISOString(),
       activeExerciseIndex: 0,
-      exercises: definitions.map((exercise) => materializeWorkoutExercise(exercise)),
+      exercises: definitions.map((exercise) =>
+        materializeWorkoutExercise(exercise, {
+          loadPreferences,
+          history,
+        }),
+      ),
     }
-  }, [state.program.workouts])
+  }, [
+    state.program.workouts,
+    state.exerciseLoadPreferences,
+    state.history,
+  ])
 
   const changeActiveWorkout = useCallback(async (name) => {
     const currentWorkout = state.activeWorkout
@@ -347,7 +362,10 @@ export function useWorkoutSession({
       activeExerciseIndex: 0,
       coachNotes: assignment.coach_notes ?? '',
       exercises: definition.exercises.map((exercise) =>
-        materializeWorkoutExercise(exercise),
+        materializeWorkoutExercise(exercise, {
+          loadPreferences: state.exerciseLoadPreferences ?? {},
+          history: state.history ?? [],
+        }),
       ),
     }
 
@@ -398,7 +416,15 @@ export function useWorkoutSession({
       }))
       setIsStarting(false)
     })
-  }, [navigate, setState, setActiveExercise, state.activeWorkout, isStarting])
+  }, [
+    navigate,
+    setState,
+    setActiveExercise,
+    state.activeWorkout,
+    state.exerciseLoadPreferences,
+    state.history,
+    isStarting,
+  ])
 
   const updateWorkoutMeta = useCallback((key, value) => {
     setState((current) => {
@@ -705,6 +731,10 @@ export function useWorkoutSession({
         selectedWorkout: null,
         activeWorkout: null,
         sessionExecutionPlan: null,
+        exerciseLoadPreferences: rememberLoadTypesFromSession(
+          current.exerciseLoadPreferences,
+          completedWorkoutSession,
+        ),
         history: [...current.history, completedWorkoutSession],
         achievements:
           current.history.length === 0
@@ -777,11 +807,26 @@ export function useWorkoutSession({
     setState((current) => {
       if (!current.activeWorkout) return current
       const activeWorkout = structuredClone(current.activeWorkout)
+      const currentExercise = activeWorkout.exercises[exerciseIndex]
       activeWorkout.exercises[exerciseIndex] = {
-        ...activeWorkout.exercises[exerciseIndex],
+        ...currentExercise,
         ...patch,
       }
-      return { ...current, activeWorkout }
+
+      let exerciseLoadPreferences = current.exerciseLoadPreferences ?? {}
+      if (patch?.loadType != null) {
+        exerciseLoadPreferences = rememberExerciseLoadType(
+          exerciseLoadPreferences,
+          activeWorkout.exercises[exerciseIndex],
+          patch.loadType,
+        )
+      }
+
+      return {
+        ...current,
+        activeWorkout,
+        exerciseLoadPreferences,
+      }
     })
   }, [setState])
 

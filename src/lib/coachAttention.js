@@ -1,9 +1,7 @@
 import { buildCoachClientLabel } from '../ava/coach/avaCoachClientResolver'
 import {
-  ATTENTION_PRIORITY_TIER,
   ATTENTION_REASON_TYPES,
   buildCoachAttentionQueue,
-  computeAttentionPriorityScore,
   mapAttentionQueueToHubItems,
   rankCoachAttentionItems,
   resolvePriorityTier,
@@ -46,6 +44,15 @@ const LEGACY_REASON_TO_CATEGORY = {
     COACH_ATTENTION_CATEGORY.MISSED_TRAINING,
 }
 
+/** Soft/admin legacy reasons — too noisy for selective Needs Attention. */
+const LEGACY_HUB_EXCLUDED_REASONS = new Set([
+  ATTENTION_REASON_TYPES.MISSING_WEEKLY_CHECKIN,
+  ATTENTION_REASON_TYPES.OPEN_COACH_REVIEW,
+  ATTENTION_REASON_TYPES.NUTRITION_CONCERN,
+  // Open follow-ups are sourced from coachFollowUpsByAthleteId in business items.
+  ATTENTION_REASON_TYPES.COACH_FOLLOWUP_NEEDED,
+])
+
 const FOLLOWUP_TO_CATEGORY = {
   [FOLLOWUP_REASON_TYPE.PAIN_OR_DISCOMFORT]:
     COACH_ATTENTION_CATEGORY.PAIN_OR_DISCOMFORT,
@@ -76,14 +83,16 @@ const severityRank = (severity = 'medium') => {
 export const mapCategoryToSeverity = (category) => {
   if (
     category === COACH_ATTENTION_CATEGORY.PAIN_OR_DISCOMFORT ||
-    category === COACH_ATTENTION_CATEGORY.MISSED_APPOINTMENT
+    category === COACH_ATTENTION_CATEGORY.MISSED_APPOINTMENT ||
+    category === COACH_ATTENTION_CATEGORY.RECOVERY_CONCERN
   ) {
     return 'high'
   }
   if (
-    category === COACH_ATTENTION_CATEGORY.LOW_SESSION_BALANCE ||
-    category === COACH_ATTENTION_CATEGORY.NO_NEXT_APPOINTMENT ||
-    category === COACH_ATTENTION_CATEGORY.RECOVERY_CONCERN
+    category === COACH_ATTENTION_CATEGORY.ATHLETE_QUESTION ||
+    category === COACH_ATTENTION_CATEGORY.PROGRAM_CHANGE_REQUEST ||
+    category === COACH_ATTENTION_CATEGORY.CHECK_IN_CONCERN ||
+    category === COACH_ATTENTION_CATEGORY.MISSED_TRAINING
   ) {
     return 'medium'
   }
@@ -134,53 +143,35 @@ const buildAttentionItem = ({
   }
 }
 
-const PAIN_DEDUPE_PATTERN = /pain|discomfort|shoulder|knee|hip|back/i
+const clientAttentionKey = (item = {}) =>
+  String(item.businessClientId ?? item.athleteId ?? item.clientName ?? 'unknown')
 
-const resolveAttentionDedupeGroup = (item = {}) => {
-  const clientKey = item.businessClientId ?? item.athleteId ?? 'unknown'
-  const description = String(item.description ?? '')
-
-  if (
-    item.category === COACH_ATTENTION_CATEGORY.PAIN_OR_DISCOMFORT ||
-    (item.category === COACH_ATTENTION_CATEGORY.CHECK_IN_CONCERN &&
-      PAIN_DEDUPE_PATTERN.test(description)) ||
-    (item.category === COACH_ATTENTION_CATEGORY.ATHLETE_QUESTION &&
-      PAIN_DEDUPE_PATTERN.test(description))
-  ) {
-    return `pain:${clientKey}`
-  }
-
-  if (
-    item.category === COACH_ATTENTION_CATEGORY.NO_NEXT_APPOINTMENT ||
-    item.category === COACH_ATTENTION_CATEGORY.MISSED_TRAINING
-  ) {
-    return `schedule-gap:${clientKey}`
-  }
-
-  return `${item.category}:${clientKey}`
-}
-
-const dedupeAttentionItems = (items = []) => {
-  const byDedupeGroup = new Map()
+/**
+ * One concise card per client — keep the highest-priority reason only.
+ */
+export const dedupeAttentionItemsByClient = (items = []) => {
+  const byClient = new Map()
 
   items.forEach((item) => {
-    const key = resolveAttentionDedupeGroup(item)
-    const existing = byDedupeGroup.get(key)
+    const key = clientAttentionKey(item)
+    const existing = byClient.get(key)
     if (
       !existing ||
       (item.priorityScore ?? 0) > (existing.priorityScore ?? 0) ||
-      severityRank(item.item?.severity) > severityRank(existing.item?.severity)
+      ((item.priorityScore ?? 0) === (existing.priorityScore ?? 0) &&
+        severityRank(item.item?.severity) > severityRank(existing.item?.severity))
     ) {
-      byDedupeGroup.set(key, item)
+      byClient.set(key, item)
     }
   })
 
-  return [...byDedupeGroup.values()]
+  return [...byClient.values()]
 }
 
 const mapLegacyQueueEntry = (entry = {}) => {
   const primary = entry.reasons?.[0]
   if (!primary) return null
+  if (LEGACY_HUB_EXCLUDED_REASONS.has(primary.type)) return null
 
   const category =
     LEGACY_REASON_TO_CATEGORY[primary.type] ??
@@ -191,9 +182,58 @@ const mapLegacyQueueEntry = (entry = {}) => {
     category,
     description: primary.evidence ?? primary.label ?? '',
     severity: primary.severity,
-    priorityScore: entry.priorityScore,
+    priorityScore: Math.max(
+      entry.priorityScore ?? 0,
+      ATTENTION_CATEGORY_PRIORITY[category] ?? 0,
+    ),
     athleteId: entry.athleteId,
   })
+}
+
+/**
+ * NO_NEXT_APPOINTMENT only when the client has an established scheduling cadence.
+ * Brand-new / never-scheduled clients stay off Needs Attention.
+ */
+export const hasEstablishedAppointmentCadence = ({
+  recentMissed = null,
+  lastCompleted = null,
+} = {}) => Boolean(recentMissed || lastCompleted)
+
+export const shouldFlagNoNextAppointment = ({
+  client = null,
+  upcoming = null,
+  recentMissed = null,
+  lastCompleted = null,
+} = {}) => {
+  if (!client || isArchivedBusinessClient(client)) return false
+  if (!isActiveBusinessClient(client)) return false
+  if (upcoming) return false
+  return hasEstablishedAppointmentCadence({ recentMissed, lastCompleted })
+}
+
+export const shouldFlagLowSessionBalance = ({
+  client = null,
+  passSummary = null,
+  upcoming = null,
+  recentMissed = null,
+  lastCompleted = null,
+} = {}) => {
+  if (!client || isArchivedBusinessClient(client)) return false
+  if (!isActiveBusinessClient(client)) return false
+
+  const totalBalance = Number(passSummary?.totalBalance ?? 0)
+  const activePassCount = Number(passSummary?.activeCount ?? 0)
+  if (activePassCount <= 0) return false
+  if (totalBalance > LOW_PASS_ATTENTION_THRESHOLD) return false
+
+  // Empty balance is always actionable for an active pass holder.
+  if (totalBalance <= 0) return true
+
+  // Low-but-nonzero only when the client is already in a scheduling/pass cadence.
+  return Boolean(
+    upcoming ||
+      hasEstablishedAppointmentCadence({ recentMissed, lastCompleted }),
+  )
 }
 
 const buildBusinessAttentionItems = ({
@@ -201,6 +241,7 @@ const buildBusinessAttentionItems = ({
   upcomingByBusinessClientId = {},
   passSummaryByBusinessClientId = {},
   recentMissedByBusinessClientId = {},
+  lastCompletedByBusinessClientId = {},
   coachFollowUpsByAthleteId = {},
   now = new Date(),
 } = {}) => {
@@ -218,12 +259,19 @@ const buildBusinessAttentionItems = ({
     if (!businessClientId) return
 
     const passSummary = passSummaryByBusinessClientId[businessClientId] ?? null
+    const upcoming = upcomingByBusinessClientId[businessClientId] ?? null
+    const recentMissed = recentMissedByBusinessClientId[businessClientId] ?? null
+    const lastCompleted = lastCompletedByBusinessClientId[businessClientId] ?? null
     const totalBalance = Number(passSummary?.totalBalance ?? 0)
-    const activePassCount = Number(passSummary?.activeCount ?? 0)
 
     if (
-      activePassCount > 0 &&
-      totalBalance <= LOW_PASS_ATTENTION_THRESHOLD
+      shouldFlagLowSessionBalance({
+        client,
+        passSummary,
+        upcoming,
+        recentMissed,
+        lastCompleted,
+      })
     ) {
       items.push(
         buildAttentionItem({
@@ -237,8 +285,14 @@ const buildBusinessAttentionItems = ({
       )
     }
 
-    const upcoming = upcomingByBusinessClientId[businessClientId] ?? null
-    if (!upcoming) {
+    if (
+      shouldFlagNoNextAppointment({
+        client,
+        upcoming,
+        recentMissed,
+        lastCompleted,
+      })
+    ) {
       items.push(
         buildAttentionItem({
           client,
@@ -248,9 +302,8 @@ const buildBusinessAttentionItems = ({
       )
     }
 
-    const missed = recentMissedByBusinessClientId[businessClientId] ?? null
-    if (missed) {
-      const missedDate = missed.sessionDate ?? missed.startsAt?.slice(0, 10)
+    if (recentMissed) {
+      const missedDate = recentMissed.sessionDate ?? recentMissed.startsAt?.slice(0, 10)
       const missedRecent =
         missedDate &&
         new Date(`${missedDate}T12:00:00`).getTime() >= fourteenDaysAgo.getTime()
@@ -317,13 +370,15 @@ export const getCoachAttentionItems = (
       coachContext.passSummaryByBusinessClientId ?? {},
     recentMissedByBusinessClientId:
       coachContext.recentMissedByBusinessClientId ?? {},
+    lastCompletedByBusinessClientId:
+      coachContext.lastCompletedByBusinessClientId ?? {},
     coachFollowUpsByAthleteId:
       coachContext.coachFollowUpsByAthleteId ?? {},
     now,
   })
 
   const ranked = rankCoachAttentionItemsByPriority(
-    dedupeAttentionItems([...legacyItems, ...businessItems]),
+    dedupeAttentionItemsByClient([...legacyItems, ...businessItems]),
     { limit },
   )
 
@@ -366,6 +421,29 @@ export const buildRecentMissedByBusinessClientId = (sessions = []) => {
 
   sessions.forEach((session) => {
     if (!session || session.status !== SCHEDULED_SESSION_STATUS.MISSED) return
+    const businessClientId =
+      session.businessClientId ?? session.business_client_id ?? null
+    if (!businessClientId) return
+
+    const current = map[businessClientId]
+    const sessionDate =
+      session.sessionDate ?? session.startsAt?.slice(0, 10) ?? ''
+    const currentDate =
+      current?.sessionDate ?? current?.startsAt?.slice(0, 10) ?? ''
+
+    if (!current || String(sessionDate).localeCompare(String(currentDate)) > 0) {
+      map[businessClientId] = session
+    }
+  })
+
+  return map
+}
+
+export const buildLastCompletedByBusinessClientId = (sessions = []) => {
+  const map = {}
+
+  sessions.forEach((session) => {
+    if (!session || session.status !== SCHEDULED_SESSION_STATUS.COMPLETED) return
     const businessClientId =
       session.businessClientId ?? session.business_client_id ?? null
     if (!businessClientId) return

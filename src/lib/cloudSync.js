@@ -70,6 +70,10 @@ export function mergeFoundryStates(localState, cloudState) {
     ...base,
     history,
     activeWorkout,
+    exerciseLoadPreferences: {
+      ...(other.exerciseLoadPreferences ?? {}),
+      ...(base.exerciseLoadPreferences ?? {}),
+    },
     lastSavedAt:
       localTime >= cloudTime
         ? local.lastSavedAt ?? cloud.lastSavedAt ?? null

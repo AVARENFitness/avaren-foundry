@@ -13,17 +13,17 @@ import {
   formatCompletedSetDisplay,
   formatLegacyCompletedSetDisplay,
   isActiveSetEntered,
-  isComparableForLoadPr,
   LOAD_TYPE_OPTIONS,
   loadTypeLabel,
   loadTypeRequiresWeightInput,
   normalizeLoadType,
-  externalLoadAmount,
 } from '../lib/exerciseLoad'
 import {
   formatPrescriptionDisplay,
   gymModeSetLabel,
 } from '../lib/exercisePrescription'
+import { buildExerciseHistoryGlance } from '../lib/exercisePreviousContext'
+import ExerciseHistoryGlance from './ExerciseHistoryGlance'
 import Stepper from './Stepper'
 
 const SET_TYPES = [
@@ -58,21 +58,12 @@ const ACCENTS = {
 const muscleAccent = (muscle) =>
   ACCENTS[muscle] || ACCENTS.Other
 
-const estimatedOneRepMax = (weight, reps) => {
-  const numericWeight = Number(weight || 0)
-  const numericReps = Number(reps || 0)
-
-  if (!numericWeight || !numericReps) return 0
-  if (numericReps === 1) return numericWeight
-
-  return numericWeight * (1 + numericReps / 30)
-}
-
 export default function FocusExercise({
   exercise,
   exerciseIndex,
   totalExercises,
-  previousSets,
+  previousSets = [],
+  history = null,
   onSetChange,
   onAddSet,
   onPrevious,
@@ -109,32 +100,32 @@ export default function FocusExercise({
     ),
   )
 
-  const lastSessionBest = previousSets.length
-    ? previousSets.reduce((best, set) => {
-        const bestLoad = externalLoadAmount(best, loadType)
-        const setLoad = externalLoadAmount(set, loadType)
-        if (setLoad > bestLoad) return set
-        if (setLoad === bestLoad && Number(set.reps) > Number(best?.reps || 0)) {
-          return set
-        }
-        return best
-      }, previousSets[0])
-    : null
+  const historyForGlance = Array.isArray(history)
+    ? history
+    : [
+        {
+          id: 'previous-prop',
+          sets: (previousSets ?? []).map((set) => ({
+            ...set,
+            exercise: set.exercise ?? exercise.name,
+          })),
+        },
+      ]
 
-  const previousBestWeight = Math.max(
-    0,
-    ...previousSets.map((set) => externalLoadAmount(set, loadType)),
+  const glance = buildExerciseHistoryGlance(
+    historyForGlance,
+    exercise,
+    loadType,
   )
-
-  const previousBestEstimatedMax = Math.max(
-    0,
-    ...previousSets.map((set) =>
-      estimatedOneRepMax(
-        set.weight,
-        set.reps,
-      ),
-    ),
-  )
+  const {
+    previousSets: resolvedPreviousSets,
+    lastSessionBest,
+    potentialPrForSet,
+    previousDisplay,
+    bestDisplay,
+    hasHistory,
+    emptyLabel,
+  } = glance
 
   const entered = exercise.sets.filter((set) =>
     isActiveSetEntered(set, loadType),
@@ -217,32 +208,42 @@ export default function FocusExercise({
           </span>
         ) : null}
 
-        <button
-          className={`previous-session-toggle lift-reference ${
-            showPrevious ? 'open' : ''
-          }`}
-          onClick={() =>
-            setShowPrevious(
-              (value) => !value,
-            )
-          }
-        >
-          <span>
-            <small>LAST SESSION</small>
-            <strong>
-              {lastSessionBest
-                ? formatLegacyCompletedSetDisplay(lastSessionBest)
-                : 'No previous workout'}
-            </strong>
-          </span>
+        <ExerciseHistoryGlance
+          previousDisplay={previousDisplay}
+          bestDisplay={bestDisplay}
+          hasHistory={hasHistory}
+          emptyLabel={emptyLabel}
+          aria-label={`History for ${exercise.name}`}
+        />
 
-          <ChevronDown size={18} />
-        </button>
+        {hasHistory ? (
+          <button
+            className={`previous-session-toggle lift-reference ${
+              showPrevious ? 'open' : ''
+            }`}
+            onClick={() =>
+              setShowPrevious(
+                (value) => !value,
+              )
+            }
+          >
+            <span>
+              <small>LAST SESSION</small>
+              <strong>
+                {lastSessionBest
+                  ? formatLegacyCompletedSetDisplay(lastSessionBest)
+                  : emptyLabel}
+              </strong>
+            </span>
+
+            <ChevronDown size={18} />
+          </button>
+        ) : null}
 
         {showPrevious && (
           <div className="previous-session-panel">
-            {previousSets.length ? (
-              previousSets.map(
+            {resolvedPreviousSets.length ? (
+              resolvedPreviousSets.map(
                 (set, index) => (
                   <div
                     key={`${set.weight}-${set.reps}-${index}`}
@@ -271,27 +272,10 @@ export default function FocusExercise({
       <div className="focus-set-list">
         {exercise.sets.map(
           (set, setIndex) => {
-            const currentEstimatedMax =
-              estimatedOneRepMax(
-                set.weight,
-                set.reps,
-              )
-
-            const potentialWeightPr =
-              isComparableForLoadPr({ loadType }) &&
-              externalLoadAmount({ ...set, loadType }, loadType) >
-                previousBestWeight
-
-            const potentialStrengthPr =
-              isComparableForLoadPr({ loadType }) &&
-              previousBestEstimatedMax > 0 &&
-              currentEstimatedMax >
-                previousBestEstimatedMax
-
-            const potentialPr =
-              previousSets.length > 0 &&
-              isActiveSetEntered(set, loadType) &&
-              (potentialWeightPr || potentialStrengthPr)
+            const {
+              potentialWeightPr,
+              potentialPr,
+            } = potentialPrForSet(set)
 
             return (
               <section

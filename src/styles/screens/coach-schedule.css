@@ -151,12 +151,36 @@
 
 .coach-schedule-control--date {
   justify-content: flex-start;
+  pointer-events: none;
 }
 
 .coach-schedule-control--date svg,
 .coach-schedule-control svg {
   flex-shrink: 0;
   color: color-mix(in srgb, var(--gold) 72%, var(--cream));
+}
+
+.coach-schedule-date-control {
+  position: relative;
+  display: block;
+}
+
+.coach-schedule-date-input {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  cursor: pointer;
+  font-size: 16px;
+  color: transparent;
+  background: transparent;
+  -webkit-appearance: none;
+  appearance: none;
 }
 
 .coach-schedule-control--secondary {
@@ -245,14 +269,6 @@
 .coach-schedule-menu-option:disabled {
   opacity: 0.38;
   cursor: not-allowed;
-}
-
-.coach-schedule-hidden-date {
-  position: absolute;
-  opacity: 0;
-  pointer-events: none;
-  width: 0;
-  height: 0;
 }
 
 .coach-schedule-control--client {

@@ -160,6 +160,7 @@ const createInitialState = (ownerUserId = null) => ({
   nutrition: createNutritionState(),
   sessionExecutionPlan: null,
   athleteFollowUps: [],
+  exerciseLoadPreferences: {},
 })
 
 

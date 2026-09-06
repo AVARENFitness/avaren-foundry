@@ -163,6 +163,46 @@
   color: #b8b0a4;
 }
 
+.exercise-history-glance {
+  display: grid;
+  gap: 6px;
+  margin: 10px 0 8px;
+  padding: 10px 12px;
+  border-radius: 13px;
+  border: 1px solid rgba(246, 242, 233, 0.08);
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.exercise-history-glance-item {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.exercise-history-glance-item span {
+  flex-shrink: 0;
+  color: #8f877c;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.exercise-history-glance-item strong {
+  color: #f6f2e9;
+  font-size: 13px;
+  font-weight: 650;
+  text-align: right;
+}
+
+.exercise-history-glance--empty {
+  margin: 10px 0 8px;
+  color: #8f877c;
+  font-size: 12px;
+  font-weight: 500;
+}
+
 @media (max-width: 520px) {
   .focus-finish-bar {
     grid-template-columns: auto 1fr;

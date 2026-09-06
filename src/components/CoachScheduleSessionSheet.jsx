@@ -10,7 +10,6 @@ import { getClientDisplayName } from '../lib/clientDisplayName'
 import {
   DURATION_PRESETS,
   LOCATION_PRESETS,
-  addDaysKey,
   buildQuarterHourTimeOptions,
   dateKey,
   filterAvailableTimeOptions,
@@ -58,7 +57,6 @@ export default function CoachScheduleSessionSheet({
   const [showMoreOptions, setShowMoreOptions] = useState(false)
 
   const todayKey = dateKey(new Date(), scheduleTimezone)
-  const tomorrowKey = addDaysKey(todayKey, 1)
 
   const timeOptions = useMemo(
     () => buildQuarterHourTimeOptions({ startHour: 6, endHour: 21 }),
@@ -142,7 +140,8 @@ export default function CoachScheduleSessionSheet({
     scheduleTimezone,
   ])
 
-  const handleDateQuickPick = (sessionDate) => {
+  const handleSessionDateChange = (sessionDate) => {
+    if (!sessionDate) return
     setOpenMenu(null)
     setTimeError('')
     onDraftChange?.({ ...draft, sessionDate })
@@ -249,48 +248,28 @@ export default function CoachScheduleSessionSheet({
 
           <div className="coach-schedule-field-group">
             <span className="coach-schedule-field-label">Date</span>
-            <div
-              className="coach-schedule-segmented"
-              role="group"
-              aria-label="Quick date"
-            >
-              <button
-                type="button"
-                className={`coach-schedule-segment ${
-                  draft.sessionDate === todayKey ? 'active' : ''
-                }`}
-                onClick={() => handleDateQuickPick(todayKey)}
+            <div className="coach-schedule-date-control">
+              <div
+                className="coach-schedule-control coach-schedule-control--date"
+                aria-hidden="true"
               >
-                Today
-              </button>
-              <button
-                type="button"
-                className={`coach-schedule-segment ${
-                  draft.sessionDate === tomorrowKey ? 'active' : ''
-                }`}
-                onClick={() => handleDateQuickPick(tomorrowKey)}
-              >
-                Tomorrow
-              </button>
+                <CalendarDays size={16} strokeWidth={1.75} aria-hidden="true" />
+                <span>
+                  {formatScheduleDateLong(draft.sessionDate) || 'Select date'}
+                </span>
+              </div>
+              <input
+                ref={dateInputRef}
+                type="date"
+                className="coach-schedule-date-input"
+                aria-label="Appointment date"
+                value={draft.sessionDate}
+                min={todayKey}
+                onChange={(event) =>
+                  handleSessionDateChange(event.target.value)
+                }
+              />
             </div>
-            <button
-              type="button"
-              className="coach-schedule-control coach-schedule-control--date"
-              onClick={() =>
-                dateInputRef.current?.showPicker?.() ?? dateInputRef.current?.click()
-              }
-            >
-              <CalendarDays size={16} strokeWidth={1.75} aria-hidden="true" />
-              <span>{formatScheduleDateLong(draft.sessionDate) || 'Select date'}</span>
-            </button>
-            <input
-              ref={dateInputRef}
-              type="date"
-              className="coach-schedule-hidden-date"
-              value={draft.sessionDate}
-              min={todayKey}
-              onChange={(event) => handleDateQuickPick(event.target.value)}
-            />
           </div>
 
           <div className="coach-schedule-field-group">

@@ -461,6 +461,7 @@ export default function GymScreen({
           group={supersetGroup}
           round={clampedSupersetRound}
           totalRounds={supersetRounds}
+          history={state.history}
           onSetChange={(exerciseId, setIndex, key, value) => {
             const exerciseIndex = workout.exercises.findIndex(
               (exercise) => exercise.id === exerciseId,
@@ -508,6 +509,7 @@ export default function GymScreen({
           exerciseIndex={activeExercise}
           totalExercises={workout.exercises.length}
           previousSets={recentExerciseSets(state.history, currentExercise.name)}
+          history={state.history}
           executionRole={currentExerciseRole}
           onSetChange={(setIndex, key, value) =>
             onSetChange(activeExercise, setIndex, key, value)

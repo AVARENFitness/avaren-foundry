@@ -229,6 +229,7 @@ export const buildFreshAthleteFoundryState = (currentState = {}, { now = new Dat
     achievements: [],
     sessionExecutionPlan: null,
     athleteFollowUps: [],
+    exerciseLoadPreferences: {},
     mobility: emptyMobilityCompleted(currentState.mobility ?? {}),
     readiness: emptyReadiness(),
     notifications: emptyNotifications(),
