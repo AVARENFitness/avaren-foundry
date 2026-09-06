@@ -43,6 +43,7 @@ import AthleteNextAppointment, {
   AthleteAppointmentWeekStrip,
 } from '../components/AthleteNextAppointment'
 import AthleteAppointmentDetailSheet from '../components/AthleteAppointmentDetailSheet'
+import AthletePassStatus from '../components/AthletePassStatus'
 import {
   markAppointmentDeepLinkHandled,
   releaseAppointmentDeepLinkClaim,
@@ -498,6 +499,8 @@ export default function HomeScreen({
         appointment={appointmentsReady ? nextAppointment : null}
         onViewDetails={setDetailAppointment}
       />
+
+      <AthletePassStatus variant="compact" />
 
       <AthleteAppointmentDetailSheet
         appointment={detailAppointment}

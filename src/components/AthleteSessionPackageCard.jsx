@@ -1,20 +1,17 @@
 import { Package } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { coachBackend } from '../lib/coachBackend'
+import { buildAthletePassStatus } from '../lib/athletePassStatus'
+import { normalizeAthletePassHistory } from '../lib/coachPass'
 import { formatPackageDate } from '../lib/sessionPackages'
-import {
-  normalizeAthletePassHistory,
-  normalizeAthletePassSummary,
-  summarizeClientPasses,
-} from '../lib/coachPass'
 
 const ICON = { size: 18, strokeWidth: 1.75 }
 
 export default function AthleteSessionPackageCard() {
-  const [passes, setPasses] = useState([])
-  const [history, setHistory] = useState([])
+  const [status, setStatus] = useState(null)
   const [loading, setLoading] = useState(true)
   const [showHistory, setShowHistory] = useState(false)
+  const [history, setHistory] = useState([])
 
   useEffect(() => {
     let active = true
@@ -26,12 +23,12 @@ export default function AthleteSessionPackageCard() {
     ])
       .then(([summaryRows, historyRows]) => {
         if (!active) return
-        setPasses(normalizeAthletePassSummary(summaryRows))
+        setStatus(buildAthletePassStatus({ summaryRows, historyRows }))
         setHistory(normalizeAthletePassHistory(historyRows))
       })
       .catch(() => {
         if (active) {
-          setPasses([])
+          setStatus(null)
           setHistory([])
         }
       })
@@ -44,16 +41,9 @@ export default function AthleteSessionPackageCard() {
     }
   }, [])
 
-  const summary = summarizeClientPasses(
-    passes.map((pass) => ({
-      ...pass,
-      sessionsPurchased: pass.balance,
-    })),
-  )
+  if (loading || !status?.visible || !status.primary) return null
 
-  if (loading || summary.totalBalance <= 0) return null
-
-  const primary = summary.primaryPass ?? passes[0]
+  const primary = status.primary
 
   return (
     <section className="athlete-session-package-card" aria-label="Training pass">
@@ -63,17 +53,15 @@ export default function AthleteSessionPackageCard() {
         </span>
         <div>
           <span className="eyebrow">TRAINING PASS</span>
-          <h2>{summary.totalBalance} sessions remaining</h2>
+          <h2>{primary.remaining} sessions remaining</h2>
         </div>
       </header>
-      <p>{primary?.name ?? 'Training pass'}</p>
+      <p>{primary.usageLabel}</p>
+      {primary.primaryPassName ? <p>{primary.primaryPassName}</p> : null}
       <div className="athlete-session-package-meta">
-        {primary?.startsAt && (
-          <span>Started {formatPackageDate(primary.startsAt)}</span>
-        )}
-        {primary?.expiresAt && (
-          <span>Expires {formatPackageDate(primary.expiresAt)}</span>
-        )}
+        {primary.lastPurchaseAt ? (
+          <span>Last added {formatPackageDate(primary.lastPurchaseAt)}</span>
+        ) : null}
       </div>
       {history.length > 0 ? (
         <button

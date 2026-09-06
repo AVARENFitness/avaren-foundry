@@ -594,6 +594,8 @@ export const buildCoachPassAvaContext = ({
 export const normalizeAthletePassSummary = (rows = []) =>
   (Array.isArray(rows) ? rows : []).map((row) => ({
     passId: row.pass_id,
+    id: row.pass_id,
+    businessClientId: row.business_client_id ?? row.businessClientId ?? null,
     name: row.name ?? 'Training pass',
     balance: Number(row.balance ?? 0),
     startsAt: row.starts_at ?? null,
@@ -607,6 +609,7 @@ export const normalizeAthletePassHistory = (rows = []) =>
     entryType: row.entry_type,
     quantity: Number(row.quantity ?? 0),
     passName: row.pass_name ?? 'Training pass',
+    businessClientId: row.business_client_id ?? row.businessClientId ?? null,
     label: formatPassLedgerLabel(row.entry_type),
   }))
 

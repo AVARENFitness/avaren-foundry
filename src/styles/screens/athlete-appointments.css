@@ -352,3 +352,99 @@
 .athlete-coach-invitation--home .gold-button {
   min-height: 44px;
 }
+
+.athlete-pass-status {
+  display: grid;
+  gap: 10px;
+}
+
+.athlete-pass-status--compact {
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(216, 184, 109, 0.14);
+  background: rgba(216, 184, 109, 0.04);
+}
+
+.athlete-pass-status--detailed {
+  padding: 18px 18px 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(216, 184, 109, 0.16);
+  background:
+    linear-gradient(
+      160deg,
+      rgba(216, 184, 109, 0.08),
+      rgba(18, 20, 23, 0.94)
+    );
+}
+
+.athlete-pass-status-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.athlete-pass-status-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: rgba(216, 184, 109, 0.1);
+  color: #e0c982;
+}
+
+.athlete-pass-status-group--compact {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.athlete-pass-status-group--detailed {
+  display: grid;
+  gap: 6px;
+}
+
+.athlete-pass-status-copy .eyebrow {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.athlete-pass-status-copy strong {
+  display: block;
+  font-size: 1.15rem;
+  letter-spacing: -0.02em;
+  color: #f2ebe0;
+}
+
+.athlete-pass-status--detailed .athlete-pass-status-copy strong {
+  font-size: 1.35rem;
+}
+
+.athlete-pass-status-copy p {
+  margin: 4px 0 0;
+  color: #b7aea0;
+  font-size: 0.95rem;
+}
+
+.athlete-pass-status-meta {
+  color: #9d9488;
+  font-size: 0.88rem;
+}
+
+.athlete-pass-status--low {
+  color: inherit;
+}
+
+.athlete-pass-status--low .athlete-pass-status-copy strong {
+  color: #e8d19a;
+}
+
+.athlete-pass-status-note {
+  margin: 0;
+  color: #9d9488;
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+

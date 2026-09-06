@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { CalendarDays, ChevronLeft } from 'lucide-react'
 import AthleteAppointmentDetailSheet from '../components/AthleteAppointmentDetailSheet'
+import AthletePassStatus from '../components/AthletePassStatus'
 import { useAthleteAppointments } from '../hooks/useAthleteAppointments'
 import { coachBackend } from '../lib/coachBackend'
 import {
@@ -77,6 +78,8 @@ export default function AthleteInPersonScheduleScreen({
           </p>
         </div>
       </header>
+
+      <AthletePassStatus variant="detailed" />
 
       {!ready && loading ? (
         <p className="athlete-in-person-schedule-empty">Loading sessions…</p>
