@@ -520,15 +520,20 @@ export default function HomeScreen({
             {homeState.primaryAction?.detail ? (
               <p>{homeState.primaryAction.detail}</p>
             ) : null}
-            {!activeCoachAssignment &&
-            homeState.recommendation?.canStartAnotherToday ? (
+            {[
+              HOME_ACTION_IDS.RECOVERY_FLOW,
+              HOME_ACTION_IDS.NUTRITION,
+              HOME_ACTION_IDS.MORNING_MOVEMENT,
+              HOME_ACTION_IDS.APPOINTMENT,
+              HOME_ACTION_IDS.READINESS,
+              HOME_ACTION_IDS.WEEKLY_CHECKIN,
+            ].includes(homeState.primaryAction?.id) ? (
               <button
                 type="button"
-                className="ui-btn-secondary athlete-choose-workout-action home-choose-workout-link"
-                onClick={() => setShowWorkoutSelector(true)}
+                className="gold-button machined home-start-session"
+                onClick={handlePrimaryHomeAction}
               >
-                Choose another workout
-                <ChevronRight size={16} strokeWidth={1.75} />
+                {homeState.primaryAction.label}
               </button>
             ) : null}
           </>

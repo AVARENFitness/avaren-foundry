@@ -281,17 +281,7 @@ export const selectSecondaryAvaAction = (ctx, dailyState, primaryAction) => {
       return null
     }
 
-    if (ctx.workoutRecommendation?.canStartAnotherToday) {
-      return buildAction({
-        type: AVA_ACTION_TYPES.VIEW_PLAN,
-        focusAction: FOCUS_ACTIONS.VIEW_TODAY,
-        eyebrow: null,
-        label: 'Choose another workout',
-        detail: null,
-        meta: {},
-      })
-    }
-
+    // Additional sessions stay available in Train — Home does not push another workout.
     return null
   }
 

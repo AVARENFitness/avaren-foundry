@@ -167,7 +167,45 @@ describe('athleteHomeState', () => {
       ),
     ).toBe(true)
     expect(home.primaryAction?.id).toBe(HOME_ACTION_IDS.RECOVERY_FLOW)
+    expect(home.primaryAction?.label).toBe('Start recovery flow')
     expect(home.sections.recoveryPrimary).toBe(true)
+  })
+
+  it('does not surface another-workout as a primary home action after training today', () => {
+    const completedAt = atLocalTime('2026-08-07T12:00:00', 10, 0)
+    const now = new Date(completedAt.getTime() + 15 * 60 * 1000)
+    vi.setSystemTime(now)
+
+    const home = getAthleteHomeState({
+      now,
+      state: buildState({
+        history: [
+          {
+            id: 'done',
+            name: 'Arms',
+            finishedAt: completedAt.toISOString(),
+            sets: [],
+          },
+        ],
+      }),
+      readiness: { completed: true },
+      nutritionSummary: { calories: 0, goal: 2200, protein: 0 },
+    })
+
+    expect(home.todayTrained).toBe(true)
+    expect(home.primaryAction?.id).toBe(HOME_ACTION_IDS.RECOVERY_FLOW)
+    expect(home.primaryAction?.id).not.toBe(HOME_ACTION_IDS.START_WORKOUT)
+    expect(home.sections.showStartWorkoutPrimary).toBe(false)
+    expect(
+      home.secondaryActions.some((action) =>
+        /choose another workout/i.test(action.label),
+      ),
+    ).toBe(false)
+    expect(
+      home.secondaryActions.some(
+        (action) => action.id === HOME_ACTION_IDS.NUTRITION,
+      ),
+    ).toBe(true)
   })
 
   it('removes recovery from primary home after the window expires', () => {
@@ -193,6 +231,57 @@ describe('athleteHomeState', () => {
     expect(home.inRecoveryWindow).toBe(false)
     expect(home.primaryAction?.id).not.toBe(HOME_ACTION_IDS.RECOVERY_FLOW)
     expect(home.sections.recoveryPrimary).toBe(false)
+    expect(home.primaryAction?.id).toBe(HOME_ACTION_IDS.NUTRITION)
+    expect(home.sections.nutritionPrimary).toBe(true)
+  })
+
+  it('does not keep yesterday post-workout mode on the next local calendar day', () => {
+    const yesterdayCompletion = atLocalTime('2026-08-07T12:00:00', 16, 0)
+    vi.setSystemTime(saturdayMorning)
+
+    const home = getAthleteHomeState({
+      now: saturdayMorning,
+      state: buildState({
+        history: [
+          {
+            id: 'yesterday',
+            name: 'Arms',
+            finishedAt: yesterdayCompletion.toISOString(),
+            sets: [],
+          },
+        ],
+      }),
+      readiness: { completed: true },
+    })
+
+    expect(home.todayTrained).toBe(false)
+    expect(home.recommendation.completedToday).toBe(false)
+    expect(home.sections.showWorkoutCompleteState).toBe(false)
+    expect(home.primaryAction?.id).toBe(HOME_ACTION_IDS.START_WORKOUT)
+    expect(home.sections.showStartWorkoutPrimary).toBe(true)
+  })
+
+  it('keeps Train-side another-workout available without making it Home primary', () => {
+    vi.setSystemTime(fridayAfternoon)
+
+    const home = getAthleteHomeState({
+      now: fridayAfternoon,
+      state: buildState({
+        history: [
+          {
+            id: 'done',
+            name: 'Arms',
+            finishedAt: atLocalTime('2026-08-07T12:00:00', 13, 0).toISOString(),
+            sets: [],
+          },
+        ],
+      }),
+      readiness: { completed: true },
+    })
+
+    expect(home.recommendation.canStartAnotherToday).toBe(true)
+    expect(home.primaryAction?.id).not.toBe(HOME_ACTION_IDS.START_WORKOUT)
+    expect(home.sections.showStartWorkoutPrimary).toBe(false)
   })
 
   it('produces the same recovery-window result after reload timestamps', () => {

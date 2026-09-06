@@ -288,3 +288,139 @@ describe('HomeScreen weekly check-in discoverability', () => {
     ).toBe(false)
   })
 })
+
+describe('HomeScreen post-workout day state', () => {
+  const fridayAfternoonLocal = () => {
+    const date = new Date('2026-08-07T12:00:00')
+    date.setHours(14, 0, 0, 0)
+    return date
+  }
+
+  it('keeps Start Session primary when no workout is completed today', () => {
+    vi.setSystemTime(fridayAfternoonLocal())
+
+    renderHome({
+      state: {
+        ...baseState,
+        program: {
+          nextWorkout: { name: 'Arms' },
+          rotation: ['Chest + Back', 'Arms', 'Legs + Core'],
+          workouts: {
+            'Chest + Back': [{ name: 'Bench', sets: 3 }],
+            Arms: [{ name: 'Curls', sets: 3 }],
+            'Legs + Core': [{ name: 'Squat', sets: 3 }],
+          },
+        },
+      },
+      readiness: { completed: true },
+      currentWeeklyCheckInState: submittedCanonical,
+    })
+
+    expect(
+      screen.getByRole('button', { name: 'Start Session' }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: 'Choose another workout' }),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: 'Start recovery flow' }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('promotes recovery and drops Choose another workout after completing today', () => {
+    const completedAt = fridayAfternoonLocal()
+    completedAt.setHours(13, 30, 0, 0)
+    vi.setSystemTime(fridayAfternoonLocal())
+
+    renderHome({
+      state: {
+        ...baseState,
+        history: [
+          {
+            id: 'done',
+            name: 'Arms',
+            finishedAt: completedAt.toISOString(),
+            sets: [],
+          },
+        ],
+      },
+      readiness: { completed: true },
+      currentWeeklyCheckInState: submittedCanonical,
+    })
+
+    expect(
+      screen.getByRole('button', { name: 'Start recovery flow' }),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: 'Choose another workout' }),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: 'Start Session' }),
+    ).not.toBeInTheDocument()
+    expect(screen.getByText('Log food')).toBeInTheDocument()
+    expect(screen.getByText(/cal logged/i)).toBeInTheDocument()
+  })
+
+  it('promotes food logging after recovery window when workout is done today', () => {
+    const completedAt = fridayAfternoonLocal()
+    completedAt.setHours(9, 0, 0, 0)
+    const now = fridayAfternoonLocal()
+    now.setHours(11, 0, 0, 0)
+    vi.setSystemTime(now)
+
+    renderHome({
+      state: {
+        ...baseState,
+        history: [
+          {
+            id: 'done',
+            name: 'Arms',
+            finishedAt: completedAt.toISOString(),
+            sets: [],
+          },
+        ],
+      },
+      readiness: { completed: true },
+      currentWeeklyCheckInState: submittedCanonical,
+      nutritionSummary: { calories: 0, goal: 2200, protein: 0 },
+    })
+
+    expect(
+      screen.getByRole('button', { name: 'Log your food' }),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: 'Choose another workout' }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('does not enter post-workout mode from yesterday completion', () => {
+    const yesterday = new Date('2026-08-07T12:00:00')
+    yesterday.setHours(16, 0, 0, 0)
+    const saturday = new Date('2026-08-08T12:00:00')
+    saturday.setHours(14, 0, 0, 0)
+    vi.setSystemTime(saturday)
+
+    renderHome({
+      state: {
+        ...baseState,
+        history: [
+          {
+            id: 'yesterday',
+            name: 'Arms',
+            finishedAt: yesterday.toISOString(),
+            sets: [],
+          },
+        ],
+      },
+      readiness: { completed: true },
+      currentWeeklyCheckInState: submittedCanonical,
+    })
+
+    expect(
+      screen.getByRole('button', { name: 'Start Session' }),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: 'Start recovery flow' }),
+    ).not.toBeInTheDocument()
+  })
+})

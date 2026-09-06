@@ -219,7 +219,7 @@ export const getAthleteHomeState = ({
     primary = buildHomeAction({
       id: HOME_ACTION_IDS.RECOVERY_FLOW,
       eyebrow: 'POST-WORKOUT',
-      label: 'Recovery Flow',
+      label: 'Start recovery flow',
       detail: completion?.workoutName
         ? `After ${completion.workoutName}`
         : 'Close out today\'s session',
@@ -290,7 +290,7 @@ export const getAthleteHomeState = ({
     secondary.push(
       buildHomeAction({
         id: HOME_ACTION_IDS.RECOVERY_FLOW,
-        label: 'Recovery Flow',
+        label: 'Start recovery flow',
         priority: 50,
       }),
     )

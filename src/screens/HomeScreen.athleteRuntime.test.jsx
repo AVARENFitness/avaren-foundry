@@ -211,8 +211,35 @@ describe('HomeScreen athlete runtime', () => {
 
     expect(screen.getByRole('button', { name: 'Check In' })).toBeInTheDocument()
     expect(
-      screen.getByRole('button', { name: 'Complete Weekly Check-In' }),
-    ).toBeInTheDocument()
+      screen.getAllByRole('button', { name: 'Complete Weekly Check-In' }).length,
+    ).toBeGreaterThan(0)
+  })
+
+  it('does not push Choose another workout on Home after training today', () => {
+    const { container } = render(
+      <HomeScreen
+        state={buildAthleteState()}
+        onStart={vi.fn()}
+        setScreen={vi.fn()}
+        recoveryIntelligence={{ score: 72 }}
+        userName="Jake"
+        readiness={{ completed: true, score: 80, status: 'Ready' }}
+        onOpenReadiness={vi.fn()}
+        onOpenMobility={vi.fn()}
+        onOpenReset={vi.fn()}
+        nutritionSummary={{ calories: 0, goal: 2200, protein: 0 }}
+        weeklyCheckInRequired={false}
+        currentWeeklyCheckInState={null}
+      />,
+    )
+
+    expect(container.querySelector('.home-choose-workout-link')).toBeNull()
+    expect(
+      screen.queryByRole('button', { name: 'Choose another workout' }),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: /Start Session/i }),
+    ).not.toBeInTheDocument()
   })
 
   it('hides weekly check-in reminder when required but current week is submitted', () => {
@@ -248,10 +275,13 @@ describe('HomeScreen athlete runtime', () => {
     expect(screen.queryByRole('button', { name: 'Check In' })).not.toBeInTheDocument()
   })
 
-  it('uses AVAREN secondary styling for choose another workout', () => {
+  it('uses AVAREN secondary styling for choose another workout before training', () => {
+    // Afternoon: past morning-movement window, no session completed yet.
+    vi.setSystemTime(new Date('2026-08-07T18:00:00.000Z'))
+
     const { container } = render(
       <HomeScreen
-        state={buildAthleteState()}
+        state={buildAthleteState({ history: [] })}
         onStart={vi.fn()}
         setScreen={vi.fn()}
         recoveryIntelligence={{ score: 72 }}
