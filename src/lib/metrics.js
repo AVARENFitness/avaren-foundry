@@ -48,22 +48,33 @@ export const recentExerciseSets = (history, exercise) => {
 
 
 export const exerciseNames = (history) =>
-  [...new Set(history.flatMap((session) => session.sets.map((set) => set.exercise)))]
+  [
+    ...new Set(
+      history.flatMap((session) =>
+        (session.sets ?? []).map((set) => set.exercise),
+      ),
+    ),
+  ].filter(Boolean)
 
 export const exerciseSessions = (history, exercise) =>
   history
     .filter((session) =>
-      session.sets.some(
+      (session.sets ?? []).some(
         (set) => set.exercise === exercise && isValidStrengthSet(set),
       ),
     )
     .map((session) => {
       const sets = filterValidStrengthSets(
-        session.sets.filter((set) => set.exercise === exercise),
+        (session.sets ?? []).filter((set) => set.exercise === exercise),
       )
+      const date =
+        session.date ||
+        (session.finishedAt
+          ? String(session.finishedAt).slice(0, 10)
+          : '')
       return {
         id: session.id,
-        date: session.date,
+        date,
         workout: session.name,
         sets,
         heaviest: Math.max(

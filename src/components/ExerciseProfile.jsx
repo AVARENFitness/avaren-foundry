@@ -2,7 +2,11 @@ import { ChevronRight } from 'lucide-react'
 import { formatLegacyCompletedSetDisplay } from '../lib/exerciseLoad'
 import { exerciseProfile } from '../lib/metrics'
 
-export default function ExerciseProfile({ history, exercise }) {
+export default function ExerciseProfile({
+  history,
+  exercise,
+  onOpenSession,
+}) {
   const profile = exerciseProfile(history, exercise)
   const recent = [...profile.sessions].reverse().slice(0, 6)
 
@@ -25,22 +29,47 @@ export default function ExerciseProfile({ history, exercise }) {
       <div className="profile-replay">
         <h3>Recent sessions</h3>
         {!recent.length && <p>No sessions recorded yet.</p>}
-        {recent.map((session) => (
-          <article key={session.id}>
-            <div>
-              <strong>{session.date}</strong>
-              <span>{session.sets.length} sets · {session.volume.toLocaleString()} lb</span>
-            </div>
-            <div className="profile-session-sets">
-              {session.sets.map((set, index) => (
-                <span key={`${session.id}-${index}`}>
-                  {formatLegacyCompletedSetDisplay(set)}
-                </span>
-              ))}
-            </div>
-            <ChevronRight size={17} />
-          </article>
-        ))}
+        {recent.map((session) => {
+          const fullSession =
+            history.find((item) => item.id === session.id) ?? null
+          const canOpen = Boolean(onOpenSession && fullSession?.id)
+
+          const content = (
+            <>
+              <div>
+                <strong>{session.date || 'Session'}</strong>
+                <span>{session.sets.length} sets · {session.volume.toLocaleString()} lb</span>
+              </div>
+              <div className="profile-session-sets">
+                {session.sets.map((set, index) => (
+                  <span key={`${session.id}-${index}`}>
+                    {formatLegacyCompletedSetDisplay(set)}
+                  </span>
+                ))}
+              </div>
+              {canOpen ? <ChevronRight size={17} /> : null}
+            </>
+          )
+
+          if (!canOpen) {
+            return (
+              <article key={session.id}>
+                {content}
+              </article>
+            )
+          }
+
+          return (
+            <button
+              key={session.id}
+              type="button"
+              className="profile-session-row"
+              onClick={() => onOpenSession(fullSession)}
+            >
+              {content}
+            </button>
+          )
+        })}
       </div>
     </section>
   )

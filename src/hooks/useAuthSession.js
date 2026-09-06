@@ -4,6 +4,10 @@ import {
   loadCloudState,
   saveCloudState,
 } from '../lib/cloudSync'
+import {
+  flushDurableWorkoutQueue,
+  loadMergedAthleteWorkoutHistory,
+} from '../lib/athleteWorkoutSessionsBackend'
 import { loadState, normalizeAppState, saveState } from '../lib/storage'
 import { isSupabaseConfigured, supabase } from '../lib/supabase'
 
@@ -91,20 +95,38 @@ export function useAuthSession({
           userId,
         )
 
+        if (navigator.onLine) {
+          await flushDurableWorkoutQueue(userId).catch((error) => {
+            console.error('Durable workout queue flush failed:', error)
+          })
+        }
+
+        const durableHistory = await loadMergedAthleteWorkoutHistory(
+          userId,
+          normalizedState.history ?? [],
+        ).catch(() => normalizedState.history ?? [])
+
+        if (cancelled) return
+
+        const historyMergedState = {
+          ...normalizedState,
+          history: durableHistory,
+        }
+
         const hasExistingUsage =
-          (normalizedState?.history?.length ?? 0) > 0 ||
-          (normalizedState?.achievements?.length ?? 0) > 0 ||
-          (normalizedState?.mobility?.completed?.length ?? 0) > 0 ||
-          Boolean(normalizedState?.activeWorkout)
+          (historyMergedState?.history?.length ?? 0) > 0 ||
+          (historyMergedState?.achievements?.length ?? 0) > 0 ||
+          (historyMergedState?.mobility?.completed?.length ?? 0) > 0 ||
+          Boolean(historyMergedState?.activeWorkout)
 
         const hydratedState = {
           ...baseState,
-          ...normalizedState,
+          ...historyMergedState,
           ownerUserId: userId,
           activeWorkout:
-            normalizedState?.activeWorkout ?? null,
+            historyMergedState?.activeWorkout ?? null,
           onboarding:
-            normalizedState?.onboarding ?? {
+            historyMergedState?.onboarding ?? {
               completed: hasExistingUsage,
               completedAt:
                 hasExistingUsage
@@ -117,7 +139,7 @@ export function useAuthSession({
         onAccountHydrated?.(hydratedState, decision)
 
         if (decision.uploadLocal && navigator.onLine) {
-          await saveCloudState(userId, normalizedState)
+          await saveCloudState(userId, historyMergedState)
         }
 
         hydratedUserId.current = userId
@@ -125,6 +147,19 @@ export function useAuthSession({
         setCloudStatus(navigator.onLine ? 'synced' : 'offline')
       } catch (error) {
         console.error('Foundry cloud hydration failed:', error)
+        if (cancelled) return
+
+        // Local fallback so the athlete can keep training.
+        // Cloud writes remain merge-safe (empty shell cannot wipe history).
+        const localOnly = normalizeAppState(
+          loadState(createInitialState(userId), userId),
+          createInitialState(userId),
+          userId,
+        )
+        setState({
+          ...localOnly,
+          ownerUserId: userId,
+        })
         hydratedUserId.current = userId
         setCloudReady(true)
         setCloudStatus(navigator.onLine ? 'error' : 'offline')
@@ -176,7 +211,24 @@ export function useAuthSession({
 
       try {
         setCloudStatus('syncing')
-        await saveCloudState(userId, latestStateRef.current)
+        await flushDurableWorkoutQueue(userId)
+        const mergedHistory = await loadMergedAthleteWorkoutHistory(
+          userId,
+          latestStateRef.current?.history ?? [],
+        )
+        if (
+          mergedHistory.length !==
+          (latestStateRef.current?.history?.length ?? 0)
+        ) {
+          setState((current) => ({
+            ...current,
+            history: mergedHistory,
+          }))
+        }
+        await saveCloudState(userId, {
+          ...latestStateRef.current,
+          history: mergedHistory,
+        })
         setCloudStatus('synced')
       } catch (error) {
         console.error('Foundry reconnect sync failed:', error)
@@ -191,7 +243,7 @@ export function useAuthSession({
       window.removeEventListener('offline', handleOffline)
       window.removeEventListener('online', handleOnline)
     }
-  }, [session?.user?.id, cloudReady])
+  }, [session?.user?.id, cloudReady, setState])
 
   return {
     session,

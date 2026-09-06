@@ -32,6 +32,10 @@ import {
 } from '../lib/materializeWorkoutExercise'
 import { sessionLoadVolume } from '../lib/workoutMetrics'
 import { getNextExerciseIndex } from '../lib/workoutProgression'
+import {
+  completeWorkoutSession,
+  updateWorkoutSession,
+} from '../lib/athleteWorkoutSessionsBackend'
 
 const makeSet = makeActiveSet
 
@@ -39,6 +43,7 @@ export function useWorkoutSession({
   state,
   setState,
   navigate,
+  athleteId = null,
   getTrainingRecommendation,
   onOpenReadinessCheckIn,
   onOpenDailyReset,
@@ -637,6 +642,14 @@ export function useWorkoutSession({
     const completionPayload = { session: completedWorkoutSession, nextWorkout }
     setCompletedSession(completionPayload)
 
+    if (athleteId) {
+      completeWorkoutSession(athleteId, completedWorkoutSession).catch(
+        (error) => {
+          console.error('Could not persist durable workout session:', error)
+        },
+      )
+    }
+
     if (workout.assignmentId) {
       coachBackend
         .markAssignmentCompleted(
@@ -718,7 +731,7 @@ export function useWorkoutSession({
 
     if (navigator.vibrate) navigator.vibrate([25, 40, 35])
     navigate('complete')
-  }, [isFinishing, state.activeWorkout, state.program.rotation, state.history, state.achievements, state.sessionExecutionPlan, navigate, setState])
+  }, [isFinishing, state.activeWorkout, state.program.rotation, state.history, state.achievements, state.sessionExecutionPlan, athleteId, navigate, setState])
 
   const saveSessionReflection = useCallback((
     sessionId,
@@ -736,18 +749,29 @@ export function useWorkoutSession({
         : current,
     )
 
-    setState((current) => ({
-      ...current,
-      history: current.history.map((workoutSession) =>
+    setState((current) => {
+      const nextHistory = current.history.map((workoutSession) =>
         workoutSession.id === sessionId
           ? {
               ...workoutSession,
               reflection,
             }
           : workoutSession,
-      ),
-    }))
-  }, [setState])
+      )
+
+      const edited = nextHistory.find((session) => session.id === sessionId)
+      if (athleteId && edited) {
+        updateWorkoutSession(athleteId, edited).catch((error) => {
+          console.error('Could not persist workout reflection edit:', error)
+        })
+      }
+
+      return {
+        ...current,
+        history: nextHistory,
+      }
+    })
+  }, [athleteId, setState])
 
   const updateExercise = useCallback((exerciseIndex, patch) => {
     setState((current) => {

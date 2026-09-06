@@ -67,6 +67,11 @@ import {
   canUseDevLeadStore,
   leadBackendUnavailableMessage,
 } from './coachLeadDevFallback'
+import {
+  listAthleteWorkoutSessions,
+  listAthleteWorkoutSessionsForAthletes,
+} from './athleteWorkoutSessionsBackend'
+import { mergeWorkoutHistory } from './athleteWorkoutHistory'
 
 const normalizeEmail = (value = '') => String(value).trim().toLowerCase()
 
@@ -672,7 +677,16 @@ export const coachBackend = {
         return null
       }
 
-      return data?.state ?? null
+      const state = data?.state ?? null
+      if (!state) return null
+
+      const durableHistory = await listAthleteWorkoutSessions(athleteId).catch(
+        () => [],
+      )
+      return {
+        ...state,
+        history: mergeWorkoutHistory(state.history, durableHistory),
+      }
     } catch {
       return null
     }
@@ -735,8 +749,25 @@ export const coachBackend = {
         return {}
       }
 
+      const durableByAthlete = await listAthleteWorkoutSessionsForAthletes(
+        athleteIds,
+      ).catch(() => ({}))
+
       return Object.fromEntries(
-        (data ?? []).map((row) => [row.user_id, row.state ?? null]),
+        (data ?? []).map((row) => {
+          const state = row.state ?? null
+          if (!state) return [row.user_id, null]
+          return [
+            row.user_id,
+            {
+              ...state,
+              history: mergeWorkoutHistory(
+                state.history,
+                durableByAthlete[row.user_id] ?? [],
+              ),
+            },
+          ]
+        }),
       )
     } catch {
       return {}

@@ -436,3 +436,36 @@
 .session-detail-hero > p {
   font-size: var(--type-meta, 12px);
 }
+
+/* Progress exercise-profile history rows → SessionDetail */
+.profile-replay .profile-session-row {
+  display: grid;
+  grid-template-columns: minmax(90px, .75fr) 1.25fr auto;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 0;
+  border: 0;
+  border-top: 1px solid rgba(248,243,230,.06);
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.profile-replay .profile-session-row strong,
+.profile-replay .profile-session-row span {
+  display: block;
+}
+
+.profile-replay .profile-session-row > div:first-child span {
+  margin-top: 4px;
+  color: #65615b;
+  font-size: 9px;
+}
+
+@media (max-width: 390px) {
+  .profile-replay .profile-session-row {
+    grid-template-columns: 1fr auto;
+  }
+}

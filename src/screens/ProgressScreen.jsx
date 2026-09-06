@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react'
-import { Award, Flame, Layers3, Trophy, HeartPulse, ArrowRight } from 'lucide-react'
+import { Trophy, HeartPulse, ArrowRight } from 'lucide-react'
 import { MILESTONE_CHAINS } from '../data/defaultProgram'
 import StrengthChart from '../components/StrengthChart'
 import ExerciseProfile from '../components/ExerciseProfile'
 import TrainingOverview from '../components/TrainingOverview'
+import { SessionDetail } from './HistoryScreen'
 import {
   consistencyStreak,
   exerciseNames,
@@ -23,6 +24,8 @@ const METRICS = [
 export default function ProgressScreen({
   state,
   onOpenReadinessTrends,
+  onDeleteSession,
+  onUpdateSession,
 }) {
   const exercises = useMemo(() => {
     const fromHistory = exerciseNames(state.history)
@@ -36,12 +39,32 @@ export default function ProgressScreen({
     exercises.includes('Bench Press') ? 'Bench Press' : exercises[0],
   )
   const [metric, setMetric] = useState('e1rm')
+  const [selectedSession, setSelectedSession] = useState(null)
 
   const sessions = exerciseSessions(state.history, selectedExercise)
   const prs = recentPRs(state.history, 8)
   const streak = consistencyStreak(state.history)
   const monthlyPrs = prsThisMonth(state.history)
   const lifetimeVolume = Math.round(totalVolume(state.history))
+
+  if (selectedSession) {
+    const current =
+      state.history.find((session) => session.id === selectedSession.id) ??
+      selectedSession
+
+    return (
+      <SessionDetail
+        session={current}
+        history={state.history}
+        onClose={() => setSelectedSession(null)}
+        onDelete={(sessionId) => {
+          onDeleteSession?.(sessionId)
+          setSelectedSession(null)
+        }}
+        onUpdate={onUpdateSession}
+      />
+    )
+  }
 
   return (
     <>
@@ -192,7 +215,11 @@ export default function ProgressScreen({
             <span>Exercise profile</span>
             <small>{selectedExercise} · session history and bests</small>
           </summary>
-          <ExerciseProfile history={state.history} exercise={selectedExercise} />
+          <ExerciseProfile
+            history={state.history}
+            exercise={selectedExercise}
+            onOpenSession={setSelectedSession}
+          />
         </details>
       )}
     </>

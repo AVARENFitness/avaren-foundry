@@ -117,7 +117,7 @@ const workoutSetGroups = (session) =>
     return groups
   }, {})
 
-function SessionDetail({ session, history, onClose, onDelete, onUpdate }) {
+export function SessionDetail({ session, history, onClose, onDelete, onUpdate }) {
   const [reflection, setReflection] = useState(session.reflection ?? '')
   const [saved, setSaved] = useState(false)
 
@@ -233,7 +233,16 @@ function JourneyEventCard({ event, onOpen }) {
 
   return (
     <article className={`journey-event ${meta.className}`}>
-      <button className="journey-event-head" onClick={() => isWorkout && onOpen(event.source)}>
+      <button
+        className="journey-event-head"
+        type="button"
+        onClick={() => {
+          if (!isWorkout) return
+          const session = event.source
+          if (!session?.id) return
+          onOpen(session)
+        }}
+      >
         <div className="journey-event-icon"><Icon size={18} /></div>
         <div className="journey-event-copy">
           <div><span>{meta.label}</span><small>{formatDate(event.occurredAt)}</small></div>

@@ -35,6 +35,7 @@ import {
   resolvePushDeepLinkNavigation,
 } from './lib/appointmentDeepLink'
 import { coachBackend } from './lib/coachBackend'
+import { updateWorkoutSession } from './lib/athleteWorkoutSessionsBackend'
 import { COACH_CLIENT_SORT } from './lib/clientIntelligence'
 import { useCoachAvaRuntime } from './hooks/useCoachAvaRuntime'
 import { invalidateCoachPortfolioCache } from './lib/coachPortfolioService'
@@ -504,6 +505,7 @@ function App() {
     state,
     setState,
     navigate,
+    athleteId: session?.user?.id ?? null,
     getTrainingRecommendation: () => trainingRecommendationRef.current,
     onOpenReadinessCheckIn: () => setShowReadinessCheckIn(true),
     onOpenDailyReset: () => openDailyResetRef.current(),
@@ -1825,6 +1827,42 @@ function App() {
           onOpenReadinessTrends={() =>
             navigate('readiness-trends')
           }
+          onDeleteSession={(sessionId) =>
+            setState((current) => ({
+              ...current,
+              history: current.history.filter(
+                (session) => session.id !== sessionId,
+              ),
+            }))
+          }
+          onUpdateSession={(sessionId, patch) =>
+            setState((current) => {
+              const nextHistory = current.history.map((session) =>
+                session.id === sessionId
+                  ? {
+                      ...session,
+                      ...patch,
+                      id: session.id,
+                      editedAt: new Date().toISOString(),
+                    }
+                  : session,
+              )
+              const edited = nextHistory.find((session) => session.id === sessionId)
+              const userId = session?.user?.id
+              if (userId && edited) {
+                updateWorkoutSession(userId, edited).catch((error) => {
+                  console.error(
+                    'Could not persist workout history edit:',
+                    error,
+                  )
+                })
+              }
+              return {
+                ...current,
+                history: nextHistory,
+              }
+            })
+          }
         />
       )
     }
@@ -1929,14 +1967,32 @@ function App() {
             }))
           }
           onUpdateSession={(sessionId, patch) =>
-            setState((current) => ({
-              ...current,
-              history: current.history.map((session) =>
+            setState((current) => {
+              const nextHistory = current.history.map((session) =>
                 session.id === sessionId
-                  ? { ...session, ...patch }
+                  ? {
+                      ...session,
+                      ...patch,
+                      id: session.id,
+                      editedAt: new Date().toISOString(),
+                    }
                   : session,
-              ),
-            }))
+              )
+              const edited = nextHistory.find((session) => session.id === sessionId)
+              const userId = session?.user?.id
+              if (userId && edited) {
+                updateWorkoutSession(userId, edited).catch((error) => {
+                  console.error(
+                    'Could not persist workout history edit:',
+                    error,
+                  )
+                })
+              }
+              return {
+                ...current,
+                history: nextHistory,
+              }
+            })
           }
         />
       )
