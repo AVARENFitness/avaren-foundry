@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import SupersetFocus from '../components/SupersetFocus'
 import { historySessionFromDurableRow } from './athleteWorkoutHistory'
@@ -87,21 +87,14 @@ describe('linked superset previous workout + PR context', () => {
       />,
     )
 
-    expect(
-      screen.getByLabelText('Previous workout for Lateral Raise'),
-    ).toHaveTextContent('25')
-    expect(
-      screen.getByLabelText('Previous workout for Incline Curl'),
-    ).toHaveTextContent('40')
-    expect(
-      screen.getByLabelText('Previous workout for Lateral Raise'),
-    ).not.toHaveTextContent('40')
-    expect(
-      screen.getByLabelText('Previous workout for Incline Curl'),
-    ).not.toHaveTextContent('25')
+    const glances = screen.getAllByTestId('exercise-history-glance')
+    expect(glances[0]).toHaveTextContent('25 lb × 12')
+    expect(glances[0]).not.toHaveTextContent('40')
+    expect(glances[1]).toHaveTextContent('40 lb × 10')
+    expect(glances[1]).not.toHaveTextContent('25')
   })
 
-  it('expands each exercise previous panel independently', () => {
+  it('uses the same Previous/Best structure for both linked exercises', () => {
     const exercises = [
       makeSupersetExercise('a1', 'Lateral Raise'),
       makeSupersetExercise('a2', 'Incline Curl'),
@@ -118,16 +111,39 @@ describe('linked superset previous workout + PR context', () => {
       />,
     )
 
-    fireEvent.click(
-      screen.getByLabelText('Previous workout for Lateral Raise'),
-    )
-    expect(screen.getByTestId('previous-session-a1')).toHaveTextContent('25')
-    expect(screen.queryByTestId('previous-session-a2')).not.toBeInTheDocument()
+    const glances = screen.getAllByTestId('exercise-history-glance')
+    expect(glances).toHaveLength(2)
+    for (const glance of glances) {
+      expect(glance).toHaveTextContent('Previous')
+      expect(glance).toHaveTextContent('Best')
+      expect(glance.textContent).toMatch(/\d+(\.\d+)? lb × \d+/)
+    }
+    expect(
+      screen.queryByLabelText(/Previous workout for/i),
+    ).not.toBeInTheDocument()
+  })
 
-    fireEvent.click(
-      screen.getByLabelText('Previous workout for Incline Curl'),
+  it('shows empty history state consistently when one side has no history', () => {
+    render(
+      <SupersetFocus
+        exercises={[
+          makeSupersetExercise('a1', 'Lateral Raise'),
+          makeSupersetExercise('a2', 'Brand New Curl'),
+        ]}
+        group="A"
+        round={0}
+        totalRounds={1}
+        history={history}
+        onSetChange={vi.fn()}
+      />,
     )
-    expect(screen.getByTestId('previous-session-a2')).toHaveTextContent('40')
+
+    expect(screen.getByTestId('exercise-history-glance')).toHaveTextContent(
+      '25 lb × 12',
+    )
+    expect(screen.getByTestId('exercise-history-glance-empty')).toHaveTextContent(
+      'No previous performance',
+    )
   })
 
   it('shows PR preview for external-load linked superset exercise', () => {
@@ -178,9 +194,9 @@ describe('linked superset previous workout + PR context', () => {
       />,
     )
 
-    expect(
-      screen.getByLabelText('Previous workout for Pull-up'),
-    ).toHaveTextContent(/BW|Bodyweight|8/i)
+    expect(screen.getByTestId('exercise-history-glance')).toHaveTextContent(
+      /BW × 8/,
+    )
     expect(screen.queryByTestId('pr-preview-bw1')).not.toBeInTheDocument()
   })
 
@@ -203,9 +219,9 @@ describe('linked superset previous workout + PR context', () => {
       />,
     )
 
-    expect(
-      screen.getByLabelText('Previous workout for Assisted Dip'),
-    ).toHaveTextContent(/50|Assist/i)
+    expect(screen.getByTestId('exercise-history-glance')).toHaveTextContent(
+      /50 lb assist × 10/,
+    )
     expect(screen.queryByTestId('pr-preview-as1')).not.toBeInTheDocument()
   })
 
@@ -259,12 +275,12 @@ describe('linked superset previous workout + PR context', () => {
       />,
     )
 
-    expect(
-      screen.getByLabelText('Previous workout for Lateral Raise'),
-    ).toHaveTextContent('27.5')
-    expect(
-      screen.getByLabelText('Previous workout for Incline Curl'),
-    ).toHaveTextContent('45')
+    expect(screen.getByLabelText('History for Lateral Raise')).toHaveTextContent(
+      '27.5 lb × 11',
+    )
+    expect(screen.getByLabelText('History for Incline Curl')).toHaveTextContent(
+      '45 lb × 9',
+    )
   })
 
   it('keeps A/B history isolated in shared helper', () => {

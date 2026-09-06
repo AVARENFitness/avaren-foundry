@@ -1,7 +1,6 @@
 import {
   externalLoadAmount,
   formatCompletedSetDisplay,
-  formatLegacyCompletedSetDisplay,
   isActiveSetEntered,
   isComparableForLoadPr,
   LOAD_TYPES,
@@ -99,68 +98,16 @@ export const selectHeaviestHistoricalSet = (sets = []) => {
   }, null)
 }
 
+/**
+ * Previous-session summary using the same set formatting as Best.
+ * Uses the strongest set from the last session only.
+ */
 export const formatPreviousPerformanceDisplay = (previousSets = []) => {
-  const sets = Array.isArray(previousSets) ? previousSets : []
+  const sets = Array.isArray(previousSets) ? previousSets.filter(Boolean) : []
   if (!sets.length) return null
 
-  const firstType = resolveSetLoadType(sets[0], sets[0].loadType)
-  const uniform =
-    sets.length > 1 &&
-    sets.every((set) => {
-      const type = resolveSetLoadType(set, set.loadType)
-      if (type !== firstType) return false
-      if (type === LOAD_TYPES.EXTERNAL || type === LOAD_TYPES.BODYWEIGHT_ADDED) {
-        return (
-          externalLoadAmount(set, type) ===
-            externalLoadAmount(sets[0], firstType) &&
-          setReps(set) === setReps(sets[0])
-        )
-      }
-      if (type === LOAD_TYPES.BODYWEIGHT) {
-        return setReps(set) === setReps(sets[0])
-      }
-      if (type === LOAD_TYPES.ASSISTED) {
-        return (
-          assistanceAmount(set) === assistanceAmount(sets[0]) &&
-          setReps(set) === setReps(sets[0])
-        )
-      }
-      return false
-    })
-
-  if (uniform && (firstType === LOAD_TYPES.EXTERNAL || firstType === LOAD_TYPES.BODYWEIGHT_ADDED)) {
-    const load = externalLoadAmount(sets[0], firstType)
-    const reps = setReps(sets[0])
-    if (load > 0 && reps > 0) {
-      return `${sets.length} × ${reps} @ ${load} lb`
-    }
-  }
-
-  if (uniform && firstType === LOAD_TYPES.BODYWEIGHT) {
-    const reps = setReps(sets[0])
-    if (reps > 0) return `${sets.length} × BW × ${reps}`
-  }
-
-  if (uniform && firstType === LOAD_TYPES.ASSISTED) {
-    const assist = assistanceAmount(sets[0])
-    const reps = setReps(sets[0])
-    if (assist > 0 && reps > 0) {
-      return `${sets.length} × ${assist} lb assist × ${reps}`
-    }
-  }
-
-  const best = sets.reduce((current, set) => {
-    const currentLoad = externalLoadAmount(
-      current,
-      resolveSetLoadType(current, current.loadType),
-    )
-    const setLoad = externalLoadAmount(set, resolveSetLoadType(set, set.loadType))
-    if (setLoad > currentLoad) return set
-    if (setLoad === currentLoad && setReps(set) > setReps(current)) return set
-    return current
-  }, sets[0])
-
-  return formatLegacyCompletedSetDisplay(best)
+  const representative = selectHeaviestHistoricalSet(sets)
+  return formatBestSetDisplay(representative)
 }
 
 export const formatBestSetDisplay = (bestSet) => {

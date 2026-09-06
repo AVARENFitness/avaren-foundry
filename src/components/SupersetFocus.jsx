@@ -1,8 +1,6 @@
-import { Check, ChevronDown, ChevronLeft, ChevronRight, Plus, Trophy } from 'lucide-react'
-import { useState } from 'react'
+import { Check, ChevronLeft, ChevronRight, Plus, Trophy } from 'lucide-react'
 import {
   formatCompletedSetDisplay,
-  formatLegacyCompletedSetDisplay,
   isActiveSetEntered,
   LOAD_TYPE_OPTIONS,
   loadTypeLabel,
@@ -37,7 +35,6 @@ export default function SupersetFocus({
   nextExerciseLabel = 'Next Exercise',
   supersetComplete = false,
 }) {
-  const [openPreviousById, setOpenPreviousById] = useState({})
   const roundComplete = exercises.every((exercise) => exercise.sets[round]?.done)
 
   return (
@@ -71,8 +68,6 @@ export default function SupersetFocus({
             loadType,
           )
           const {
-            previousSets,
-            lastSessionBest,
             potentialPrForSet,
             previousDisplay,
             bestDisplay,
@@ -80,7 +75,6 @@ export default function SupersetFocus({
             emptyLabel,
           } = previousGlance
           const { potentialWeightPr, potentialPr } = potentialPrForSet(set)
-          const showPrevious = Boolean(openPreviousById[exercise.id])
 
           return (
             <section
@@ -108,60 +102,6 @@ export default function SupersetFocus({
                 emptyLabel={emptyLabel}
                 aria-label={`History for ${exercise.name}`}
               />
-
-              {hasHistory ? (
-                <button
-                  type="button"
-                  className={`previous-session-toggle lift-reference ${
-                    showPrevious ? 'open' : ''
-                  }`}
-                  aria-expanded={showPrevious}
-                  aria-label={`Previous workout for ${exercise.name}`}
-                  onClick={() =>
-                    setOpenPreviousById((current) => ({
-                      ...current,
-                      [exercise.id]: !current[exercise.id],
-                    }))
-                  }
-                >
-                  <span>
-                    <small>LAST SESSION</small>
-                    <strong>
-                      {lastSessionBest
-                        ? formatLegacyCompletedSetDisplay(lastSessionBest)
-                        : emptyLabel}
-                    </strong>
-                  </span>
-                  <ChevronDown size={18} />
-                </button>
-              ) : null}
-
-              {showPrevious ? (
-                <div
-                  className="previous-session-panel"
-                  data-testid={`previous-session-${exercise.id}`}
-                >
-                  {previousSets.length ? (
-                    previousSets.map((historySet, index) => (
-                      <div
-                        key={`${exercise.id}-${historySet.weight}-${historySet.reps}-${index}`}
-                      >
-                        <span>
-                          {historySet.type || `Set ${index + 1}`}
-                        </span>
-                        <strong>
-                          {formatLegacyCompletedSetDisplay(historySet)}
-                        </strong>
-                      </div>
-                    ))
-                  ) : (
-                    <p>
-                      Your first session with this exercise will become the
-                      reference.
-                    </p>
-                  )}
-                </div>
-              ) : null}
 
               <label className="focus-load-type">
                 <span>Load type</span>

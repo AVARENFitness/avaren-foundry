@@ -109,10 +109,12 @@ describe('active exercise Previous + Best glance', () => {
       LOAD_TYPES.EXTERNAL,
     )
 
-    expect(glance.previousDisplay).toBe('3 × 10 @ 135 lb')
+    expect(glance.previousDisplay).toBe('135 lb × 10')
     expect(formatPreviousPerformanceDisplay(glance.previousSets)).toBe(
-      '3 × 10 @ 135 lb',
+      '135 lb × 10',
     )
+    expect(glance.previousDisplay).toMatch(/ lb × /)
+    expect(glance.bestDisplay).toMatch(/ lb × /)
   })
 
   it('formats standalone external-weight Best from all-time heaviest', () => {
@@ -153,12 +155,12 @@ describe('active exercise Previous + Best glance', () => {
 
     const glance = screen.getByTestId('exercise-history-glance')
     expect(glance).toHaveTextContent('Previous')
-    expect(glance).toHaveTextContent('3 × 10 @ 135 lb')
+    expect(glance).toHaveTextContent('135 lb × 10')
     expect(glance).toHaveTextContent('Best')
     expect(glance).toHaveTextContent('185 lb × 5')
   })
 
-  it('gives linked superset A/B independent Previous and Best values', () => {
+  it('gives linked superset A/B independent Previous and Best values in the same format', () => {
     render(
       <SupersetFocus
         exercises={[
@@ -189,9 +191,13 @@ describe('active exercise Previous + Best glance', () => {
 
     const glances = screen.getAllByTestId('exercise-history-glance')
     expect(glances).toHaveLength(2)
-    expect(glances[0]).toHaveTextContent('25')
+    expect(glances[0]).toHaveTextContent('Previous')
+    expect(glances[0]).toHaveTextContent('Best')
+    expect(glances[1]).toHaveTextContent('Previous')
+    expect(glances[1]).toHaveTextContent('Best')
+    expect(glances[0]).toHaveTextContent('25 lb × 12')
     expect(glances[0]).not.toHaveTextContent('40')
-    expect(glances[1]).toHaveTextContent('40')
+    expect(glances[1]).toHaveTextContent('40 lb × 10')
     expect(glances[1]).not.toHaveTextContent('25')
   })
 
@@ -307,7 +313,7 @@ describe('active exercise Previous + Best glance', () => {
     )
 
     // Gym Mode passes completed history only; previous stays on last completed session.
-    expect(withOnlyHistory.previousDisplay).toBe('3 × 10 @ 135 lb')
+    expect(withOnlyHistory.previousDisplay).toBe('135 lb × 10')
     expect(withOnlyHistory.bestDisplay).toBe('185 lb × 5')
 
     // If unfinished were incorrectly mixed in, Best would jump — callers must not do that.
