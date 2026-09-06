@@ -12,12 +12,27 @@ vi.mock('../lib/coachBackend', () => ({
   },
 }))
 
+vi.mock('../lib/athleteWorkoutSessionsBackend', () => ({
+  completeWorkoutSession: vi.fn(async () => ({ persisted: true, created: true })),
+  updateWorkoutSession: vi.fn(async () => ({})),
+}))
+
 vi.mock('../lib/appUi', () => ({
   appUi: {
     toast: vi.fn(),
     confirm: vi.fn(async () => true),
   },
 }))
+
+import { appUi } from '../lib/appUi'
+import { coachBackend } from '../lib/coachBackend'
+import { completeWorkoutSession } from '../lib/athleteWorkoutSessionsBackend'
+import {
+  OPEN_WORKOUT_NAME,
+  WORKOUT_ORIGIN,
+  createFreeformActiveWorkout,
+} from '../lib/freeformWorkout'
+import { getAthleteHomeState, HOME_ACTION_IDS } from '../lib/athleteHomeState'
 
 function buildState(overrides = {}) {
   return {
@@ -326,5 +341,279 @@ describe('useWorkoutSession reliability', () => {
       'Incline Curl',
       'Exercise 4',
     ])
+  })
+})
+
+describe('useWorkoutSession freeform Open Workout', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('starts a blank Open Workout immediately without naming', () => {
+    const navigate = vi.fn((screen, callback) => {
+      callback?.()
+    })
+    let latestState = buildState({
+      program: {
+        rotation: ['Chest + Back', 'Arms', 'Legs + Core'],
+        nextWorkout: 'Arms',
+        workouts: {
+          'Chest + Back': [{ name: 'Bench', sets: 3, muscle: 'Chest' }],
+          Arms: [{ name: 'Curls', sets: 3, muscle: 'Biceps' }],
+          'Legs + Core': [{ name: 'Squat', sets: 3, muscle: 'Legs' }],
+        },
+      },
+    })
+    const programSnapshot = structuredClone(latestState.program)
+    const setState = vi.fn((updater) => {
+      latestState =
+        typeof updater === 'function' ? updater(latestState) : updater
+    })
+
+    const { result } = renderHook(() =>
+      useWorkoutSession({
+        state: latestState,
+        setState,
+        navigate,
+      }),
+    )
+
+    act(() => {
+      result.current.startFreeformWorkout()
+    })
+
+    expect(navigate).toHaveBeenCalledWith('gym', expect.any(Function))
+    expect(latestState.activeWorkout.name).toBe(OPEN_WORKOUT_NAME)
+    expect(latestState.activeWorkout.origin).toBe(WORKOUT_ORIGIN.FREEFORM)
+    expect(latestState.activeWorkout.exercises).toEqual([])
+    expect(latestState.activeWorkout.assignmentId).toBeNull()
+    expect(latestState.activeWorkout.id).toBeTruthy()
+    expect(latestState.activeWorkout.startedAt).toBeTruthy()
+    expect(latestState.program).toEqual(programSnapshot)
+    expect(latestState.selectedWorkout).toBe('Arms')
+  })
+
+  it('adds the first exercise into an empty freeform session', () => {
+    let latestState = buildState({
+      activeWorkout: createFreeformActiveWorkout({ id: 'free-1' }),
+      selectedWorkout: null,
+    })
+    const setState = vi.fn((updater) => {
+      latestState =
+        typeof updater === 'function' ? updater(latestState) : updater
+    })
+
+    const { result } = renderHook(() =>
+      useWorkoutSession({
+        state: latestState,
+        setState,
+        navigate: vi.fn(),
+      }),
+    )
+
+    act(() => {
+      result.current.quickAddExercise({
+        name: 'Goblet Squat',
+        sets: 3,
+        muscle: 'Quads',
+      })
+    })
+
+    expect(latestState.activeWorkout.exercises).toHaveLength(1)
+    expect(latestState.activeWorkout.exercises[0].name).toBe('Goblet Squat')
+    expect(latestState.activeWorkout.exercises[0].oneTime).toBe(true)
+    expect(latestState.activeWorkout.origin).toBe(WORKOUT_ORIGIN.FREEFORM)
+  })
+
+  it('blocks finishing an empty freeform workout without history', async () => {
+    const navigate = vi.fn()
+    let latestState = buildState({
+      activeWorkout: createFreeformActiveWorkout({ id: 'free-empty' }),
+    })
+    const setState = vi.fn((updater) => {
+      latestState =
+        typeof updater === 'function' ? updater(latestState) : updater
+    })
+
+    const { result } = renderHook(() =>
+      useWorkoutSession({
+        state: latestState,
+        setState,
+        navigate,
+      }),
+    )
+
+    await act(async () => {
+      await result.current.finishWorkout()
+    })
+
+    expect(appUi.toast).toHaveBeenCalledWith(
+      'Log at least one set before finishing.',
+      'error',
+    )
+    expect(latestState.history).toEqual([])
+    expect(latestState.activeWorkout?.id).toBe('free-empty')
+    expect(navigate).not.toHaveBeenCalledWith('complete')
+    expect(completeWorkoutSession).not.toHaveBeenCalled()
+  })
+
+  it('completes freeform into history without advancing rotation or assignments', async () => {
+    const navigate = vi.fn()
+    const templateSnapshot = [
+      { name: 'Curls', sets: 3, muscle: 'Biceps' },
+    ]
+    let latestState = buildState({
+      program: {
+        rotation: ['Chest + Back', 'Arms', 'Legs + Core'],
+        nextWorkout: 'Arms',
+        workouts: {
+          'Chest + Back': [{ name: 'Bench', sets: 3, muscle: 'Chest' }],
+          Arms: structuredClone(templateSnapshot),
+          'Legs + Core': [{ name: 'Squat', sets: 3, muscle: 'Legs' }],
+        },
+      },
+      activeWorkout: {
+        ...createFreeformActiveWorkout({ id: 'free-done' }),
+        exercises: [
+          {
+            id: 'ex-1',
+            name: 'Push-up',
+            muscle: 'Chest',
+            loadType: 'bodyweight',
+            oneTime: true,
+            sets: [
+              {
+                ...makeActiveSet(1, 'Working'),
+                weight: 0,
+                reps: 12,
+                done: true,
+              },
+            ],
+          },
+        ],
+      },
+    })
+    const setState = vi.fn((updater) => {
+      latestState =
+        typeof updater === 'function' ? updater(latestState) : updater
+    })
+
+    const { result } = renderHook(() =>
+      useWorkoutSession({
+        state: latestState,
+        setState,
+        navigate,
+        athleteId: 'athlete-1',
+      }),
+    )
+
+    await act(async () => {
+      await result.current.finishWorkout()
+    })
+
+    expect(navigate).toHaveBeenCalledWith('complete')
+    expect(latestState.program.nextWorkout).toBe('Arms')
+    expect(latestState.program.rotation).toEqual([
+      'Chest + Back',
+      'Arms',
+      'Legs + Core',
+    ])
+    expect(latestState.program.workouts.Arms).toEqual(templateSnapshot)
+    expect(latestState.history).toHaveLength(1)
+    expect(latestState.history[0].id).toBe('free-done')
+    expect(latestState.history[0].name).toBe(OPEN_WORKOUT_NAME)
+    expect(latestState.history[0].origin).toBe(WORKOUT_ORIGIN.FREEFORM)
+    expect(latestState.history[0].assignmentId).toBeNull()
+    expect(latestState.history[0].sets.length).toBeGreaterThan(0)
+    expect(completeWorkoutSession).toHaveBeenCalledWith(
+      'athlete-1',
+      expect.objectContaining({
+        id: 'free-done',
+        origin: WORKOUT_ORIGIN.FREEFORM,
+      }),
+    )
+    expect(coachBackend.markAssignmentCompleted).not.toHaveBeenCalled()
+
+    const home = getAthleteHomeState({
+      now: new Date(),
+      state: latestState,
+      readiness: { completed: true },
+    })
+    expect(home.todayTrained).toBe(true)
+    expect(home.primaryAction?.id).not.toBe(HOME_ACTION_IDS.START_WORKOUT)
+  })
+
+  it('resumes an existing freeform active workout instead of creating another', () => {
+    const navigate = vi.fn()
+    const setState = vi.fn()
+    const activeWorkout = createFreeformActiveWorkout({ id: 'free-resume' })
+
+    const { result } = renderHook(() =>
+      useWorkoutSession({
+        state: buildState({ activeWorkout }),
+        setState,
+        navigate,
+      }),
+    )
+
+    act(() => {
+      result.current.startFreeformWorkout()
+    })
+
+    expect(navigate).toHaveBeenCalledWith('gym')
+    expect(setState).not.toHaveBeenCalled()
+  })
+
+  it('does not duplicate freeform history when finishing an already saved session', async () => {
+    const navigate = vi.fn()
+    let latestState = buildState({
+      activeWorkout: {
+        ...createFreeformActiveWorkout({ id: 'free-dup' }),
+        exercises: [
+          {
+            id: 'ex-1',
+            name: 'Row',
+            muscle: 'Back',
+            loadType: 'external',
+            sets: [
+              {
+                ...makeActiveSet(1, 'Working'),
+                weight: 95,
+                reps: 8,
+                done: true,
+              },
+            ],
+          },
+        ],
+      },
+      history: [
+        {
+          id: 'free-dup',
+          name: OPEN_WORKOUT_NAME,
+          origin: WORKOUT_ORIGIN.FREEFORM,
+          sets: [],
+        },
+      ],
+    })
+    const setState = vi.fn((updater) => {
+      latestState =
+        typeof updater === 'function' ? updater(latestState) : updater
+    })
+
+    const { result } = renderHook(() =>
+      useWorkoutSession({
+        state: latestState,
+        setState,
+        navigate,
+      }),
+    )
+
+    await act(async () => {
+      await result.current.finishWorkout()
+    })
+
+    expect(latestState.history).toHaveLength(1)
+    expect(navigate).toHaveBeenCalledWith('home')
+    expect(completeWorkoutSession).not.toHaveBeenCalled()
   })
 })

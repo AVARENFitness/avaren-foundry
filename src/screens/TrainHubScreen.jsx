@@ -42,6 +42,7 @@ const ActionCard = ({ icon: Icon, title, description, onClick, primary = false }
 export default function TrainHubScreen({
   state,
   onStart,
+  onStartFreeform,
   navigate,
   onSelectWorkout,
 }) {
@@ -138,6 +139,16 @@ export default function TrainHubScreen({
             onClick={() => setShowWorkoutSelector(true)}
           >
             Choose another workout
+            <ArrowRight size={16} />
+          </button>
+        ) : null}
+        {!activeWorkout ? (
+          <button
+            type="button"
+            className="ui-btn-secondary athlete-choose-workout-action train-freeform-workout-link"
+            onClick={() => onStartFreeform?.()}
+          >
+            Start a workout
             <ArrowRight size={16} />
           </button>
         ) : null}

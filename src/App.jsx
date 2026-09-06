@@ -494,6 +494,7 @@ function App() {
     setIsFinishing,
     plannedWorkout,
     startWorkout,
+    startFreeformWorkout,
     startWorkoutWithRecommendation,
     trainAsPlanned,
     startCoachAssignment,
@@ -1822,6 +1823,7 @@ function App() {
         <TrainHubScreen
           state={state}
           onStart={startWorkout}
+          onStartFreeform={startFreeformWorkout}
           navigate={navigateFromTrain}
           onSelectWorkout={(workout) =>
             setState((current) => ({

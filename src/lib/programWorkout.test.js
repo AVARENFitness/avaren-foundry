@@ -31,6 +31,35 @@ describe('programWorkout', () => {
     ).toBe('Legs + Core')
   })
 
+  it('does not advance next recommendation from a freeform completion alone', () => {
+    const state = {
+      program: {
+        rotation,
+        nextWorkout: 'Arms',
+        workouts: {
+          'Chest + Back': [],
+          Arms: [],
+          'Legs + Core': [],
+        },
+      },
+      history: [
+        {
+          id: 'free-1',
+          name: 'Open Workout',
+          origin: 'freeform',
+          finishedAt: '2026-08-13T18:00:00.000Z',
+        },
+      ],
+    }
+
+    expect(
+      resolveNextRecommendedWorkout(state, new Date('2026-08-13T20:00:00.000Z')),
+    ).toBe('Arms')
+    expect(findCompletedWorkoutToday(state.history, new Date('2026-08-13T20:00:00.000Z'))?.name).toBe(
+      'Open Workout',
+    )
+  })
+
   it('regression: Arms completion should not jump to Chest + Back', () => {
     const state = {
       program: {

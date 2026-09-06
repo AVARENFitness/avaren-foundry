@@ -1,4 +1,5 @@
 import { resolveTodayWorkoutContext, WORKOUT_SOURCE } from './todayWorkout'
+import { isFreeformWorkoutSession } from './freeformWorkout'
 import {
   localCalendarDateKey,
   localTomorrowDateKey,
@@ -21,6 +22,19 @@ export const WORKOUT_RECOMMENDATION_STATE = {
 export const findCompletedWorkoutToday = (history = [], now = new Date()) => {
   const key = todayKey(now)
   return (history ?? []).find((session) => {
+    const sessionDay = sessionLocalCalendarDateKey(session)
+    return sessionDay === key
+  })
+}
+
+/** Programmed/assignment sessions only — freeform never advances rotation guidance. */
+export const findProgrammedCompletedWorkoutToday = (
+  history = [],
+  now = new Date(),
+) => {
+  const key = todayKey(now)
+  return (history ?? []).find((session) => {
+    if (isFreeformWorkoutSession(session)) return false
     const sessionDay = sessionLocalCalendarDateKey(session)
     return sessionDay === key
   })
@@ -71,12 +85,15 @@ export const advanceProgramNextWorkout = ({
 
 export const resolveNextRecommendedWorkout = (state = {}, now = new Date()) => {
   const rotation = normalizeRotation(state.program?.rotation)
-  const completedToday = findCompletedWorkoutToday(state.history, now)
+  const programmedCompletedToday = findProgrammedCompletedWorkoutToday(
+    state.history,
+    now,
+  )
 
-  if (completedToday?.name) {
+  if (programmedCompletedToday?.name) {
     return advanceProgramNextWorkout({
       rotation,
-      completedWorkoutName: completedToday.name,
+      completedWorkoutName: programmedCompletedToday.name,
       currentNextWorkout: state.program?.nextWorkout,
     })
   }

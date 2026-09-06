@@ -78,4 +78,33 @@ describe('TrainHubScreen choose-workout visual contract', () => {
     const resumeButton = container.querySelector('.gold-button')
     expect(resumeButton?.textContent).toMatch(/Resume Workout/i)
   })
+
+  it('exposes Start a workout freeform entry without replacing Start Session', () => {
+    const onStartFreeform = vi.fn()
+    const { getByRole } = render(
+      <TrainHubScreen
+        state={{
+          selectedWorkout: null,
+          activeWorkout: null,
+          program: {
+            rotation: ['Arms'],
+            workouts: {
+              Arms: [{ name: 'Curls', sets: 3, muscle: 'Biceps' }],
+            },
+          },
+          history: [],
+          nutrition: createNutritionState(),
+        }}
+        onStart={() => {}}
+        onStartFreeform={onStartFreeform}
+        navigate={() => {}}
+      />,
+    )
+
+    const freeform = getByRole('button', { name: 'Start a workout' })
+    expect(freeform.classList.contains('train-freeform-workout-link')).toBe(true)
+    freeform.click()
+    expect(onStartFreeform).toHaveBeenCalledTimes(1)
+    expect(getByRole('button', { name: /Start Session/i })).toBeTruthy()
+  })
 })

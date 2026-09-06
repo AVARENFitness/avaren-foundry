@@ -7,9 +7,13 @@ import {
   applyRecommendationToWorkout,
   TRAINING_RECOMMENDATIONS,
 } from '../lib/trainingRecommendations'
-import { advanceProgramNextWorkout } from '../lib/programWorkout'
+import { advanceProgramNextWorkout, normalizeProgramWorkoutName } from '../lib/programWorkout'
 import { localCalendarDateKey } from '../lib/localCalendarDay'
 import { resolveTodayWorkoutContext } from '../lib/todayWorkout'
+import {
+  createFreeformActiveWorkout,
+  isFreeformWorkoutSession,
+} from '../lib/freeformWorkout'
 import {
   attachExecutionMetadataToSession,
   isExecutionPlanCurrent,
@@ -181,9 +185,9 @@ export function useWorkoutSession({
       return
     }
 
-    const replacement = buildActiveWorkout(
-      currentWorkout.name,
-    )
+    const replacement = isFreeformWorkoutSession(currentWorkout)
+      ? createFreeformActiveWorkout()
+      : buildActiveWorkout(currentWorkout.name)
 
     setActiveExerciseState(0)
     setState((current) => ({
@@ -260,6 +264,36 @@ export function useWorkoutSession({
       setIsStarting(false)
     })
   }, [state.activeWorkout, state.weeklySchedule, state.selectedWorkout, state.program.nextWorkout, buildActiveWorkout, navigate, setState, setActiveExercise, isStarting])
+
+  const startFreeformWorkout = useCallback(() => {
+    if (state.activeWorkout) {
+      navigate('gym')
+      return
+    }
+
+    if (isStarting) return
+    setIsStarting(true)
+
+    const activeWorkout = attachSessionModeMetadata(
+      createFreeformActiveWorkout(),
+      SESSION_MODE.SOLO,
+    )
+
+    setActiveExercise(0)
+    navigate('gym', () => {
+      setState((current) => ({
+        ...current,
+        activeWorkout,
+      }))
+      setIsStarting(false)
+    })
+  }, [
+    state.activeWorkout,
+    navigate,
+    setState,
+    setActiveExercise,
+    isStarting,
+  ])
 
   const startWorkoutWithRecommendation = useCallback((
     recommendation,
@@ -653,23 +687,29 @@ export function useWorkoutSession({
       return
     }
 
-    const nextWorkout = advanceProgramNextWorkout({
-      rotation: state.program.rotation,
-      completedWorkoutName: workout.name,
-      currentNextWorkout: state.program.nextWorkout,
-    })
+    const nextWorkout = isFreeformWorkoutSession(workout)
+      ? normalizeProgramWorkoutName(state.program.nextWorkout)
+      : advanceProgramNextWorkout({
+          rotation: state.program.rotation,
+          completedWorkoutName: workout.name,
+          currentNextWorkout: state.program.nextWorkout,
+        })
 
     const completedWorkoutSession = attachExecutionMetadataToSession(
       {
         id: workout.id,
         name: workout.name,
+        workoutKey: workout.workoutKey ?? undefined,
+        origin: workout.origin ?? null,
         date: workout.date,
         startedAt: workout.startedAt,
         finishedAt: new Date().toISOString(),
         intent: workout.intent ?? '',
         notes: workout.notes ?? '',
         reflection: workout.reflection ?? '',
-        assignmentId: workout.assignmentId ?? null,
+        assignmentId: isFreeformWorkoutSession(workout)
+          ? null
+          : workout.assignmentId ?? null,
         sessionMode: workout.sessionMode ?? SESSION_MODE.SOLO,
         exercisesPerformed: workout.exercises.map((exercise) => ({
           name: exercise.name,
@@ -871,6 +911,7 @@ export function useWorkoutSession({
     setIsFinishing,
     plannedWorkout,
     startWorkout,
+    startFreeformWorkout,
     startWorkoutWithRecommendation,
     trainAsPlanned,
     startCoachAssignment,

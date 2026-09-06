@@ -179,7 +179,10 @@ export default function GymScreen({
     )
   }
 
-  const completedExercises = workout.exercises.filter((exercise) => {
+  const exercises = workout.exercises ?? []
+  const isEmptySession = exercises.length === 0
+
+  const completedExercises = exercises.filter((exercise) => {
     const entered = exercise.sets.filter((set) =>
       isActiveSetEntered(set, exercise.loadType),
     )
@@ -187,11 +190,10 @@ export default function GymScreen({
   }).length
 
   const progress = Math.round(
-    (completedExercises / Math.max(1, workout.exercises.length)) * 100,
+    (completedExercises / Math.max(1, exercises.length)) * 100,
   )
 
-  const currentExercise =
-    workout.exercises[activeExercise] ?? workout.exercises[0]
+  const currentExercise = exercises[activeExercise] ?? exercises[0]
 
   const elapsedSeconds = Math.max(
     0,
@@ -225,6 +227,130 @@ export default function GymScreen({
       : `${elapsedMinutes}:${String(
           elapsedRemainderSeconds,
         ).padStart(2, '0')}`
+
+  if (isEmptySession) {
+    return (
+      <div className="focus-mode gym-freeform-empty">
+        <section
+          className="focus-mode-bar lift-session-overview"
+          data-testid="gym-session-overview"
+          aria-label="Active workout summary"
+        >
+          <div className="gym-workout-heading">
+            <span className="eyebrow">GYM MODE</span>
+            <div className="gym-workout-title-row">
+              <h2 data-testid="gym-workout-name">{workout.name}</h2>
+            </div>
+            <div className="lift-overview-meta" data-testid="gym-overview-meta">
+              <span data-testid="gym-completed-count">No exercises yet</span>
+              <span data-testid="gym-elapsed-time">
+                <Clock3 size={13} />
+                {elapsedLabel}
+              </span>
+            </div>
+          </div>
+          <ProgressRing value={0} />
+        </section>
+
+        <section className="empty-state gym-add-first-exercise" aria-label="Add first exercise">
+          <Dumbbell size={34} />
+          <h2>Add your first exercise</h2>
+          <p>Build this session as you go — tap to add a movement and start logging sets.</p>
+          <button
+            type="button"
+            className="gold-button machined"
+            onClick={() => setShowQuickAdd(true)}
+          >
+            Add Exercise
+          </button>
+        </section>
+
+        <div className="focus-finish-bar">
+          <button
+            className="focus-more-button"
+            aria-label="Workout options"
+            onClick={() => setShowWorkoutMenu(true)}
+          >
+            <MoreHorizontal />
+          </button>
+          <button
+            className="gold-button machined"
+            disabled={isFinishing}
+            onClick={onFinish}
+          >
+            {isFinishing ? 'Saving Workout…' : 'Finish Workout'}
+          </button>
+        </div>
+
+        {showWorkoutMenu &&
+          createPortal(
+            <div
+              className="modal-backdrop workout-menu-portal"
+              onClick={() => setShowWorkoutMenu(false)}
+            >
+              <section
+                className="workout-options-modal"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="workout-options-title"
+                onClick={(event) => event.stopPropagation()}
+              >
+                <header>
+                  <div>
+                    <span className="eyebrow">CURRENT SESSION</span>
+                    <h2 id="workout-options-title">Workout Options</h2>
+                  </div>
+                  <button
+                    className="workout-options-close"
+                    onClick={() => setShowWorkoutMenu(false)}
+                    aria-label="Close workout options"
+                  >
+                    <X size={20} />
+                  </button>
+                </header>
+                <p>
+                  Manage the active workout without adding anything to your
+                  training history unless you choose Finish Workout.
+                </p>
+                <div className="workout-options-list">
+                  <button
+                    onClick={() => {
+                      setShowWorkoutMenu(false)
+                      onEndWorkout?.()
+                    }}
+                  >
+                    <div className="workout-option-icon">
+                      <LogOut size={18} />
+                    </div>
+                    <div>
+                      <strong>End Without Saving</strong>
+                      <small>Discard this empty session.</small>
+                    </div>
+                  </button>
+                </div>
+                <button
+                  className="workout-options-cancel"
+                  onClick={() => setShowWorkoutMenu(false)}
+                >
+                  Cancel
+                </button>
+              </section>
+            </div>,
+            document.body,
+          )}
+
+        {showQuickAdd && (
+          <QuickAddModal
+            onClose={() => setShowQuickAdd(false)}
+            onAdd={(exercise) => {
+              onQuickAddExercise(exercise)
+              setShowQuickAdd(false)
+            }}
+          />
+        )}
+      </div>
+    )
+  }
 
   const restLabel = `${Math.floor(
     restRemaining / 60,
@@ -292,45 +418,42 @@ export default function GymScreen({
   }
 
   const supersetGroup = currentExercise.supersetGroup
-  const supersetExercises = supersetGroup
-    ? workout.exercises.filter(
-        (exercise) => exercise.supersetGroup === supersetGroup,
-      )
-    : []
+  const supersetExercises = exercises.filter(
+    (exercise) => exercise.supersetGroup === supersetGroup,
+  )
   const supersetRounds = supersetGroup
-    ? getSupersetRoundCount(workout.exercises, supersetGroup)
+    ? getSupersetRoundCount(exercises, supersetGroup)
     : 0
   const supersetRoundByGroup = workout.supersetRoundByGroup ?? {}
   const supersetRound = supersetGroup
     ? supersetRoundByGroup[supersetGroup] ??
-      getInitialSupersetRound(workout.exercises, supersetGroup)
+      getInitialSupersetRound(exercises, supersetGroup)
     : 0
   const clampedSupersetRound = Math.min(
     supersetRound,
     Math.max(0, supersetRounds - 1),
   )
-  const supersetComplete = supersetGroup
-    ? isSupersetComplete(workout.exercises, supersetGroup)
-    : false
+  const supersetComplete = Boolean(supersetGroup) &&
+    isSupersetComplete(exercises, supersetGroup)
   const canGoPreviousExercise = activeExercise > 0
   const canGoNextExercise = hasRemainingExercisesAfter(
-    workout.exercises,
+    exercises,
     activeExercise,
   )
   const showContinuePrimary =
     Boolean(supersetGroup) &&
     shouldShowContinueAction(
-      workout.exercises,
+      exercises,
       activeExercise,
       supersetRoundByGroup,
     )
   const continueActionLabel = getContinueActionLabel(
-    workout.exercises,
+    exercises,
     activeExercise,
     supersetRoundByGroup,
   )
   const showFinishPrimary = shouldShowFinishWorkoutPrimary(
-    workout.exercises,
+    exercises,
     activeExercise,
   )
 
@@ -362,7 +485,7 @@ export default function GymScreen({
           </div>
           <div className="lift-overview-meta" data-testid="gym-overview-meta">
             <span data-testid="gym-completed-count">
-              {completedExercises} of {workout.exercises.length} complete
+              {completedExercises} of {exercises.length} complete
             </span>
 
             <span data-testid="gym-elapsed-time">
