@@ -13,6 +13,8 @@ vi.mock('../../lib/coachBackend', () => ({
     listCoachRoster: vi.fn(),
     listCoachInvitations: vi.fn(),
     listCoachAssignments: vi.fn(),
+    listCoachLeads: vi.fn().mockResolvedValue([]),
+    listCoachClientFollowUps: vi.fn().mockResolvedValue([]),
     listWorkoutTemplates: vi.fn(),
     listPrograms: vi.fn(),
     saveProgram: vi.fn(),

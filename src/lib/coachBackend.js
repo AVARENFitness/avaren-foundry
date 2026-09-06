@@ -57,13 +57,38 @@ import {
   normalizeLifecycleRpcResult,
 } from './coachClientLifecycle'
 import { SCHEDULED_SESSION_STATUS } from './coachScheduledSessions'
+import {
+  buildLeadCreatePayload,
+  buildLeadConversionNote,
+  isValidLeadStage,
+  normalizeCoachLead,
+} from './coachLead'
+import {
+  canUseDevLeadStore,
+  leadBackendUnavailableMessage,
+} from './coachLeadDevFallback'
 
 const normalizeEmail = (value = '') => String(value).trim().toLowerCase()
 
 const devFollowUpStore = new Map()
+const devLeadStore = new Map()
 
 const readDevFollowUps = (coachId = null) =>
   devFollowUpStore.get(String(coachId ?? '')) ?? []
+
+const readDevLeads = (coachId = null) =>
+  devLeadStore.get(String(coachId ?? '')) ?? []
+
+const writeDevLead = (coachId = null, item = null) => {
+  const key = String(coachId ?? '')
+  const rows = readDevLeads(key)
+  devLeadStore.set(key, [item, ...rows.filter((row) => row.id !== item.id)])
+  return item
+}
+
+export const resetDevCoachLeadStore = () => {
+  devLeadStore.clear()
+}
 
 const writeDevFollowUp = (coachId = null, item = null) => {
   const key = String(coachId ?? '')
@@ -79,6 +104,16 @@ const missingBackend = (error) =>
   error?.code === '42P01' ||
   error?.code === '42883' ||
   /does not exist/i.test(error?.message ?? '')
+
+const shouldUseDevLeadStore = (error) =>
+  canUseDevLeadStore() && missingBackend(error)
+
+const rejectLeadBackendUnavailable = (error) => {
+  if (missingBackend(error) && !canUseDevLeadStore()) {
+    throw new Error(leadBackendUnavailableMessage)
+  }
+  throw error
+}
 const unwrap = async (request) => {
   const result = await request
   if (result.error && missingBackend(result.error)) throw new Error('Coach backend is not installed. Run the Supabase coach migrations.')
@@ -1923,5 +1958,177 @@ export const coachBackend = {
     }
 
     return Array.isArray(data) ? data : []
+  },
+
+  async listCoachLeads() {
+    const user = await currentUser()
+
+    try {
+      const rows = await unwrap(
+        supabase
+          .from('coach_leads')
+          .select('*')
+          .eq('coach_id', user.id)
+          .order('updated_at', { ascending: false }),
+      )
+      return (rows ?? []).map(normalizeCoachLead)
+    } catch (error) {
+      if (shouldUseDevLeadStore(error)) {
+        return readDevLeads(user.id).map(normalizeCoachLead)
+      }
+      rejectLeadBackendUnavailable(error)
+    }
+  },
+
+  async createCoachLead(payload = {}) {
+    const user = await currentUser()
+    const insertPayload = {
+      ...buildLeadCreatePayload(payload),
+      coach_id: user.id,
+    }
+
+    const result = await supabase
+      .from('coach_leads')
+      .insert(insertPayload)
+      .select('*')
+      .limit(1)
+
+    if (result.error) {
+      if (shouldUseDevLeadStore(result.error)) {
+        const lead = normalizeCoachLead({
+          id: crypto.randomUUID(),
+          coach_id: user.id,
+          ...insertPayload,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        return writeDevLead(user.id, lead)
+      }
+      rejectLeadBackendUnavailable(result.error)
+    }
+
+    return normalizeCoachLead(result.data?.[0])
+  },
+
+  async updateCoachLead(leadId, patch = {}) {
+    const user = await currentUser()
+    const updatePayload = {
+      ...(patch.firstName !== undefined
+        ? { first_name: String(patch.firstName).trim() }
+        : {}),
+      ...(patch.lastName !== undefined
+        ? { last_name: String(patch.lastName).trim() }
+        : {}),
+      ...(patch.preferredName !== undefined
+        ? { preferred_name: String(patch.preferredName).trim() }
+        : {}),
+      ...(patch.phone !== undefined ? { phone: String(patch.phone).trim() } : {}),
+      ...(patch.email !== undefined ? { email: String(patch.email).trim() } : {}),
+      ...(patch.goal !== undefined ? { goal: String(patch.goal).trim() } : {}),
+      ...(patch.source !== undefined
+        ? { source: String(patch.source).trim() }
+        : {}),
+      ...(patch.notes !== undefined ? { notes: String(patch.notes).trim() } : {}),
+      ...(patch.stage !== undefined && isValidLeadStage(patch.stage)
+        ? { stage: patch.stage }
+        : {}),
+      ...(patch.nextFollowUpAt !== undefined
+        ? { next_follow_up_at: patch.nextFollowUpAt || null }
+        : {}),
+      updated_at: new Date().toISOString(),
+    }
+
+    const result = await supabase
+      .from('coach_leads')
+      .update(updatePayload)
+      .eq('coach_id', user.id)
+      .eq('id', leadId)
+      .select('*')
+      .limit(1)
+
+    if (result.error) {
+      if (shouldUseDevLeadStore(result.error)) {
+        const rows = readDevLeads(user.id)
+        const index = rows.findIndex((item) => item.id === leadId)
+        if (index === -1) throw new Error('Lead not found.')
+        const current = normalizeCoachLead(rows[index])
+        const updated = normalizeCoachLead({
+          ...current,
+          first_name: patch.firstName ?? current.firstName,
+          last_name: patch.lastName ?? current.lastName,
+          preferred_name: patch.preferredName ?? current.preferredName,
+          phone: patch.phone ?? current.phone,
+          email: patch.email ?? current.email,
+          goal: patch.goal ?? current.goal,
+          source: patch.source ?? current.source,
+          notes: patch.notes ?? current.notes,
+          stage: patch.stage ?? current.stage,
+          next_follow_up_at:
+            patch.nextFollowUpAt === undefined
+              ? current.nextFollowUpAt
+              : patch.nextFollowUpAt,
+          updated_at: new Date().toISOString(),
+        })
+        rows[index] = updated
+        devLeadStore.set(String(user.id), rows)
+        return updated
+      }
+      rejectLeadBackendUnavailable(result.error)
+    }
+
+    if (!result.data?.length) throw new Error('Lead not found.')
+    return normalizeCoachLead(result.data[0])
+  },
+
+  async convertCoachLeadToClient(leadId) {
+    const user = await currentUser()
+
+    const result = await supabase.rpc('convert_coach_lead_to_business_client', {
+      p_lead_id: leadId,
+    })
+
+    if (result.error) {
+      if (shouldUseDevLeadStore(result.error)) {
+        const rows = readDevLeads(user.id)
+        const lead = rows.find((item) => item.id === leadId)
+        if (!lead) throw new Error('Lead not found.')
+        if (lead.businessClientId || lead.business_client_id) {
+          return {
+            lead: normalizeCoachLead(lead),
+            businessClient: { id: lead.businessClientId ?? lead.business_client_id },
+          }
+        }
+        if (lead.stage !== 'WON') {
+          throw new Error('Lead must be marked WON before conversion.')
+        }
+
+        const businessClient = await this.createBusinessClient({
+          firstName: lead.firstName ?? lead.first_name,
+          lastName: lead.lastName ?? lead.last_name,
+          preferredName: lead.preferredName ?? lead.preferred_name,
+          email: lead.email || null,
+          phone: lead.phone || null,
+          privateNote: buildLeadConversionNote(normalizeCoachLead(lead)),
+        })
+
+        const updatedLead = normalizeCoachLead({
+          ...lead,
+          business_client_id: businessClient.id,
+          updated_at: new Date().toISOString(),
+        })
+        writeDevLead(user.id, updatedLead)
+        return {
+          lead: updatedLead,
+          businessClient,
+        }
+      }
+      rejectLeadBackendUnavailable(result.error)
+    }
+
+    const payload = result.data ?? {}
+    return {
+      lead: normalizeCoachLead(payload.lead ?? payload),
+      businessClient: payload.business_client ?? payload.businessClient ?? null,
+    }
   },
 }

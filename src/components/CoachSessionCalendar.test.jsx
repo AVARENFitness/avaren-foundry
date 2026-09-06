@@ -96,6 +96,10 @@ const buildSessionsFixture = () => {
 
 describe('CoachSessionCalendar usability', () => {
   beforeEach(() => {
+    // Mid-week fixed clock keeps today+1 / today+3 inside the Mon–Sun week strip.
+    // Fake only Date so waitFor / promises keep working.
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-09-02T16:00:00.000Z')) // Wed in America/New_York
     vi.clearAllMocks()
     coachBackend.listScheduledSessions.mockResolvedValue(buildSessionsFixture())
     coachBackend.listClientPassBalances.mockResolvedValue([])
@@ -227,6 +231,12 @@ describe('CoachSessionCalendar usability', () => {
   })
 
   it('shows cancelled appointments clearly in week day agenda', async () => {
+    const todayKey = dateKey(new Date(), DEFAULT_COACH_SCHEDULE_TIMEZONE)
+    const agendaDayKey = addDaysKey(todayKey, 1)
+    const agendaDay = new Date(`${agendaDayKey}T12:00:00`)
+    const weekday = agendaDay.toLocaleDateString([], { weekday: 'short' })
+    const dayNumber = agendaDay.getDate()
+
     render(
       <CoachSessionCalendar
         clients={[
@@ -247,16 +257,10 @@ describe('CoachSessionCalendar usability', () => {
 
     fireEvent.click(screen.getByTestId('coach-calendar-view-week'))
 
-    const tomorrow = addDaysKey(
-      dateKey(new Date(), DEFAULT_COACH_SCHEDULE_TIMEZONE),
-      1,
-    )
-    const tomorrowDate = new Date(`${tomorrow}T12:00:00`)
-    const weekday = tomorrowDate.toLocaleDateString([], { weekday: 'short' })
-    const dayNumber = tomorrowDate.getDate()
-
     fireEvent.click(
-      screen.getByRole('tab', { name: new RegExp(`${weekday}[\\s\\S]*${dayNumber}`, 'i') }),
+      screen.getByRole('tab', {
+        name: new RegExp(`${weekday}[\\s\\S]*${dayNumber}`, 'i'),
+      }),
     )
 
     expect(screen.getByText('Cancelled')).toBeInTheDocument()

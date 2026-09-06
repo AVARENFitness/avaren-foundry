@@ -487,3 +487,149 @@
     margin-top: 2px;
   }
 }
+
+/* ===== SPRINT 9.0 · COACHING OS ===== */
+
+.coach-business-snapshot {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.coach-business-snapshot article {
+  display: grid;
+  gap: 4px;
+  min-height: 64px;
+  padding: 12px 14px;
+  border: 1px solid rgba(246, 242, 233, 0.08);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.coach-business-snapshot span {
+  color: #948d84;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.coach-business-snapshot strong {
+  color: #f6f2e9;
+  font-size: 24px;
+  line-height: 1;
+}
+
+.coach-today-schedule-item {
+  display: grid;
+  gap: 8px;
+}
+
+.coach-today-quick-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.coach-today-quick-actions .coach-secondary-button {
+  min-height: 44px;
+  padding: 0 12px;
+}
+
+.coach-appointment-card-context {
+  display: block;
+  margin-top: 4px;
+  color: #b8b0a4;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.coach-leads-screen .coach-hub-page-header {
+  display: grid;
+  gap: 12px;
+}
+
+.coach-leads-list {
+  display: grid;
+  gap: 8px;
+}
+
+.coach-leads-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-height: 64px;
+  padding: 14px 16px;
+  border: 1px solid rgba(246, 242, 233, 0.08);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.02);
+  color: inherit;
+  text-align: left;
+}
+
+.coach-leads-row strong {
+  display: block;
+  color: #f6f2e9;
+  font-size: 16px;
+}
+
+.coach-leads-row span,
+.coach-leads-row small {
+  display: block;
+  color: #948d84;
+}
+
+.coach-leads-row--due {
+  border-color: rgba(223, 195, 125, 0.24);
+}
+
+.coach-leads-due-pill,
+.coach-leads-attention-row .coach-secondary-button {
+  color: #d8c08a;
+}
+
+.coach-leads-detail,
+.coach-leads-add-sheet {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid rgba(246, 242, 233, 0.08);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.coach-leads-detail label,
+.coach-leads-add-sheet label {
+  display: grid;
+  gap: 6px;
+}
+
+.coach-leads-detail input,
+.coach-leads-detail select,
+.coach-leads-add-sheet input,
+.coach-leads-add-sheet textarea {
+  min-height: 44px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(246, 242, 233, 0.1);
+  background: rgba(0, 0, 0, 0.22);
+  color: #f6f2e9;
+}
+
+.coach-more-links {
+  display: grid;
+  gap: 8px;
+}
+
+.coach-more-links .coach-secondary-button {
+  min-height: 48px;
+  justify-content: flex-start;
+}
+
+@media (min-width: 680px) {
+  .coach-business-snapshot {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}

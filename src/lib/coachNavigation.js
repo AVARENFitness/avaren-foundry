@@ -4,6 +4,7 @@ export const COACH_SCREENS = {
   BUILD: 'build',
   CALENDAR: 'calendar',
   MORE: 'more',
+  LEADS: 'leads',
 }
 
 const LEGACY_SCREEN_MAP = {

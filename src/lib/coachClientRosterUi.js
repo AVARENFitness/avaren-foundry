@@ -121,11 +121,40 @@ export const buildRosterRowMeta = (
   }
 }
 
-export const buildUpcomingSessionsByBusinessClientId = (sessions = []) => {
+export const buildUpcomingSessionsByBusinessClientId = (
+  sessions = [],
+  now = new Date(),
+) => {
   const map = {}
+  const nowMs = now instanceof Date ? now.getTime() : Number(now)
 
-  for (const session of sessions) {
+  const sorted = [...sessions].sort((first, second) => {
+    const firstAt =
+      first?.startsAt ??
+      (first?.sessionDate
+        ? `${first.sessionDate}T${String(first.startTime ?? '00:00').slice(0, 5)}:00`
+        : null)
+    const secondAt =
+      second?.startsAt ??
+      (second?.sessionDate
+        ? `${second.sessionDate}T${String(second.startTime ?? '00:00').slice(0, 5)}:00`
+        : null)
+    const firstMs = firstAt ? new Date(firstAt).getTime() : Number.NaN
+    const secondMs = secondAt ? new Date(secondAt).getTime() : Number.NaN
+    return (Number.isFinite(firstMs) ? firstMs : 0) - (Number.isFinite(secondMs) ? secondMs : 0)
+  })
+
+  for (const session of sorted) {
     if (!session || session.status !== 'scheduled') continue
+
+    const startsAt =
+      session.startsAt ??
+      (session.sessionDate
+        ? `${session.sessionDate}T${String(session.startTime ?? '00:00').slice(0, 5)}:00`
+        : null)
+    const startsAtMs = startsAt ? new Date(startsAt).getTime() : Number.NaN
+    if (!Number.isFinite(startsAtMs) || startsAtMs <= nowMs) continue
+
     const businessClientId =
       session.businessClientId ?? session.business_client_id ?? null
     if (!businessClientId || map[businessClientId]) continue

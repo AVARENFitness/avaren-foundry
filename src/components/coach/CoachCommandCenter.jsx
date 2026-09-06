@@ -17,6 +17,13 @@ import {
 } from '../../lib/coachClientRosterUi'
 import { resolveRecordBusinessClientId } from '../../lib/coachBusinessClient'
 import {
+  buildPassSummaryByBusinessClientId,
+  buildRecentMissedByBusinessClientId,
+  getCoachAttentionItems,
+} from '../../lib/coachAttention'
+import { isLeadFollowUpDue } from '../../lib/coachLead'
+import { LOW_PASS_ATTENTION_THRESHOLD } from '../../lib/coachPassAttention'
+import {
   normalizeScheduledSession,
   sortScheduledSessions,
 } from '../../lib/coachScheduledSessions'
@@ -62,30 +69,106 @@ export default function CoachCommandCenter({
   notice = '',
   assignments = [],
   rosterOnly = false,
+  leads = [],
+  coachFollowUpsByAthleteId = {},
+  onOpenLead,
 }) {
   const [hubScheduleRefresh, setHubScheduleRefresh] = useState(0)
   const [rosterExpanded, setRosterExpanded] = useState(rosterOnly)
   const [rosterFilter, setRosterFilter] = useState(ROSTER_HUB_FILTER.ACTIVE)
   const [upcomingByBusinessClientId, setUpcomingByBusinessClientId] = useState({})
+  const [recentMissedByBusinessClientId, setRecentMissedByBusinessClientId] =
+    useState({})
+  const [todaySessionCount, setTodaySessionCount] = useState(0)
 
   const hero = portfolio?.hero
-  const attentionCount = portfolio?.attentionQueue?.length ?? 0
+  const passSummaryByBusinessClientId = useMemo(
+    () => buildPassSummaryByBusinessClientId(passAvaContextByBusinessClientId),
+    [passAvaContextByBusinessClientId],
+  )
+  const attentionResult = useMemo(
+    () =>
+      getCoachAttentionItems(
+        {
+          portfolio,
+          rosterEntries: portfolio?.rosterEntries ?? [],
+          athleteStatesById: portfolio?.athleteStatesById ?? {},
+          weeklyReviewsByAthleteId: portfolio?.weeklyReviewsByAthleteId ?? {},
+          weeklyCheckInsByAthleteId: portfolio?.weeklyCheckInsByAthleteId ?? {},
+          coachFollowUpsByAthleteId,
+          upcomingByBusinessClientId,
+          passSummaryByBusinessClientId,
+          recentMissedByBusinessClientId,
+          portfolioStatus: portfolio ? 'ready' : 'unloaded',
+        },
+        new Date(),
+        { limit: 5 },
+      ),
+    [
+      portfolio,
+      coachFollowUpsByAthleteId,
+      upcomingByBusinessClientId,
+      passSummaryByBusinessClientId,
+      recentMissedByBusinessClientId,
+    ],
+  )
+  const attentionItems = attentionResult.hubItems
+  const attentionCount = attentionItems.length
+  const leadFollowUpCount = useMemo(
+    () => leads.filter((lead) => isLeadFollowUpDue(lead)).length,
+    [leads],
+  )
+  const lowPassCount = useMemo(
+    () =>
+      Object.values(passSummaryByBusinessClientId).filter(
+        (summary) =>
+          Number(summary?.activeCount ?? 0) > 0 &&
+          Number(summary?.totalBalance ?? 0) <= LOW_PASS_ATTENTION_THRESHOLD,
+      ).length,
+    [passSummaryByBusinessClientId],
+  )
 
   const loadUpcomingSessions = useCallback(async () => {
     try {
       const today = new Date().toISOString().slice(0, 10)
-      const rows = await coachBackend.listScheduledSessions({
-        startDate: today,
-        endDate: upcomingRangeEnd(),
-      })
-      const normalized = sortScheduledSessions(
-        (rows ?? []).map(normalizeScheduledSession).filter(Boolean),
+      const past = new Date()
+      past.setDate(past.getDate() - 14)
+      const pastKey = past.toISOString().slice(0, 10)
+      const [upcomingRows, recentRows, todayRows] = await Promise.all([
+        coachBackend.listScheduledSessions({
+          startDate: today,
+          endDate: upcomingRangeEnd(),
+        }),
+        coachBackend.listScheduledSessions({
+          startDate: pastKey,
+          endDate: today,
+        }),
+        coachBackend.listScheduledSessions({
+          startDate: today,
+          endDate: today,
+        }),
+      ])
+      const normalizedUpcoming = sortScheduledSessions(
+        (upcomingRows ?? []).map(normalizeScheduledSession).filter(Boolean),
+      )
+      const normalizedRecent = sortScheduledSessions(
+        (recentRows ?? []).map(normalizeScheduledSession).filter(Boolean),
       )
       setUpcomingByBusinessClientId(
-        buildUpcomingSessionsByBusinessClientId(normalized),
+        buildUpcomingSessionsByBusinessClientId(normalizedUpcoming, new Date()),
+      )
+      setRecentMissedByBusinessClientId(
+        buildRecentMissedByBusinessClientId(normalizedRecent),
+      )
+      setTodaySessionCount(
+        sortScheduledSessions(
+          (todayRows ?? []).map(normalizeScheduledSession).filter(Boolean),
+        ).length,
       )
     } catch {
       setUpcomingByBusinessClientId({})
+      setRecentMissedByBusinessClientId({})
+      setTodaySessionCount(0)
     }
   }, [])
 
@@ -182,23 +265,50 @@ export default function CoachCommandCenter({
 
           {!rosterOnly ? (
             <>
+              <section className="coach-business-snapshot" aria-label="Business snapshot">
+                <article>
+                  <span>Sessions today</span>
+                  <strong>{todaySessionCount}</strong>
+                </article>
+                <article>
+                  <span>Active clients</span>
+                  <strong>{hero?.activeClients ?? clients.length}</strong>
+                </article>
+                <article>
+                  <span>Low passes</span>
+                  <strong>{lowPassCount}</strong>
+                </article>
+                <article>
+                  <span>Lead follow-ups</span>
+                  <strong>{leadFollowUpCount}</strong>
+                </article>
+              </section>
+
               <CoachTodaySchedule
                 clients={clients}
+                passSummaryByBusinessClientId={passSummaryByBusinessClientId}
                 onSchedule={onSchedule ?? (() => onNavigateCoachScreen?.('calendar'))}
                 onOpenCalendar={() => onNavigateCoachScreen?.('calendar')}
                 onOpenClient={onSelectClient}
                 onOpenSession={openSession}
+                onOpenClientSection={(client, section) => {
+                  onSelectClient?.(client, section)
+                }}
                 refreshSignal={hubScheduleRefresh}
               />
 
               <CoachAttentionQueue
-                items={portfolio?.attentionQueue ?? []}
-                totalCount={portfolio?.attentionQueue?.length ?? 0}
+                items={attentionItems}
+                totalCount={attentionResult.meta.totalCandidates}
                 onViewClient={onSelectClient}
                 onViewAll={() => {
                   onNavigateCoachScreen?.('clients')
                   setRosterFilter(ROSTER_HUB_FILTER.ATTENTION)
                 }}
+                onLeadFollowUp={
+                  leadFollowUpCount > 0 ? onOpenLead : null
+                }
+                leadFollowUpCount={leadFollowUpCount}
               />
             </>
           ) : null}

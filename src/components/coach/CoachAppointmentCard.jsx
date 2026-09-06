@@ -11,6 +11,8 @@ export default function CoachAppointmentCard({
   className = '',
   isPast = false,
   isNext = false,
+  appointmentTypeLabel: typeLabel = null,
+  contextSignal = null,
 }) {
   const clientName = getClientDisplayName(client ?? {}) || 'Client'
   const time = formatScheduledSessionTime(session)
@@ -41,7 +43,12 @@ export default function CoachAppointmentCard({
         ) : null}
         <strong className="coach-appointment-card-time">{time}</strong>
         <span className="coach-appointment-card-client">{clientName}</span>
-        <span className="coach-appointment-card-meta">{duration}</span>
+        <span className="coach-appointment-card-meta">
+          {[typeLabel, duration].filter(Boolean).join(' · ')}
+        </span>
+        {contextSignal ? (
+          <span className="coach-appointment-card-context">{contextSignal}</span>
+        ) : null}
       </div>
       {status ? (
         <span

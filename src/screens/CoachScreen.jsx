@@ -38,6 +38,8 @@ import CoachClientProfile from './CoachClientProfile'
 import CoachWorkoutDesigner from '../components/CoachWorkoutDesigner'
 import CoachSessionCalendar from '../components/CoachSessionCalendar'
 import CoachPrograms from '../components/CoachPrograms'
+import CoachLeadsScreen from './CoachLeadsScreen'
+import { getCoachAttentionItems } from '../lib/coachAttention'
 
 export default function CoachScreen({
   workspace,
@@ -70,6 +72,9 @@ export default function CoachScreen({
   const [scheduleReturnClient,setScheduleReturnClient]=useState(null)
   const [showCreateClient,setShowCreateClient]=useState(false)
   const [creatingClient,setCreatingClient]=useState(false)
+  const [leads, setLeads] = useState([])
+  const [coachFollowUpsByAthleteId, setCoachFollowUpsByAthleteId] = useState({})
+  const [clientProfileSection, setClientProfileSection] = useState('overview')
 
   useEffect(() => {
     probeIdentityCapabilities().then((caps) => {
@@ -93,10 +98,12 @@ export default function CoachScreen({
   const load = async () => {
     setLoading(true)
     try {
-      const [c, i, a] = await Promise.all([
+      const [c, i, a, leadRows, followUpRows] = await Promise.all([
         coachBackend.listCoachRoster({ includeArchived: true }),
         coachBackend.listCoachInvitations(),
         coachBackend.listCoachAssignments(),
+        coachBackend.listCoachLeads().catch(() => []),
+        coachBackend.listCoachClientFollowUps().catch(() => []),
       ])
       let t = []
       try {
@@ -110,6 +117,15 @@ export default function CoachScreen({
       setClients(c)
       setInvitations(i)
       setAssignments(a)
+      setLeads(leadRows)
+      setCoachFollowUpsByAthleteId(
+        followUpRows.reduce((accumulator, followUp) => {
+          const athleteId = followUp.athleteId
+          if (!athleteId) return accumulator
+          accumulator[athleteId] = [...(accumulator[athleteId] ?? []), followUp]
+          return accumulator
+        }, {}),
+      )
       setTemplates(t)
       setWorkspace((w) => ({ ...w, clients: c, invitations: i, assignments: a }))
       const deliveryRows = await assignmentNotificationBackend.deliveryForAssignments(
@@ -237,6 +253,16 @@ export default function CoachScreen({
       assignments,
       athleteStatesById,
       weeklyReviewsByAthleteId,
+      coachFollowUpsByAthleteId,
+      leads,
+      attentionItems: getCoachAttentionItems({
+        portfolio: sortedPortfolio,
+        rosterEntries: sortedPortfolio?.rosterEntries ?? [],
+        athleteStatesById,
+        weeklyReviewsByAthleteId,
+        coachFollowUpsByAthleteId,
+        portfolioStatus: sortedPortfolio ? 'ready' : 'unloaded',
+      }).items,
       coachScreen: screen,
       selectedClient: contextClient,
       selectedClientId: selectedBusinessClientId,
@@ -251,6 +277,8 @@ export default function CoachScreen({
     assignments,
     athleteStatesById,
     weeklyReviewsByAthleteId,
+    coachFollowUpsByAthleteId,
+    leads,
     screen,
     selectedClient,
     weeklyReviewClient,
@@ -258,6 +286,13 @@ export default function CoachScreen({
     portfolioError,
     onCoachAvaContextChange,
   ])
+
+  const openClientProfile = (client, section = 'overview') => {
+    if (!client) return
+    setClientProfileSection(section)
+    setSelectedClient(client)
+    onNavigateCoachScreen?.(COACH_SCREENS.CLIENTS)
+  }
 
   const openAddClient = () => {
     setNotice('')
@@ -400,6 +435,7 @@ export default function CoachScreen({
   if(selectedClient && screen==='clients') return <>
     <CoachClientProfile
       client={selectedClient}
+      initialActiveSection={clientProfileSection}
       assignments={assignments}
       clientNotes={clientNotes}
       notesUpdatedAt={notesUpdatedAt}
@@ -441,7 +477,10 @@ export default function CoachScreen({
       }}
       coachLabelsEnabled={coachLabelsEnabled || getIdentityCapabilities().coachClientLabels}
       coachEmail={coachEmail}
-      onBack={()=>setSelectedClient(null)}
+      onBack={()=>{
+        setSelectedClient(null)
+        setClientProfileSection('overview')
+      }}
       onAssignWorkout={()=>openDesigner({ clientId: selectedClient?.athlete_id ?? '' })}
       onBuildWorkout={()=>openDesigner({ clientId: selectedClient?.athlete_id ?? '' })}
       onAssignProgram={() => setClientProgramFlow('assign')}
@@ -527,6 +566,23 @@ export default function CoachScreen({
     )
   }
 
+  if (normalizedScreen === COACH_SCREENS.LEADS) {
+    return (
+      <>
+        <CoachLeadsScreen
+          onBack={() => onNavigateCoachScreen?.(COACH_SCREENS.MORE)}
+          onConverted={async () => {
+            await load()
+            onNavigateCoachScreen?.(COACH_SCREENS.CLIENTS)
+          }}
+          notice={notice}
+          setNotice={setNotice}
+        />
+        {designer}
+      </>
+    )
+  }
+
   if (normalizedScreen === COACH_SCREENS.MORE || screen === 'settings') {
     return (
       <section className="coach-hub-screen coach-more-screen">
@@ -553,6 +609,15 @@ export default function CoachScreen({
             <strong>{templates.length}</strong>
           </article>
         </section>
+        <div className="coach-more-links">
+          <button
+            type="button"
+            className="coach-secondary-button"
+            onClick={() => onNavigateCoachScreen?.(COACH_SCREENS.LEADS)}
+          >
+            Leads
+          </button>
+        </div>
         {notice ? <p className="coach-hub-notice">{notice}</p> : null}
       </section>
     )
@@ -573,11 +638,14 @@ export default function CoachScreen({
           loading={loading}
           query={query}
           onQueryChange={setQuery}
-          onSelectClient={setSelectedClient}
+          onSelectClient={openClientProfile}
           onOpenBuild={openBuildWorkouts}
           onNavigateCoachScreen={onNavigateCoachScreen}
           onAddClient={openAddClient}
           notice={notice}
+          leads={leads}
+          coachFollowUpsByAthleteId={coachFollowUpsByAthleteId}
+          onOpenLead={() => onNavigateCoachScreen?.(COACH_SCREENS.LEADS)}
         />
         <CoachCreateClientSheet
           open={showCreateClient}
@@ -605,10 +673,7 @@ export default function CoachScreen({
       loading={loading}
       query={query}
       onQueryChange={setQuery}
-      onSelectClient={(client) => {
-        setSelectedClient(client)
-        onNavigateCoachScreen?.(COACH_SCREENS.CLIENTS)
-      }}
+      onSelectClient={(client, section) => openClientProfile(client, section)}
       onOpenBuild={openBuildWorkouts}
       onNavigateCoachScreen={onNavigateCoachScreen}
       onSchedule={() => {
@@ -624,6 +689,9 @@ export default function CoachScreen({
       inviteEmail={inviteEmail}
       onInviteEmailChange={setInviteEmail}
       notice={notice}
+      leads={leads}
+      coachFollowUpsByAthleteId={coachFollowUpsByAthleteId}
+      onOpenLead={() => onNavigateCoachScreen?.(COACH_SCREENS.LEADS)}
     />
     <CoachCreateClientSheet
       open={showCreateClient}

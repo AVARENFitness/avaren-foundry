@@ -125,9 +125,10 @@ export default function CoachClientProfile({
   notice = '',
   onClientUpdated,
   onClientArchived,
+  initialActiveSection = 'overview',
 }) {
   const [passAvaContext, setPassAvaContext] = useState(null)
-  const [activeSection, setActiveSection] = useState('overview')
+  const [activeSection, setActiveSection] = useState(initialActiveSection)
   const [packageSummary, setPackageSummary] = useState(emptySessionPackage())
   const [packageLoading, setPackageLoading] = useState(true)
   const [athleteState, setAthleteState] = useState(null)
@@ -171,6 +172,10 @@ export default function CoachClientProfile({
     () => isWeeklyCheckInEligible(client),
     [client],
   )
+
+  useEffect(() => {
+    setActiveSection(initialActiveSection || 'overview')
+  }, [client?.id, client?.athlete_id, initialActiveSection])
 
   const updateFollowUpStatus = async (followUpId, status) => {
     setFollowUpBusyId(followUpId)

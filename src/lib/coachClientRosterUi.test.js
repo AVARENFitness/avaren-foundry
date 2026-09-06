@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   buildRosterRowMeta,
+  buildUpcomingSessionsByBusinessClientId,
   filterRosterEntriesByHubScope,
   formatRosterNextSessionLabel,
   formatRosterPassLabel,
@@ -157,5 +158,42 @@ describe('coachClientRosterUi', () => {
 
   it('limits command center preview to six clients', () => {
     expect(ROSTER_PREVIEW_LIMIT).toBe(6)
+  })
+
+  it('ignores past scheduled sessions when resolving next appointment', () => {
+    const now = new Date('2026-08-17T18:00:00.000Z')
+    const map = buildUpcomingSessionsByBusinessClientId(
+      [
+        {
+          businessClientId: 'biz-1',
+          status: 'scheduled',
+          startsAt: '2026-08-17T08:00:00.000Z',
+        },
+        {
+          businessClientId: 'biz-1',
+          status: 'scheduled',
+          startsAt: '2026-08-18T10:00:00.000Z',
+        },
+      ],
+      now,
+    )
+
+    expect(map['biz-1']?.startsAt).toBe('2026-08-18T10:00:00.000Z')
+  })
+
+  it('ignores cancelled future sessions', () => {
+    const now = new Date('2026-08-17T12:00:00.000Z')
+    const map = buildUpcomingSessionsByBusinessClientId(
+      [
+        {
+          businessClientId: 'biz-2',
+          status: 'cancelled',
+          startsAt: '2026-08-20T10:00:00.000Z',
+        },
+      ],
+      now,
+    )
+
+    expect(map['biz-2']).toBeUndefined()
   })
 })
