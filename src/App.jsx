@@ -50,6 +50,8 @@ import MoreScreen from './screens/MoreScreen'
 import TrainHubScreen from './screens/TrainHubScreen'
 import AthleteInPersonScheduleScreen from './screens/AthleteInPersonScheduleScreen'
 import { AthleteAppointmentsProvider } from './hooks/useAthleteAppointments'
+import { AthleteCoachInvitationsProvider } from './hooks/useAthleteCoachInvitations'
+import { useAthleteCoachInvitationController } from './hooks/useAthleteCoachInvitationController'
 import { createRuntimeId } from './lib/createRuntimeId'
 import { resetDocumentModalLayer } from './hooks/useAppModalLayer'
 import NutritionScreen from './screens/NutritionScreen'
@@ -100,6 +102,12 @@ import {
   markNotificationRead,
   notificationSnapshot as buildNotificationSnapshot,
 } from './lib/notifications'
+import {
+  ATHLETE_INVITATION_ACTIONS,
+  buildInvitationNotifications,
+  isAthleteInvitationNotification,
+  resolveInvitationIdFromNotification,
+} from './lib/athleteCoachInvitations'
 import {
   resetWeeklyCheckInBackendCache,
 } from './lib/weeklyCheckInBackend'
@@ -259,6 +267,10 @@ function App() {
     onSignedOut: handleSignedOut,
     onAccountHydrated: handleAccountHydrated,
   })
+
+  const athleteCoachInvitations = useAthleteCoachInvitationController(
+    session?.user?.id ?? null,
+  )
 
   lastUserIdRef.current = session?.user?.id ?? null
 
@@ -596,7 +608,11 @@ function App() {
     })
   const mappedRemoteNotifications =
     remoteNotifications.map(mapAssignmentNotification)
+  const invitationNotifications = buildInvitationNotifications(
+    athleteCoachInvitations.invitations,
+  )
   const combinedNotifications = [
+    ...invitationNotifications,
     ...mappedRemoteNotifications,
     ...localNotificationSnapshot.notifications,
   ].sort(
@@ -816,6 +832,20 @@ function App() {
   }
 
   const handleNotificationAction = async (notification) => {
+    if (isAthleteInvitationNotification(notification)) {
+      const invitationId = resolveInvitationIdFromNotification(notification)
+      try {
+        if (notification.action === ATHLETE_INVITATION_ACTIONS.DECLINE) {
+          await athleteCoachInvitations.declineInvitation(invitationId)
+        } else {
+          await athleteCoachInvitations.acceptInvitation(invitationId)
+        }
+      } catch (error) {
+        appUi.toast(error.message, 'error')
+      }
+      return
+    }
+
     if (notification.remote) {
       await handleNotificationRead(notification)
 
@@ -2153,6 +2183,7 @@ function App() {
     coachScreen,
     selectedCoachClient,
     remoteNotifications,
+    athleteCoachInvitations.invitations,
     coachAuthorized,
     session,
     enterCoachMode,
@@ -2259,6 +2290,7 @@ function App() {
   }
 
   return (
+    <AthleteCoachInvitationsProvider value={athleteCoachInvitations}>
     <AthleteAppointmentsProvider userId={session?.user?.id ?? null}>
     <AvaUiProvider
       enabled={!isImmersiveScreen(screen, { mobilityFlow })}
@@ -2339,6 +2371,7 @@ function App() {
       </AppShell>
     </AvaUiProvider>
     </AthleteAppointmentsProvider>
+    </AthleteCoachInvitationsProvider>
   )
 }
 

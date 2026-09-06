@@ -315,3 +315,40 @@
   color: var(--muted);
   text-align: center;
 }
+
+/* Athlete coach invitation (Home) */
+.athlete-coach-invitation-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.athlete-coach-invitation--home {
+  margin: 0 0 14px;
+  padding: 16px;
+  border: 1px solid rgba(216, 184, 109, 0.22);
+  border-radius: 16px;
+  background:
+    radial-gradient(circle at 0% 0%, rgba(216, 184, 109, 0.14), transparent 42%),
+    rgba(12, 14, 16, 0.92);
+}
+
+.athlete-coach-invitation--home .eyebrow {
+  display: block;
+  margin-bottom: 8px;
+}
+
+.athlete-coach-invitation--home strong {
+  display: block;
+  font-size: 1.05rem;
+  letter-spacing: -0.02em;
+  color: #f2e6c4;
+}
+
+.athlete-coach-invitation--home .athlete-coach-invitation-actions {
+  margin-top: 4px;
+}
+
+.athlete-coach-invitation--home .gold-button {
+  min-height: 44px;
+}

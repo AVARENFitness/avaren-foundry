@@ -13,8 +13,10 @@ import { useEffect, useMemo, useState } from 'react'
 import { useLocalCalendarDay } from '../hooks/useLocalCalendarDay'
 import { useAvaUi } from '../ava/useAvaUi'
 import AthleteAssignmentHome from '../components/AthleteAssignmentHome'
+import AthleteCoachInvitationCard from '../components/AthleteCoachInvitationCard'
 import AssignmentExercisePreview from '../components/AssignmentExercisePreview'
 import AvaDailyBriefing from '../components/AvaDailyBriefing'
+import { useAthleteCoachInvitations } from '../hooks/useAthleteCoachInvitations'
 import { buildAvaDailyBriefing } from '../lib/avaIntelligence'
 import { AVA_ACTION_TYPES } from '../lib/avaActions'
 import { coachBackend } from '../lib/coachBackend'
@@ -110,6 +112,12 @@ export default function HomeScreen({
     refreshAppointments: reloadAppointments,
     ready: appointmentsReady,
   } = useAthleteAppointments()
+  const {
+    invitations: pendingInvitations,
+    pendingId: invitationPendingId,
+    acceptInvitation,
+    declineInvitation,
+  } = useAthleteCoachInvitations()
   const [detailAppointment, setDetailAppointment] = useState(null)
 
   useEffect(() => () => setDetailAppointment(null), [])
@@ -465,6 +473,20 @@ export default function HomeScreen({
           <ChevronRight size={16} strokeWidth={1.75} />
         </button>
       )}
+
+      {pendingInvitations.map((invitation) => (
+        <AthleteCoachInvitationCard
+          key={invitation.id}
+          invitation={invitation}
+          pending={invitationPendingId === invitation.id}
+          onAccept={(item) => {
+            void acceptInvitation(item.id)
+          }}
+          onDecline={(item) => {
+            void declineInvitation(item.id)
+          }}
+        />
+      ))}
 
       <AvaDailyBriefing
         briefing={avaBriefing}

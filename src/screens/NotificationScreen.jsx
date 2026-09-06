@@ -8,11 +8,16 @@ import {
   Dumbbell,
   Hammer,
   HeartPulse,
+  UserPlus,
   Wind,
   X,
 } from 'lucide-react'
 import { useState } from 'react'
 import PushNotificationSettings from '../components/PushNotificationSettings'
+import {
+  ATHLETE_INVITATION_NOTIFICATION_TYPE,
+  isAthleteInvitationNotification,
+} from '../lib/athleteCoachInvitations'
 
 const ICONS = {
   readiness: HeartPulse,
@@ -22,6 +27,7 @@ const ICONS = {
   missed: CalendarDays,
   forge: Hammer,
   streak: Check,
+  [ATHLETE_INVITATION_NOTIFICATION_TYPE]: UserPlus,
 }
 
 const timeLabel = (value) => {
@@ -30,9 +36,7 @@ const timeLabel = (value) => {
 
   if (difference < 3600000) return 'Just now'
   if (difference < 86400000) {
-    return `${Math.floor(
-      difference / 3600000,
-    )}h ago`
+    return `${Math.floor(difference / 3600000)}h ago`
   }
 
   return date.toLocaleDateString([], {
@@ -48,21 +52,21 @@ export default function NotificationScreen({
   onDismiss,
   onAction,
 }) {
-  const [pendingFingerprint, setPendingFingerprint] =
-    useState(null)
+  const [pendingFingerprint, setPendingFingerprint] = useState(null)
 
-  const runAction = async (notification) => {
+  const runAction = async (notification, actionOverride = null) => {
     if (pendingFingerprint) return
 
     setPendingFingerprint(notification.fingerprint)
 
     try {
-      await onAction(notification)
-    } finally {
-      window.setTimeout(
-        () => setPendingFingerprint(null),
-        450,
+      await onAction(
+        actionOverride
+          ? { ...notification, action: actionOverride }
+          : notification,
       )
+    } finally {
+      window.setTimeout(() => setPendingFingerprint(null), 450)
     }
   }
 
@@ -74,10 +78,7 @@ export default function NotificationScreen({
     try {
       await onDismiss(notification)
     } finally {
-      window.setTimeout(
-        () => setPendingFingerprint(null),
-        350,
-      )
+      window.setTimeout(() => setPendingFingerprint(null), 350)
     }
   }
 
@@ -105,8 +106,8 @@ export default function NotificationScreen({
               : 'All caught up'}
           </h2>
           <p>
-            AVAREN only surfaces reminders that support
-            today’s training, recovery, or progress.
+            AVAREN only surfaces reminders that support today’s training,
+            recovery, or progress.
           </p>
         </div>
       </section>
@@ -116,16 +117,17 @@ export default function NotificationScreen({
           <BellOff size={25} />
           <h2>No active notifications.</h2>
           <p>
-            You’re caught up. New reminders will appear when
-            something needs attention.
+            You’re caught up. New reminders will appear when something needs
+            attention.
           </p>
         </section>
       )}
 
       <div className="notification-list">
         {snapshot.notifications.map((notification) => {
-          const Icon =
-            ICONS[notification.type] ?? Bell
+          const Icon = ICONS[notification.type] ?? Bell
+          const isInvitation = isAthleteInvitationNotification(notification)
+          const busy = pendingFingerprint === notification.fingerprint
 
           return (
             <article
@@ -133,6 +135,16 @@ export default function NotificationScreen({
               className={`notification-item ${
                 notification.read ? 'read' : 'unread'
               }`}
+              data-testid={
+                isInvitation
+                  ? 'athlete-coach-invitation-notification'
+                  : undefined
+              }
+              data-invitation-id={
+                isInvitation
+                  ? notification.invitationId ?? notification.id
+                  : undefined
+              }
               onClick={() => onRead(notification)}
             >
               <div className="notification-item-icon">
@@ -141,12 +153,8 @@ export default function NotificationScreen({
 
               <div className="notification-item-copy">
                 <div>
-                  <span>
-                    {notification.type.replace('-', ' ')}
-                  </span>
-                  <small>
-                    {timeLabel(notification.createdAt)}
-                  </small>
+                  <span>{notification.type.replace('-', ' ')}</span>
+                  <small>{timeLabel(notification.createdAt)}</small>
                 </div>
                 <strong>{notification.title}</strong>
                 <p>{notification.body}</p>
@@ -156,37 +164,42 @@ export default function NotificationScreen({
                     <button
                       onClick={(event) => {
                         event.stopPropagation()
-                        runAction(notification)
+                        runAction(notification, notification.action)
                       }}
-                      disabled={
-                        pendingFingerprint ===
-                        notification.fingerprint
-                      }
+                      disabled={busy}
                     >
-                      {pendingFingerprint ===
-                      notification.fingerprint
-                        ? 'Opening…'
-                        : notification.actionLabel}
+                      {busy ? 'Working…' : notification.actionLabel}
                       <ArrowRight size={14} />
                     </button>
                   )}
-                  <button
-                    className="dismiss"
-                    onClick={(event) => {
-                      event.stopPropagation()
-                      runDismiss(notification)
-                    }}
-                    disabled={
-                      pendingFingerprint ===
-                      notification.fingerprint
-                    }
-                  >
-                    {pendingFingerprint ===
-                    notification.fingerprint
-                      ? 'Working…'
-                      : 'Dismiss'}
-                    <X size={13} />
-                  </button>
+                  {notification.secondaryActionLabel ? (
+                    <button
+                      className="dismiss"
+                      onClick={(event) => {
+                        event.stopPropagation()
+                        runAction(
+                          notification,
+                          notification.secondaryAction,
+                        )
+                      }}
+                      disabled={busy}
+                    >
+                      {busy ? 'Working…' : notification.secondaryActionLabel}
+                      <X size={13} />
+                    </button>
+                  ) : (
+                    <button
+                      className="dismiss"
+                      onClick={(event) => {
+                        event.stopPropagation()
+                        runDismiss(notification)
+                      }}
+                      disabled={busy}
+                    >
+                      {busy ? 'Working…' : 'Dismiss'}
+                      <X size={13} />
+                    </button>
+                  )}
                 </div>
               </div>
             </article>

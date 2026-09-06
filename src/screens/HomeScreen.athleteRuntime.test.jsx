@@ -29,6 +29,20 @@ vi.mock('../hooks/useAthleteAppointments', () => ({
   }),
 }))
 
+vi.mock('../hooks/useAthleteCoachInvitations', () => ({
+  useAthleteCoachInvitations: () => ({
+    invitations: [],
+    status: 'ready',
+    loading: false,
+    ready: true,
+    error: null,
+    pendingId: null,
+    refreshInvitations: vi.fn(),
+    acceptInvitation: vi.fn(),
+    declineInvitation: vi.fn(),
+  }),
+}))
+
 vi.mock('../lib/coachBackend', () => ({
   coachBackend: {
     listAthleteAssignments: vi.fn().mockResolvedValue([]),
