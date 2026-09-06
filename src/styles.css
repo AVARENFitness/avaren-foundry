@@ -9338,7 +9338,7 @@ textarea:focus {
 .focus-control-grid{gap:9px}.focus-control label{font-size:8px}.focus-control .stepper{min-height:58px;border-radius:13px}
 .focus-control .stepper input{font-size:24px;font-weight:800;font-variant-numeric:tabular-nums}.focus-control .stepper button{font-size:21px}.quick-adjust button{min-height:34px}
 .focus-done-button span{min-height:52px;border-radius:14px}.focus-utility-grid{margin-top:8px}.focus-add-set{min-height:47px}.skip-exercise-button,.undo-skip-button{opacity:.68}.exercise-pager{margin-top:12px}.next-exercise-button{border-color:rgba(223,195,125,.18)}.focus-finish-bar{backdrop-filter:blur(18px)}
-@media(max-width:520px){.focus-mode-bar.lift-session-overview{display:none}.focus-exercise-header{padding-top:16px}.focus-control-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.focus-control .stepper{grid-template-columns:34px 1fr 34px}}
+@media(max-width:520px){.focus-exercise-header{padding-top:16px}.focus-control-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.focus-control .stepper{grid-template-columns:34px 1fr 34px}}
 @media(prefers-reduced-motion:reduce){.focus-set-card{transition:none}}
 
 

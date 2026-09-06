@@ -163,6 +163,82 @@
   color: #b8b0a4;
 }
 
+/* Portrait mobile: keep session overview visible (was hidden ≤520px). */
+@media (max-width: 520px) {
+  .focus-mode-bar.lift-session-overview {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 10px 12px;
+    margin-bottom: 10px;
+    padding: 12px 13px;
+    min-width: 0;
+    overflow: visible;
+  }
+
+  .lift-session-overview .gym-workout-heading {
+    min-width: 0;
+  }
+
+  .lift-session-overview .gym-workout-title-row {
+    gap: 8px;
+  }
+
+  .lift-session-overview .gym-workout-title-row h2 {
+    font-size: clamp(16px, 4.6vw, 18px);
+    line-height: 1.15;
+    overflow-wrap: anywhere;
+  }
+
+  .lift-session-overview .change-workout-button {
+    min-height: 36px;
+    padding: 8px 11px;
+    font-size: 10px;
+  }
+
+  .lift-session-overview .lift-overview-meta {
+    gap: 8px;
+    margin-top: 8px;
+  }
+
+  .lift-session-overview .lift-overview-meta > span {
+    font-size: 10px;
+    color: #b8b0a4;
+  }
+
+  .lift-session-overview .progress-ring {
+    flex: 0 0 56px;
+    width: 56px;
+    height: 56px;
+  }
+
+  .lift-session-overview .progress-ring svg {
+    width: 56px;
+    height: 56px;
+  }
+
+  .lift-session-overview .progress-ring strong {
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 360px) {
+  .lift-session-overview .progress-ring {
+    flex-basis: 52px;
+    width: 52px;
+    height: 52px;
+  }
+
+  .lift-session-overview .progress-ring svg {
+    width: 52px;
+    height: 52px;
+  }
+
+  .lift-session-overview .lift-overview-meta > span {
+    font-size: 9px;
+  }
+}
+
 .exercise-history-glance {
   display: grid;
   gap: 6px;

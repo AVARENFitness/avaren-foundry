@@ -343,24 +343,29 @@ export default function GymScreen({
       }}
     >
 
-      <section className="focus-mode-bar lift-session-overview">
+      <section
+        className="focus-mode-bar lift-session-overview"
+        data-testid="gym-session-overview"
+        aria-label="Active workout summary"
+      >
         <div className="gym-workout-heading">
           <span className="eyebrow">GYM MODE</span>
           <div className="gym-workout-title-row">
-            <h2>{workout.name}</h2>
+            <h2 data-testid="gym-workout-name">{workout.name}</h2>
             <button
               className="change-workout-button"
+              data-testid="gym-change-workout"
               onClick={() => setShowWorkoutPicker(true)}
             >
               <RefreshCw size={13} /> Change
             </button>
           </div>
-          <div className="lift-overview-meta">
-            <span>
+          <div className="lift-overview-meta" data-testid="gym-overview-meta">
+            <span data-testid="gym-completed-count">
               {completedExercises} of {workout.exercises.length} complete
             </span>
 
-            <span>
+            <span data-testid="gym-elapsed-time">
               <Clock3 size={13} />
               {elapsedLabel}
             </span>
