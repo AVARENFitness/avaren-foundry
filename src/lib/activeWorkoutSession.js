@@ -37,3 +37,49 @@ export const shouldResumeActiveWorkoutScreen = ({
   !coachModeEnabled &&
   currentScreen !== 'gym' &&
   currentScreen !== 'complete'
+
+/**
+ * Resolve which exercise the athlete is adding from.
+ * Returns that index when valid; otherwise null (append fallback).
+ */
+export const resolveQuickAddAfterIndex = ({
+  exercises = [],
+  activeExerciseIndex = null,
+} = {}) => {
+  const list = Array.isArray(exercises) ? exercises : []
+  if (!list.length) return null
+  if (activeExerciseIndex == null || activeExerciseIndex === '') return null
+
+  const index = Number(activeExerciseIndex)
+  if (!Number.isInteger(index) || index < 0 || index >= list.length) {
+    return null
+  }
+
+  return index
+}
+
+/**
+ * Insert a session exercise immediately after `afterIndex`.
+ * When afterIndex is null/invalid, appends (safe fallback).
+ */
+export const insertExerciseAfterIndex = (
+  exercises = [],
+  exercise,
+  afterIndex = null,
+) => {
+  const list = Array.isArray(exercises) ? [...exercises] : []
+  if (!exercise) return list
+  if (afterIndex == null || afterIndex === '') {
+    list.push(exercise)
+    return list
+  }
+
+  const index = Number(afterIndex)
+  if (!Number.isInteger(index) || index < 0 || index >= list.length) {
+    list.push(exercise)
+    return list
+  }
+
+  list.splice(index + 1, 0, exercise)
+  return list
+}

@@ -37,6 +37,10 @@ import {
 import { sessionLoadVolume } from '../lib/workoutMetrics'
 import { getNextExerciseIndex } from '../lib/workoutProgression'
 import {
+  insertExerciseAfterIndex,
+  resolveQuickAddAfterIndex,
+} from '../lib/activeWorkoutSession'
+import {
   completeWorkoutSession,
   updateWorkoutSession,
 } from '../lib/athleteWorkoutSessionsBackend'
@@ -526,8 +530,15 @@ export function useWorkoutSession({
 
   const quickAddExercise = useCallback(({ name, sets, muscle }) => {
     setState((current) => {
+      if (!current.activeWorkout) return current
+
       const activeWorkout = structuredClone(current.activeWorkout)
-      activeWorkout.exercises.push({
+      const afterIndex = resolveQuickAddAfterIndex({
+        exercises: activeWorkout.exercises,
+        activeExerciseIndex:
+          activeWorkout.activeExerciseIndex ?? activeExercise,
+      })
+      const nextExercise = {
         id: createRuntimeId(),
         name,
         muscle,
@@ -535,15 +546,25 @@ export function useWorkoutSession({
         sets: Array.from({ length: Math.max(1, sets || 3) }, (_, index) =>
           makeSet(index + 1, 'Working'),
         ),
-      })
+      }
+
+      activeWorkout.exercises = insertExerciseAfterIndex(
+        activeWorkout.exercises,
+        nextExercise,
+        afterIndex,
+      )
+
+      // Preserve current position; do not jump onto the inserted exercise.
+      if (
+        !Number.isInteger(activeWorkout.activeExerciseIndex) ||
+        activeWorkout.activeExerciseIndex < 0
+      ) {
+        activeWorkout.activeExerciseIndex = Math.max(0, Number(activeExercise) || 0)
+      }
+
       return { ...current, activeWorkout }
     })
-
-    window.setTimeout(() => {
-      const count = state.activeWorkout?.exercises.length ?? 0
-      setActiveExercise(count)
-    }, 0)
-  }, [state.activeWorkout, setActiveExercise, setState])
+  }, [activeExercise, setState])
 
   const removeSet = useCallback((exerciseIndex, setIndex) => {
     setState((current) => {

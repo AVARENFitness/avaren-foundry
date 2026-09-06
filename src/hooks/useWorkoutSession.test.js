@@ -193,4 +193,138 @@ describe('useWorkoutSession reliability', () => {
     expect(navigate).toHaveBeenCalledWith('gym')
     expect(setState).not.toHaveBeenCalled()
   })
+
+  it('inserts quick-add exercise after the current active exercise', () => {
+    const programSnapshot = structuredClone(
+      buildState().program.workouts.Arms,
+    )
+    let latestState = buildState({
+      activeWorkout: {
+        id: 'session-1',
+        name: 'Arms',
+        activeExerciseIndex: 2,
+        exercises: [
+          {
+            id: 'ex-1',
+            name: 'Bench Press',
+            sets: [{ number: 1, done: true, weight: 135, reps: 8 }],
+          },
+          {
+            id: 'ex-2',
+            name: 'Incline Press',
+            sets: [{ number: 1, done: true, weight: 95, reps: 8 }],
+          },
+          {
+            id: 'ex-3',
+            name: 'Cable Fly',
+            sets: [{ number: 1, done: false, weight: 40, reps: 12 }],
+          },
+          {
+            id: 'ex-4',
+            name: 'Triceps Pushdown',
+            sets: [{ number: 1, done: false, weight: 50, reps: 10 }],
+          },
+          {
+            id: 'ex-5',
+            name: 'Lateral Raise',
+            sets: [{ number: 1, done: false, weight: 20, reps: 12 }],
+          },
+        ],
+      },
+    })
+
+    const setState = vi.fn((updater) => {
+      latestState =
+        typeof updater === 'function' ? updater(latestState) : updater
+    })
+
+    const { result } = renderHook(() =>
+      useWorkoutSession({
+        state: latestState,
+        setState,
+        navigate: vi.fn(),
+      }),
+    )
+
+    act(() => {
+      result.current.quickAddExercise({
+        name: 'Pec Deck',
+        sets: 3,
+        muscle: 'Chest',
+      })
+    })
+
+    const session = latestState.activeWorkout
+    expect(session.activeExerciseIndex).toBe(2)
+    expect(session.exercises.map((item) => item.name)).toEqual([
+      'Bench Press',
+      'Incline Press',
+      'Cable Fly',
+      'Pec Deck',
+      'Triceps Pushdown',
+      'Lateral Raise',
+    ])
+    expect(session.exercises[0].sets[0]).toMatchObject({
+      done: true,
+      weight: 135,
+    })
+    expect(session.exercises[3]).toMatchObject({
+      name: 'Pec Deck',
+      oneTime: true,
+    })
+    expect(session.exercises[4].id).toBe('ex-4')
+    expect(latestState.program.workouts.Arms).toEqual(programSnapshot)
+  })
+
+  it('persists inserted order on the active session for resume/rehydration', () => {
+    let latestState = buildState({
+      activeWorkout: {
+        id: 'session-1',
+        name: 'Arms',
+        activeExerciseIndex: 0,
+        exercises: [
+          { id: 'ex-1', name: 'A', sets: [] },
+          { id: 'ex-2', name: 'B', sets: [] },
+        ],
+      },
+    })
+
+    const setState = vi.fn((updater) => {
+      latestState =
+        typeof updater === 'function' ? updater(latestState) : updater
+    })
+
+    const { result } = renderHook(() =>
+      useWorkoutSession({
+        state: latestState,
+        setState,
+        navigate: vi.fn(),
+      }),
+    )
+
+    act(() => {
+      result.current.quickAddExercise({
+        name: 'Inserted',
+        sets: 2,
+        muscle: 'Chest',
+      })
+    })
+
+    const persisted = structuredClone(latestState.activeWorkout)
+    expect(persisted.activeExerciseIndex).toBe(0)
+    expect(persisted.exercises.map((item) => item.name)).toEqual([
+      'A',
+      'Inserted',
+      'B',
+    ])
+
+    // Rehydration reads the same activeWorkout blob — order must still be session order.
+    expect(persisted.exercises[1].oneTime).toBe(true)
+    expect(latestState.program.workouts.Arms.map((item) => item.name)).toEqual([
+      'Exercise 1',
+      'Lateral Raise',
+      'Incline Curl',
+      'Exercise 4',
+    ])
+  })
 })
