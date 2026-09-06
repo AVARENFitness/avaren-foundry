@@ -2,7 +2,7 @@ import { Clock3, UserRound } from 'lucide-react'
 import AppUiCloseButton from '../ui/AppUiCloseButton'
 import AppUiBackdrop from '../ui/AppUiBackdrop'
 import { getClientDisplayName } from '../../lib/clientDisplayName'
-import { formatScheduleDateLong } from '../../lib/appointmentScheduling'
+import { formatScheduleDateLong, resolveDurationPresetOptions, stripScheduleTimeSeconds } from '../../lib/appointmentScheduling'
 import { formatScheduledSessionTime } from '../../lib/sessionTimezone'
 import { SCHEDULED_SESSION_STATUS } from '../../lib/coachScheduledSessions'
 import {
@@ -138,31 +138,48 @@ export default function CoachSessionDetailSheet({
               <input
                 type="time"
                 className="coach-field-input"
-                value={rescheduleDraft.startTime}
+                step="300"
+                value={stripScheduleTimeSeconds(rescheduleDraft.startTime) || rescheduleDraft.startTime}
                 onChange={(event) =>
                   onRescheduleDraftChange?.((current) => ({
                     ...current,
-                    startTime: event.target.value,
+                    startTime:
+                      stripScheduleTimeSeconds(event.target.value) ||
+                      event.target.value,
                   }))
                 }
               />
             </label>
-            <label className="coach-date-field">
-              <span>Duration (minutes)</span>
-              <input
-                type="number"
-                className="coach-field-input"
-                min="15"
-                step="15"
-                value={rescheduleDraft.durationMinutes}
-                onChange={(event) =>
-                  onRescheduleDraftChange?.((current) => ({
-                    ...current,
-                    durationMinutes: event.target.value,
-                  }))
-                }
-              />
-            </label>
+            <div className="coach-date-field">
+              <span>Duration</span>
+              <div
+                className="coach-schedule-segmented coach-schedule-segmented--duration"
+                role="group"
+                aria-label="Duration"
+              >
+                {resolveDurationPresetOptions(rescheduleDraft.durationMinutes).map(
+                  (minutes) => (
+                    <button
+                      key={minutes}
+                      type="button"
+                      className={
+                        Number(rescheduleDraft.durationMinutes) === minutes
+                          ? 'active'
+                          : undefined
+                      }
+                      onClick={() =>
+                        onRescheduleDraftChange?.((current) => ({
+                          ...current,
+                          durationMinutes: String(minutes),
+                        }))
+                      }
+                    >
+                      {minutes} min
+                    </button>
+                  ),
+                )}
+              </div>
+            </div>
             {athleteAssignments.length > 0 ? (
               <label className="coach-date-field">
                 <span>Linked workout</span>

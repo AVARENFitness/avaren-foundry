@@ -1,7 +1,8 @@
 import { buildScheduleInstant } from './sessionReminders'
 import { DEFAULT_COACH_SCHEDULE_TIMEZONE } from './sessionTimezone'
 
-export const DURATION_PRESETS = [30, 45, 60, 90]
+export const DURATION_PRESETS = [30, 45, 60]
+export const SCHEDULE_TIME_STEP_MINUTES = 5
 
 export const LOCATION_PRESETS = [
   { value: 'avaren_gym', label: 'AVAREN Gym' },
@@ -86,20 +87,51 @@ export const formatTime12Hour = (time24 = '') => {
   return `${hour12}:${pad(minute)} ${period}`
 }
 
-export const buildQuarterHourTimeOptions = ({
+/** Normalize HH:MM[:SS] → HH:MM (no seconds). */
+export const stripScheduleTimeSeconds = (time = '') => {
+  const match = String(time ?? '').trim().match(/^(\d{1,2}):(\d{2})/)
+  if (!match) return ''
+  const hour = Number(match[1])
+  const minute = Number(match[2])
+  if (!Number.isFinite(hour) || !Number.isFinite(minute)) return ''
+  if (hour < 0 || hour > 23 || minute < 0 || minute > 59) return ''
+  return `${pad(hour)}:${pad(minute)}`
+}
+
+/**
+ * Practical-day start times in fixed minute increments (default 5).
+ * Inclusive startHour through endHour:00.
+ */
+export const buildScheduleTimeOptions = ({
   startHour = 6,
   endHour = 21,
+  stepMinutes = SCHEDULE_TIME_STEP_MINUTES,
 } = {}) => {
+  const step = Math.max(1, Number(stepMinutes) || SCHEDULE_TIME_STEP_MINUTES)
   const options = []
 
   for (let hour = startHour; hour <= endHour; hour += 1) {
-    for (const minute of [0, 15, 30, 45]) {
+    for (let minute = 0; minute < 60; minute += step) {
       if (hour === endHour && minute > 0) break
       const value = `${pad(hour)}:${pad(minute)}`
       options.push({ value, label: formatTime12Hour(value) })
     }
   }
 
+  return options
+}
+
+/** @deprecated Prefer buildScheduleTimeOptions — kept for existing imports. */
+export const buildQuarterHourTimeOptions = (options) =>
+  buildScheduleTimeOptions(options)
+
+export const resolveDurationPresetOptions = (currentMinutes) => {
+  const options = [...DURATION_PRESETS]
+  const value = Number(currentMinutes)
+  if (Number.isFinite(value) && value > 0 && !options.includes(value)) {
+    options.push(value)
+    options.sort((first, second) => first - second)
+  }
   return options
 }
 
@@ -110,7 +142,7 @@ export const resolveScheduleInstant = ({
 }) => {
   const instant = buildScheduleInstant({
     sessionDate,
-    startTime,
+    startTime: stripScheduleTimeSeconds(startTime) || startTime,
     scheduleTimezone,
   })
 
@@ -163,10 +195,13 @@ export const formatScheduleTimeRange = ({
   startTime,
   durationMinutes = 60,
 } = {}) => {
-  const startLabel = formatTime12Hour(startTime)
-  if (!startTime || !durationMinutes) return startLabel
+  const normalizedStart = stripScheduleTimeSeconds(startTime) || startTime
+  const startLabel = formatTime12Hour(normalizedStart)
+  if (!normalizedStart || !durationMinutes) return startLabel
 
-  const [hourRaw, minuteRaw = '0'] = String(startTime).slice(0, 5).split(':')
+  const [hourRaw, minuteRaw = '0'] = String(normalizedStart)
+    .slice(0, 5)
+    .split(':')
   const startMinutes = Number(hourRaw) * 60 + Number(minuteRaw)
   const endMinutes = startMinutes + Number(durationMinutes)
   const endHour = Math.floor(endMinutes / 60) % 24

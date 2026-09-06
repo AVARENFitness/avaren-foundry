@@ -76,6 +76,37 @@ describe('CoachScheduleSessionSheet', () => {
     expect(document.querySelector('.coach-schedule-hidden-date')).toBeNull()
   })
 
+  it('offers 5-minute time options and 30/45/60 duration presets', async () => {
+    const user = userEvent.setup()
+    const onDraftChange = vi.fn()
+
+    render(
+      <CoachScheduleSessionSheet
+        open
+        clients={baseClients}
+        draft={{ ...baseDraft, startTime: '16:00', durationMinutes: '60' }}
+        onDraftChange={onDraftChange}
+        onClose={vi.fn()}
+        onSubmit={vi.fn()}
+      />,
+    )
+
+    await user.click(screen.getByRole('button', { name: /4:00 PM/i }))
+    expect(screen.getByRole('option', { name: '4:05 PM' })).toBeInTheDocument()
+    expect(screen.getByRole('option', { name: '4:35 PM' })).toBeInTheDocument()
+    expect(screen.queryByRole('option', { name: '4:07 PM' })).toBeNull()
+
+    expect(screen.getByRole('button', { name: '30 min' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '45 min' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '60 min' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '90 min' })).toBeNull()
+
+    await user.click(screen.getByRole('option', { name: '4:35 PM' }))
+    expect(onDraftChange).toHaveBeenCalledWith(
+      expect.objectContaining({ startTime: '16:35' }),
+    )
+  })
+
   it('persists a newly selected date into form state and submission', () => {
     const onDraftChange = vi.fn()
     const onSubmit = vi.fn()

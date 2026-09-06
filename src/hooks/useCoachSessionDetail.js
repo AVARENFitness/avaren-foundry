@@ -814,7 +814,7 @@ export function useCoachSessionDetail({
   const beginReschedule = useCallback((session) => {
     setRescheduleDraft({
       sessionDate: session.sessionDate,
-      startTime: session.startTime,
+      startTime: String(session.startTime ?? '').slice(0, 5),
       durationMinutes: String(session.durationMinutes ?? 60),
       assignmentId: session.assignmentId ?? null,
       locationType: session.locationType ?? 'default',
@@ -828,7 +828,7 @@ export function useCoachSessionDetail({
 
     const patch = {
       sessionDate: rescheduleDraft.sessionDate,
-      startTime: rescheduleDraft.startTime,
+      startTime: String(rescheduleDraft.startTime ?? '').slice(0, 5),
       durationMinutes: Number(rescheduleDraft.durationMinutes) || 60,
       assignmentId: rescheduleDraft.assignmentId,
       locationType: rescheduleDraft.locationType,

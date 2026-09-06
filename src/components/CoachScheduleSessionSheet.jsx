@@ -10,7 +10,7 @@ import { getClientDisplayName } from '../lib/clientDisplayName'
 import {
   DURATION_PRESETS,
   LOCATION_PRESETS,
-  buildQuarterHourTimeOptions,
+  buildScheduleTimeOptions,
   dateKey,
   filterAvailableTimeOptions,
   formatScheduleDateLong,
@@ -59,7 +59,7 @@ export default function CoachScheduleSessionSheet({
   const todayKey = dateKey(new Date(), scheduleTimezone)
 
   const timeOptions = useMemo(
-    () => buildQuarterHourTimeOptions({ startHour: 6, endHour: 21 }),
+    () => buildScheduleTimeOptions({ startHour: 6, endHour: 21 }),
     [],
   )
 
