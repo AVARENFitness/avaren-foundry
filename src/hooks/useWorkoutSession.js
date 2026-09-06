@@ -545,6 +545,9 @@ export function useWorkoutSession({
       target.weight = previous.weight
       target.reps = previous.reps
       target.done = false
+      target.sidesMode = previous.sidesMode
+      if (previous.left) target.left = { ...previous.left }
+      if (previous.right) target.right = { ...previous.right }
       return { ...current, activeWorkout }
     })
   }, [setState])
@@ -650,7 +653,16 @@ export function useWorkoutSession({
       .filter((exercise) => !exercise.skipped)
       .flatMap((exercise) =>
         exercise.sets
-          .filter((set) => Number(set.reps) > 0)
+          .filter((set) => {
+            if (set.sidesMode === 'different') {
+              return (
+                Number(set?.left?.reps) > 0 ||
+                Number(set?.right?.reps) > 0 ||
+                Number(set.reps) > 0
+              )
+            }
+            return Number(set.reps) > 0
+          })
           .map((set) =>
             buildCompletedSet({
               exercise,

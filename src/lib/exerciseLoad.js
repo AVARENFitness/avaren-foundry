@@ -1,5 +1,11 @@
 import { COMMON_EXERCISES } from '../data/commonExercises'
 import { estimatedOneRepMax as calcE1rm } from './metrics'
+import {
+  expandUnilateralPerformances,
+  isUnilateralExercise,
+  resolveSidesMode,
+  SIDES_MODE,
+} from './unilateralExercise'
 
 const normalizeExerciseName = (value = '') =>
   String(value).trim().toLowerCase()
@@ -83,6 +89,29 @@ export const resolveSetLoadType = (set = {}, exerciseLoadType) =>
   )
 
 export const isActiveSetEntered = (set = {}, loadType = LOAD_TYPES.EXTERNAL) => {
+  const mode = resolveSidesMode(set, set.exercise)
+  if (mode === SIDES_MODE.DIFFERENT) {
+    const leftOk = isActiveSetEntered(
+      {
+        weight: set?.left?.weight ?? '',
+        reps: set?.left?.reps ?? '',
+        loadType: set.loadType,
+        exercise: set.exercise,
+      },
+      loadType,
+    )
+    const rightOk = isActiveSetEntered(
+      {
+        weight: set?.right?.weight ?? '',
+        reps: set?.right?.reps ?? '',
+        loadType: set.loadType,
+        exercise: set.exercise,
+      },
+      loadType,
+    )
+    return leftOk && rightOk
+  }
+
   const reps = Number(set.reps)
   if (!Number.isFinite(reps) || reps <= 0) return false
 
@@ -115,6 +144,63 @@ export const externalLoadAmount = (set = {}, loadType) => {
 
 export const formatCompletedSetDisplay = (set = {}) => {
   const loadType = resolveSetLoadType(set, set.loadType)
+  const exerciseName = set.exercise ?? ''
+  const mode = resolveSidesMode(set, exerciseName)
+
+  const formatSideLoad = (weight, reps) => {
+    const numericReps = Number(reps ?? 0)
+    if (loadType === LOAD_TYPES.BODYWEIGHT) {
+      return numericReps > 0 ? `BW × ${numericReps}` : 'BW'
+    }
+    if (loadType === LOAD_TYPES.BODYWEIGHT_ADDED) {
+      const added = Number(weight ?? 0)
+      return added > 0
+        ? `BW + ${added} lb × ${numericReps}`
+        : `BW × ${numericReps}`
+    }
+    if (loadType === LOAD_TYPES.ASSISTED) {
+      const assistance = Number(weight ?? 0)
+      return assistance > 0
+        ? `${assistance} lb assist × ${numericReps}`
+        : `Assist × ${numericReps}`
+    }
+    const numericWeight = Number(weight ?? 0)
+    if (numericWeight > 0 && numericReps > 0) {
+      return `${numericWeight} lb × ${numericReps}`
+    }
+    if (numericReps > 0) return `${numericReps} reps`
+    return '—'
+  }
+
+  if (mode === SIDES_MODE.DIFFERENT) {
+    const left = formatSideLoad(set?.left?.weight, set?.left?.reps)
+    const right = formatSideLoad(set?.right?.weight, set?.right?.reps)
+    return `L ${left} · R ${right}`
+  }
+
+  if (mode === SIDES_MODE.SHARED) {
+    const reps = Number(set.reps ?? 0)
+    if (loadType === LOAD_TYPES.BODYWEIGHT) {
+      return reps > 0 ? `BW × ${reps}/side` : 'BW'
+    }
+    if (loadType === LOAD_TYPES.BODYWEIGHT_ADDED) {
+      const added = Number(set.addedWeight ?? set.weight ?? 0)
+      return added > 0
+        ? `BW + ${added} lb × ${reps}/side`
+        : `BW × ${reps}/side`
+    }
+    if (loadType === LOAD_TYPES.ASSISTED) {
+      const assistance = Number(set.assistance ?? set.weight ?? 0)
+      return assistance > 0
+        ? `${assistance} lb assist × ${reps}/side`
+        : `Assist × ${reps}/side`
+    }
+    const weight = Number(set.weight ?? 0)
+    if (weight > 0 && reps > 0) return `${weight} lb × ${reps}/side`
+    if (reps > 0) return `${reps} reps/side`
+    return '—'
+  }
+
   const reps = Number(set.reps ?? 0)
 
   if (loadType === LOAD_TYPES.BODYWEIGHT) {
@@ -156,8 +242,20 @@ export const buildCompletedSet = ({
   bodyweightAtSession = null,
 }) => {
   const loadType = normalizeLoadType(exercise.loadType, exercise.name)
-  const reps = Number(set.reps || 0)
-  const rawWeight = Number(set.weight || 0)
+  const mode = resolveSidesMode(
+    { ...set, exercise: exercise.name },
+    exercise,
+  )
+  const performances = expandUnilateralPerformances(
+    { ...set, exercise: exercise.name },
+    exercise,
+  )
+  const primary = performances[0] ?? {
+    weight: Number(set.weight || 0),
+    reps: Number(set.reps || 0),
+  }
+  const reps = Number(primary.reps || 0)
+  const rawWeight = Number(primary.weight || 0)
 
   const completed = {
     exercise: exercise.name,
@@ -167,16 +265,49 @@ export const buildCompletedSet = ({
     reps,
   }
 
+  if (mode) {
+    completed.sidesMode = mode
+    if (mode === SIDES_MODE.DIFFERENT) {
+      completed.left = {
+        weight: Number(set?.left?.weight ?? 0),
+        reps: Number(set?.left?.reps ?? 0),
+      }
+      completed.right = {
+        weight: Number(set?.right?.weight ?? 0),
+        reps: Number(set?.right?.reps ?? 0),
+      }
+      // Keep top-level reps as a per-side representative (never doubled).
+      completed.reps = Math.max(completed.left.reps, completed.right.reps)
+      completed.weight =
+        loadType === LOAD_TYPES.EXTERNAL ||
+        loadType === LOAD_TYPES.BODYWEIGHT_ADDED
+          ? Math.max(completed.left.weight, completed.right.weight)
+          : rawWeight
+    }
+  }
+
   if (loadType === LOAD_TYPES.EXTERNAL) {
-    completed.weight = rawWeight
+    if (completed.weight == null) completed.weight = rawWeight
+    const e1rmWeight =
+      mode === SIDES_MODE.SHARED
+        ? rawWeight
+        : mode === SIDES_MODE.DIFFERENT
+          ? Math.max(completed.left.weight, completed.right.weight)
+          : rawWeight
+    const e1rmReps =
+      mode === SIDES_MODE.SHARED
+        ? reps
+        : mode === SIDES_MODE.DIFFERENT
+          ? Math.max(completed.left.reps, completed.right.reps)
+          : reps
     completed.estimatedOneRepMax =
-      rawWeight > 0 && reps > 0 ? calcE1rm(rawWeight, reps) : 0
+      e1rmWeight > 0 && e1rmReps > 0 ? calcE1rm(e1rmWeight, e1rmReps) : 0
   } else if (loadType === LOAD_TYPES.BODYWEIGHT) {
     completed.weight = 0
     completed.estimatedOneRepMax = 0
   } else if (loadType === LOAD_TYPES.BODYWEIGHT_ADDED) {
     completed.addedWeight = rawWeight
-    completed.weight = rawWeight
+    if (completed.weight == null) completed.weight = rawWeight
     completed.estimatedOneRepMax =
       rawWeight > 0 && reps > 0 ? calcE1rm(rawWeight, reps) : 0
   } else if (loadType === LOAD_TYPES.ASSISTED) {
@@ -195,6 +326,10 @@ export const buildCompletedSet = ({
 
   if (exercise.prescription) {
     completed.prescription = exercise.prescription
+  }
+
+  if (isUnilateralExercise(exercise)) {
+    completed.unilateral = true
   }
 
   return completed

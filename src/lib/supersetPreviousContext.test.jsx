@@ -197,7 +197,12 @@ describe('linked superset previous workout + PR context', () => {
     expect(screen.getByTestId('exercise-history-glance')).toHaveTextContent(
       /BW × 8/,
     )
-    expect(screen.queryByTestId('pr-preview-bw1')).not.toBeInTheDocument()
+    expect(screen.getByTestId('pr-preview-bw1')).toHaveTextContent(
+      /Potential rep PR/i,
+    )
+    expect(screen.getByTestId('pr-preview-bw1')).not.toHaveTextContent(
+      /weight PR/i,
+    )
   })
 
   it('shows assisted previous context without inventing a weight PR', () => {

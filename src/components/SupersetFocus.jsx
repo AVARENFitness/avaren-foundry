@@ -74,7 +74,23 @@ export default function SupersetFocus({
             hasHistory,
             emptyLabel,
           } = previousGlance
-          const { potentialWeightPr, potentialPr } = potentialPrForSet(set)
+          const earlierSets = exercise.sets
+            .slice(0, round)
+            .filter((item) => item.done)
+            .map((item) => ({
+              ...item,
+              exercise: exercise.name,
+              loadType,
+            }))
+          const {
+            potentialWeightPr,
+            potentialRepPr,
+            potentialPr,
+            isPr,
+          } = potentialPrForSet(
+            { ...set, exercise: exercise.name, loadType },
+            { earlierSets },
+          )
 
           return (
             <section
@@ -140,8 +156,17 @@ export default function SupersetFocus({
                   <span>
                     {potentialWeightPr
                       ? 'Potential weight PR'
-                      : 'Potential strength PR'}
+                      : potentialRepPr
+                        ? 'Potential rep PR'
+                        : 'Potential PR'}
                   </span>
+                </div>
+              ) : null}
+
+              {set.done && isPr ? (
+                <div className="lift-pr-badge" data-testid={`set-pr-${exercise.id}`}>
+                  <Trophy size={12} />
+                  PR
                 </div>
               ) : null}
 

@@ -23,6 +23,13 @@ import {
   gymModeSetLabel,
 } from '../lib/exercisePrescription'
 import { buildExerciseHistoryGlance } from '../lib/exercisePreviousContext'
+import {
+  expandToDifferentSides,
+  isUnilateralExercise,
+  resolveSidesMode,
+  SIDES_MODE,
+  sidesValuesEqual,
+} from '../lib/unilateralExercise'
 import ExerciseHistoryGlance from './ExerciseHistoryGlance'
 import Stepper from './Stepper'
 
@@ -127,8 +134,10 @@ export default function FocusExercise({
     emptyLabel,
   } = glance
 
+  const unilateral = isUnilateralExercise(exercise)
+
   const entered = exercise.sets.filter((set) =>
-    isActiveSetEntered(set, loadType),
+    isActiveSetEntered({ ...set, exercise: exercise.name }, loadType),
   )
 
   const complete =
@@ -138,6 +147,38 @@ export default function FocusExercise({
   const prescriptionLabel = exercise.prescription
     ? formatPrescriptionDisplay(exercise.prescription)
     : null
+
+  const toggleDifferentSides = (setIndex, set) => {
+    if (resolveSidesMode(set, exercise) === SIDES_MODE.DIFFERENT) {
+      if (!sidesValuesEqual(set)) return
+      onSetChange(setIndex, 'sidesMode', SIDES_MODE.SHARED)
+      onSetChange(setIndex, 'weight', set.left?.weight ?? set.weight)
+      onSetChange(setIndex, 'reps', set.left?.reps ?? set.reps)
+      return
+    }
+
+    const expanded = expandToDifferentSides(set)
+    onSetChange(setIndex, 'sidesMode', SIDES_MODE.DIFFERENT)
+    onSetChange(setIndex, 'left', expanded.left)
+    onSetChange(setIndex, 'right', expanded.right)
+  }
+
+  const updateSideField = (setIndex, set, side, field, value) => {
+    const current = set?.[side] ?? {
+      weight: set.weight,
+      reps: set.reps,
+    }
+    const nextSide = {
+      ...current,
+      [field]: value,
+    }
+    onSetChange(setIndex, side, nextSide)
+
+    // Keep top-level weight/reps aligned with Left for legacy finish filters.
+    if (side === 'left') {
+      onSetChange(setIndex, field, value)
+    }
+  }
 
   return (
     <article
@@ -272,10 +313,27 @@ export default function FocusExercise({
       <div className="focus-set-list">
         {exercise.sets.map(
           (set, setIndex) => {
+            const setWithExercise = {
+              ...set,
+              exercise: exercise.name,
+              loadType,
+            }
+            const earlierSets = exercise.sets
+              .slice(0, setIndex)
+              .filter((item) => item.done)
+              .map((item) => ({
+                ...item,
+                exercise: exercise.name,
+                loadType,
+              }))
             const {
               potentialWeightPr,
+              potentialRepPr,
               potentialPr,
-            } = potentialPrForSet(set)
+              isPr,
+            } = potentialPrForSet(setWithExercise, { earlierSets })
+            const sidesMode = resolveSidesMode(setWithExercise, exercise)
+            const differentSides = sidesMode === SIDES_MODE.DIFFERENT
 
             return (
               <section
@@ -308,24 +366,32 @@ export default function FocusExercise({
                     ).padStart(2, '0')}
                   </span>
 
-                  <select
-                    value={set.type}
-                    onChange={(event) =>
-                      onSetChange(
-                        setIndex,
-                        'type',
-                        event.target.value,
-                      )
-                    }
-                  >
-                    {SET_TYPES.map(
-                      (type) => (
-                        <option key={type}>
-                          {type}
-                        </option>
-                      ),
-                    )}
-                  </select>
+                  <div className="focus-set-topline-end">
+                    {set.done && isPr ? (
+                      <span className="lift-pr-badge" data-testid={`set-pr-${setIndex}`}>
+                        <Trophy size={12} />
+                        PR
+                      </span>
+                    ) : null}
+                    <select
+                      value={set.type}
+                      onChange={(event) =>
+                        onSetChange(
+                          setIndex,
+                          'type',
+                          event.target.value,
+                        )
+                      }
+                    >
+                      {SET_TYPES.map(
+                        (type) => (
+                          <option key={type}>
+                            {type}
+                          </option>
+                        ),
+                      )}
+                    </select>
+                  </div>
                 </div>
 
                 <div className="set-utility-row">
@@ -376,24 +442,139 @@ export default function FocusExercise({
                       <span>
                         {potentialWeightPr
                           ? 'Potential weight PR'
-                          : 'Potential strength PR'}
+                          : potentialRepPr
+                            ? 'Potential rep PR'
+                            : 'Potential PR'}
                       </span>
                     </div>
                   )}
 
-                <div className="focus-control-grid">
-                  {showWeightInput ? (
+                {unilateral ? (
+                  <button
+                    type="button"
+                    className={`unilateral-sides-toggle ${
+                      differentSides ? 'active' : ''
+                    }`}
+                    aria-pressed={differentSides}
+                    onClick={() => toggleDifferentSides(setIndex, set)}
+                  >
+                    Different sides
+                  </button>
+                ) : null}
+
+                {differentSides ? (
+                  <div className="unilateral-sides-grid">
+                    {['left', 'right'].map((side) => (
+                      <div key={side} className="unilateral-side-block">
+                        <span className="unilateral-side-label">
+                          {side === 'left' ? 'Left' : 'Right'}
+                        </span>
+                        <div className="focus-control-grid">
+                          {showWeightInput ? (
+                            <div className="focus-control">
+                              <label>{weightFieldLabel}</label>
+                              <Stepper
+                                value={set?.[side]?.weight ?? ''}
+                                step={5}
+                                inputMode="decimal"
+                                onChange={(value) =>
+                                  updateSideField(
+                                    setIndex,
+                                    set,
+                                    side,
+                                    'weight',
+                                    value,
+                                  )
+                                }
+                              />
+                            </div>
+                          ) : null}
+                          <div className="focus-control">
+                            <label>Reps</label>
+                            <Stepper
+                              value={set?.[side]?.reps ?? ''}
+                              step={1}
+                              onChange={(value) =>
+                                updateSideField(
+                                  setIndex,
+                                  set,
+                                  side,
+                                  'reps',
+                                  value,
+                                )
+                              }
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="focus-control-grid">
+                    {showWeightInput ? (
+                      <div className="focus-control">
+                        <label>{weightFieldLabel}</label>
+
+                        <Stepper
+                          value={set.weight}
+                          step={5}
+                          inputMode="decimal"
+                          onChange={(value) =>
+                            onSetChange(
+                              setIndex,
+                              'weight',
+                              value,
+                            )
+                          }
+                        />
+
+                        <div className="quick-adjust">
+                          <button
+                            onClick={() =>
+                              onSetChange(
+                                setIndex,
+                                'weight',
+                                Math.max(
+                                  0,
+                                  Number(
+                                    set.weight ||
+                                      0,
+                                  ) - 10,
+                                ),
+                              )
+                            }
+                          >
+                            −10
+                          </button>
+
+                          <button
+                            onClick={() =>
+                              onSetChange(
+                                setIndex,
+                                'weight',
+                                Number(
+                                  set.weight ||
+                                    0,
+                                ) + 10,
+                              )
+                            }
+                          >
+                            +10
+                          </button>
+                        </div>
+                      </div>
+                    ) : null}
+
                     <div className="focus-control">
-                      <label>{weightFieldLabel}</label>
+                      <label>Reps</label>
 
                       <Stepper
-                        value={set.weight}
-                        step={5}
-                        inputMode="decimal"
+                        value={set.reps}
+                        step={1}
                         onChange={(value) =>
                           onSetChange(
                             setIndex,
-                            'weight',
+                            'reps',
                             value,
                           )
                         }
@@ -404,89 +585,38 @@ export default function FocusExercise({
                           onClick={() =>
                             onSetChange(
                               setIndex,
-                              'weight',
+                              'reps',
                               Math.max(
                                 0,
                                 Number(
-                                  set.weight ||
+                                  set.reps ||
                                     0,
-                                ) - 10,
+                                ) - 2,
                               ),
                             )
                           }
                         >
-                          −10
+                          −2
                         </button>
 
                         <button
                           onClick={() =>
                             onSetChange(
                               setIndex,
-                              'weight',
-                              Number(
-                                set.weight ||
-                                  0,
-                              ) + 10,
-                            )
-                          }
-                        >
-                          +10
-                        </button>
-                      </div>
-                    </div>
-                  ) : null}
-
-                  <div className="focus-control">
-                    <label>Reps</label>
-
-                    <Stepper
-                      value={set.reps}
-                      step={1}
-                      onChange={(value) =>
-                        onSetChange(
-                          setIndex,
-                          'reps',
-                          value,
-                        )
-                      }
-                    />
-
-                    <div className="quick-adjust">
-                      <button
-                        onClick={() =>
-                          onSetChange(
-                            setIndex,
-                            'reps',
-                            Math.max(
-                              0,
+                              'reps',
                               Number(
                                 set.reps ||
                                   0,
-                              ) - 2,
-                            ),
-                          )
-                        }
-                      >
-                        −2
-                      </button>
-
-                      <button
-                        onClick={() =>
-                          onSetChange(
-                            setIndex,
-                            'reps',
-                            Number(
-                              set.reps ||
-                                0,
-                            ) + 2,
-                          )
-                        }
-                      >
-                        +2
-                      </button>
+                              ) + 2,
+                            )
+                          }
+                        >
+                          +2
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
+                )}
 
                 <label className="focus-done-button">
                   <input
@@ -505,7 +635,7 @@ export default function FocusExercise({
                       if (checked) {
                         onSetCompleted?.({
                           exercise,
-                          set,
+                          set: setWithExercise,
                           setIndex,
                           potentialPr,
                         })
@@ -518,6 +648,7 @@ export default function FocusExercise({
                     {set.done
                       ? formatCompletedSetDisplay({
                           ...set,
+                          exercise: exercise.name,
                           loadType,
                         })
                       : 'Complete set'}

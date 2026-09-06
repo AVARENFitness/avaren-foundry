@@ -1,12 +1,13 @@
 import {
   externalLoadAmount,
   formatCompletedSetDisplay,
-  isActiveSetEntered,
   isComparableForLoadPr,
   LOAD_TYPES,
   resolveSetLoadType,
 } from './exerciseLoad'
 import { recentExerciseSets } from './metrics'
+import { evaluateSetPr } from './setPrEvaluation'
+import { resolveSidesMode, SIDES_MODE } from './unilateralExercise'
 
 export const estimatedOneRepMax = (weight, reps) => {
   const numericWeight = Number(weight || 0)
@@ -113,6 +114,11 @@ export const formatPreviousPerformanceDisplay = (previousSets = []) => {
 export const formatBestSetDisplay = (bestSet) => {
   if (!bestSet) return null
 
+  const mode = resolveSidesMode(bestSet, bestSet.exercise)
+  if (mode === SIDES_MODE.SHARED || mode === SIDES_MODE.DIFFERENT) {
+    return formatCompletedSetDisplay(bestSet)
+  }
+
   const loadType = resolveSetLoadType(bestSet, bestSet.loadType)
 
   if (loadType === LOAD_TYPES.EXTERNAL) {
@@ -133,8 +139,12 @@ export const formatBestSetDisplay = (bestSet) => {
 export const buildExercisePreviousContext = (
   previousSets = [],
   loadType,
+  { historicalSets = null } = {},
 ) => {
   const sets = Array.isArray(previousSets) ? previousSets : []
+  const allHistorical = Array.isArray(historicalSets)
+    ? historicalSets
+    : sets
 
   const lastSessionBest = sets.length
     ? sets.reduce((best, set) => {
@@ -161,28 +171,21 @@ export const buildExercisePreviousContext = (
     ...sets.map((set) => estimatedOneRepMax(set.weight, set.reps)),
   )
 
-  const potentialPrForSet = (set) => {
-    const currentEstimatedMax = estimatedOneRepMax(set.weight, set.reps)
-
-    const potentialWeightPr =
-      isComparableForLoadPr({ loadType }) &&
-      externalLoadAmount({ ...set, loadType }, loadType) >
-        previousBestWeight
-
-    const potentialStrengthPr =
-      isComparableForLoadPr({ loadType }) &&
-      previousBestEstimatedMax > 0 &&
-      currentEstimatedMax > previousBestEstimatedMax
-
-    const potentialPr =
-      sets.length > 0 &&
-      isActiveSetEntered(set, loadType) &&
-      (potentialWeightPr || potentialStrengthPr)
+  const potentialPrForSet = (set, { earlierSets = [] } = {}) => {
+    const evaluation = evaluateSetPr({
+      set: { ...set, loadType: set.loadType ?? loadType },
+      loadType,
+      historicalSets: allHistorical,
+      earlierSets,
+    })
 
     return {
-      potentialWeightPr,
-      potentialStrengthPr,
-      potentialPr,
+      potentialWeightPr: evaluation.isWeightPr,
+      potentialRepPr: evaluation.isRepPr,
+      potentialStrengthPr: evaluation.isRepPr,
+      potentialPr: evaluation.isPr,
+      qualifyingSides: evaluation.qualifyingSides,
+      isPr: evaluation.isPr,
     }
   }
 
@@ -206,7 +209,9 @@ export const buildExerciseHistoryGlance = (
 ) => {
   const previousSets = previousSetsForExercise(history, exercise)
   const historicalSets = historicalSetsForExercise(history, exercise)
-  const previousContext = buildExercisePreviousContext(previousSets, loadType)
+  const previousContext = buildExercisePreviousContext(previousSets, loadType, {
+    historicalSets,
+  })
   const bestSet = selectHeaviestHistoricalSet(historicalSets)
   const previousDisplay = formatPreviousPerformanceDisplay(previousSets)
   const bestDisplay = formatBestSetDisplay(bestSet)

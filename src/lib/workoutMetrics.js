@@ -7,6 +7,10 @@ import {
   resolveSetLoadType,
 } from './exerciseLoad'
 import { estimatedOneRepMax as calcE1rm } from './metrics'
+import {
+  resolveSidesMode,
+  SIDES_MODE,
+} from './unilateralExercise'
 
 export const MEASUREMENT_MODES = {
   WEIGHTED_REPS: 'weighted-reps',
@@ -148,22 +152,37 @@ export const isValidStrengthSet = (set = {}) => {
 }
 
 export const setLoadVolume = (set = {}) => {
-  const { reps } = parseSetNumbers(set)
-  if (!Number.isFinite(reps) || reps <= 0) return 0
-
   const loadType = resolveSetLoadType(set, set.loadType)
-  const load = externalLoadAmount(set, loadType)
-
   if (loadType === LOAD_TYPES.BODYWEIGHT || loadType === LOAD_TYPES.ASSISTED) {
     return 0
   }
 
-  if (set.loadType) {
-    return load > 0 ? load * reps : 0
+  const sideVolume = (weight, reps) => {
+    const numericReps = Number(reps)
+    const numericWeight = Number(weight)
+    if (!Number.isFinite(numericReps) || numericReps <= 0) return 0
+    if (!Number.isFinite(numericWeight) || numericWeight <= 0) return 0
+    return numericWeight * numericReps
   }
 
-  if (!isValidStrengthSet(set)) return 0
-  return load * reps
+  const mode = resolveSidesMode(set, set.exercise)
+  if (mode === SIDES_MODE.DIFFERENT) {
+    return (
+      sideVolume(set?.left?.weight, set?.left?.reps) +
+      sideVolume(set?.right?.weight, set?.right?.reps)
+    )
+  }
+
+  const { reps } = parseSetNumbers(set)
+  if (!Number.isFinite(reps) || reps <= 0) return 0
+
+  const load = externalLoadAmount(set, loadType)
+  if (load <= 0) return 0
+
+  if (!set.loadType && !isValidStrengthSet(set)) return 0
+
+  const base = load * reps
+  return mode === SIDES_MODE.SHARED ? base * 2 : base
 }
 
 export const setEstimatedOneRepMax = (set = {}) => {

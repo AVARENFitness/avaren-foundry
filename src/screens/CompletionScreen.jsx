@@ -17,6 +17,7 @@ import {
 import { useEffect, useMemo, useState } from 'react'
 import { MILESTONE_TYPES } from '../lib/milestones'
 import { resolveSessionVolumeDisplay } from '../lib/sessionVolumeDisplay'
+import { setLoadVolume } from '../lib/workoutMetrics'
 
 const MILESTONE_META = {
   [MILESTONE_TYPES.FIRST_WORKOUT]: {
@@ -66,9 +67,7 @@ const formatDuration = (seconds) => {
   return `${Math.max(1, minutes)} min`
 }
 
-const setVolume = (set) =>
-  Number(set.weight || 0) *
-  Number(set.reps || 0)
+const setVolume = (set) => setLoadVolume(set)
 
 export default function CompletionScreen({
   session,
