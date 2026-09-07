@@ -8,9 +8,14 @@ export default function CoachClientCard({
   onSelect,
   nextSession = null,
   passSummary = null,
+  invitations = [],
 }) {
   const { client, clientName } = entry
-  const meta = buildRosterRowMeta(entry, { nextSession, passSummary })
+  const meta = buildRosterRowMeta(entry, {
+    nextSession,
+    passSummary,
+    invitations,
+  })
 
   return (
     <button

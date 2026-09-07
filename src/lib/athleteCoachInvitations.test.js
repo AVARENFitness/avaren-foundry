@@ -44,6 +44,21 @@ describe('athleteCoachInvitations', () => {
     })
   })
 
+  it('preserves business_client_id on normalized invitations', () => {
+    expect(
+      normalizeAthleteInvitation({
+        id: 'inv-bc',
+        business_client_id: 'bc-9',
+        athlete_email: 'a@example.com',
+        status: 'pending',
+      }),
+    ).toMatchObject({
+      id: 'inv-bc',
+      businessClientId: 'bc-9',
+      athleteEmail: 'a@example.com',
+    })
+  })
+
   it('builds home copy and notification with shared invitation id', () => {
     const invitation = normalizeAthleteInvitation({
       id: 'inv-9',

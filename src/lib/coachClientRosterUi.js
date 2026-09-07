@@ -5,9 +5,13 @@ import {
 import {
   isActiveBusinessClient,
   isArchivedBusinessClient,
-  isOfflineBusinessClient,
   resolveRecordBusinessClientId,
 } from './coachBusinessClient.js'
+import {
+  CLIENT_INVITE_STATUS,
+  resolveClientInviteStatus,
+  resolveClientInviteStatusLabel,
+} from './coachClientInvite.js'
 
 export const ROSTER_HUB_FILTER = {
   ACTIVE: 'active',
@@ -77,15 +81,20 @@ export const formatRosterNextSessionLabel = (session = null) => {
   return date || time || 'No session scheduled'
 }
 
-export const resolveRosterConnectionHint = (client = {}) => {
+export const resolveRosterConnectionHint = (
+  client = {},
+  { invitations = [] } = {},
+) => {
   if (isArchivedBusinessClient(client)) return 'Past client'
-  if (isOfflineBusinessClient(client)) return 'No app account'
-  return null
+
+  const inviteStatus = resolveClientInviteStatus({ client, invitations })
+  if (inviteStatus === CLIENT_INVITE_STATUS.CONNECTED) return null
+  return resolveClientInviteStatusLabel(inviteStatus)
 }
 
 export const buildRosterRowMeta = (
   entry = {},
-  { nextSession = null, passSummary = null } = {},
+  { nextSession = null, passSummary = null, invitations = [] } = {},
 ) => {
   const attentionLabel = resolveRosterAttentionLabel(entry)
   const nextSessionText = formatRosterNextSessionLabel(nextSession)
@@ -115,7 +124,7 @@ export const buildRosterRowMeta = (
     secondaryLine: secondaryParts.join(' · '),
     passText,
     nextSessionText,
-    connectionHint: resolveRosterConnectionHint(entry.client),
+    connectionHint: resolveRosterConnectionHint(entry.client, { invitations }),
     passIsLow: activeCount > 0 && totalBalance > 0 && totalBalance <= 2,
     passIsEmpty: activeCount > 0 && totalBalance <= 0,
   }

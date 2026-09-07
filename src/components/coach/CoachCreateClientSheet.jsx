@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import AppUiBackdrop from '../ui/AppUiBackdrop'
 import AppUiCloseButton from '../ui/AppUiCloseButton'
+import { validateInviteEmail } from '../../lib/coachClientUi'
 
 export default function CoachCreateClientSheet({
   open = false,
@@ -38,20 +39,34 @@ export default function CoachCreateClientSheet({
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [open, onClose, submitting])
 
-  const handleSubmit = () => {
+  const buildPayload = () => ({
+    firstName: firstName.trim(),
+    lastName: lastName.trim(),
+    preferredName: preferredName.trim(),
+    email: email.trim() || null,
+    phone: phone.trim() || null,
+  })
+
+  const handleSubmit = (invite = false) => {
     const trimmedFirst = firstName.trim()
     if (!trimmedFirst) {
       setError('First name is required.')
       return
     }
 
+    if (invite) {
+      const emailError = validateInviteEmail(email)
+      if (emailError) {
+        setError(emailError)
+        return
+      }
+    }
+
     setError('')
     onSubmit?.({
+      ...buildPayload(),
       firstName: trimmedFirst,
-      lastName: lastName.trim(),
-      preferredName: preferredName.trim(),
-      email: email.trim() || null,
-      phone: phone.trim() || null,
+      invite,
     })
   }
 
@@ -119,6 +134,7 @@ export default function CoachCreateClientSheet({
               value={email}
               onChange={(event) => setEmail(event.target.value)}
               autoComplete="email"
+              aria-label="Email"
               disabled={submitting}
             />
           </label>
@@ -136,13 +152,16 @@ export default function CoachCreateClientSheet({
 
           <section className="coach-create-client-app-access">
             <span className="eyebrow">APP ACCESS</span>
-            <p>No AVAREN account required</p>
+            <p>
+              Add client keeps them on your roster without an invite. Add &amp;
+              invite to AVAREN requires email and sends a pending invitation.
+            </p>
           </section>
 
           {error ? <p className="coach-create-client-error">{error}</p> : null}
         </div>
 
-        <footer className="coach-lifecycle-sheet-footer">
+        <footer className="coach-lifecycle-sheet-footer coach-create-client-footer">
           <button
             type="button"
             className="coach-secondary-button"
@@ -153,11 +172,21 @@ export default function CoachCreateClientSheet({
           </button>
           <button
             type="button"
-            className="gold-button machined coach-primary-action"
-            onClick={handleSubmit}
+            className="coach-secondary-button"
+            data-testid="coach-add-client-only"
+            onClick={() => handleSubmit(false)}
             disabled={submitting}
           >
-            {submitting ? 'Creating…' : 'Create client'}
+            {submitting ? 'Working…' : 'Add client'}
+          </button>
+          <button
+            type="button"
+            className="gold-button machined coach-primary-action"
+            data-testid="coach-add-client-invite"
+            onClick={() => handleSubmit(true)}
+            disabled={submitting}
+          >
+            {submitting ? 'Working…' : 'Add & invite to AVAREN'}
           </button>
         </footer>
       </section>

@@ -130,7 +130,7 @@ describe('CoachScreen open client path', () => {
     )
 
     await waitFor(() => {
-      expect(screen.getByText(/active client · no app account/i)).toBeInTheDocument()
+      expect(screen.getByText(/active client · not connected/i)).toBeInTheDocument()
     })
 
     expect(resolveRecordBusinessClientId(offlineTestClient)).toBe('bc-test')
@@ -155,7 +155,7 @@ describe('CoachScreen open client path', () => {
     )
 
     await waitFor(() => {
-      expect(screen.getByText(/active client · no app account/i)).toBeInTheDocument()
+      expect(screen.getByText(/active client · not connected/i)).toBeInTheDocument()
     })
 
     expect(mockGetClientNotes).not.toHaveBeenCalled()
@@ -194,7 +194,7 @@ describe('CoachScreen open client path', () => {
     )
 
     await waitFor(() => {
-      expect(screen.getByText(/active client · connected/i)).toBeInTheDocument()
+      expect(screen.getByText(/active client · connected to avaren/i)).toBeInTheDocument()
     })
 
     expect(screen.getByTestId('coach-end-coaching-button')).toBeInTheDocument()

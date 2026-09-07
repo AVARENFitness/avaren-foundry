@@ -188,11 +188,16 @@ export function CoachClientManagementPanel({
   onEndCoaching,
   onReopenCoaching,
   onUnlinkAccount,
+  onInviteToAvaren,
 }) {
   const linked = hasLinkedAthlete(client)
   const archived =
     String(client?.status ?? client?.business_client_status ?? 'active') ===
     'archived'
+  const canInvite =
+    typeof onInviteToAvaren === 'function' &&
+    !linked &&
+    !archived
 
   return (
     <section
@@ -205,6 +210,18 @@ export function CoachClientManagementPanel({
       </header>
 
       <div className="coach-client-management-actions">
+        {canInvite ? (
+          <button
+            type="button"
+            className="gold-button machined coach-primary-action"
+            data-testid="coach-invite-to-avaren-button"
+            disabled={submitting}
+            onClick={onInviteToAvaren}
+          >
+            Invite to AVAREN
+          </button>
+        ) : null}
+
         {!archived ? (
           <button
             type="button"

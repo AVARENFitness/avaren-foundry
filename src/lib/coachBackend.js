@@ -152,6 +152,24 @@ export const coachBackend = {
         .single(),
     )
   },
+  async updateBusinessClientEmail({ businessClientId, email }) {
+    if (!isValidUuid(businessClientId)) {
+      throw new Error('business_client_not_found')
+    }
+    const user = await currentUser()
+    const normalized = normalizeEmail(email)
+    if (!normalized) throw new Error('email_required')
+
+    return unwrap(
+      supabase
+        .from('coach_business_clients')
+        .update({ email: normalized })
+        .eq('id', businessClientId)
+        .eq('coach_id', user.id)
+        .select('*')
+        .single(),
+    )
+  },
   async listCoachInvitations() {
     const user = await currentUser()
     return unwrap(supabase.from('coach_invitations').select('*').eq('coach_id', user.id).order('created_at', { ascending: false }))
@@ -163,7 +181,21 @@ export const coachBackend = {
     const user = await currentUser()
     return unwrap(supabase.from('coach_invitations').select('*').eq('athlete_email', normalizeEmail(user.email)).eq('status', 'pending').order('created_at', { ascending: false }))
   },
-  async acceptInvitation(id) { return unwrap(supabase.rpc('accept_coach_invitation', { invitation_id: id })) },
+  async acceptInvitation(id) {
+    const { data, error } = await supabase.rpc(
+      'accept_coach_invitation_for_business_client',
+      { p_invitation_id: id },
+    )
+    if (!error) return data
+
+    const message = String(error?.message ?? error?.code ?? '')
+    if (/invitation_missing_business_client/i.test(message)) {
+      return unwrap(
+        supabase.rpc('accept_coach_invitation', { invitation_id: id }),
+      )
+    }
+    throw error
+  },
   async declineInvitation(id) { return unwrap(supabase.rpc('decline_coach_invitation', { invitation_id: id })) },
   async listClients() {
     const user = await currentUser()
@@ -283,7 +315,7 @@ export const coachBackend = {
         p_first_name: firstName,
         p_last_name: lastName,
         p_preferred_name: preferredName,
-        p_email: email,
+        p_email: email ? normalizeEmail(email) : null,
         p_phone: phone,
         p_started_at: startedAt,
         p_private_note: privateNote,

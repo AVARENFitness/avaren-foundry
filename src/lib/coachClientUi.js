@@ -25,6 +25,7 @@ export const mapLifecycleUserMessage = (
 
 export const LIFECYCLE_SUCCESS = {
   CLIENT_CREATED: 'Client added.',
+  CLIENT_CREATED_AND_INVITED: 'Client added and invitation sent.',
   INVITE_SENT: 'Invitation sent.',
 }
 

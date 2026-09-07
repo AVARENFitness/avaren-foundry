@@ -6,12 +6,53 @@ import {
   formatRosterNextSessionLabel,
   formatRosterPassLabel,
   resolveRosterAttentionLabel,
+  resolveRosterConnectionHint,
   ROSTER_HUB_FILTER,
   ROSTER_PREVIEW_LIMIT,
   sortRosterEntriesForOperations,
 } from './coachClientRosterUi'
 
 describe('coachClientRosterUi', () => {
+  it('shows invite pending / not connected hints for unlinked clients', () => {
+    expect(
+      resolveRosterConnectionHint({
+        status: 'active',
+        linked_user_id: null,
+        id: 'bc-1',
+        email: 'a@example.com',
+      }),
+    ).toBe('Not connected')
+
+    expect(
+      resolveRosterConnectionHint(
+        {
+          status: 'active',
+          linked_user_id: null,
+          id: 'bc-1',
+          email: 'a@example.com',
+        },
+        {
+          invitations: [
+            {
+              id: 'inv-1',
+              status: 'pending',
+              business_client_id: 'bc-1',
+              athlete_email: 'a@example.com',
+            },
+          ],
+        },
+      ),
+    ).toBe('Invite pending')
+
+    expect(
+      resolveRosterConnectionHint({
+        status: 'active',
+        linked_user_id: 'athlete-1',
+        id: 'bc-1',
+      }),
+    ).toBeNull()
+  })
+
   it('prefers next appointment copy over last trained in row meta', () => {
     const meta = buildRosterRowMeta(
       {

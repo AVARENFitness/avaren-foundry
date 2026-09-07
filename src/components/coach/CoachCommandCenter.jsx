@@ -401,6 +401,7 @@ export default function CoachCommandCenter({
                         entry,
                         passAvaContextByBusinessClientId,
                       )}
+                      invitations={invitations}
                     />
                   )
                 })}

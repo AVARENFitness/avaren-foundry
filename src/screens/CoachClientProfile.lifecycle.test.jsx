@@ -71,7 +71,7 @@ describe('CoachClientProfile offline lifecycle', () => {
     weeklyCheckInBackend.getClientWeeklyCheckIn.mockResolvedValue(null)
   })
 
-  it('shows Active client · No app account for offline clients', async () => {
+  it('shows active client · not connected for offline clients', async () => {
     render(
       <CoachClientProfile
         client={offlineClient}
@@ -82,7 +82,7 @@ describe('CoachClientProfile offline lifecycle', () => {
     )
 
     await waitFor(() => {
-      expect(screen.getByText(/active client · no app account/i)).toBeInTheDocument()
+      expect(screen.getByText(/active client · not connected/i)).toBeInTheDocument()
     })
 
     expect(screen.queryByText(/^connected since/i)).not.toBeInTheDocument()
@@ -124,7 +124,7 @@ describe('CoachClientProfile offline lifecycle', () => {
     )
 
     await waitFor(() => {
-      expect(screen.getByText(/active client · no app account/i)).toBeInTheDocument()
+      expect(screen.getByText(/active client · not connected/i)).toBeInTheDocument()
     })
 
     expect(screen.queryByText(/check-in · waiting/i)).not.toBeInTheDocument()
@@ -161,7 +161,7 @@ describe('CoachClientProfile offline lifecycle', () => {
     )
 
     await waitFor(() => {
-      expect(screen.getByText(/active client · connected/i)).toBeInTheDocument()
+      expect(screen.getByText(/active client · connected to avaren/i)).toBeInTheDocument()
     })
 
     expect(screen.getByText(/connected since/i)).toBeInTheDocument()
@@ -245,7 +245,7 @@ describe('CoachClientProfile offline lifecycle', () => {
     })
 
     expect(onClientUpdated).not.toHaveBeenCalled()
-    expect(screen.getByText(/active client · no app account/i)).toBeInTheDocument()
+    expect(screen.getByText(/active client · not connected/i)).toBeInTheDocument()
   })
 
   it('does not update client state when unlink fails', async () => {
@@ -281,7 +281,7 @@ describe('CoachClientProfile offline lifecycle', () => {
     })
 
     expect(onClientUpdated).not.toHaveBeenCalled()
-    expect(screen.getByText(/active client · connected/i)).toBeInTheDocument()
+    expect(screen.getByText(/active client · connected to avaren/i)).toBeInTheDocument()
   })
 
   it('does not update client state when reopen fails', async () => {

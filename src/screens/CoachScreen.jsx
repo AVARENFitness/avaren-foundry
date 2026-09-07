@@ -30,6 +30,10 @@ import {
   LIFECYCLE_SUCCESS,
   mapLifecycleUserMessage,
 } from '../lib/coachClientUi'
+import {
+  createBusinessClientWithOptionalInvite,
+  mapInviteUserMessage,
+} from '../lib/coachClientInvite'
 import { invalidateCoachPortfolioCache } from '../lib/coachPortfolioService'
 import CoachBuildHub from '../components/coach/CoachBuildHub'
 import CoachCommandCenter from '../components/coach/CoachCommandCenter'
@@ -305,35 +309,77 @@ export default function CoachScreen({
   const handleCreateClient = async (payload) => {
     setCreatingClient(true)
     try {
-      const result = await coachBackend.createBusinessClient(payload)
+      const invite = Boolean(payload?.invite)
+      const result = await createBusinessClientWithOptionalInvite({
+        payload: {
+          firstName: payload.firstName,
+          lastName: payload.lastName,
+          preferredName: payload.preferredName,
+          email: payload.email,
+          phone: payload.phone,
+        },
+        invite,
+        existingClients: clients,
+        invitations,
+        createBusinessClient: (body) => coachBackend.createBusinessClient(body),
+        inviteAthlete: (email, options) =>
+          coachBackend.inviteAthlete(email, options),
+        updateBusinessClientEmail: (body) =>
+          coachBackend.updateBusinessClientEmail(body),
+      })
+
       setShowCreateClient(false)
-      setNotice(LIFECYCLE_SUCCESS.CLIENT_CREATED)
+      setNotice(
+        invite
+          ? LIFECYCLE_SUCCESS.CLIENT_CREATED_AND_INVITED
+          : LIFECYCLE_SUCCESS.CLIENT_CREATED,
+      )
       const roster = await load()
       refreshPortfolio()
       invalidateCoachPortfolioCache()
       const created =
         roster.find(
           (client) =>
-            resolveRecordBusinessClientId(client) === result.business_client_id,
+            resolveRecordBusinessClientId(client) === result.businessClientId,
         ) ??
         normalizeBusinessClientRecord({
-          id: result.business_client_id,
-          business_client_id: result.business_client_id,
+          id: result.businessClientId,
+          business_client_id: result.businessClientId,
           linked_user_id: null,
-          display_name: result.display_name,
+          display_name:
+            [payload.firstName, payload.lastName].filter(Boolean).join(' ') ||
+            'Client',
           first_name: payload.firstName,
           last_name: payload.lastName,
           preferred_name: payload.preferredName,
+          email: payload.email,
           status: 'active',
           hasCoachBridge: false,
         })
       setSelectedClient?.(created)
     } catch (error) {
-      setNotice(mapLifecycleUserMessage(error, 'Unable to create client.'))
+      if (error?.code === 'invite_already_pending' && error.businessClientId) {
+        setShowCreateClient(false)
+        setNotice(mapInviteUserMessage(error))
+        const roster = await load()
+        const existing = roster.find(
+          (client) =>
+            resolveRecordBusinessClientId(client) === error.businessClientId,
+        )
+        if (existing) setSelectedClient?.(existing)
+        return
+      }
+      setNotice(
+        mapInviteUserMessage(
+          error,
+          mapLifecycleUserMessage(error, 'Unable to create client.'),
+        ),
+      )
     } finally {
       setCreatingClient(false)
     }
   }
+
   const assignCustom=async(payload)=>{try{await coachBackend.createAssignment(payload);setNotice('Workout assigned.');await load()}catch(e){setNotice(e.message);throw e}}
   const saveTemplate=async({name,workout})=>{try{await coachBackend.saveWorkoutTemplate({name,workout});setNotice('Workout template saved.');await load()}catch(e){setNotice(e.message);throw e}}
   const unassign=async(assignment)=>{if(!(await appUi.confirm({ message:`Cancel ${assignment.title}? It will leave active schedules but remain in assignment history.`, tone:'danger', confirmLabel:'Cancel' })))return;try{await coachBackend.cancelAssignment(assignment.id);setNotice('Assignment cancelled and removed from active schedules.');await load()}catch(e){setNotice(e.message)}}
@@ -436,11 +482,13 @@ export default function CoachScreen({
   if(selectedClient && screen==='clients') return <>
     <CoachClientProfile
       client={selectedClient}
+      invitations={invitations}
       initialActiveSection={clientProfileSection}
       assignments={assignments}
       clientNotes={clientNotes}
       notesUpdatedAt={notesUpdatedAt}
       onClientNotesChange={setClientNotes}
+      onInvitationsChanged={load}
       onSaveNotes={async (notes = clientNotes) => {
         const notesAthleteId = resolveAthleteDataId(selectedClient)
         if (!notesAthleteId) return null

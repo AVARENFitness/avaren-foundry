@@ -19,6 +19,7 @@ export const normalizeAthleteInvitation = (row = {}) => {
     coachId: row.coach_id ?? row.coachId ?? null,
     athleteEmail: row.athlete_email ?? row.athleteEmail ?? '',
     athleteId: row.athlete_id ?? row.athleteId ?? null,
+    businessClientId: row.business_client_id ?? row.businessClientId ?? null,
     status: row.status ?? 'pending',
     createdAt: row.created_at ?? row.createdAt ?? null,
     respondedAt: row.responded_at ?? row.respondedAt ?? null,

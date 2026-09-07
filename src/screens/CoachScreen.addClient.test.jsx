@@ -11,6 +11,7 @@ vi.mock('../lib/coachBackend', () => ({
     listWorkoutTemplates: vi.fn(),
     createBusinessClient: vi.fn(),
     inviteAthlete: vi.fn(),
+    updateBusinessClientEmail: vi.fn(),
   },
 }))
 
@@ -91,7 +92,7 @@ describe('CoachScreen Add client integration', () => {
     ).not.toBeInTheDocument()
   })
 
-  it('creates business client with optional email', async () => {
+  it('creates business client with optional email and no invite', async () => {
     const user = userEvent.setup()
     const setSelectedClient = vi.fn()
 
@@ -107,6 +108,7 @@ describe('CoachScreen Add client integration', () => {
         first_name: 'Sarah',
         last_name: 'Test',
         status: 'active',
+        linked_user_id: null,
       },
     ])
 
@@ -126,7 +128,7 @@ describe('CoachScreen Add client integration', () => {
     await user.click(screen.getByRole('button', { name: /^add client$/i }))
     await user.type(screen.getByLabelText(/first name/i), 'Sarah')
     await user.type(screen.getByLabelText(/last name/i), 'Test')
-    await user.click(screen.getByRole('button', { name: /^create client$/i }))
+    await user.click(screen.getByTestId('coach-add-client-only'))
 
     await waitFor(() => {
       expect(coachBackend.createBusinessClient).toHaveBeenCalledWith(
@@ -141,6 +143,152 @@ describe('CoachScreen Add client integration', () => {
     expect(coachBackend.inviteAthlete).not.toHaveBeenCalled()
     await waitFor(() => {
       expect(setSelectedClient).toHaveBeenCalled()
+    })
+  })
+
+  it('requires email before Add & invite to AVAREN', async () => {
+    const user = userEvent.setup()
+
+    render(
+      <CoachScreen
+        workspace={{}}
+        setWorkspace={vi.fn()}
+        selectedClient={null}
+        setSelectedClient={vi.fn()}
+      />,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /^add client$/i })).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByRole('button', { name: /^add client$/i }))
+    await user.type(screen.getByLabelText(/first name/i), 'Sarah')
+    await user.click(screen.getByTestId('coach-add-client-invite'))
+
+    expect(await screen.findByText(/enter a valid athlete email/i)).toBeInTheDocument()
+    expect(coachBackend.createBusinessClient).not.toHaveBeenCalled()
+    expect(coachBackend.inviteAthlete).not.toHaveBeenCalled()
+  })
+
+  it('creates business client and pending invite on Add & invite', async () => {
+    const user = userEvent.setup()
+    const setSelectedClient = vi.fn()
+
+    coachBackend.createBusinessClient.mockResolvedValue({
+      business_client_id: 'bc-sarah',
+      display_name: 'Sarah Test',
+    })
+    coachBackend.inviteAthlete.mockResolvedValue({
+      invitation_id: 'inv-sarah',
+      business_client_id: 'bc-sarah',
+    })
+    coachBackend.listCoachRoster
+      .mockResolvedValueOnce([jake])
+      .mockResolvedValueOnce([
+        jake,
+        {
+          id: 'bc-sarah',
+          business_client_id: 'bc-sarah',
+          first_name: 'Sarah',
+          last_name: 'Test',
+          email: 'sarah@example.com',
+          status: 'active',
+          linked_user_id: null,
+        },
+      ])
+    coachBackend.listCoachInvitations
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([
+        {
+          id: 'inv-sarah',
+          status: 'pending',
+          athlete_email: 'sarah@example.com',
+          business_client_id: 'bc-sarah',
+        },
+      ])
+
+    render(
+      <CoachScreen
+        workspace={{}}
+        setWorkspace={vi.fn()}
+        selectedClient={null}
+        setSelectedClient={setSelectedClient}
+      />,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /^add client$/i })).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByRole('button', { name: /^add client$/i }))
+    await user.type(screen.getByLabelText(/first name/i), 'Sarah')
+    await user.type(screen.getByLabelText(/last name/i), 'Test')
+    await user.type(screen.getByLabelText(/^email$/i), '  Sarah@Example.COM ')
+    await user.click(screen.getByTestId('coach-add-client-invite'))
+
+    await waitFor(() => {
+      expect(coachBackend.createBusinessClient).toHaveBeenCalledWith(
+        expect.objectContaining({
+          firstName: 'Sarah',
+          lastName: 'Test',
+          email: 'sarah@example.com',
+        }),
+      )
+    })
+
+    await waitFor(() => {
+      expect(coachBackend.inviteAthlete).toHaveBeenCalledWith('sarah@example.com', {
+        businessClientId: 'bc-sarah',
+      })
+    })
+
+    await waitFor(() => {
+      expect(setSelectedClient).toHaveBeenCalledWith(
+        expect.objectContaining({ business_client_id: 'bc-sarah' }),
+      )
+    })
+  })
+
+  it('blocks double-submit while create is in flight', async () => {
+    const user = userEvent.setup()
+    let resolveCreate
+    coachBackend.createBusinessClient.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveCreate = resolve
+        }),
+    )
+
+    render(
+      <CoachScreen
+        workspace={{}}
+        setWorkspace={vi.fn()}
+        selectedClient={null}
+        setSelectedClient={vi.fn()}
+      />,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /^add client$/i })).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByRole('button', { name: /^add client$/i }))
+    await user.type(screen.getByLabelText(/first name/i), 'Sarah')
+    await user.type(screen.getByLabelText(/^email$/i), 'sarah@example.com')
+
+    const inviteButton = screen.getByTestId('coach-add-client-invite')
+    await user.click(inviteButton)
+    await user.click(inviteButton)
+
+    await waitFor(() => {
+      expect(coachBackend.createBusinessClient).toHaveBeenCalledTimes(1)
+    })
+
+    resolveCreate({ business_client_id: 'bc-sarah' })
+    coachBackend.inviteAthlete.mockResolvedValue({ invitation_id: 'inv-1' })
+    await waitFor(() => {
+      expect(coachBackend.inviteAthlete).toHaveBeenCalledTimes(1)
     })
   })
 })

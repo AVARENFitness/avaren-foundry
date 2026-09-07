@@ -46,14 +46,24 @@ import {
   isArchivedBusinessClient,
   resolveAthleteDataId,
   resolveCanonicalLinkedUserId,
-  resolveClientIdentityBadge,
   resolveRecordBusinessClientId,
 } from '../lib/coachBusinessClient'
+import {
+  canInviteBusinessClientToAvaren,
+  findPendingInviteForBusinessClient,
+  mapInviteUserMessage,
+  normalizeInviteEmail,
+  resolveClientInviteStatus,
+  resolveClientInviteStatusLabel,
+} from '../lib/coachClientInvite'
+import { LIFECYCLE_SUCCESS, validateInviteEmail } from '../lib/coachClientUi'
 import {
   canLoadAthleteIntelligence,
   isWeeklyCheckInEligible,
 } from '../lib/weeklyCheckInEligibility'
 import { appUi } from '../lib/appUi'
+import AppUiBackdrop from '../components/ui/AppUiBackdrop'
+import AppUiCloseButton from '../components/ui/AppUiCloseButton'
 import {
   emptySessionPackage,
   formatPackageDate,
@@ -107,6 +117,7 @@ function ProfileSection({ eyebrow, title, description, primaryAction, children }
 
 export default function CoachClientProfile({
   client,
+  invitations = [],
   assignments = [],
   clientNotes = '',
   notesUpdatedAt = null,
@@ -125,9 +136,14 @@ export default function CoachClientProfile({
   notice = '',
   onClientUpdated,
   onClientArchived,
+  onInvitationsChanged,
   initialActiveSection = 'overview',
 }) {
+  const [showInviteSheet, setShowInviteSheet] = useState(false)
+  const [inviteEmailDraft, setInviteEmailDraft] = useState('')
+  const [inviteError, setInviteError] = useState('')
   const [passAvaContext, setPassAvaContext] = useState(null)
+
   const [activeSection, setActiveSection] = useState(initialActiveSection)
   const [packageSummary, setPackageSummary] = useState(emptySessionPackage())
   const [packageLoading, setPackageLoading] = useState(true)
@@ -468,8 +484,68 @@ export default function CoachClientProfile({
     const lifecycle = isArchivedBusinessClient(client)
       ? 'Past client'
       : 'Active client'
-    return `${lifecycle} · ${resolveClientIdentityBadge(client)}`
-  }, [client])
+    const inviteStatus = resolveClientInviteStatus({ client, invitations })
+    return `${lifecycle} · ${resolveClientInviteStatusLabel(inviteStatus)}`
+  }, [client, invitations])
+
+  const handleInviteToAvaren = () => {
+    const businessClientId = resolveRecordBusinessClientId(client)
+    if (!businessClientId) return
+
+    if (
+      findPendingInviteForBusinessClient(
+        invitations,
+        businessClientId,
+        client.email ?? client.athlete_email ?? '',
+      )
+    ) {
+      appUi.toast('An invitation is already pending for this client.', 'info')
+      return
+    }
+
+    setInviteEmailDraft(normalizeInviteEmail(client.email ?? client.athlete_email ?? ''))
+    setInviteError('')
+    setShowInviteSheet(true)
+  }
+
+  const submitInviteToAvaren = async () => {
+    const businessClientId = resolveRecordBusinessClientId(client)
+    if (!businessClientId) return
+
+    const email = normalizeInviteEmail(inviteEmailDraft)
+    const emailError = validateInviteEmail(email)
+    if (emailError) {
+      setInviteError(emailError)
+      return
+    }
+
+    setLifecycleBusy(true)
+    setInviteError('')
+    try {
+      if (normalizeInviteEmail(client.email ?? '') !== email) {
+        await coachBackend.updateBusinessClientEmail({
+          businessClientId,
+          email,
+        })
+        onClientUpdated?.(
+          {
+            ...client,
+            email,
+          },
+          { refreshRoster: true },
+        )
+      }
+
+      await coachBackend.inviteAthlete(email, { businessClientId })
+      setShowInviteSheet(false)
+      appUi.toast(LIFECYCLE_SUCCESS.INVITE_SENT, 'success')
+      await onInvitationsChanged?.()
+    } catch (error) {
+      setInviteError(mapInviteUserMessage(error))
+    } finally {
+      setLifecycleBusy(false)
+    }
+  }
 
   const connectionDetail = useMemo(() => {
     if (!hasLinkedAthlete(client)) return null
@@ -661,6 +737,11 @@ export default function CoachClientProfile({
         onEndCoaching={() => setShowEndCoaching(true)}
         onReopenCoaching={handleReopenCoaching}
         onUnlinkAccount={handleUnlinkAccount}
+        onInviteToAvaren={
+          canInviteBusinessClientToAvaren({ client, invitations })
+            ? handleInviteToAvaren
+            : undefined
+        }
       />
     </>
   ) : null
@@ -1073,6 +1154,69 @@ export default function CoachClientProfile({
         onClose={() => setShowEndCoaching(false)}
         onConfirm={handleEndCoachingConfirm}
       />
+      <AppUiBackdrop
+        open={showInviteSheet}
+        onClose={lifecycleBusy ? undefined : () => setShowInviteSheet(false)}
+        className="coach-lifecycle-backdrop"
+      >
+        <section
+          className="coach-lifecycle-sheet"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="coach-invite-avaren-title"
+          data-testid="coach-invite-avaren-sheet"
+          onClick={(event) => event.stopPropagation()}
+        >
+          <header className="coach-lifecycle-sheet-header">
+            <div>
+              <span className="eyebrow">APP ACCESS</span>
+              <h2 id="coach-invite-avaren-title">Invite to AVAREN</h2>
+              <p>
+                Send a pending invitation for {getClientDisplayName(client)}. They
+                stay on your roster even before they accept.
+              </p>
+            </div>
+            <AppUiCloseButton
+              onClick={() => setShowInviteSheet(false)}
+              disabled={lifecycleBusy}
+            />
+          </header>
+          <div className="coach-lifecycle-sheet-body">
+            <label className="coach-field coach-field--wide">
+              <span>Email *</span>
+              <input
+                className="coach-field-input"
+                type="email"
+                value={inviteEmailDraft}
+                onChange={(event) => setInviteEmailDraft(event.target.value)}
+                disabled={lifecycleBusy}
+                aria-label="Invitation email"
+              />
+            </label>
+            {inviteError ? (
+              <p className="coach-create-client-error">{inviteError}</p>
+            ) : null}
+          </div>
+          <footer className="coach-lifecycle-sheet-footer">
+            <button
+              type="button"
+              className="coach-secondary-button"
+              onClick={() => setShowInviteSheet(false)}
+              disabled={lifecycleBusy}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="gold-button machined coach-primary-action"
+              onClick={submitInviteToAvaren}
+              disabled={lifecycleBusy}
+            >
+              {lifecycleBusy ? 'Sending…' : 'Send invitation'}
+            </button>
+          </footer>
+        </section>
+      </AppUiBackdrop>
     </CoachClientProfileShell>
       )}
     </CoachSessionDetailHost>

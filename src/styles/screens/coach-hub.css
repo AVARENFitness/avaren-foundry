@@ -377,6 +377,20 @@
   justify-content: flex-end;
 }
 
+.coach-create-client-footer {
+  flex-wrap: wrap;
+}
+
+.coach-create-client-footer .coach-primary-action {
+  flex: 1 1 100%;
+}
+
+@media (min-width: 420px) {
+  .coach-create-client-footer .coach-primary-action {
+    flex: 0 1 auto;
+  }
+}
+
 .coach-create-client-app-access p {
   margin: 4px 0 0;
   color: #8a8379;
