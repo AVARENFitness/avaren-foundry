@@ -361,7 +361,7 @@ describe('HomeScreen post-workout day state', () => {
     expect(screen.getByText(/cal logged/i)).toBeInTheDocument()
   })
 
-  it('promotes food logging after recovery window when workout is done today', () => {
+  it('promotes food logging and stretch after recovery is completed today', () => {
     const completedAt = fridayAfternoonLocal()
     completedAt.setHours(9, 0, 0, 0)
     const now = fridayAfternoonLocal()
@@ -379,6 +379,17 @@ describe('HomeScreen post-workout day state', () => {
             sets: [],
           },
         ],
+        mobility: {
+          completed: [
+            {
+              flowId: 'recovery-done',
+              title: 'Recovery Flow',
+              completedAt: now.toISOString(),
+            },
+          ],
+          durationPreferences: {},
+          daily: {},
+        },
       },
       readiness: { completed: true },
       currentWeeklyCheckInState: submittedCanonical,
@@ -388,6 +399,7 @@ describe('HomeScreen post-workout day state', () => {
     expect(
       screen.getByRole('button', { name: 'Log your food' }),
     ).toBeInTheDocument()
+    expect(screen.getByText('Full-Body Stretch')).toBeInTheDocument()
     expect(
       screen.queryByRole('button', { name: 'Choose another workout' }),
     ).not.toBeInTheDocument()

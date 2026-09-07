@@ -5,6 +5,7 @@ export const STATE_SCHEMA_VERSION = 3
 const emptyMobility = () => ({
   durationPreferences: {},
   completed: [],
+  daily: {},
 })
 
 const emptyReadiness = () => ({

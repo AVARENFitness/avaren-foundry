@@ -107,4 +107,35 @@ describe('TrainHubScreen choose-workout visual contract', () => {
     expect(onStartFreeform).toHaveBeenCalledTimes(1)
     expect(getByRole('button', { name: /Start Session/i })).toBeTruthy()
   })
+
+  it('always exposes Full-Body Stretch as optional Mobility & Recovery entry', () => {
+    const onOpenFullBodyStretch = vi.fn()
+    const { getByTestId, getByRole } = render(
+      <TrainHubScreen
+        state={{
+          selectedWorkout: null,
+          activeWorkout: null,
+          program: {
+            rotation: ['Arms'],
+            workouts: {
+              Arms: [{ name: 'Curls', sets: 3, muscle: 'Biceps' }],
+            },
+          },
+          history: [],
+          nutrition: createNutritionState(),
+        }}
+        onStart={() => {}}
+        navigate={() => {}}
+        onOpenFullBodyStretch={onOpenFullBodyStretch}
+      />,
+    )
+
+    expect(getByTestId('train-mobility-recovery')).toBeTruthy()
+    const stretch = getByTestId('train-full-body-stretch')
+    expect(stretch.textContent).toMatch(/Full-Body Stretch/)
+    expect(stretch.classList.contains('train-hub-card--secondary')).toBe(true)
+    stretch.click()
+    expect(onOpenFullBodyStretch).toHaveBeenCalledTimes(1)
+    expect(getByRole('button', { name: /Start Session/i })).toBeTruthy()
+  })
 })

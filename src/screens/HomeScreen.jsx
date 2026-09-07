@@ -87,6 +87,7 @@ export default function HomeScreen({
   onOpenReadiness,
   onOpenMobility,
   onOpenReset,
+  onOpenFullBodyStretch,
   mobilityTitle = 'Morning Movement',
   mobilityMinutes = 7,
   onStartCoachAssignment,
@@ -363,6 +364,9 @@ export default function HomeScreen({
       case HOME_ACTION_IDS.MORNING_MOVEMENT:
         onOpenMobility()
         return
+      case HOME_ACTION_IDS.FULL_BODY_STRETCH:
+        onOpenFullBodyStretch?.()
+        return
       case HOME_ACTION_IDS.NUTRITION:
         setScreen('nutrition')
         return
@@ -393,6 +397,9 @@ export default function HomeScreen({
         return
       case HOME_ACTION_IDS.MORNING_MOVEMENT:
         onOpenMobility()
+        return
+      case HOME_ACTION_IDS.FULL_BODY_STRETCH:
+        onOpenFullBodyStretch?.()
         return
       case HOME_ACTION_IDS.NUTRITION:
         setScreen('nutrition')
@@ -526,6 +533,7 @@ export default function HomeScreen({
             {[
               HOME_ACTION_IDS.RECOVERY_FLOW,
               HOME_ACTION_IDS.NUTRITION,
+              HOME_ACTION_IDS.FULL_BODY_STRETCH,
               HOME_ACTION_IDS.MORNING_MOVEMENT,
               HOME_ACTION_IDS.APPOINTMENT,
               HOME_ACTION_IDS.READINESS,
@@ -604,6 +612,7 @@ export default function HomeScreen({
               HOME_ACTION_IDS.RECOVERY_FLOW,
               HOME_ACTION_IDS.MORNING_MOVEMENT,
               HOME_ACTION_IDS.NUTRITION,
+              HOME_ACTION_IDS.FULL_BODY_STRETCH,
               HOME_ACTION_IDS.APPOINTMENT,
               HOME_ACTION_IDS.READINESS,
               HOME_ACTION_IDS.WEEKLY_CHECKIN,

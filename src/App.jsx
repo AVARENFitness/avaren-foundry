@@ -73,6 +73,14 @@ import {
   buildRecoveryFlow,
   calculateRecoveryIntelligence,
 } from './data/mobility'
+import {
+  resolveMobilityCompletionKind,
+  withMorningMovementSkippedForToday,
+} from './lib/dailyAthleteFlow'
+import {
+  withCanonicalDailyFullBodyStretch,
+} from './lib/dailyFullBodyStretch'
+import { findCompletedWorkoutToday } from './lib/programWorkout'
 import CloudStatus from './components/CloudStatus'
 import AuthScreen from './screens/AuthScreen'
 import { BASELINES, DEFAULT_PROGRAM } from './data/defaultProgram'
@@ -441,6 +449,11 @@ function App() {
     screen,
     navigate,
   ])
+
+  useEffect(() => {
+    if (!state.activeWorkout) return
+    setState((current) => withMorningMovementSkippedForToday(current))
+  }, [state.activeWorkout?.id ?? state.activeWorkout?.name ?? null])
 
   useEffect(() => {
     const resumeActiveWorkout = () => {
@@ -1041,9 +1054,13 @@ function App() {
   openDailyResetRef.current = openDailyReset
 
   const openHomeReset = () => {
-    const lastWorkout = [...state.history]
-      .sort((first, second) => String(first?.date).localeCompare(String(second?.date)))
-      .at(-1)
+    const lastWorkout =
+      findCompletedWorkoutToday(state.history) ??
+      [...state.history]
+        .sort((first, second) =>
+          String(first?.date).localeCompare(String(second?.date)),
+        )
+        .at(-1)
 
     if (lastWorkout) {
       openRecoveryFlow(lastWorkout)
@@ -1051,6 +1068,22 @@ function App() {
     }
 
     openDailyReset()
+  }
+
+  const openFullBodyStretch = () => {
+    // Bias only applies on first resolve for today; completed TODAY workout only.
+    const completedWorkoutToday = findCompletedWorkoutToday(state.history)
+    const { state: nextState, flow } = withCanonicalDailyFullBodyStretch(state, {
+      athleteId: session?.user?.id ?? 'athlete',
+      now: new Date(),
+      session: completedWorkoutToday,
+    })
+
+    if (nextState !== state) {
+      setState(nextState)
+    }
+    setMobilityFlow(flow)
+    navigate('mobility')
   }
 
   const openRecoveryFlow = (
@@ -1518,6 +1551,9 @@ function App() {
       id: createRuntimeId(),
       flowId: mobilityFlow?.id,
       title: mobilityFlow?.title,
+      kind:
+        mobilityFlow?.kind ??
+        resolveMobilityCompletionKind(mobilityFlow),
       movementIds:
         mobilityFlow?.movements?.map((movement) => movement.id) ?? [],
       completedAt: new Date().toISOString(),
@@ -1538,6 +1574,7 @@ function App() {
             routineLength: 'standard',
             dislikedMovementIds: [],
           },
+        daily: current.mobility?.daily ?? {},
       },
     }))
 
@@ -1825,6 +1862,7 @@ function App() {
           onStart={startWorkout}
           onStartFreeform={startFreeformWorkout}
           navigate={navigateFromTrain}
+          onOpenFullBodyStretch={openFullBodyStretch}
           onSelectWorkout={(workout) =>
             setState((current) => ({
               ...current,
@@ -2129,6 +2167,7 @@ function App() {
           onRecommendationRecovery={openDailyReset}
           onOpenMobility={openDailyReset}
           onOpenReset={openHomeReset}
+          onOpenFullBodyStretch={openFullBodyStretch}
           onStartCoachAssignment={
             startCoachAssignment
           }

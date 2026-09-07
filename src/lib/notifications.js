@@ -1,7 +1,10 @@
 import { forgeSnapshot } from './forge'
 import { calculateReadiness } from './readiness'
-import { POST_WORKOUT_RECOVERY_WINDOW_MS } from './athleteHomeState'
 import { localCalendarDateKey } from './localCalendarDay'
+import {
+  isRecoveryFlowCompletion,
+  mobilityKindCompletedToday,
+} from './dailyAthleteFlow'
 import { resolveMissedWorkoutObligations } from './missedWorkoutObligations'
 import { isWeeklyCheckInDue } from './weeklyCheckIn'
 import { assignmentDisplayName } from './coachAssignments'
@@ -163,15 +166,13 @@ const recoveryNotifications = (state) => {
     lastWorkout.finishedAt ??
     `${lastWorkout.date}T12:00:00`
 
-  if (!withinHours(finishedAt, POST_WORKOUT_RECOVERY_WINDOW_MS / 3600000)) return []
+  const finishedDate = new Date(finishedAt)
+  if (!Number.isFinite(finishedDate.getTime())) return []
+  if (localCalendarDateKey(finishedDate) !== localCalendarDateKey()) return []
 
-  const hasRecoveryFlow = (
-    state.mobility?.completed ?? []
-  ).some(
-    (entry) =>
-      entry?.title === 'Recovery Flow' &&
-      new Date(entry.completedAt).getTime() >
-        new Date(finishedAt).getTime(),
+  const hasRecoveryFlow = mobilityKindCompletedToday(
+    state.mobility?.completed,
+    isRecoveryFlowCompletion,
   )
 
   if (hasRecoveryFlow) return []
@@ -186,9 +187,11 @@ const recoveryNotifications = (state) => {
       action: NOTIFICATION_ACTIONS.START_RECOVERY,
       actionLabel: 'Start Recovery',
       fingerprint: `recovery:${lastWorkout.id}`,
-      expiresAt: new Date(
-        new Date(finishedAt).getTime() + 36 * 3600000,
-      ).toISOString(),
+      expiresAt: (() => {
+        const end = new Date(finishedDate)
+        end.setHours(23, 59, 59, 999)
+        return end.toISOString()
+      })(),
     }),
   ]
 }

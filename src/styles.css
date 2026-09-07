@@ -13510,7 +13510,7 @@ input, textarea, select {
 .train-hub-card > span:nth-child(2) { flex:1; }
 .train-hub-card strong,.train-hub-card small { display:block; }
 .train-hub-card small { margin-top:4px; color:#a59e95; }
-
+.train-hub-mobility{display:grid;gap:10px;margin-top:8px}.train-hub-mobility .eyebrow{margin:0}.train-hub-card--secondary{display:flex;align-items:center;gap:12px;width:100%;min-height:76px;opacity:.96}
 .train-hub-card.primary {
   border-color: rgba(216,184,109,.14);
   background: rgba(216,184,109,.04);

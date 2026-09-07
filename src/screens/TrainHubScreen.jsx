@@ -7,6 +7,7 @@ import {
   History,
   ListChecks,
   Settings2,
+  Sparkles,
 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { buildAthleteAppointmentContextLine } from '../ava/coach/avaAthleteAppointmentPipeline'
@@ -45,6 +46,7 @@ export default function TrainHubScreen({
   onStartFreeform,
   navigate,
   onSelectWorkout,
+  onOpenFullBodyStretch,
 }) {
   const activeWorkout = state.activeWorkout
   const [showWorkoutSelector, setShowWorkoutSelector] = useState(false)
@@ -161,6 +163,28 @@ export default function TrainHubScreen({
         <ActionCard icon={Hammer} title="The Forge" description="Achievements and milestones" onClick={() => navigate('forge')} />
         <ActionCard icon={ListChecks} title="Exercise Library" description="Browse movements in your programs" onClick={() => navigate('builder')} />
         <ActionCard icon={BookOpen} title="Programs" description="Program scheduling lives in Coach Hub today" onClick={() => navigate('more')} />
+      </section>
+
+      <section
+        className="train-hub-mobility"
+        data-testid="train-mobility-recovery"
+      >
+        <span className="eyebrow">MOBILITY & RECOVERY</span>
+        <button
+          type="button"
+          className="train-hub-card train-hub-card--secondary"
+          data-testid="train-full-body-stretch"
+          onClick={() => onOpenFullBodyStretch?.()}
+        >
+          <span className="train-hub-card-icon">
+            <Sparkles size={20} />
+          </span>
+          <span>
+            <strong>Full-Body Stretch</strong>
+            <small>Optional calm mobility · available any time today</small>
+          </span>
+          <ArrowRight size={17} />
+        </button>
       </section>
 
       {showWorkoutSelector ? (

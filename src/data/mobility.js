@@ -1798,7 +1798,7 @@ Object.entries(FOUNDATION_MOVEMENT_LIBRARY).forEach(
   },
 )
 
-const cloneMovement = (id, durationPreferences = {}) => {
+export const cloneMovement = (id, durationPreferences = {}) => {
   const movement = MOVEMENTS[id]
   if (!movement) return null
 
@@ -2180,6 +2180,7 @@ export function buildAdaptiveDailyReset({
     title: 'Morning Movement',
     subtitle: goal,
     reason: reasonParts.join(' '),
+    kind: 'morning_movement',
     focusAreas,
     movements: movementIds
       .slice(0, limit)
@@ -2232,11 +2233,12 @@ export function buildRecoveryFlow(
 
   return {
     id: `recovery-${session?.id ?? 'current'}`,
-    title: 'Daily Reset',
+    title: 'Recovery Flow',
     subtitle: goal,
     reason: session?.name
       ? `Built from the muscles you trained during ${session.name}.`
       : 'A balanced equipment-free recovery flow.',
+    kind: 'recovery',
     focusAreas: selected.map((value) =>
       value
         .replace('arms', 'arms & wrists')
@@ -2268,7 +2270,9 @@ export function calculateRecoveryIntelligence(state = {}) {
 
   const recentRecovery = mobility.filter(
     (entry) =>
-      entry.title === 'Recovery Flow' &&
+      (entry.title === 'Recovery Flow' ||
+        entry.kind === 'recovery' ||
+        String(entry.flowId ?? '').startsWith('recovery-')) &&
       withinDays(entry.completedAt, 7),
   )
 

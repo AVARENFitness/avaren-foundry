@@ -208,7 +208,50 @@ describe('athleteHomeState', () => {
     ).toBe(true)
   })
 
-  it('removes recovery from primary home after the window expires', () => {
+  it('removes recovery from primary home after recovery is completed', () => {
+    const completedAt = atLocalTime('2026-08-07T12:00:00', 9, 0)
+    const now = new Date(completedAt.getTime() + 90 * 60 * 1000)
+    vi.setSystemTime(now)
+
+    const home = getAthleteHomeState({
+      now,
+      state: buildState({
+        history: [
+          {
+            id: 'done',
+            name: 'Arms',
+            finishedAt: completedAt.toISOString(),
+            sets: [],
+          },
+        ],
+        mobility: {
+          completed: [
+            {
+              flowId: 'recovery-done',
+              title: 'Daily Reset',
+              completedAt: now.toISOString(),
+            },
+          ],
+          durationPreferences: {},
+          daily: {},
+        },
+      }),
+      readiness: { completed: true },
+    })
+
+    expect(home.primaryAction?.id).not.toBe(HOME_ACTION_IDS.RECOVERY_FLOW)
+    expect(home.sections.recoveryPrimary).toBe(false)
+    expect(home.primaryAction?.id).toBe(HOME_ACTION_IDS.NUTRITION)
+    expect(home.sections.nutritionPrimary).toBe(true)
+    expect(home.sections.stretchOptional).toBe(true)
+    expect(
+      home.secondaryActions.some(
+        (action) => action.id === HOME_ACTION_IDS.FULL_BODY_STRETCH,
+      ),
+    ).toBe(true)
+  })
+
+  it('keeps recovery due for the remainder of the local day until completed', () => {
     const completedAt = atLocalTime('2026-08-07T12:00:00', 9, 0)
     const now = new Date(completedAt.getTime() + 90 * 60 * 1000)
     vi.setSystemTime(now)
@@ -228,11 +271,42 @@ describe('athleteHomeState', () => {
       readiness: { completed: true },
     })
 
-    expect(home.inRecoveryWindow).toBe(false)
+    expect(home.primaryAction?.id).toBe(HOME_ACTION_IDS.RECOVERY_FLOW)
+    expect(home.sections.recoveryPrimary).toBe(true)
+  })
+
+  it('clears recovery home state when completed with production recovery-* flow ids', () => {
+    const completedAt = atLocalTime('2026-08-07T12:00:00', 10, 0)
+    const now = new Date(completedAt.getTime() + 15 * 60 * 1000)
+    vi.setSystemTime(now)
+
+    const home = getAthleteHomeState({
+      now,
+      state: buildState({
+        history: [
+          {
+            id: 'done',
+            name: 'Arms',
+            finishedAt: completedAt.toISOString(),
+            sets: [],
+          },
+        ],
+        mobility: {
+          completed: [
+            {
+              flowId: 'recovery-done',
+              title: 'Recovery Flow',
+              completedAt: now.toISOString(),
+            },
+          ],
+          durationPreferences: {},
+        },
+      }),
+      readiness: { completed: true },
+    })
+
     expect(home.primaryAction?.id).not.toBe(HOME_ACTION_IDS.RECOVERY_FLOW)
     expect(home.sections.recoveryPrimary).toBe(false)
-    expect(home.primaryAction?.id).toBe(HOME_ACTION_IDS.NUTRITION)
-    expect(home.sections.nutritionPrimary).toBe(true)
   })
 
   it('does not keep yesterday post-workout mode on the next local calendar day', () => {
@@ -315,7 +389,7 @@ describe('athleteHomeState', () => {
     expect(first.inRecoveryWindow).toBe(second.inRecoveryWindow)
   })
 
-  it('prioritizes nutrition after workout completion outside recovery window', () => {
+  it('prioritizes nutrition after recovery is completed', () => {
     vi.setSystemTime(fridayAfternoon)
 
     const home = getAthleteHomeState({

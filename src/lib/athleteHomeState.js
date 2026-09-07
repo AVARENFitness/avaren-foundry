@@ -1,10 +1,16 @@
-import {
-  findCompletedWorkoutToday,
-  resolveWorkoutRecommendation,
-} from './programWorkout'
 import { localCalendarDateKey } from './localCalendarDay'
+import {
+  DAILY_FLOW_STEP,
+  DAILY_FLOW_STATUS,
+  isMorningMovementFlowCompletion,
+  isRecoveryFlowCompletion,
+  mobilityKindCompletedToday,
+  resolveDailyAthleteFlow,
+  resolveLastWorkoutCompletionToday,
+} from './dailyAthleteFlow'
 
 export const MORNING_MOVEMENT_END_HOUR = 11
+/** @deprecated Recovery is due for the remainder of the local day after training. */
 export const POST_WORKOUT_RECOVERY_WINDOW_MS = 60 * 60 * 1000
 
 export const HOME_ACTION_IDS = {
@@ -14,46 +20,54 @@ export const HOME_ACTION_IDS = {
   RECOVERY_FLOW: 'recovery-flow',
   MORNING_MOVEMENT: 'morning-movement',
   NUTRITION: 'nutrition',
+  FULL_BODY_STRETCH: 'full-body-stretch',
   APPOINTMENT: 'appointment',
   READINESS: 'readiness',
   WEEKLY_CHECKIN: 'weekly-checkin',
   REST_DAY: 'rest-day',
   VIEW_SCHEDULE: 'view-schedule',
   VIEW_TRAIN: 'view-train',
+  REST_OF_DAY: 'rest-of-day',
 }
 
 export const localDateKey = localCalendarDateKey
 
-export const mobilityCompletedToday = (completions = [], flowId = null) => {
-  const today = localCalendarDateKey()
+export const mobilityCompletedToday = (completions = [], flowId = null, now = new Date()) => {
+  if (!flowId) {
+    return (completions ?? []).some((item) =>
+      item?.completedAt
+        ? localCalendarDateKey(new Date(item.completedAt)) ===
+          localCalendarDateKey(now)
+        : false,
+    )
+  }
+
+  if (flowId === 'daily-reset' || flowId === 'morning-movement') {
+    return mobilityKindCompletedToday(
+      completions,
+      isMorningMovementFlowCompletion,
+      now,
+    )
+  }
+
+  if (flowId === 'recovery-flow' || flowId === 'recovery') {
+    return mobilityKindCompletedToday(
+      completions,
+      isRecoveryFlowCompletion,
+      now,
+    )
+  }
+
+  const today = localCalendarDateKey(now)
   return (completions ?? []).some((item) => {
     const date = item?.completedAt
       ? localCalendarDateKey(new Date(item.completedAt))
       : ''
-    return date === today && (!flowId || item?.flowId === flowId)
+    return date === today && item?.flowId === flowId
   })
 }
 
-export const resolveLastWorkoutCompletion = (history = [], now = new Date()) => {
-  const session = findCompletedWorkoutToday(history, now)
-  if (!session) return null
-
-  const completedAtRaw =
-    session.finishedAt ??
-    (session.date ? `${session.date}T12:00:00` : null)
-
-  if (!completedAtRaw) return null
-
-  const completedAt = new Date(completedAtRaw)
-  if (!Number.isFinite(completedAt.getTime())) return null
-
-  return {
-    session,
-    completedAt,
-    completedAtMs: completedAt.getTime(),
-    workoutName: session.name ?? null,
-  }
-}
+export const resolveLastWorkoutCompletion = resolveLastWorkoutCompletionToday
 
 export const isMorningMovementWindow = (
   now = new Date(),
@@ -66,8 +80,10 @@ export const isWithinPostWorkoutRecoveryWindow = (
   windowMs = POST_WORKOUT_RECOVERY_WINDOW_MS,
 ) => {
   if (!Number.isFinite(completedAtMs)) return false
-  const elapsed = now.getTime() - completedAtMs
-  return elapsed >= 0 && elapsed <= windowMs
+  // Local-day recovery: due until midnight of the workout's local day.
+  const completedAt = new Date(completedAtMs)
+  if (!Number.isFinite(completedAt.getTime())) return false
+  return localCalendarDateKey(completedAt) === localCalendarDateKey(now)
 }
 
 export const resolveMorningMovementSuggested = ({
@@ -87,8 +103,18 @@ export const shouldShowMorningMovementOnHome = ({
   hasTrainingToday = true,
   loadAdjusted = false,
   readinessFactors = [],
+  morningSkipped = false,
+  activeWorkout = null,
 } = {}) => {
-  if (movementDone || todayTrained || !hasTrainingToday) return false
+  if (
+    movementDone ||
+    morningSkipped ||
+    todayTrained ||
+    activeWorkout ||
+    !hasTrainingToday
+  ) {
+    return false
+  }
   if (!isMorningMovementWindow(now)) return false
   return resolveMorningMovementSuggested({ loadAdjusted, readinessFactors })
 }
@@ -133,42 +159,37 @@ export const getAthleteHomeState = ({
   assignments = [],
   activeCoachAssignment = null,
 } = {}) => {
-  const recommendation =
-    workoutRecommendation ??
-    resolveWorkoutRecommendation(
-      state,
-      { assignments, activeCoachAssignment, now },
-      now,
-    )
-
-  const activeWorkout = state.activeWorkout ?? null
-  const todayTrained = Boolean(recommendation.completedToday)
-  const completion = resolveLastWorkoutCompletion(state.history, now)
-  const movementDone = mobilityCompletedToday(
-    state.mobility?.completed,
-    'daily-reset',
-  )
-  const recoveryDone = mobilityCompletedToday(
-    state.mobility?.completed,
-    'recovery-flow',
-  )
-  const hasTrainingToday = Boolean(
-    recommendation.todayWorkout ||
-      recommendation.todayContext?.name ||
-      (!recommendation.todayContext?.isRestDay && recommendation.nextWorkout),
-  )
-  const inRecoveryWindow = isWithinPostWorkoutRecoveryWindow(
-    completion?.completedAtMs,
+  const flow = resolveDailyAthleteFlow({
     now,
-  )
-  const morningMovementEligible = shouldShowMorningMovementOnHome({
-    now,
-    movementDone,
-    todayTrained,
-    hasTrainingToday,
+    state,
+    workoutRecommendation,
+    readiness,
+    readinessDue,
+    weeklyCheckInDue,
+    weeklyCheckInRequired,
     loadAdjusted,
     readinessFactors,
+    assignments,
+    activeCoachAssignment,
+    morningMovementEndHour: MORNING_MOVEMENT_END_HOUR,
   })
+
+  const recommendation = flow.recommendation
+  const activeWorkout = flow.activeWorkout
+  const todayTrained = flow.todayTrained
+  const completion = resolveLastWorkoutCompletion(state.history, now)
+  const movementDone = flow.morningMovement.completed
+  const recoveryDone = flow.recovery.completed
+  const morningMovementEligible =
+    flow.morningMovement.status === DAILY_FLOW_STATUS.DUE
+  const inRecoveryWindow = flow.recovery.due || flow.recovery.completed
+  const recoveryPrimary = flow.recovery.due && !activeWorkout
+  const restOfDay = flow.requiredFlowComplete || (
+    todayTrained &&
+    recoveryDone &&
+    !activeWorkout
+  )
+  const nutritionPrimary = restOfDay
 
   const sections = {
     avaBriefing: true,
@@ -178,12 +199,10 @@ export const getAthleteHomeState = ({
     essentials: readinessDue || weeklyCheckInDue,
     dailyEssentials: true,
     morningMovementPrimary: morningMovementEligible,
-    recoveryPrimary:
-      todayTrained && inRecoveryWindow && !recoveryDone && !activeWorkout,
-    nutritionPrimary:
-      todayTrained &&
-      !activeWorkout &&
-      (!inRecoveryWindow || recoveryDone),
+    recoveryPrimary,
+    nutritionPrimary,
+    stretchOptional: Boolean(flow.stretch.optionalAvailable),
+    restOfDay,
     showNextWorkoutPreview: false,
     showStartWorkoutPrimary: false,
     showWorkoutCompleteState: todayTrained && !activeWorkout,
@@ -215,36 +234,6 @@ export const getAthleteHomeState = ({
       label: "Complete Today's Readiness",
       priority: 90,
     })
-  } else if (sections.recoveryPrimary) {
-    primary = buildHomeAction({
-      id: HOME_ACTION_IDS.RECOVERY_FLOW,
-      eyebrow: 'POST-WORKOUT',
-      label: 'Start recovery flow',
-      detail: completion?.workoutName
-        ? `After ${completion.workoutName}`
-        : 'Close out today\'s session',
-      priority: 88,
-    })
-  } else if (sections.nutritionPrimary) {
-    const calories = Number(nutritionSummary?.calories ?? 0)
-    primary = buildHomeAction({
-      id: HOME_ACTION_IDS.NUTRITION,
-      eyebrow: 'FUEL TODAY',
-      label: calories > 0 ? 'Continue food log' : 'Log your food',
-      detail:
-        calories > 0
-          ? `${calories} cal logged today`
-          : 'Track nutrition after training',
-      priority: 85,
-    })
-  } else if (nextAppointment && !todayTrained) {
-    primary = buildHomeAction({
-      id: HOME_ACTION_IDS.APPOINTMENT,
-      eyebrow: 'UPCOMING SESSION',
-      label: 'View coaching appointment',
-      priority: 80,
-      meta: { appointmentId: nextAppointment.id },
-    })
   } else if (morningMovementEligible) {
     primary = buildHomeAction({
       id: HOME_ACTION_IDS.MORNING_MOVEMENT,
@@ -270,6 +259,36 @@ export const getAthleteHomeState = ({
       },
     })
     sections.showStartWorkoutPrimary = true
+  } else if (recoveryPrimary) {
+    primary = buildHomeAction({
+      id: HOME_ACTION_IDS.RECOVERY_FLOW,
+      eyebrow: 'POST-WORKOUT',
+      label: 'Start recovery flow',
+      detail: completion?.workoutName
+        ? `After ${completion.workoutName}`
+        : 'Close out today\'s session',
+      priority: 88,
+    })
+  } else if (nutritionPrimary) {
+    const calories = Number(nutritionSummary?.calories ?? 0)
+    primary = buildHomeAction({
+      id: HOME_ACTION_IDS.NUTRITION,
+      eyebrow: 'REST OF DAY',
+      label: calories > 0 ? 'Continue food log' : 'Log your food',
+      detail:
+        calories > 0
+          ? `${calories} cal logged today`
+          : 'Track nutrition after training',
+      priority: 85,
+    })
+  } else if (nextAppointment && !todayTrained) {
+    primary = buildHomeAction({
+      id: HOME_ACTION_IDS.APPOINTMENT,
+      eyebrow: 'UPCOMING SESSION',
+      label: 'View coaching appointment',
+      priority: 80,
+      meta: { appointmentId: nextAppointment.id },
+    })
   } else if (todayTrained && !activeWorkout) {
     primary = buildHomeAction({
       id: HOME_ACTION_IDS.WORKOUT_COMPLETE,
@@ -286,7 +305,22 @@ export const getAthleteHomeState = ({
     })
   }
 
-  if (todayTrained && inRecoveryWindow && !recoveryDone && primary?.id !== HOME_ACTION_IDS.RECOVERY_FLOW) {
+  if (flow.stretch.optionalAvailable) {
+    secondary.push(
+      buildHomeAction({
+        id: HOME_ACTION_IDS.FULL_BODY_STRETCH,
+        label: 'Full-Body Stretch',
+        detail: 'Optional · ~10–15 min',
+        priority: 55,
+      }),
+    )
+  }
+
+  if (
+    todayTrained &&
+    flow.recovery.due &&
+    primary?.id !== HOME_ACTION_IDS.RECOVERY_FLOW
+  ) {
     secondary.push(
       buildHomeAction({
         id: HOME_ACTION_IDS.RECOVERY_FLOW,
@@ -318,9 +352,7 @@ export const getAthleteHomeState = ({
   }
 
   if (
-    isMorningMovementWindow(now) &&
-    !movementDone &&
-    !todayTrained &&
+    morningMovementEligible &&
     primary?.id !== HOME_ACTION_IDS.MORNING_MOVEMENT
   ) {
     secondary.push(
@@ -335,6 +367,7 @@ export const getAthleteHomeState = ({
   return {
     now,
     localDateKey: localDateKey(now),
+    dailyFlow: flow,
     recommendation,
     completion,
     todayTrained,
@@ -349,4 +382,10 @@ export const getAthleteHomeState = ({
     secondaryActions: secondary.sort((a, b) => b.priority - a.priority),
     sections,
   }
+}
+
+export {
+  DAILY_FLOW_STEP,
+  DAILY_FLOW_STATUS,
+  resolveDailyAthleteFlow,
 }
