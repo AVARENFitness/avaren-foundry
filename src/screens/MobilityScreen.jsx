@@ -12,6 +12,7 @@ import {
   Undo2,
 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
+import { useGuidedFlowScrollReset } from '../hooks/useGuidedFlowScrollReset'
 
 const sentence = (value, fallback) => {
   const text = String(value ?? '').trim()
@@ -103,6 +104,11 @@ export default function MobilityScreen({
   const [preferenceNotice, setPreferenceNotice] =
     useState('')
 
+  const guidedScrollKey = flowComplete
+    ? 'complete'
+    : `${flow?.id ?? 'flow'}:${index}:${movement?.id ?? 'none'}`
+  const markGuidedFlowNavigation = useGuidedFlowScrollReset(guidedScrollKey)
+
   const guide = useMemo(
     () => movementGuide(movement ?? {}),
     [movement],
@@ -167,10 +173,12 @@ export default function MobilityScreen({
       index >=
       flow.movements.length - 1
     ) {
+      markGuidedFlowNavigation()
       setFlowComplete(true)
       return
     }
 
+    markGuidedFlowNavigation()
     setIndex((current) => current + 1)
   }
 
@@ -423,7 +431,11 @@ export default function MobilityScreen({
         )}
       </div>
 
-      <article className="movement-stage movement-coach-stage">
+      <article
+        className="movement-stage movement-coach-stage"
+        data-guided-flow-active-item="movement"
+        data-testid="guided-flow-active-item"
+      >
         <div className="movement-coach-heading">
           <span className="movement-number">
             {String(index + 1).padStart(

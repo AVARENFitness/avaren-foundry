@@ -6,6 +6,7 @@ import SupersetFocus from '../components/SupersetFocus'
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useAppModalLayer } from '../hooks/useAppModalLayer'
+import { useGuidedFlowScrollReset } from '../hooks/useGuidedFlowScrollReset'
 
 const MUSCLE_LIGHTS = {
   Chest: '#6f2f36',
@@ -97,9 +98,20 @@ export default function GymScreen({
   const restVisible = isRestTimerVisible(persistedRestTimer, now)
   const restContext = persistedRestTimer?.context ?? null
 
+  const guidedScrollExercise = workout?.exercises?.[activeExercise] ?? null
+  const guidedScrollGroup = guidedScrollExercise?.supersetGroup ?? ''
+  const guidedScrollRound = guidedScrollGroup
+    ? workout?.supersetRoundByGroup?.[guidedScrollGroup] ?? 0
+    : 0
+  const guidedScrollKey = workout
+    ? `${activeExercise}:${guidedScrollGroup}:${guidedScrollRound}`
+    : 'idle'
+  const markGuidedFlowNavigation = useGuidedFlowScrollReset(guidedScrollKey)
+
   const goPrevious = () => {
     if (!workout) return
     setNavigationDirection('previous')
+    markGuidedFlowNavigation()
     setActiveExercise(
       getPreviousExerciseIndex(workout.exercises, activeExercise),
     )
@@ -110,6 +122,7 @@ export default function GymScreen({
     setNavigationDirection('next')
     const next = getNextExerciseIndex(workout.exercises, activeExercise)
     if (next !== activeExercise) {
+      markGuidedFlowNavigation()
       setActiveExercise(next)
     }
   }
@@ -124,12 +137,14 @@ export default function GymScreen({
     )
 
     if (step.type === 'superset_round' && step.supersetGroup) {
+      markGuidedFlowNavigation()
       onSupersetRoundChange?.(step.supersetGroup, step.supersetRound)
       setActiveExercise(step.exerciseIndex)
       return
     }
 
     if (step.type === 'exercise') {
+      markGuidedFlowNavigation()
       setNavigationDirection('next')
       setActiveExercise(step.exerciseIndex)
     }
@@ -606,18 +621,20 @@ export default function GymScreen({
             )
             onExerciseChange?.(exerciseIndex, { loadType })
           }}
-          onPreviousRound={() =>
+          onPreviousRound={() => {
+            markGuidedFlowNavigation()
             onSupersetRoundChange?.(
               supersetGroup,
               Math.max(0, clampedSupersetRound - 1),
             )
-          }
-          onNextRound={() =>
+          }}
+          onNextRound={() => {
+            markGuidedFlowNavigation()
             onSupersetRoundChange?.(
               supersetGroup,
               Math.min(supersetRounds - 1, clampedSupersetRound + 1),
             )
-          }
+          }}
           onAddRound={() => {
             supersetExercises.forEach((exercise) => {
               const exerciseIndex = workout.exercises.findIndex(

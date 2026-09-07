@@ -194,6 +194,8 @@ export default function FocusExercise({
       } direction-${
         navigationDirection || 'next'
       }`}
+      data-guided-flow-active-item="exercise"
+      data-testid="guided-flow-active-item"
       style={{
         '--muscle-accent':
           muscleAccent(exercise.muscle),

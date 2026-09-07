@@ -38,7 +38,11 @@ export default function SupersetFocus({
   const roundComplete = exercises.every((exercise) => exercise.sets[round]?.done)
 
   return (
-    <article className="superset-focus">
+    <article
+      className="superset-focus"
+      data-guided-flow-active-item="superset"
+      data-testid="guided-flow-active-item"
+    >
       <header className="superset-header">
         <span className="eyebrow">SUPERSET {group}</span>
         <h1>Round {round + 1} of {totalRounds}</h1>
