@@ -351,7 +351,6 @@ h1, h2, strong { font-family: 'Manrope', sans-serif; }
   .stepper input { font-size: 12px; }
 }
 
-
 /* ===== LUXURY SPRINT ===== */
 
 :root {
@@ -1394,12 +1393,14 @@ body {
 
 .modal-backdrop {
   position: fixed;
-  z-index: 100;
+  z-index: var(--app-layer-modal, 120);
   inset: 0;
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  padding: 14px;
+  overflow: hidden;
+  overscroll-behavior: none;
+  padding: max(14px, env(safe-area-inset-top)) 14px max(14px, env(safe-area-inset-bottom));
   background: rgba(0,0,0,.72);
   backdrop-filter: blur(8px);
   animation: modalFade .2s ease both;
@@ -1407,7 +1408,13 @@ body {
 
 .quick-add-modal {
   width: min(690px, 100%);
+  max-width: 100%;
+  max-height: var(--app-overlay-max-height, min(92dvh, 720px));
+  overflow: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   padding: 20px;
+  padding-bottom: calc(20px + env(safe-area-inset-bottom));
   border: 1px solid rgba(248,243,230,.1);
   border-radius: 25px;
   background:
@@ -1724,7 +1731,6 @@ body {
     display: none;
   }
 }
-
 
 
 .superset-focus {
@@ -2294,7 +2300,6 @@ body {
   text-align: left;
   cursor: pointer;
 }
-
 .hero-workout-button strong {
   margin-left: auto;
 }
@@ -2313,24 +2318,17 @@ body {
   cursor: default;
 }
 
-.workout-selector-backdrop {
-  position: fixed;
-  z-index: 120;
-  inset: 0;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  padding: 12px;
-  background: rgba(0,0,0,.74);
-  backdrop-filter: blur(10px);
-  animation: modalFade .2s ease both;
-}
+.workout-selector-backdrop { background: rgba(0,0,0,.74); backdrop-filter: blur(10px); }
 
 .workout-selector-sheet {
   width: min(720px, 100%);
-  max-height: min(82vh, 720px);
+  max-width: 100%;
+  max-height: var(--app-overlay-max-height, min(92dvh, 720px));
   overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   padding: 20px;
+  padding-bottom: calc(20px + env(safe-area-inset-bottom));
   border: 1px solid rgba(248,243,230,.1);
   border-radius: 27px;
   background:
@@ -3045,15 +3043,13 @@ body {
 .workout-picker-portal {
   position: fixed !important;
   inset: 0 !important;
-  z-index: 99999 !important;
+  z-index: var(--app-layer-modal, 120) !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
   overflow: hidden !important;
-  padding:
-    max(18px, env(safe-area-inset-top))
-    16px
-    max(18px, env(safe-area-inset-bottom)) !important;
+  overscroll-behavior: none !important;
+  padding: max(18px, env(safe-area-inset-top)) 16px max(18px, env(safe-area-inset-bottom)) !important;
   background: rgba(2, 3, 5, .78) !important;
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
@@ -4208,10 +4204,7 @@ body {
 }
 
 
-
-
 /* ===== AVAREN BUILDER v0.7 · FORGE UNLOCKS ===== */
-
 
 
 /* ===== AVAREN BUILDER v0.8 · COACH CENTER ===== */
@@ -6126,20 +6119,23 @@ select:focus-visible {
 /* ===== AVAREN BUILDER v1.4 · WORKOUT SESSION CONTROLS ===== */
 
 .workout-menu-portal {
-  z-index: 1200;
+  z-index: var(--app-layer-modal, 120);
   display: grid;
   place-items: end center;
-  padding:
-    max(14px, env(safe-area-inset-top))
-    14px
-    max(14px, env(safe-area-inset-bottom));
+  overflow: hidden;
+  overscroll-behavior: none;
+  padding: max(14px, env(safe-area-inset-top)) 14px max(14px, env(safe-area-inset-bottom));
 }
 
 .workout-options-modal {
   width: min(100%, 520px);
-  max-height: calc(100dvh - 28px);
+  max-width: 100%;
+  max-height: var(--app-overlay-max-height, min(92dvh, 720px));
   overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   padding: 20px;
+  padding-bottom: calc(20px + env(safe-area-inset-bottom));
   border: 1px solid rgba(184,149,78,.2);
   border-radius: 24px;
   background:
@@ -13573,7 +13569,7 @@ input, textarea, select {
 /* ===== SPRINT 6.7.3 · NUTRITION INTELLIGENCE ===== */
 .nutrition-category-strip{display:flex;gap:7px;margin:12px 0 4px;overflow-x:auto;padding-bottom:5px;scrollbar-width:none}.nutrition-category-strip::-webkit-scrollbar{display:none}.nutrition-category-strip button{flex:0 0 auto;min-height:36px;padding:0 11px;border:1px solid rgba(255,255,255,.08);border-radius:999px;background:#171b1f;color:#aaa39a;font-size:11px!important;font-weight:850}.nutrition-category-strip button.active{border-color:rgba(216,184,109,.3);background:rgba(216,184,109,.1);color:#ead48f}
 .nutrition-save-result.active{border-color:rgba(216,184,109,.32);background:rgba(216,184,109,.1);color:#ead48f}
-.nutrition-food-sheet-backdrop{position:fixed;inset:0;z-index:90;display:grid;align-items:end;background:rgba(0,0,0,.66);backdrop-filter:blur(8px);padding:18px}.nutrition-food-sheet{width:min(620px,100%);margin:0 auto;padding:20px;border:1px solid rgba(255,255,255,.1);border-radius:22px;background:#171b1f;box-shadow:0 -24px 80px rgba(0,0,0,.45);animation:foundationScreenEnter .22s ease both}.nutrition-food-sheet>header{display:flex;align-items:flex-start;justify-content:space-between;gap:15px;margin-bottom:16px}.nutrition-food-sheet h2{margin:5px 0 4px;font-size:26px!important}.nutrition-food-sheet p{margin:0;color:#9f978e}.nutrition-food-sheet>header>button{display:grid;place-items:center;width:38px;height:38px;border:0;border-radius:11px;background:rgba(255,255,255,.05);color:#aaa39a}.nutrition-sheet-macros{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.nutrition-sheet-macros article{padding:12px;border:1px solid rgba(255,255,255,.07);border-radius:13px;background:#111519}.nutrition-sheet-macros span,.nutrition-sheet-macros strong{display:block}.nutrition-sheet-macros span{color:#9d968e;font-size:11px!important}.nutrition-sheet-macros strong{margin-top:6px;font-size:18px!important}.nutrition-serving-picker{display:grid;gap:9px;margin-top:16px}.nutrition-serving-picker>span{font-size:12px!important;font-weight:850;color:#bdb4aa}.nutrition-serving-picker>div{display:flex;flex-wrap:wrap;gap:8px}.nutrition-serving-picker button{min-height:40px;padding:0 12px;border:1px solid rgba(255,255,255,.08);border-radius:10px;background:#111519;color:#aaa39a;font-weight:800}.nutrition-serving-picker button.active{border-color:rgba(216,184,109,.35);background:rgba(216,184,109,.1);color:#ead48f}.nutrition-sheet-actions{display:grid;grid-template-columns:minmax(130px,.4fr) minmax(190px,1fr);gap:10px;margin-top:18px}.nutrition-sheet-actions button{justify-content:center}.nutrition-fab{position:fixed;right:max(18px,calc((100vw - 920px)/2 + 18px));bottom:calc(86px + env(safe-area-inset-bottom));z-index:32;display:flex;align-items:center;gap:8px;min-height:52px;padding:0 17px;border:1px solid rgba(239,212,139,.35);border-radius:999px;background:linear-gradient(135deg,#d6b85f,#a7823c);color:#111316;font-weight:900;box-shadow:0 12px 30px rgba(0,0,0,.35)}
+.nutrition-food-sheet-backdrop{position:fixed;inset:0;z-index:var(--app-layer-modal,120);display:grid;align-items:end;overflow:hidden;overscroll-behavior:none;background:rgba(0,0,0,.66);backdrop-filter:blur(8px);padding:max(18px,env(safe-area-inset-top)) 18px max(18px,env(safe-area-inset-bottom))}.nutrition-food-sheet{width:min(620px,100%);max-width:100%;max-height:var(--app-overlay-max-height,min(92dvh,720px));margin:0 auto;padding:20px;padding-bottom:calc(20px + env(safe-area-inset-bottom));overflow:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;border:1px solid rgba(255,255,255,.1);border-radius:22px;background:#171b1f;box-shadow:0 -24px 80px rgba(0,0,0,.45);animation:foundationScreenEnter .22s ease both}.nutrition-food-sheet>header{display:flex;align-items:flex-start;justify-content:space-between;gap:15px;margin-bottom:16px}.nutrition-food-sheet h2{margin:5px 0 4px;font-size:26px!important}.nutrition-food-sheet p{margin:0;color:#9f978e}.nutrition-food-sheet>header>button{display:grid;place-items:center;width:38px;height:38px;border:0;border-radius:11px;background:rgba(255,255,255,.05);color:#aaa39a}.nutrition-sheet-macros{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.nutrition-sheet-macros article{padding:12px;border:1px solid rgba(255,255,255,.07);border-radius:13px;background:#111519}.nutrition-sheet-macros span,.nutrition-sheet-macros strong{display:block}.nutrition-sheet-macros span{color:#9d968e;font-size:11px!important}.nutrition-sheet-macros strong{margin-top:6px;font-size:18px!important}.nutrition-serving-picker{display:grid;gap:9px;margin-top:16px}.nutrition-serving-picker>span{font-size:12px!important;font-weight:850;color:#bdb4aa}.nutrition-serving-picker>div{display:flex;flex-wrap:wrap;gap:8px}.nutrition-serving-picker button{min-height:40px;padding:0 12px;border:1px solid rgba(255,255,255,.08);border-radius:10px;background:#111519;color:#aaa39a;font-weight:800}.nutrition-serving-picker button.active{border-color:rgba(216,184,109,.35);background:rgba(216,184,109,.1);color:#ead48f}.nutrition-sheet-actions{display:grid;grid-template-columns:minmax(130px,.4fr) minmax(190px,1fr);gap:10px;margin-top:18px}.nutrition-sheet-actions button{justify-content:center}.nutrition-fab{position:fixed;right:max(18px,calc((100vw - 920px)/2 + 18px));bottom:calc(86px + env(safe-area-inset-bottom));z-index:32;display:flex;align-items:center;gap:8px;min-height:52px;padding:0 17px;border:1px solid rgba(239,212,139,.35);border-radius:999px;background:linear-gradient(135deg,#d6b85f,#a7823c);color:#111316;font-weight:900;box-shadow:0 12px 30px rgba(0,0,0,.35)}
 @media(max-width:620px){.nutrition-food-sheet-backdrop{padding:8px}.nutrition-food-sheet{border-radius:20px 20px 14px 14px}.nutrition-sheet-macros{grid-template-columns:repeat(2,1fr)}.nutrition-sheet-actions{grid-template-columns:1fr}.nutrition-fab{right:14px;bottom:calc(82px + env(safe-area-inset-bottom))}.nutrition-fab span{display:none}}
 
 
@@ -13970,14 +13966,14 @@ input, textarea, select {
 /* App UI — dialogs and toasts */
 .app-ui-backdrop {
   position: fixed;
-  z-index: 120;
+  z-index: var(--app-layer-modal, 120);
   inset: 0;
   display: flex;
   align-items: flex-end;
   justify-content: center;
   overflow: hidden;
-  padding: 16px;
-  padding-bottom: calc(16px + env(safe-area-inset-bottom));
+  overscroll-behavior: none;
+  padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
   background: rgba(0, 0, 0, 0.72);
   backdrop-filter: blur(10px);
   animation: modalFade 0.22s ease both;
@@ -13985,6 +13981,11 @@ input, textarea, select {
 
 .confirmation-dialog {
   width: min(520px, 100%);
+  max-width: 100%;
+  max-height: var(--app-overlay-max-height, min(92dvh, 720px));
+  overflow: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   padding: 22px;
   border: 1px solid var(--line);
   border-radius: var(--radius);
@@ -14183,9 +14184,8 @@ input, textarea, select {
 }
 
 @media (min-width: 680px) {
-  .app-ui-backdrop {
-    align-items: center;
-  }
+  .app-ui-backdrop,
+  .modal-backdrop { align-items: center; }
 
   .app-toast-stack {
     left: auto;
@@ -18316,16 +18316,17 @@ input, textarea, select {
   color: var(--gold-bright);
 }
 
-.ava-why-backdrop {
-  z-index: 120;
-}
+.ava-why-backdrop { z-index: var(--app-layer-modal, 120); }
 
 .ava-why-sheet {
   width: min(100%, 560px);
-  max-height: min(88vh, 720px);
+  max-width: 100%;
+  max-height: var(--app-overlay-max-height, min(92dvh, 720px));
   overflow: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   margin: auto;
-  padding: 22px 20px 24px;
+  padding: 22px 20px calc(24px + env(safe-area-inset-bottom));
   border-radius: 22px 22px 0 0;
   border: 1px solid rgba(246,242,233,.08);
   background: #101419;
@@ -18586,7 +18587,6 @@ input, textarea, select {
 .home-daily-row span {
   margin-top: var(--space-1);
 }
-
 
 /* Client Profile · finish polish */
 .coach-client-profile-shell-header {
@@ -18995,3 +18995,4 @@ input, textarea, select {
     border-radius: 18px 18px 0 0;
   }
 }
+

@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { useAppModalLayer } from '../hooks/useAppModalLayer'
 import {
   READINESS_FIELDS,
   defaultReadinessCheckIn,
@@ -81,6 +82,7 @@ export default function ReadinessCheckIn({
   onClose,
   userName,
 }) {
+  useAppModalLayer(true)
   const [values, setValues] = useState(
     initialValues ?? defaultReadinessCheckIn(),
   )
@@ -115,6 +117,7 @@ export default function ReadinessCheckIn({
   return createPortal(
     <div
       className="readiness-overlay morning-ritual-overlay"
+      data-app-ui-backdrop="open"
       role="dialog"
       aria-modal="true"
       aria-label="Daily readiness check-in"

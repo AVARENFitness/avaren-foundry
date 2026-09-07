@@ -348,15 +348,17 @@
 
 .coach-lifecycle-sheet,
 .coach-create-client-sheet {
-  width: min(100%, 420px);
-  max-height: min(92vh, 720px);
-  overflow: auto;
+  width: min(100%, var(--app-overlay-max-width-compact, 420px));
+  max-width: 100%;
+  max-height: var(--app-overlay-max-height, min(92dvh, 720px));
+  overflow: hidden;
   border-radius: 20px;
   border: 1px solid rgba(246, 242, 233, 0.08);
   background: #12110f;
-  padding: 20px;
+  padding: 0;
   display: grid;
-  gap: 16px;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: 0;
 }
 
 .coach-lifecycle-sheet-header {
@@ -364,17 +366,26 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
+  flex-shrink: 0;
+  padding: 20px 20px 0;
 }
 
 .coach-lifecycle-sheet-body {
   display: grid;
   gap: 12px;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding: 16px 20px;
 }
 
 .coach-lifecycle-sheet-footer {
   display: flex;
   gap: 10px;
   justify-content: flex-end;
+  flex-shrink: 0;
+  padding: 0 20px calc(20px + env(safe-area-inset-bottom));
 }
 
 .coach-create-client-footer {
@@ -388,6 +399,13 @@
 @media (min-width: 420px) {
   .coach-create-client-footer .coach-primary-action {
     flex: 0 1 auto;
+  }
+}
+
+@media (max-width: 679px) {
+  .coach-lifecycle-sheet,
+  .coach-create-client-sheet {
+    border-radius: 20px 20px 0 0;
   }
 }
 
@@ -429,7 +447,7 @@
 }
 
 .coach-lifecycle-backdrop {
-  z-index: 130;
+  z-index: var(--app-layer-modal-elevated, 130);
 }
 
 .coach-coaching-requirements-panel {

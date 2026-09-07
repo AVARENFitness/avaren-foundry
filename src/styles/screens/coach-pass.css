@@ -4,7 +4,7 @@
 .coach-pass-selection-backdrop,
 .coach-missed-charge-backdrop,
 .coach-adjust-pass-backdrop {
-  z-index: 130;
+  z-index: var(--app-layer-modal-elevated, 130);
   align-items: flex-end;
 }
 
@@ -13,7 +13,8 @@
 .coach-missed-charge-sheet,
 .coach-adjust-pass-sheet {
   width: min(100%, 520px);
-  max-height: min(92vh, 720px);
+  max-width: 100%;
+  max-height: var(--app-overlay-max-height, min(92dvh, 720px));
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
   border-radius: 24px 24px 0 0;

@@ -44,4 +44,31 @@ describe('AppUiBackdrop', () => {
     fireEvent.click(document.querySelector('[data-app-ui-backdrop="open"]'))
     expect(onClose).toHaveBeenCalledTimes(1)
   })
+
+  it('renders dialog children and keeps actions reachable', () => {
+    render(
+      <AppUiBackdrop open onClose={vi.fn()}>
+        <section role="dialog" aria-modal="true" aria-label="Test sheet">
+          <button type="button">Cancel</button>
+          <button type="button">Confirm</button>
+        </section>
+      </AppUiBackdrop>,
+    )
+
+    expect(screen.getByRole('dialog', { name: /test sheet/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /^cancel$/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /^confirm$/i })).toBeInTheDocument()
+  })
+
+  it('closes on Escape when onClose is provided', () => {
+    const onClose = vi.fn()
+    render(
+      <AppUiBackdrop open onClose={onClose}>
+        <button type="button">Inside</button>
+      </AppUiBackdrop>,
+    )
+
+    fireEvent.keyDown(window, { key: 'Escape' })
+    expect(onClose).toHaveBeenCalledTimes(1)
+  })
 })

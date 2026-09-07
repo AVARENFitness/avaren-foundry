@@ -22,6 +22,7 @@ import {
   Star,
 } from 'lucide-react'
 import { useMemo, useState } from 'react'
+import { useAppModalLayer } from '../hooks/useAppModalLayer'
 import {
   DEFAULT_NUTRITION_GOALS,
   emptyNutritionDay,
@@ -66,6 +67,8 @@ export default function NutritionScreen({ nutrition, onChange }) {
   const [recipeLogTarget, setRecipeLogTarget] = useState(null)
   const [recipeLogAmount, setRecipeLogAmount] = useState(1)
   const [notice, setNotice] = useState('')
+
+  useAppModalLayer(Boolean(selectedFood || recipeLogTarget))
 
   const goals = { ...DEFAULT_NUTRITION_GOALS, ...(nutrition?.goals ?? {}) }
   const day = nutrition?.days?.[date] ?? emptyNutritionDay(date)
@@ -387,7 +390,7 @@ export default function NutritionScreen({ nutrition, onChange }) {
           </div>
         </>}
 
-        {selectedFood && <div className="nutrition-food-sheet-backdrop" onClick={() => setSelectedFood(null)}>
+        {selectedFood && <div className="nutrition-food-sheet-backdrop" data-app-ui-backdrop="open" onClick={() => setSelectedFood(null)}>
           <section className="nutrition-food-sheet" onClick={(event) => event.stopPropagation()}>
             <header>
               <div><span className="eyebrow">FOOD DETAIL</span><h2>{selectedFood.name}</h2><p>{selectedFood.brand} · values are per listed serving</p></div>
@@ -483,7 +486,7 @@ export default function NutritionScreen({ nutrition, onChange }) {
           </div>
         </section>
 
-        {recipeLogTarget && <div className="nutrition-food-sheet-backdrop" onClick={() => setRecipeLogTarget(null)}>
+        {recipeLogTarget && <div className="nutrition-food-sheet-backdrop" data-app-ui-backdrop="open" onClick={() => setRecipeLogTarget(null)}>
           <section className="nutrition-food-sheet nutrition-recipe-log-sheet" onClick={(event) => event.stopPropagation()}>
             <header><div><span className="eyebrow">LOG RECIPE</span><h2>{recipeLogTarget.name}</h2><p>Choose a serving or fraction of the prepared batch.</p></div><button onClick={() => setRecipeLogTarget(null)}><X size={18}/></button></header>
             <div className="nutrition-serving-picker"><span>Amount</span><div>{[

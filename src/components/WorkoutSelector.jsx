@@ -1,4 +1,5 @@
 import { Check, ChevronRight, Layers3, X } from 'lucide-react'
+import AppUiBackdrop from './ui/AppUiBackdrop'
 
 export default function WorkoutSelector({
   workouts = [],
@@ -12,9 +13,12 @@ export default function WorkoutSelector({
   const otherWorkouts = workouts.filter((workout) => workout !== recommendedWorkout)
 
   return (
-    <div className="workout-selector-backdrop" onClick={onClose}>
+    <AppUiBackdrop open onClose={onClose} className="workout-selector-backdrop">
       <section
         className="workout-selector-sheet"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Choose your workout"
         onClick={(event) => event.stopPropagation()}
       >
         <header>
@@ -29,7 +33,7 @@ export default function WorkoutSelector({
               </p>
             ) : null}
           </div>
-          <button className="selector-close" onClick={onClose}>
+          <button type="button" className="selector-close" onClick={onClose} aria-label="Close">
             <X size={20} />
           </button>
         </header>
@@ -39,6 +43,7 @@ export default function WorkoutSelector({
             <>
               <span className="workout-selector-section-label">TODAY</span>
               <button
+                type="button"
                 className={
                   selectedWorkout === recommendedWorkout ||
                   (!selectedWorkout && recommendedWorkout)
@@ -66,6 +71,7 @@ export default function WorkoutSelector({
               <span className="workout-selector-section-label">OTHER WORKOUTS</span>
               {otherWorkouts.map((workout) => (
                 <button
+                  type="button"
                   key={workout}
                   className={selectedWorkout === workout ? 'selected' : ''}
                   onClick={() => onSelect(workout)}
@@ -87,6 +93,7 @@ export default function WorkoutSelector({
           {!recommendedWorkout && !otherWorkouts.length
             ? workouts.map((workout) => (
                 <button
+                  type="button"
                   key={workout}
                   className={selectedWorkout === workout ? 'selected' : ''}
                   onClick={() => onSelect(workout)}
@@ -105,12 +112,12 @@ export default function WorkoutSelector({
             : null}
         </div>
 
-        <button className="selector-builder" onClick={onOpenBuilder}>
+        <button type="button" className="selector-builder" onClick={onOpenBuilder}>
           <Layers3 size={18} />
           Create or edit workouts
           <ChevronRight size={18} />
         </button>
       </section>
-    </div>
+    </AppUiBackdrop>
   )
 }

@@ -5,6 +5,7 @@ import QuickAddModal from '../components/QuickAddModal'
 import SupersetFocus from '../components/SupersetFocus'
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { useAppModalLayer } from '../hooks/useAppModalLayer'
 
 const MUSCLE_LIGHTS = {
   Chest: '#6f2f36',
@@ -86,6 +87,8 @@ export default function GymScreen({
   const [now, setNow] = useState(() => Date.now())
   const persistedRestTimer = workout?.restTimer ?? null
   const restDuration = persistedRestTimer?.duration ?? 90
+
+  useAppModalLayer(showWorkoutPicker || showWorkoutMenu)
   const restRemaining = getRestTimerRemainingSeconds(
     persistedRestTimer,
     now,
@@ -286,6 +289,7 @@ export default function GymScreen({
           createPortal(
             <div
               className="modal-backdrop workout-menu-portal"
+              data-app-ui-backdrop="open"
               onClick={() => setShowWorkoutMenu(false)}
             >
               <section
@@ -662,6 +666,7 @@ export default function GymScreen({
         createPortal(
           <div
             className="modal-backdrop workout-picker-portal"
+            data-app-ui-backdrop="open"
             onClick={() => setShowWorkoutPicker(false)}
           >
             <section
@@ -710,6 +715,7 @@ export default function GymScreen({
         createPortal(
           <div
             className="modal-backdrop workout-menu-portal"
+            data-app-ui-backdrop="open"
             onClick={() => setShowWorkoutMenu(false)}
           >
             <section

@@ -1,15 +1,17 @@
 /* ===== PATCH 8.3.5 · COACH SCHEDULE SESSION SHEET ===== */
 
 .coach-schedule-session-backdrop {
-  z-index: 130;
+  z-index: var(--app-layer-modal-elevated, 130);
   align-items: flex-end;
 }
 
 .coach-schedule-session-sheet {
-  width: min(100%, 560px);
-  max-height: min(92vh, 760px);
+  width: min(100%, var(--app-overlay-max-width, 560px));
+  max-width: 100%;
+  max-height: var(--app-overlay-max-height-tall, min(92dvh, 760px));
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
+  overflow: hidden;
   border-radius: 24px 24px 0 0;
   border: 1px solid color-mix(in srgb, var(--gold) 18%, transparent);
   background:

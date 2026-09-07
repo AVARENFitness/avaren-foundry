@@ -1,5 +1,8 @@
 import { useEffect } from 'react'
-import { useBodyScrollLock } from '../ava/useBodyScrollLock'
+import {
+  getBodyScrollLockCount,
+  useBodyScrollLock,
+} from '../ava/useBodyScrollLock'
 
 const APP_ROOT_ID = 'root'
 
@@ -7,6 +10,11 @@ export const resetDocumentModalLayer = () => {
   if (typeof document === 'undefined') return
 
   if (document.querySelector('[data-app-ui-backdrop="open"]')) {
+    return
+  }
+
+  // Nested/local overlays may still hold the shared scroll lock.
+  if (getBodyScrollLockCount() > 0) {
     return
   }
 

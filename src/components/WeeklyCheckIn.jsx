@@ -7,6 +7,7 @@ import {
 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { useAppModalLayer } from '../hooks/useAppModalLayer'
 import {
   WEEKLY_CHECK_IN_STEPS,
   emptyWeeklyCheckInDraft,
@@ -19,6 +20,7 @@ export default function WeeklyCheckIn({
   onClose,
   userName,
 }) {
+  useAppModalLayer(true)
   const [draft, setDraft] = useState(initialDraft ?? emptyWeeklyCheckInDraft())
   const [step, setStep] = useState(0)
   const [saving, setSaving] = useState(false)
@@ -79,6 +81,7 @@ export default function WeeklyCheckIn({
   return createPortal(
     <div
       className="readiness-overlay morning-ritual-overlay weekly-checkin-overlay"
+      data-app-ui-backdrop="open"
       role="dialog"
       aria-modal="true"
       aria-label="Weekly check-in"
