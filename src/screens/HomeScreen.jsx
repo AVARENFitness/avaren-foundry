@@ -14,7 +14,6 @@ import { useLocalCalendarDay } from '../hooks/useLocalCalendarDay'
 import { useAvaUi } from '../ava/useAvaUi'
 import AthleteAssignmentHome from '../components/AthleteAssignmentHome'
 import AthleteCoachInvitationCard from '../components/AthleteCoachInvitationCard'
-import AthleteCoachConnectionCard from '../components/AthleteCoachConnectionCard'
 import AssignmentExercisePreview from '../components/AssignmentExercisePreview'
 import AvaDailyBriefing from '../components/AvaDailyBriefing'
 import { useAthleteCoachInvitations } from '../hooks/useAthleteCoachInvitations'
@@ -496,8 +495,7 @@ export default function HomeScreen({
           }}
         />
       ))}
-
-      <AthleteCoachConnectionCard invitations={pendingInvitations} />
+ 
 
       <AvaDailyBriefing
         briefing={avaBriefing}
