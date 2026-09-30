@@ -111,7 +111,7 @@ describe('MoreScreen account navigation', () => {
       within(getSectionNav()).getByRole('button', { name: /^Coaching/ }),
     )
 
-    expect(screen.getByRole('heading', { name: 'Your coaching' })).toBeInTheDocument()
+    expect(screen.getByText('Coaching', { selector: 'span' })).toBeInTheDocument()
     expect(screen.getByTestId('athlete-coach-connection-card')).toBeInTheDocument()
     expect(screen.getByTestId('athlete-coach-panel')).toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: 'Workout History' })).not.toBeInTheDocument()
