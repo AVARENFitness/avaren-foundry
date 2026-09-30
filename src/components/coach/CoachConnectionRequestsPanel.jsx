@@ -2,6 +2,7 @@ import { Check, Link2, X } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import {
   availableBusinessClientsForConnection,
+  findExactBusinessClientMatches,
   findSuggestedBusinessClient,
 } from '../../lib/coachConnectionRequests'
 import { getClientDisplayName } from '../../lib/clientDisplayName'
@@ -56,7 +57,8 @@ export default function CoachConnectionRequestsPanel({
       <div className="coach-connection-request-list">
         {pending.map((request) => {
           const selectedId = selections[request.id] ?? ''
-          const suggested = findSuggestedBusinessClient(availableClients, request)
+          const exactMatches = findExactBusinessClientMatches(availableClients, request)
+          const suggested = exactMatches.length === 1 ? exactMatches[0] : null
           const busy = workingId === request.id
 
           return (
@@ -69,8 +71,10 @@ export default function CoachConnectionRequestsPanel({
                   <strong>{request.athlete_email || 'AVAREN athlete'}</strong>
                   <small>
                     {suggested
-                      ? `Possible email match: ${getClientDisplayName(suggested)}`
-                      : 'Choose the correct existing client record.'}
+                      ? `Exact email match: ${getClientDisplayName(suggested)}`
+                      : exactMatches.length > 1
+                        ? 'Multiple exact matches found. Resolve duplicate client emails before linking.'
+                        : 'No exact email match found. This request cannot be linked yet.'}
                   </small>
                 </div>
               </div>
@@ -88,15 +92,12 @@ export default function CoachConnectionRequestsPanel({
                   }
                 >
                   <option value="">Select client…</option>
-                  {availableClients.map((client) => {
-                    const id = resolveRecordBusinessClientId(client)
-                    return (
-                      <option key={id} value={id}>
-                        {getClientDisplayName(client)}
-                        {client.email ? ` — ${client.email}` : ''}
-                      </option>
-                    )
-                  })}
+                  {suggested ? (
+                    <option value={resolveRecordBusinessClientId(suggested)}>
+                      {getClientDisplayName(suggested)}
+                      {suggested.email ? ` — ${suggested.email}` : ''}
+                    </option>
+                  ) : null}
                 </select>
               </label>
 
@@ -113,7 +114,7 @@ export default function CoachConnectionRequestsPanel({
                 <button
                   type="button"
                   className="coach-primary-action"
-                  disabled={busy || !selectedId}
+                  disabled={busy || !selectedId || !suggested || exactMatches.length !== 1}
                   onClick={() =>
                     onApprove?.(request, selectedId)
                   }
