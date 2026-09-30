@@ -26,7 +26,7 @@ begin
   if to_regprocedure('public.coach_local_business_date(text)') is null then
     raise exception 'Missing dependency: public.coach_local_business_date(text)';
   end if;
-end $;
+end $$;
 
 create table if not exists public.coach_connection_requests (
   id uuid primary key default gen_random_uuid(),
