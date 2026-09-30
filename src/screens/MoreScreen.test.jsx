@@ -24,6 +24,14 @@ vi.mock('../components/AthleteCoachPanel', () => ({
   default: () => <div data-testid="athlete-coach-panel">Coach panel</div>,
 }))
 
+vi.mock('../components/AthleteCoachConnectionCard', () => ({
+  default: () => <div data-testid="athlete-coach-connection-card">Request coach connection</div>,
+}))
+
+vi.mock('../hooks/useAthleteCoachInvitations', () => ({
+  useAthleteCoachInvitations: () => ({ invitations: [] }),
+}))
+
 vi.mock('../components/ImportBackupButton', () => ({
   default: () => null,
 }))
@@ -60,6 +68,7 @@ describe('MoreScreen account navigation', () => {
       within(nav).queryByRole('button', { name: /^Overview/ }),
     ).not.toBeInTheDocument()
     expect(within(nav).getByRole('button', { name: /^Training/ })).toBeInTheDocument()
+    expect(within(nav).getByRole('button', { name: /^Coaching/ })).toBeInTheDocument()
     expect(within(nav).getByRole('button', { name: /^Recovery/ })).toBeInTheDocument()
     expect(within(nav).getByRole('button', { name: /^Account/ })).toBeInTheDocument()
     expect(within(nav).getByRole('button', { name: /^Support/ })).toBeInTheDocument()
@@ -90,8 +99,22 @@ describe('MoreScreen account navigation', () => {
     expect(screen.getByRole('button', { name: /Open History/i })).toBeInTheDocument()
     expect(screen.getByTestId('session-package-card')).toBeInTheDocument()
     expect(screen.getByTestId('scheduled-sessions')).toBeInTheDocument()
-    expect(screen.getByTestId('athlete-coach-panel')).toBeInTheDocument()
+    expect(screen.queryByTestId('athlete-coach-panel')).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Weekly Program/i })).toBeInTheDocument()
+  })
+
+  it('keeps coach connection actions under the dedicated Coaching tab', async () => {
+    const user = userEvent.setup()
+    render(<MoreScreen {...baseProps} />)
+
+    await user.click(
+      within(getSectionNav()).getByRole('button', { name: /^Coaching/ }),
+    )
+
+    expect(screen.getByRole('heading', { name: 'Your coaching' })).toBeInTheDocument()
+    expect(screen.getByTestId('athlete-coach-connection-card')).toBeInTheDocument()
+    expect(screen.getByTestId('athlete-coach-panel')).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Workout History' })).not.toBeInTheDocument()
   })
 
   it('opens Workout History from Training without blank state', async () => {
