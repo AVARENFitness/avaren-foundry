@@ -8,6 +8,8 @@ export default function CoachCreateClientSheet({
   submitting = false,
   onClose,
   onSubmit,
+  initialValues = null,
+  connectionMode = false,
 }) {
   const titleId = useId()
   const panelRef = useRef(null)
@@ -21,11 +23,11 @@ export default function CoachCreateClientSheet({
   useEffect(() => {
     if (!open) return undefined
 
-    setFirstName('')
-    setLastName('')
-    setPreferredName('')
-    setEmail('')
-    setPhone('')
+    setFirstName(initialValues?.firstName ?? '')
+    setLastName(initialValues?.lastName ?? '')
+    setPreferredName(initialValues?.preferredName ?? '')
+    setEmail(initialValues?.email ?? '')
+    setPhone(initialValues?.phone ?? '')
     setError('')
     panelRef.current?.focus()
 
@@ -37,7 +39,7 @@ export default function CoachCreateClientSheet({
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [open, onClose, submitting])
+  }, [open, onClose, submitting, initialValues?.firstName, initialValues?.lastName, initialValues?.preferredName, initialValues?.email, initialValues?.phone])
 
   const buildPayload = () => ({
     firstName: firstName.trim(),
@@ -88,8 +90,8 @@ export default function CoachCreateClientSheet({
       >
         <header className="coach-lifecycle-sheet-header">
           <div>
-            <span className="eyebrow">ADD CLIENT</span>
-            <h2 id={titleId}>Add client</h2>
+            <span className="eyebrow">{connectionMode ? 'ACCOUNT CONNECTION' : 'ADD CLIENT'}</span>
+            <h2 id={titleId}>{connectionMode ? 'Create client & connect' : 'Add client'}</h2>
           </div>
           <AppUiCloseButton onClick={onClose} disabled={submitting} />
         </header>
@@ -151,10 +153,11 @@ export default function CoachCreateClientSheet({
           </label>
 
           <section className="coach-create-client-app-access">
-            <span className="eyebrow">APP ACCESS</span>
+            <span className="eyebrow">{connectionMode ? 'CONNECTION' : 'APP ACCESS'}</span>
             <p>
-              Add client keeps them on your roster without an invite. Add &amp;
-              invite to AVAREN requires email and sends a pending invitation.
+              {connectionMode
+                ? 'This AVAREN account already exists. Create the business client record, then connect the account to it.'
+                : 'Add client keeps them on your roster without an invite. Add &amp; invite to AVAREN requires email and sends a pending invitation.'}
             </p>
           </section>
 
@@ -170,24 +173,38 @@ export default function CoachCreateClientSheet({
           >
             Cancel
           </button>
-          <button
-            type="button"
-            className="coach-secondary-button"
-            data-testid="coach-add-client-only"
-            onClick={() => handleSubmit(false)}
-            disabled={submitting}
-          >
-            {submitting ? 'Working…' : 'Add client'}
-          </button>
-          <button
-            type="button"
-            className="gold-button machined coach-primary-action"
-            data-testid="coach-add-client-invite"
-            onClick={() => handleSubmit(true)}
-            disabled={submitting}
-          >
-            {submitting ? 'Working…' : 'Add & invite to AVAREN'}
-          </button>
+          {connectionMode ? (
+            <button
+              type="button"
+              className="gold-button machined coach-primary-action"
+              data-testid="coach-create-and-connect"
+              onClick={() => handleSubmit(false)}
+              disabled={submitting}
+            >
+              {submitting ? 'Connecting…' : 'Create & connect'}
+            </button>
+          ) : (
+            <>
+              <button
+                type="button"
+                className="coach-secondary-button"
+                data-testid="coach-add-client-only"
+                onClick={() => handleSubmit(false)}
+                disabled={submitting}
+              >
+                {submitting ? 'Working…' : 'Add client'}
+              </button>
+              <button
+                type="button"
+                className="gold-button machined coach-primary-action"
+                data-testid="coach-add-client-invite"
+                onClick={() => handleSubmit(true)}
+                disabled={submitting}
+              >
+                {submitting ? 'Working…' : 'Add & invite to AVAREN'}
+              </button>
+            </>
+          )}
         </footer>
       </section>
     </AppUiBackdrop>

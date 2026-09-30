@@ -495,6 +495,7 @@ export default function HomeScreen({
           }}
         />
       ))}
+ 
 
       <AvaDailyBriefing
         briefing={avaBriefing}

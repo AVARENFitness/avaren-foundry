@@ -1,4 +1,4 @@
-export const ACCOUNT_SECTIONS = ['Training', 'Recovery', 'Account', 'Support']
+export const ACCOUNT_SECTIONS = ['Training', 'Coaching', 'Recovery', 'Account', 'Support']
 
 export const DEFAULT_ACCOUNT_SECTION = 'Account'
 

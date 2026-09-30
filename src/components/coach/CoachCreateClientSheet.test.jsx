@@ -57,6 +57,42 @@ describe('CoachCreateClientSheet', () => {
     })
   })
 
+
+  it('supports creating and connecting a client record for an existing AVAREN account', async () => {
+    const user = userEvent.setup()
+    const onSubmit = vi.fn()
+
+    render(
+      <CoachCreateClientSheet
+        open
+        connectionMode
+        initialValues={{ email: 'athlete@example.com' }}
+        onClose={vi.fn()}
+        onSubmit={onSubmit}
+      />,
+    )
+
+    expect(screen.getByText(/create client & connect/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/^email$/i)).toHaveValue('athlete@example.com')
+    expect(screen.getByTestId('coach-create-and-connect')).toBeInTheDocument()
+    expect(screen.queryByTestId('coach-add-client-invite')).not.toBeInTheDocument()
+
+    await user.type(screen.getByLabelText(/first name/i), 'Sarah')
+    await user.type(screen.getByLabelText(/last name/i), 'Test')
+    await user.click(screen.getByTestId('coach-create-and-connect'))
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          firstName: 'Sarah',
+          lastName: 'Test',
+          email: 'athlete@example.com',
+          invite: false,
+        }),
+      )
+    })
+  })
+
   it('requires email for Add & invite to AVAREN', async () => {
     const user = userEvent.setup()
     const onSubmit = vi.fn()

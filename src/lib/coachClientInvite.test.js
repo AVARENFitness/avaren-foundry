@@ -182,6 +182,38 @@ describe('coachClientInvite', () => {
     })
   })
 
+  it('preserves server-side reuse when an archived client is reopened', async () => {
+    const createBusinessClient = vi.fn().mockResolvedValue({
+      business_client_id: 'bc-archived',
+      reused_existing: true,
+      reopened: true,
+    })
+    const inviteAthlete = vi.fn().mockResolvedValue({
+      invitation_id: 'inv-reopened',
+    })
+
+    const result = await createBusinessClientWithOptionalInvite({
+      payload: { firstName: 'Sam', lastName: 'Lee', email: 'sam@example.com' },
+      invite: true,
+      existingClients: [],
+      invitations: [],
+      createBusinessClient,
+      inviteAthlete,
+    })
+
+    expect(createBusinessClient).toHaveBeenCalled()
+    expect(result).toMatchObject({
+      businessClientId: 'bc-archived',
+      created: false,
+      reusedExisting: true,
+      reopened: true,
+      invited: true,
+    })
+    expect(inviteAthlete).toHaveBeenCalledWith('sam@example.com', {
+      businessClientId: 'bc-archived',
+    })
+  })
+
   it('prevents duplicate pending invites for the same client/email', async () => {
     const createBusinessClient = vi.fn()
     const inviteAthlete = vi.fn()

@@ -26,6 +26,8 @@ import CollapsibleIdentityPanel, {
 import ImportBackupButton from '../components/ImportBackupButton'
 import { deactivatePushSubscriptionForDevice } from '../lib/pushNotifications'
 import AthleteCoachPanel from '../components/AthleteCoachPanel'
+import AthleteCoachConnectionCard from '../components/AthleteCoachConnectionCard'
+import { useAthleteCoachInvitations } from '../hooks/useAthleteCoachInvitations'
 import AthleteSessionPackageCard from '../components/AthleteSessionPackageCard'
 import AthleteScheduledSessions from '../components/AthleteScheduledSessions'
 import { supabase } from '../lib/supabase'
@@ -115,6 +117,7 @@ export default function MoreScreen({
   const [activeSection, setActiveSection] = useState(() =>
     resolveInitialAccountSection(),
   )
+  const { invitations: coachInvitations = [] } = useAthleteCoachInvitations()
   const selectSection = (section) => {
     setActiveSection(normalizeAccountSection(section))
   }
@@ -285,7 +288,6 @@ export default function MoreScreen({
           </section>
           <AthleteSessionPackageCard />
           <AthleteScheduledSessions />
-          <AthleteCoachPanel onStartAssignment={onStartCoachAssignment}/>
           <section className="more-section">
             <header className="more-section-heading"><span>Training</span><small>Plan, build, and review</small></header>
             <div className="more-destination-list">
@@ -296,6 +298,19 @@ export default function MoreScreen({
             </div>
           </section>
         </div>
+      )}
+
+      {activeSection === 'Coaching' && (
+        <section className="more-section">
+          <header className="more-section-heading">
+            <span>Coaching</span>
+            <small>Connection, invitations, and assigned work</small>
+          </header>
+
+          <AthleteCoachConnectionCard invitations={coachInvitations} />
+
+          <AthleteCoachPanel onStartAssignment={onStartCoachAssignment} />
+        </section>
       )}
 
       {activeSection === 'Recovery' && (

@@ -39,6 +39,7 @@ import CoachBuildHub from '../components/coach/CoachBuildHub'
 import CoachCommandCenter from '../components/coach/CoachCommandCenter'
 import CoachWeeklyReview from '../components/coach/CoachWeeklyReview'
 import CoachCreateClientSheet from '../components/coach/CoachCreateClientSheet'
+import CoachConnectionRequestsPanel from '../components/coach/CoachConnectionRequestsPanel'
 import CoachClientProfile from './CoachClientProfile'
 import CoachWorkoutDesigner from '../components/CoachWorkoutDesigner'
 import CoachSessionCalendar from '../components/CoachSessionCalendar'
@@ -78,6 +79,9 @@ export default function CoachScreen({
   const [showCreateClient,setShowCreateClient]=useState(false)
   const [creatingClient,setCreatingClient]=useState(false)
   const [leads, setLeads] = useState([])
+  const [connectionRequests, setConnectionRequests] = useState([])
+  const [connectionRequestWorkingId, setConnectionRequestWorkingId] = useState(null)
+  const [connectionCreateRequest, setConnectionCreateRequest] = useState(null)
   const [coachFollowUpsByAthleteId, setCoachFollowUpsByAthleteId] = useState({})
   const [clientProfileSection, setClientProfileSection] = useState('overview')
 
@@ -103,12 +107,13 @@ export default function CoachScreen({
   const load = async () => {
     setLoading(true)
     try {
-      const [c, i, a, leadRows, followUpRows] = await Promise.all([
+      const [c, i, a, leadRows, followUpRows, connectionRows] = await Promise.all([
         coachBackend.listCoachRoster({ includeArchived: true }),
         coachBackend.listCoachInvitations(),
         coachBackend.listCoachAssignments(),
         coachBackend.listCoachLeads().catch(() => []),
         coachBackend.listCoachClientFollowUps().catch(() => []),
+        coachBackend.listCoachConnectionRequests().catch(() => []),
       ])
       let t = []
       try {
@@ -123,6 +128,7 @@ export default function CoachScreen({
       setInvitations(i)
       setAssignments(a)
       setLeads(leadRows)
+      setConnectionRequests(connectionRows)
       setCoachFollowUpsByAthleteId(
         followUpRows.reduce((accumulator, followUp) => {
           const athleteId = followUp.athleteId
@@ -330,9 +336,13 @@ export default function CoachScreen({
 
       setShowCreateClient(false)
       setNotice(
-        invite
-          ? LIFECYCLE_SUCCESS.CLIENT_CREATED_AND_INVITED
-          : LIFECYCLE_SUCCESS.CLIENT_CREATED,
+        result.reopened
+          ? invite
+            ? 'Returning client reopened and invited to AVAREN.'
+            : 'Returning client reopened. Existing history preserved.'
+          : invite
+            ? LIFECYCLE_SUCCESS.CLIENT_CREATED_AND_INVITED
+            : LIFECYCLE_SUCCESS.CLIENT_CREATED,
       )
       const roster = await load()
       refreshPortfolio()
@@ -377,6 +387,96 @@ export default function CoachScreen({
       )
     } finally {
       setCreatingClient(false)
+    }
+  }
+
+  const handleCreateAndConnectConnectionRequest = async (request, payload) => {
+    if (!request?.id) return
+    setConnectionRequestWorkingId(request.id)
+    setCreatingClient(true)
+    setNotice('')
+    try {
+      const result = await coachBackend.createBusinessClient({
+        firstName: payload.firstName,
+        lastName: payload.lastName,
+        preferredName: payload.preferredName,
+        email: payload.email,
+        phone: payload.phone,
+      })
+      const businessClientId = result?.business_client_id ?? result?.businessClientId ?? null
+      if (!businessClientId) throw new Error('business_client_not_found')
+
+      await coachBackend.approveCoachConnectionRequest({
+        requestId: request.id,
+        businessClientId,
+      })
+      setConnectionCreateRequest(null)
+      setNotice('Client created and AVAREN account connected.')
+      const roster = await load()
+      refreshPortfolio()
+      invalidateCoachPortfolioCache()
+      const created = roster.find(
+        (client) => resolveRecordBusinessClientId(client) === businessClientId,
+      )
+      if (created) setSelectedClient?.(created)
+    } catch (error) {
+      const raw = String(error?.message ?? error ?? '')
+      setNotice(
+        /business_client_already_linked|athlete_already_linked|bridge_business_client_conflict/i.test(raw)
+          ? 'That account or client record is already linked elsewhere. Review the client before trying again.'
+          : /business_client_not_found/i.test(raw)
+            ? 'Client record could not be created. Refresh and try again.'
+            : error?.message ?? 'Unable to create and connect this client.',
+      )
+    } finally {
+      setCreatingClient(false)
+      setConnectionRequestWorkingId(null)
+    }
+  }
+
+  const handleApproveConnectionRequest = async (request, businessClientId) => {
+    if (!request?.id || !businessClientId) return
+    setConnectionRequestWorkingId(request.id)
+    setNotice('')
+    try {
+      const result = await coachBackend.approveCoachConnectionRequest({
+        requestId: request.id,
+        businessClientId,
+      })
+      setNotice(
+        result?.reopened
+          ? 'Client history reopened and AVAREN account connected.'
+          : 'AVAREN account connected to the client record.',
+      )
+      await load()
+      refreshPortfolio()
+      invalidateCoachPortfolioCache()
+    } catch (error) {
+      const raw = String(error?.message ?? error ?? '')
+      setNotice(
+        /business_client_email_mismatch/i.test(raw)
+          ? 'The selected client email does not exactly match this account.'
+          : /business_client_already_linked|athlete_already_linked|bridge_business_client_conflict/i.test(raw)
+            ? 'That account or client record is already linked elsewhere. Review the client before trying again.'
+            : error?.message ?? 'Unable to connect this account.',
+      )
+    } finally {
+      setConnectionRequestWorkingId(null)
+    }
+  }
+
+  const handleDeclineConnectionRequest = async (request) => {
+    if (!request?.id) return
+    setConnectionRequestWorkingId(request.id)
+    setNotice('')
+    try {
+      await coachBackend.declineCoachConnectionRequest(request.id)
+      setNotice('Connection request declined.')
+      await load()
+    } catch (error) {
+      setNotice(error?.message ?? 'Unable to decline this request.')
+    } finally {
+      setConnectionRequestWorkingId(null)
     }
   }
 
@@ -675,6 +775,17 @@ export default function CoachScreen({
   if (normalizedScreen === COACH_SCREENS.CLIENTS && !selectedClient) {
     return (
       <>
+    <CoachConnectionRequestsPanel
+      requests={connectionRequests}
+      clients={clients}
+      workingId={connectionRequestWorkingId}
+      onApprove={handleApproveConnectionRequest}
+      onDecline={handleDeclineConnectionRequest}
+      onCreateNewClient={(request) => {
+        setNotice('')
+        setConnectionCreateRequest(request)
+      }}
+    />
         <CoachCommandCenter
           rosterOnly
           clients={clients}
@@ -697,20 +808,36 @@ export default function CoachScreen({
           onOpenLead={() => onNavigateCoachScreen?.(COACH_SCREENS.LEADS)}
         />
         <CoachCreateClientSheet
-          open={showCreateClient}
-          submitting={creatingClient}
-          onClose={() => {
-            setShowCreateClient(false)
-            setNotice('')
-          }}
-          onSubmit={handleCreateClient}
-        />
+        open={showCreateClient || Boolean(connectionCreateRequest)}
+        submitting={creatingClient}
+        connectionMode={Boolean(connectionCreateRequest)}
+        initialValues={connectionCreateRequest ? { email: connectionCreateRequest.athlete_email ?? '' } : null}
+        onClose={() => {
+          if (connectionCreateRequest) setConnectionCreateRequest(null)
+          else setShowCreateClient(false)
+          setNotice('')
+        }}
+        onSubmit={connectionCreateRequest
+          ? (payload) => handleCreateAndConnectConnectionRequest(connectionCreateRequest, payload)
+          : handleCreateClient}
+      />
         {designer}
       </>
     )
   }
 
   return <>
+    <CoachConnectionRequestsPanel
+      requests={connectionRequests}
+      clients={clients}
+      workingId={connectionRequestWorkingId}
+      onApprove={handleApproveConnectionRequest}
+      onDecline={handleDeclineConnectionRequest}
+      onCreateNewClient={(request) => {
+        setNotice('')
+        setConnectionCreateRequest(request)
+      }}
+    />
     <CoachCommandCenter
       clients={clients}
       invitations={invitations}
@@ -743,14 +870,19 @@ export default function CoachScreen({
       onOpenLead={() => onNavigateCoachScreen?.(COACH_SCREENS.LEADS)}
     />
     <CoachCreateClientSheet
-      open={showCreateClient}
-      submitting={creatingClient}
-      onClose={() => {
-        setShowCreateClient(false)
-        setNotice('')
-      }}
-      onSubmit={handleCreateClient}
-    />
+        open={showCreateClient || Boolean(connectionCreateRequest)}
+        submitting={creatingClient}
+        connectionMode={Boolean(connectionCreateRequest)}
+        initialValues={connectionCreateRequest ? { email: connectionCreateRequest.athlete_email ?? '' } : null}
+        onClose={() => {
+          if (connectionCreateRequest) setConnectionCreateRequest(null)
+          else setShowCreateClient(false)
+          setNotice('')
+        }}
+        onSubmit={connectionCreateRequest
+          ? (payload) => handleCreateAndConnectConnectionRequest(connectionCreateRequest, payload)
+          : handleCreateClient}
+      />
     {designer}
   </>
 }

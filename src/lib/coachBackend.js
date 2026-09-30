@@ -174,6 +174,99 @@ export const coachBackend = {
     const user = await currentUser()
     return unwrap(supabase.from('coach_invitations').select('*').eq('coach_id', user.id).order('created_at', { ascending: false }))
   },
+  async listCoachConnectionRequests({ status = 'pending' } = {}) {
+    const user = await currentUser()
+    let query = supabase
+      .from('coach_connection_requests')
+      .select('*')
+      .eq('coach_id', user.id)
+      .order('created_at', { ascending: false })
+
+    if (status) query = query.eq('status', status)
+
+    try {
+      const requests = await unwrap(query)
+      const connectedClients = await this.listClients()
+      const connectedAthleteIds = new Set(
+        connectedClients.map((client) => client.athlete_id).filter(Boolean),
+      )
+      return requests.filter(
+        (request) => !connectedAthleteIds.has(request.athlete_id),
+      )
+    } catch (error) {
+      if (missingBackend(error) || /coach_connection_requests/i.test(error?.message ?? '')) {
+        return []
+      }
+      throw error
+    }
+  },
+  async listOwnCoachConnectionRequests({ pendingOnly = false } = {}) {
+    const user = await currentUser()
+    let query = supabase
+      .from('coach_connection_requests')
+      .select('*')
+      .eq('athlete_id', user.id)
+      .order('created_at', { ascending: false })
+
+    if (pendingOnly) query = query.eq('status', 'pending')
+
+    try {
+      return await unwrap(query)
+    } catch (error) {
+      if (missingBackend(error) || /coach_connection_requests/i.test(error?.message ?? '')) {
+        return []
+      }
+      throw error
+    }
+  },
+  async listAthleteCoachRelationships() {
+    const user = await currentUser()
+    return unwrap(
+      supabase
+        .from('coach_clients')
+        .select('*')
+        .eq('athlete_id', user.id)
+        .order('created_at', { ascending: false }),
+    )
+  },
+  async requestAvarenCoachConnection(
+    coachEmail = 'hello@avarenfitness.com',
+  ) {
+    return unwrap(
+      supabase.rpc('request_avaren_coach_connection', {
+        p_coach_email: normalizeEmail(coachEmail),
+      }),
+    )
+  },
+  async cancelOwnCoachConnectionRequest(requestId) {
+    return unwrap(
+      supabase.rpc('cancel_own_coach_connection_request', {
+        p_request_id: requestId,
+      }),
+    )
+  },
+  async approveCoachConnectionRequest({
+    requestId,
+    businessClientId,
+  } = {}) {
+    if (!isValidUuid(requestId) || !isValidUuid(businessClientId)) {
+      throw new Error('connection_request_invalid_selection')
+    }
+
+    return unwrap(
+      supabase.rpc('approve_coach_connection_request', {
+        p_request_id: requestId,
+        p_business_client_id: businessClientId,
+      }),
+    )
+  },
+  async declineCoachConnectionRequest(requestId) {
+    return unwrap(
+      supabase.rpc('decline_coach_connection_request', {
+        p_request_id: requestId,
+      }),
+    )
+  },
   async cancelInvitation(id) {
     return unwrap(supabase.from('coach_invitations').update({ status: 'cancelled' }).eq('id', id).select())
   },
