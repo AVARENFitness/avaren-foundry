@@ -21,8 +21,7 @@ export const isPendingConnectionRequest = (request = {}) =>
 export const availableBusinessClientsForConnection = (clients = []) =>
   (clients ?? []).filter(
     (client) =>
-      isActiveBusinessClient(client) &&
-      !isArchivedBusinessClient(client) &&
+      (isActiveBusinessClient(client) || isArchivedBusinessClient(client)) &&
       !isLinkedBusinessClient(client) &&
       Boolean(resolveRecordBusinessClientId(client)),
   )
