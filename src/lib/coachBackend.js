@@ -185,7 +185,14 @@ export const coachBackend = {
     if (status) query = query.eq('status', status)
 
     try {
-      return await unwrap(query)
+      const requests = await unwrap(query)
+      const connectedClients = await this.listClients()
+      const connectedAthleteIds = new Set(
+        connectedClients.map((client) => client.athlete_id).filter(Boolean),
+      )
+      return requests.filter(
+        (request) => !connectedAthleteIds.has(request.athlete_id),
+      )
     } catch (error) {
       if (missingBackend(error) || /coach_connection_requests/i.test(error?.message ?? '')) {
         return []
