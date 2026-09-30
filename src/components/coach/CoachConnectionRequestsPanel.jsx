@@ -14,6 +14,7 @@ export default function CoachConnectionRequestsPanel({
   workingId = null,
   onApprove,
   onDecline,
+  onCreateNewClient,
 } = {}) {
   const pending = useMemo(
     () => (requests ?? []).filter((request) => request?.status === 'pending'),
@@ -74,7 +75,7 @@ export default function CoachConnectionRequestsPanel({
                       ? `Exact email match: ${getClientDisplayName(suggested)}`
                       : exactMatches.length > 1
                         ? 'Multiple exact matches found. Resolve duplicate client emails before linking.'
-                        : 'No exact email match found. This request cannot be linked yet.'}
+                        : 'No exact email match. Create a client record to connect this account.'}
                   </small>
                 </div>
               </div>
@@ -115,17 +116,36 @@ export default function CoachConnectionRequestsPanel({
                   <X size={16} />
                   Decline
                 </button>
-                <button
-                  type="button"
-                  className="coach-primary-action"
-                  disabled={busy || !selectedId || !suggested || exactMatches.length !== 1}
-                  onClick={() =>
-                    onApprove?.(request, selectedId)
-                  }
-                >
-                  <Check size={16} />
-                  Link existing client
-                </button>
+                {suggested ? (
+                  <button
+                    type="button"
+                    className="coach-primary-action gold-button machined"
+                    disabled={busy || !selectedId}
+                    onClick={() => onApprove?.(request, selectedId)}
+                  >
+                    <Check size={16} />
+                    Link existing client
+                  </button>
+                ) : exactMatches.length === 0 ? (
+                  <button
+                    type="button"
+                    className="coach-primary-action gold-button machined"
+                    disabled={busy}
+                    onClick={() => onCreateNewClient?.(request)}
+                  >
+                    <Check size={16} />
+                    Create & connect
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="coach-primary-action"
+                    disabled
+                  >
+                    <Check size={16} />
+                    Resolve duplicate
+                  </button>
+                )}
               </div>
             </article>
           )
