@@ -19074,3 +19074,75 @@ input, textarea, select {
     width: 100%;
   }
 }
+
+
+/* ===== SPRINT 9.3 · COACH CONNECTION SELECT POLISH ===== */
+.coach-connection-request-row label {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.coach-connection-request-row label > span {
+  color: var(--text-secondary, #948d84);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+.coach-connection-client-select {
+  width: 100%;
+  min-height: 48px;
+  box-sizing: border-box;
+  padding: 0 42px 0 14px;
+  border: 1px solid rgba(216, 184, 109, .22);
+  border-radius: 12px;
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+  color-scheme: dark;
+  color: #f6f2e9;
+  background-color: rgba(255, 255, 255, .035);
+  background-image:
+    linear-gradient(45deg, transparent 50%, #d8b86d 50%),
+    linear-gradient(135deg, #d8b86d 50%, transparent 50%);
+  background-position:
+    calc(100% - 19px) 20px,
+    calc(100% - 13px) 20px;
+  background-size: 6px 6px, 6px 6px;
+  background-repeat: no-repeat;
+  font: inherit;
+  font-size: 14px;
+  line-height: 1.2;
+  transition: border-color .18s ease, background-color .18s ease, box-shadow .18s ease;
+}
+
+.coach-connection-client-select:hover:not(:disabled) {
+  border-color: rgba(216, 184, 109, .42);
+  background-color: rgba(255, 255, 255, .05);
+}
+
+.coach-connection-client-select:focus-visible {
+  border-color: rgba(216, 184, 109, .68);
+  box-shadow: 0 0 0 3px rgba(216, 184, 109, .10);
+}
+
+.coach-connection-client-select:disabled {
+  color: #817a71;
+  border-color: rgba(246, 242, 233, .10);
+  background-color: rgba(255, 255, 255, .025);
+  opacity: 1;
+  cursor: not-allowed;
+}
+
+.coach-connection-client-select option {
+  color: #f6f2e9;
+  background: #151515;
+}
+
+@media (max-width: 680px) {
+  .coach-connection-client-select {
+    min-height: 46px;
+  }
+}
