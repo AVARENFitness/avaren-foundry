@@ -27,22 +27,28 @@ export const availableBusinessClientsForConnection = (clients = []) =>
       Boolean(resolveRecordBusinessClientId(client)),
   )
 
-export const findSuggestedBusinessClient = (
+export const findExactBusinessClientMatches = (
   clients = [],
   request = {},
 ) => {
   const available = availableBusinessClientsForConnection(clients)
   const email = normalizeConnectionEmail(request?.athlete_email)
-  if (!email) return null
+  if (!email) return []
 
-  return (
-    available.find(
-      (client) =>
-        normalizeConnectionEmail(
-          client?.email ?? client?.athlete_email ?? '',
-        ) === email,
-    ) ?? null
+  return available.filter(
+    (client) =>
+      normalizeConnectionEmail(
+        client?.email ?? client?.athlete_email ?? '',
+      ) === email,
   )
+}
+
+export const findSuggestedBusinessClient = (
+  clients = [],
+  request = {},
+) => {
+  const matches = findExactBusinessClientMatches(clients, request)
+  return matches.length === 1 ? matches[0] : null
 }
 
 export const connectionRequestDisplayName = (request = {}) =>
