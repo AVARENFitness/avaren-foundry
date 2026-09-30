@@ -39,6 +39,7 @@ import CoachBuildHub from '../components/coach/CoachBuildHub'
 import CoachCommandCenter from '../components/coach/CoachCommandCenter'
 import CoachWeeklyReview from '../components/coach/CoachWeeklyReview'
 import CoachCreateClientSheet from '../components/coach/CoachCreateClientSheet'
+import CoachConnectionRequestsPanel from '../components/coach/CoachConnectionRequestsPanel'
 import CoachClientProfile from './CoachClientProfile'
 import CoachWorkoutDesigner from '../components/CoachWorkoutDesigner'
 import CoachSessionCalendar from '../components/CoachSessionCalendar'
@@ -78,6 +79,8 @@ export default function CoachScreen({
   const [showCreateClient,setShowCreateClient]=useState(false)
   const [creatingClient,setCreatingClient]=useState(false)
   const [leads, setLeads] = useState([])
+  const [connectionRequests, setConnectionRequests] = useState([])
+  const [connectionRequestWorkingId, setConnectionRequestWorkingId] = useState(null)
   const [coachFollowUpsByAthleteId, setCoachFollowUpsByAthleteId] = useState({})
   const [clientProfileSection, setClientProfileSection] = useState('overview')
 
@@ -103,12 +106,13 @@ export default function CoachScreen({
   const load = async () => {
     setLoading(true)
     try {
-      const [c, i, a, leadRows, followUpRows] = await Promise.all([
+      const [c, i, a, leadRows, followUpRows, connectionRows] = await Promise.all([
         coachBackend.listCoachRoster({ includeArchived: true }),
         coachBackend.listCoachInvitations(),
         coachBackend.listCoachAssignments(),
         coachBackend.listCoachLeads().catch(() => []),
         coachBackend.listCoachClientFollowUps().catch(() => []),
+        coachBackend.listCoachConnectionRequests().catch(() => []),
       ])
       let t = []
       try {
@@ -123,6 +127,7 @@ export default function CoachScreen({
       setInvitations(i)
       setAssignments(a)
       setLeads(leadRows)
+      setConnectionRequests(connectionRows)
       setCoachFollowUpsByAthleteId(
         followUpRows.reduce((accumulator, followUp) => {
           const athleteId = followUp.athleteId
@@ -377,6 +382,48 @@ export default function CoachScreen({
       )
     } finally {
       setCreatingClient(false)
+    }
+  }
+
+  const handleApproveConnectionRequest = async (request, businessClientId) => {
+    if (!request?.id || !businessClientId) return
+    setConnectionRequestWorkingId(request.id)
+    setNotice('')
+    try {
+      await coachBackend.approveCoachConnectionRequest({
+        requestId: request.id,
+        businessClientId,
+      })
+      setNotice('AVAREN account connected to the client record.')
+      await load()
+      refreshPortfolio()
+      invalidateCoachPortfolioCache()
+    } catch (error) {
+      const raw = String(error?.message ?? error ?? '')
+      setNotice(
+        /business_client_archived/i.test(raw)
+          ? 'Archived clients cannot be linked. Reopen coaching first.'
+          : /business_client_already_linked|athlete_already_linked|bridge_business_client_conflict/i.test(raw)
+            ? 'That account or client record is already linked elsewhere. Review the client before trying again.'
+            : error?.message ?? 'Unable to connect this account.',
+      )
+    } finally {
+      setConnectionRequestWorkingId(null)
+    }
+  }
+
+  const handleDeclineConnectionRequest = async (request) => {
+    if (!request?.id) return
+    setConnectionRequestWorkingId(request.id)
+    setNotice('')
+    try {
+      await coachBackend.declineCoachConnectionRequest(request.id)
+      setNotice('Connection request declined.')
+      await load()
+    } catch (error) {
+      setNotice(error?.message ?? 'Unable to decline this request.')
+    } finally {
+      setConnectionRequestWorkingId(null)
     }
   }
 
@@ -675,6 +722,13 @@ export default function CoachScreen({
   if (normalizedScreen === COACH_SCREENS.CLIENTS && !selectedClient) {
     return (
       <>
+    <CoachConnectionRequestsPanel
+      requests={connectionRequests}
+      clients={clients}
+      workingId={connectionRequestWorkingId}
+      onApprove={handleApproveConnectionRequest}
+      onDecline={handleDeclineConnectionRequest}
+    />
         <CoachCommandCenter
           rosterOnly
           clients={clients}
@@ -711,6 +765,13 @@ export default function CoachScreen({
   }
 
   return <>
+    <CoachConnectionRequestsPanel
+      requests={connectionRequests}
+      clients={clients}
+      workingId={connectionRequestWorkingId}
+      onApprove={handleApproveConnectionRequest}
+      onDecline={handleDeclineConnectionRequest}
+    />
     <CoachCommandCenter
       clients={clients}
       invitations={invitations}
