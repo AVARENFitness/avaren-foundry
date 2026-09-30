@@ -435,19 +435,23 @@ export default function CoachScreen({
     setConnectionRequestWorkingId(request.id)
     setNotice('')
     try {
-      await coachBackend.approveCoachConnectionRequest({
+      const result = await coachBackend.approveCoachConnectionRequest({
         requestId: request.id,
         businessClientId,
       })
-      setNotice('AVAREN account connected to the client record.')
+      setNotice(
+        result?.reopened
+          ? 'Client history reopened and AVAREN account connected.'
+          : 'AVAREN account connected to the client record.',
+      )
       await load()
       refreshPortfolio()
       invalidateCoachPortfolioCache()
     } catch (error) {
       const raw = String(error?.message ?? error ?? '')
       setNotice(
-        /business_client_archived/i.test(raw)
-          ? 'Archived clients cannot be linked. Reopen coaching first.'
+        /business_client_email_mismatch/i.test(raw)
+          ? 'The selected client email does not exactly match this account.'
           : /business_client_already_linked|athlete_already_linked|bridge_business_client_conflict/i.test(raw)
             ? 'That account or client record is already linked elsewhere. Review the client before trying again.'
             : error?.message ?? 'Unable to connect this account.',
