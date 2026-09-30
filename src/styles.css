@@ -13264,7 +13264,7 @@ input, textarea, select {
   top: 0;
   z-index: 12;
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 8px;
   padding: 8px;
   border: 1px solid rgba(246,242,233,.08);
@@ -13348,7 +13348,7 @@ input, textarea, select {
 
 @media (max-width: 620px) {
   .profile-section-nav {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 6px;
     padding: 7px;
   }
