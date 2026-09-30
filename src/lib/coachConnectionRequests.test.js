@@ -13,7 +13,7 @@ describe('coachConnectionRequests', () => {
     )
   })
 
-  it('only offers active unlinked business clients', () => {
+  it('offers active and archived unlinked business clients as connection candidates', () => {
     const clients = [
       { id: 'one', status: 'active', linked_user_id: null },
       { id: 'two', status: 'active', linked_user_id: 'athlete-2' },
@@ -22,7 +22,7 @@ describe('coachConnectionRequests', () => {
 
     expect(
       availableBusinessClientsForConnection(clients).map((client) => client.id),
-    ).toEqual(['one'])
+    ).toEqual(['one', 'three'])
   })
 
   it('requires exactly one available exact email match', () => {
@@ -60,5 +60,20 @@ describe('coachConnectionRequests', () => {
         athlete_email: 'ATHLETE@example.com',
       })?.id,
     ).toBe('available')
+  })
+
+  it('suggests an archived exact email match so returning clients can be reopened', () => {
+    const archived = {
+      id: 'archived',
+      status: 'archived',
+      linked_user_id: null,
+      email: 'athlete@example.com',
+    }
+
+    expect(
+      findSuggestedBusinessClient([archived], {
+        athlete_email: 'ATHLETE@example.com',
+      })?.id,
+    ).toBe('archived')
   })
 })
