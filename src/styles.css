@@ -19203,13 +19203,16 @@ input, textarea, select {
 
 /* Connection request: disabled action should read as inactive, not as a second primary action. */
 .coach-connection-request-actions .coach-primary-action:disabled {
-  border: 1px solid rgba(246, 242, 233, 0.08);
+  min-height: 48px;
+  border: 1px solid rgba(246, 242, 233, 0.10);
+  border-radius: 14px;
   background: rgba(246, 242, 233, 0.035);
-  color: rgba(246, 242, 233, 0.42);
+  color: rgba(246, 242, 233, 0.58);
   opacity: 1;
+  cursor: not-allowed;
   box-shadow: none;
 }
 
 .coach-connection-request-actions .coach-primary-action:disabled svg {
-  color: rgba(246, 242, 233, 0.38);
+  color: rgba(246, 242, 233, 0.52);
 }
