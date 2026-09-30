@@ -19146,3 +19146,56 @@ input, textarea, select {
     min-height: 46px;
   }
 }
+
+
+/* ===== SPRINT 9.3 · CONNECTION ACTIONS POLISH ===== */
+.coach-connection-request-actions {
+  display: flex;
+  align-items: stretch;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 2px;
+}
+
+.coach-connection-request-actions .coach-secondary-button,
+.coach-connection-request-actions .coach-primary-action {
+  width: auto;
+  min-height: 48px;
+  box-sizing: border-box;
+}
+
+.coach-connection-request-actions .coach-secondary-button {
+  flex: 0 0 auto;
+  padding-inline: 16px;
+}
+
+.coach-connection-request-actions .coach-primary-action {
+  flex: 0 0 auto;
+  padding-inline: 18px;
+}
+
+.coach-connection-request-actions .coach-primary-action:disabled {
+  opacity: 1;
+  cursor: not-allowed;
+  border-color: rgba(216, 184, 109, .16);
+  background: rgba(216, 184, 109, .055);
+  color: rgba(216, 184, 109, .48);
+  box-shadow: none;
+}
+
+.coach-connection-request-actions .coach-secondary-button:disabled {
+  opacity: 1;
+  cursor: not-allowed;
+}
+
+@media (max-width: 680px) {
+  .coach-connection-request-actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr);
+  }
+
+  .coach-connection-request-actions .coach-secondary-button,
+  .coach-connection-request-actions .coach-primary-action {
+    width: 100%;
+  }
+}
