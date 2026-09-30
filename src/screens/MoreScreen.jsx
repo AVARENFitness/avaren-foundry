@@ -26,6 +26,7 @@ import CollapsibleIdentityPanel, {
 import ImportBackupButton from '../components/ImportBackupButton'
 import { deactivatePushSubscriptionForDevice } from '../lib/pushNotifications'
 import AthleteCoachPanel from '../components/AthleteCoachPanel'
+import AthleteCoachConnectionCard from '../components/AthleteCoachConnectionCard'
 import AthleteSessionPackageCard from '../components/AthleteSessionPackageCard'
 import AthleteScheduledSessions from '../components/AthleteScheduledSessions'
 import { supabase } from '../lib/supabase'
@@ -296,6 +297,23 @@ export default function MoreScreen({
             </div>
           </section>
         </div>
+      )}
+
+      {activeSection === 'Coaching' && (
+        <section className="more-section">
+          <header className="more-section-header">
+            <div>
+              <span className="eyebrow">COACHING</span>
+              <h2>Your coaching</h2>
+              <p>Manage your AVAREN coaching connection, invitations, and assigned work.</p>
+            </div>
+            <BriefcaseBusiness size={22} />
+          </header>
+
+          <AthleteCoachConnectionCard invitations={[]} />
+
+          <AthleteCoachPanel onStartAssignment={onStartCoachAssignment} />
+        </section>
       )}
 
       {activeSection === 'Recovery' && (
