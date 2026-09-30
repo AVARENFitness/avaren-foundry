@@ -61,6 +61,10 @@ export default function CoachConnectionRequestsPanel({
           const exactMatches = findExactBusinessClientMatches(availableClients, request)
           const suggested = exactMatches.length === 1 ? exactMatches[0] : null
           const busy = workingId === request.id
+          const suggestedId = suggested
+            ? resolveRecordBusinessClientId(suggested)
+            : null
+          const reopening = Boolean(suggested?.status === 'archived')
 
           return (
             <article key={request.id} className="coach-connection-request-row">
@@ -72,7 +76,9 @@ export default function CoachConnectionRequestsPanel({
                   <strong>{request.athlete_email || 'AVAREN athlete'}</strong>
                   <small>
                     {suggested
-                      ? `Exact email match: ${getClientDisplayName(suggested)}`
+                      ? reopening
+                        ? `Exact email match in archived history: ${getClientDisplayName(suggested)}. Approving will reopen this client and preserve their history.`
+                        : `Exact email match: ${getClientDisplayName(suggested)}`
                       : exactMatches.length > 1
                         ? 'Multiple exact matches found. Resolve duplicate client emails before linking.'
                         : 'No exact email match. Create a client record to connect this account.'}
@@ -95,12 +101,17 @@ export default function CoachConnectionRequestsPanel({
                   }
                 >
                   <option value="">
-                    {suggested ? 'Select matched client…' : 'No exact email match'}
+                    {suggested
+                      ? reopening
+                        ? 'Select archived client…'
+                        : 'Select matched client…'
+                      : 'No exact email match'}
                   </option>
                   {suggested ? (
-                    <option value={resolveRecordBusinessClientId(suggested)}>
+                    <option value={suggestedId}>
                       {getClientDisplayName(suggested)}
                       {suggested.email ? ` — ${suggested.email}` : ''}
+                      {reopening ? ' — Archived history' : ''}
                     </option>
                   ) : null}
                 </select>
@@ -124,7 +135,7 @@ export default function CoachConnectionRequestsPanel({
                     onClick={() => onApprove?.(request, selectedId)}
                   >
                     <Check size={16} />
-                    Link existing client
+                    {reopening ? 'Link & reopen client' : 'Link existing client'}
                   </button>
                 ) : exactMatches.length === 0 ? (
                   <button
