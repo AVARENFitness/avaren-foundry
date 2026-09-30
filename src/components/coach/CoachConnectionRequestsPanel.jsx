@@ -14,7 +14,10 @@ export default function CoachConnectionRequestsPanel({
   onApprove,
   onDecline,
 } = {}) {
-  const pending = (requests ?? []).filter((request) => request?.status === 'pending')
+  const pending = useMemo(
+    () => (requests ?? []).filter((request) => request?.status === 'pending'),
+    [requests],
+  )
   const availableClients = useMemo(
     () => availableBusinessClientsForConnection(clients),
     [clients],
