@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   availableBusinessClientsForConnection,
+  findExactBusinessClientMatches,
   findSuggestedBusinessClient,
   normalizeConnectionEmail,
 } from './coachConnectionRequests'
@@ -22,6 +23,20 @@ describe('coachConnectionRequests', () => {
     expect(
       availableBusinessClientsForConnection(clients).map((client) => client.id),
     ).toEqual(['one'])
+  })
+
+  it('requires exactly one available exact email match', () => {
+    const clients = [
+      { id: 'one', status: 'active', linked_user_id: null, email: 'athlete@example.com' },
+      { id: 'two', status: 'active', linked_user_id: null, email: 'athlete@example.com' },
+    ]
+
+    expect(findExactBusinessClientMatches(clients, {
+      athlete_email: 'ATHLETE@example.com',
+    })).toHaveLength(2)
+    expect(findSuggestedBusinessClient(clients, {
+      athlete_email: 'ATHLETE@example.com',
+    })).toBeNull()
   })
 
   it('suggests an exact email match but never selects a linked client', () => {
