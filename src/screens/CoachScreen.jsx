@@ -336,9 +336,13 @@ export default function CoachScreen({
 
       setShowCreateClient(false)
       setNotice(
-        invite
-          ? LIFECYCLE_SUCCESS.CLIENT_CREATED_AND_INVITED
-          : LIFECYCLE_SUCCESS.CLIENT_CREATED,
+        result.reopened
+          ? invite
+            ? 'Returning client reopened and invited to AVAREN.'
+            : 'Returning client reopened. Existing history preserved.'
+          : invite
+            ? LIFECYCLE_SUCCESS.CLIENT_CREATED_AND_INVITED
+            : LIFECYCLE_SUCCESS.CLIENT_CREATED,
       )
       const roster = await load()
       refreshPortfolio()
