@@ -83,7 +83,9 @@ export default function CoachConnectionRequestsPanel({
                 <span>Link to business client</span>
                 <select
                   value={selectedId}
-                  disabled={busy}
+                  className="coach-connection-client-select"
+                  aria-label="Link to business client"
+                  disabled={busy || exactMatches.length !== 1}
                   onChange={(event) =>
                     setSelections((current) => ({
                       ...current,
@@ -91,7 +93,9 @@ export default function CoachConnectionRequestsPanel({
                     }))
                   }
                 >
-                  <option value="">Select client…</option>
+                  <option value="">
+                    {suggested ? 'Select matched client…' : 'No exact email match'}
+                  </option>
                   {suggested ? (
                     <option value={resolveRecordBusinessClientId(suggested)}>
                       {getClientDisplayName(suggested)}
