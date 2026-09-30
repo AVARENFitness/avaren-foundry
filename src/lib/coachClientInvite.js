@@ -139,6 +139,7 @@ export const createBusinessClientWithOptionalInvite = async ({
     : null
   let created = false
   let reusedExisting = Boolean(existing)
+  let reopened = false
 
   if (!businessClientId) {
     const result = await createBusinessClient({
@@ -147,7 +148,9 @@ export const createBusinessClientWithOptionalInvite = async ({
     })
     businessClientId =
       result?.business_client_id ?? result?.businessClientId ?? null
-    created = true
+    reusedExisting = Boolean(existing || result?.reused_existing)
+    reopened = Boolean(result?.reopened)
+    created = !reusedExisting
     if (!businessClientId) {
       throw new Error('business_client_not_found')
     }
@@ -186,6 +189,7 @@ export const createBusinessClientWithOptionalInvite = async ({
     businessClientId,
     created,
     reusedExisting,
+    reopened,
     invited: Boolean(invite),
     invitation,
   }
