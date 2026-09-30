@@ -303,12 +303,8 @@ export default function MoreScreen({
       {activeSection === 'Coaching' && (
         <section className="more-section">
           <header className="more-section-heading">
-            <div>
-              <span className="eyebrow">COACHING</span>
-              <h2>Your coaching</h2>
-              <p>Manage your AVAREN coaching connection, invitations, and assigned work.</p>
-            </div>
-            <BriefcaseBusiness size={22} />
+            <span>Coaching</span>
+            <small>Connection, invitations, and assigned work</small>
           </header>
 
           <AthleteCoachConnectionCard invitations={coachInvitations} />
