@@ -83,7 +83,6 @@ import {
 import { findCompletedWorkoutToday } from './lib/programWorkout'
 import CloudStatus from './components/CloudStatus'
 import AuthScreen from './screens/AuthScreen'
-import { BASELINES, DEFAULT_PROGRAM } from './data/defaultProgram'
 import { recentPRs } from './lib/metrics'
 import {
   COACH_ACTIONS,
@@ -128,20 +127,24 @@ import {
 
 const createInitialState = (ownerUserId = null) => ({
   ownerUserId,
-  program: DEFAULT_PROGRAM,
+  program: {
+    rotation: [],
+    nextWorkout: null,
+    workouts: {},
+  },
   activeWorkout: null,
   history: [],
   achievements: [],
-  baselines: BASELINES,
-  selectedWorkout: DEFAULT_PROGRAM.nextWorkout,
+  baselines: {},
+  selectedWorkout: null,
   weeklySchedule: {
     0: 'Rest',
-    1: 'Chest + Back',
-    2: 'Arms',
-    3: 'Legs + Core',
-    4: 'Chest + Back',
-    5: 'Arms',
-    6: 'Legs + Core',
+    1: 'Rest',
+    2: 'Rest',
+    3: 'Rest',
+    4: 'Rest',
+    5: 'Rest',
+    6: 'Rest',
   },
   lastBackupAt: null,
   schemaVersion: STATE_SCHEMA_VERSION,
