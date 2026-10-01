@@ -77,17 +77,32 @@ describe('clean-slate account foundation', () => {
     expect(state.selectedWorkout).toBe('My Workout')
   })
 
-  it('marks legacy numeric nutrition targets as configured', () => {
+  it('clears the untouched legacy 2200-calorie seed instead of treating it as personal', () => {
     const migrated = migrateStoredState(
       {
-        schemaVersion: 3,
+        schemaVersion: 4,
         nutrition: {
-          schemaVersion: 2,
+          schemaVersion: 3,
           goals: {
             calories: 2200,
             protein: 170,
             carbs: 230,
             fat: 70,
+            fiber: 30,
+            waterOz: 100,
+            bottleOz: 33.8,
+            weightGoal: '',
+            coachAccess: false,
+            configured: true,
+            source: 'legacy_existing',
+            calculationVersion: null,
+          },
+          days: {
+            '2026-09-30': {
+              date: '2026-09-30',
+              foods: [{ id: 'food-1', name: 'Chicken', calories: 200 }],
+              waterOz: 0,
+            },
           },
         },
       },
@@ -95,8 +110,34 @@ describe('clean-slate account foundation', () => {
     )
 
     expect(migrated.schemaVersion).toBe(STATE_SCHEMA_VERSION)
+    expect(migrated.nutrition.goals.configured).toBe(false)
+    expect(migrated.nutrition.goals.source).toBe('not_configured')
+    expect(migrated.nutrition.goals.calories).toBeNull()
+    expect(migrated.nutrition.days['2026-09-30'].foods).toHaveLength(1)
+  })
+
+  it('preserves genuinely customized legacy nutrition targets', () => {
+    const migrated = migrateStoredState(
+      {
+        schemaVersion: 4,
+        nutrition: {
+          schemaVersion: 3,
+          goals: {
+            calories: 2450,
+            protein: 185,
+            carbs: 260,
+            fat: 75,
+            fiber: 30,
+            configured: true,
+            source: 'legacy_existing',
+          },
+        },
+      },
+      cleanFallback,
+    )
+
     expect(migrated.nutrition.goals.configured).toBe(true)
-    expect(migrated.nutrition.goals.source).toBe('legacy_existing')
-    expect(migrated.nutrition.goals.calories).toBe(2200)
+    expect(migrated.nutrition.goals.calories).toBe(2450)
+    expect(migrated.nutrition.goals.protein).toBe(185)
   })
 })
