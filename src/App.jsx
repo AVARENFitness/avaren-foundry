@@ -126,23 +126,42 @@ import {
   clearDevWeeklyCheckInDueOverride,
 } from './lib/weeklyCheckInDev'
 
-const createInitialState = (ownerUserId = null) => ({
+const createInitialState = (ownerUserId = null) => {
+  const isBootstrapState = !ownerUserId
+
+  return {
   ownerUserId,
-  program: DEFAULT_PROGRAM,
+  program: isBootstrapState
+    ? DEFAULT_PROGRAM
+    : {
+        rotation: [],
+        nextWorkout: null,
+        workouts: {},
+      },
   activeWorkout: null,
   history: [],
   achievements: [],
-  baselines: BASELINES,
-  selectedWorkout: DEFAULT_PROGRAM.nextWorkout,
-  weeklySchedule: {
-    0: 'Rest',
-    1: 'Chest + Back',
-    2: 'Arms',
-    3: 'Legs + Core',
-    4: 'Chest + Back',
-    5: 'Arms',
-    6: 'Legs + Core',
-  },
+  baselines: isBootstrapState ? BASELINES : {},
+  selectedWorkout: isBootstrapState ? DEFAULT_PROGRAM.nextWorkout : null,
+  weeklySchedule: isBootstrapState
+    ? {
+        0: 'Rest',
+        1: 'Chest + Back',
+        2: 'Arms',
+        3: 'Legs + Core',
+        4: 'Chest + Back',
+        5: 'Arms',
+        6: 'Legs + Core',
+      }
+    : {
+        0: 'Rest',
+        1: 'Rest',
+        2: 'Rest',
+        3: 'Rest',
+        4: 'Rest',
+        5: 'Rest',
+        6: 'Rest',
+      },
   lastBackupAt: null,
   schemaVersion: STATE_SCHEMA_VERSION,
   mobility: {
@@ -177,7 +196,8 @@ const createInitialState = (ownerUserId = null) => ({
   sessionExecutionPlan: null,
   athleteFollowUps: [],
   exerciseLoadPreferences: {},
-})
+  }
+}
 
 
 function App() {

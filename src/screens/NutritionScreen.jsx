@@ -26,6 +26,7 @@ import { useAppModalLayer } from '../hooks/useAppModalLayer'
 import {
   DEFAULT_NUTRITION_GOALS,
   emptyNutritionDay,
+  hasConfiguredNutritionTargets,
   nutritionDateKey,
   nutritionTotals,
   remainingNutrition,
@@ -39,6 +40,11 @@ import {
 import { COMMON_FOODS, FOOD_CATEGORIES } from '../data/commonFoods'
 import { appUi } from '../lib/appUi'
 import { createRuntimeId } from '../lib/createRuntimeId'
+import {
+  ACTIVITY_OPTIONS,
+  NUTRITION_GOAL_OPTIONS,
+  calculateNutritionTargets,
+} from '../lib/nutritionTargets'
 
 const tabs = [
   { label: 'Today', value: 'Today' },
@@ -47,6 +53,18 @@ const tabs = [
   { label: 'Insights', value: 'Insights' },
 ]
 const blankFood = { name: '', calories: '', protein: '', carbs: '', fat: '', fiber: '', servings: 1 }
+
+const blankNutritionSetup = {
+  goal: '',
+  age: '',
+  sexForEnergyEstimation: '',
+  heightFeet: '',
+  heightInches: '',
+  weightLb: '',
+  activityLevel: '',
+  strengthSessionsPerWeek: '',
+  cardioSessionsPerWeek: '',
+}
 
 const ProgressBar = ({ value, goal }) => {
   const percent = Math.max(0, Math.min(100, goal ? (value / goal) * 100 : 0))
@@ -67,10 +85,33 @@ export default function NutritionScreen({ nutrition, onChange }) {
   const [recipeLogTarget, setRecipeLogTarget] = useState(null)
   const [recipeLogAmount, setRecipeLogAmount] = useState(1)
   const [notice, setNotice] = useState('')
+  const [nutritionSetup, setNutritionSetup] = useState(() => {
+    const inputs = nutrition?.goals?.inputs ?? {}
+    const heightIn = Number(inputs.heightIn || 0)
+    return {
+      ...blankNutritionSetup,
+      goal: inputs.goal ?? '',
+      age: inputs.age ?? '',
+      sexForEnergyEstimation: inputs.sexForEnergyEstimation ?? '',
+      heightFeet: heightIn ? Math.floor(heightIn / 12) : '',
+      heightInches: heightIn ? heightIn % 12 : '',
+      weightLb: inputs.weightLb ?? '',
+      activityLevel: inputs.activityLevel ?? '',
+      strengthSessionsPerWeek: inputs.strengthSessionsPerWeek ?? '',
+      cardioSessionsPerWeek: inputs.cardioSessionsPerWeek ?? '',
+    }
+  })
+  const [setupError, setSetupError] = useState('')
+  const [editingTargets, setEditingTargets] = useState(false)
 
   useAppModalLayer(Boolean(selectedFood || recipeLogTarget))
 
   const goals = { ...DEFAULT_NUTRITION_GOALS, ...(nutrition?.goals ?? {}) }
+  const nutritionConfigured =
+    hasConfiguredNutritionTargets(goals) && !editingTargets
+  const visibleTabs = nutritionConfigured
+    ? tabs
+    : tabs.filter((item) => item.value !== 'Insights')
   const day = nutrition?.days?.[date] ?? emptyNutritionDay(date)
   const totals = useMemo(() => nutritionTotals(day), [day])
   const remaining = useMemo(() => remainingNutrition(goals, totals, day), [goals, totals, day])
@@ -146,6 +187,52 @@ export default function NutritionScreen({ nutrition, onChange }) {
     const nextDay = typeof updater === 'function' ? updater(currentDay) : updater
     return { ...current, days: { ...(current.days ?? {}), [date]: nextDay } }
   })
+
+  const updateSetupField = (field, value) => {
+    setNutritionSetup((current) => ({ ...current, [field]: value }))
+    setSetupError('')
+  }
+
+  const saveCalculatedTargets = () => {
+    try {
+      const heightIn =
+        Number(nutritionSetup.heightFeet || 0) * 12 +
+        Number(nutritionSetup.heightInches || 0)
+      const calculated = calculateNutritionTargets({
+        goal: nutritionSetup.goal,
+        age: nutritionSetup.age,
+        sexForEnergyEstimation: nutritionSetup.sexForEnergyEstimation,
+        heightIn,
+        weightLb: nutritionSetup.weightLb,
+        activityLevel: nutritionSetup.activityLevel,
+        strengthSessionsPerWeek: nutritionSetup.strengthSessionsPerWeek,
+        cardioSessionsPerWeek: nutritionSetup.cardioSessionsPerWeek,
+      })
+
+      patch((current) => ({
+        ...current,
+        goals: {
+          ...current.goals,
+          ...calculated,
+          timezone:
+            current.goals?.timezone ??
+            Intl.DateTimeFormat().resolvedOptions().timeZone ??
+            'UTC',
+          coachAccess: Boolean(current.goals?.coachAccess),
+          bottleOz: Number(current.goals?.bottleOz || 33.8),
+          weightGoal: current.goals?.weightGoal ?? '',
+        },
+      }))
+      setSetupError('')
+      setEditingTargets(false)
+      setNotice(
+        `Starting targets set at ${calculated.calories.toLocaleString()} calories. You can adjust them anytime.`,
+      )
+      setTab('Today')
+    } catch (error) {
+      setSetupError(error?.message ?? 'Complete the fields above to calculate your targets.')
+    }
+  }
 
   const addFood = (food, source = 'manual') => {
     if (!food.name.trim()) return setNotice('Add a food name first.')
@@ -309,21 +396,194 @@ export default function NutritionScreen({ nutrition, onChange }) {
     <div className="nutrition-screen">
       <header className="nutrition-screen-header">
         <div><span className="eyebrow">NUTRITION</span><h1>Today’s Nutrition</h1><p>Everything important today, with deeper tools one tap away.</p></div>
-        <button onClick={() => setTab('Goals')}><Settings2 size={18}/>Goals</button>
+        <button onClick={() => setTab('Goals')}><Settings2 size={18}/>Targets</button>
       </header>
 
       <nav className="nutrition-tabs">
-        {tabs.map((item) => <button key={item.value} className={tab === item.value ? 'active' : ''} onClick={() => setTab(item.value)}>{item.label}</button>)}
+        {visibleTabs.map((item) => <button key={item.value} className={tab === item.value ? 'active' : ''} onClick={() => setTab(item.value)}>{item.label}</button>)}
       </nav>
 
       {notice && <div className="nutrition-notice">{notice}</div>}
 
       {tab === 'Today' && <>
+        {!nutritionConfigured ? (
+          <section className="nutrition-setup-card">
+            <div className="nutrition-setup-intro">
+              <span className="eyebrow">YOUR STARTING POINT</span>
+              <h2>Set up your nutrition.</h2>
+              <p>
+                Tell AVAREN what you are working toward. We will calculate a
+                starting calorie and macro target from your body and activity,
+                then you can adjust it whenever you need.
+              </p>
+            </div>
+
+            <div className="nutrition-setup-form">
+              <label className="wide">
+                <span>Goal</span>
+                <select
+                  value={nutritionSetup.goal}
+                  onChange={(event) => updateSetupField('goal', event.target.value)}
+                >
+                  <option value="">Choose your goal</option>
+                  {NUTRITION_GOAL_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>{option.label}</option>
+                  ))}
+                </select>
+              </label>
+
+              <label>
+                <span>Age</span>
+                <input
+                  type="number"
+                  min="14"
+                  max="100"
+                  value={nutritionSetup.age}
+                  onChange={(event) => updateSetupField('age', event.target.value)}
+                  placeholder="Age"
+                />
+              </label>
+
+              <label>
+                <span>Sex for energy estimate</span>
+                <select
+                  value={nutritionSetup.sexForEnergyEstimation}
+                  onChange={(event) =>
+                    updateSetupField('sexForEnergyEstimation', event.target.value)
+                  }
+                >
+                  <option value="">Choose</option>
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                </select>
+              </label>
+
+              <label>
+                <span>Height</span>
+                <div className="nutrition-height-row">
+                  <input
+                    type="number"
+                    min="4"
+                    max="7"
+                    value={nutritionSetup.heightFeet}
+                    onChange={(event) => updateSetupField('heightFeet', event.target.value)}
+                    placeholder="ft"
+                  />
+                  <input
+                    type="number"
+                    min="0"
+                    max="11"
+                    value={nutritionSetup.heightInches}
+                    onChange={(event) => updateSetupField('heightInches', event.target.value)}
+                    placeholder="in"
+                  />
+                </div>
+              </label>
+
+              <label>
+                <span>Current weight</span>
+                <input
+                  type="number"
+                  min="70"
+                  max="700"
+                  step="0.1"
+                  value={nutritionSetup.weightLb}
+                  onChange={(event) => updateSetupField('weightLb', event.target.value)}
+                  placeholder="lb"
+                />
+              </label>
+
+              <label className="wide">
+                <span>Overall activity</span>
+                <select
+                  value={nutritionSetup.activityLevel}
+                  onChange={(event) =>
+                    updateSetupField('activityLevel', event.target.value)
+                  }
+                >
+                  <option value="">Choose activity level</option>
+                  {ACTIVITY_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>{option.label}</option>
+                  ))}
+                </select>
+                <small>Include your normal work, daily movement, and training lifestyle.</small>
+              </label>
+
+              <label>
+                <span>Strength sessions / week</span>
+                <input
+                  type="number"
+                  min="0"
+                  max="14"
+                  value={nutritionSetup.strengthSessionsPerWeek}
+                  onChange={(event) =>
+                    updateSetupField('strengthSessionsPerWeek', event.target.value)
+                  }
+                  placeholder="0"
+                />
+              </label>
+
+              <label>
+                <span>Cardio sessions / week</span>
+                <input
+                  type="number"
+                  min="0"
+                  max="14"
+                  value={nutritionSetup.cardioSessionsPerWeek}
+                  onChange={(event) =>
+                    updateSetupField('cardioSessionsPerWeek', event.target.value)
+                  }
+                  placeholder="0"
+                />
+              </label>
+            </div>
+
+            {setupError ? <p className="nutrition-setup-error">{setupError}</p> : null}
+
+            <div className="nutrition-setup-actions">
+              <button className="gold-button machined" onClick={saveCalculatedTargets}>
+                <Sparkles size={18} /> Build My Targets
+              </button>
+              <button className="nutrition-secondary-button" onClick={() => setTab('Meals')}>
+                Log food without targets
+              </button>
+            </div>
+
+            <p className="nutrition-estimate-note">
+              AVAREN uses a standard energy equation to create a starting estimate.
+              It is not a metabolic test, and your targets can be refined as your
+              real-world progress develops.
+            </p>
+          </section>
+        ) : (
+          <>
         <div className="nutrition-date-switcher"><button onClick={() => changeDate(-1)}><ChevronLeft/></button><strong>{new Date(`${date}T12:00:00`).toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' })}</strong><button disabled={date === nutritionDateKey()} onClick={() => changeDate(1)}><ChevronRight/></button></div>
 
         <section className="nutrition-calorie-hero">
           <div><span className="eyebrow">CALORIES REMAINING</span><strong>{Math.round(remaining.calories)}</strong><small>{Math.round(totals.calories)} eaten · {Math.round(Number(goals.calories) + Number(day.workoutCalories || 0))} budget</small></div>
           <ProgressBar value={totals.calories} goal={Number(goals.calories) + Number(day.workoutCalories || 0)} />
+        </section>
+
+        <section className="nutrition-target-summary">
+          <div>
+            <span className="eyebrow">YOUR TARGETS</span>
+            <strong>{Math.round(Number(goals.calories || 0)).toLocaleString()} calories</strong>
+            <small>
+              {Math.round(Number(goals.protein || 0))}g protein · {Math.round(Number(goals.carbs || 0))}g carbs · {Math.round(Number(goals.fat || 0))}g fat
+            </small>
+          </div>
+          <button
+            type="button"
+            className="nutrition-secondary-button"
+            onClick={() => {
+              setEditingTargets(true)
+              setSetupError('')
+              setTab('Today')
+            }}
+          >
+            <Sparkles size={16} />
+            Recalculate Targets
+          </button>
         </section>
 
         <section className="nutrition-macro-grid">
@@ -343,6 +603,8 @@ export default function NutritionScreen({ nutrition, onChange }) {
           <header><div><span className="eyebrow">FOOD LOG</span><h2>{day.foods.length ? `${day.foods.length} items` : 'Nothing logged yet'}</h2></div><button onClick={() => setTab('Meals')}><Plus/>Add</button></header>
           {day.foods.length ? day.foods.map((food) => <article key={food.id}><div><strong>{food.name}</strong><span>{food.calories} cal · P {food.protein} · C {food.carbs} · F {food.fat}</span></div><button onClick={() => patchDay((current) => ({ ...current, foods: current.foods.filter((item) => item.id !== food.id) }))}><Trash2 size={16}/></button></article>) : <div className="nutrition-empty"><Utensils/><p>Log your first meal to start today’s dashboard.</p></div>}
         </section>
+          </>
+        )}
       </>}
 
       {tab === 'Meals' && <section className="nutrition-panel nutrition-quick-log-panel">
@@ -517,15 +779,43 @@ export default function NutritionScreen({ nutrition, onChange }) {
         <details className="nutrition-history-disclosure"><summary><History size={17}/>View daily history</summary><div className="nutrition-history-list">{Object.values(nutrition.days ?? {}).sort((a,b)=>b.date.localeCompare(a.date)).map((entry)=>{const t=nutritionTotals(entry);return <article key={entry.date}><div><strong>{new Date(`${entry.date}T12:00:00`).toLocaleDateString()}</strong><span>{entry.foods.length} foods · {round(entry.waterOz)} oz water</span></div><div><strong>{Math.round(t.calories)} cal</strong><span>{round(t.protein)}g protein</span></div></article>})}</div></details>
       </section>}
 
-      {tab === 'Goals' && <section className="nutrition-panel">
-        <header><div><span className="eyebrow">PERSONAL TARGETS</span><h2>Nutrition goals</h2></div></header>
-        <div className="nutrition-food-form">
-          {['calories','protein','carbs','fat','fiber','waterOz','bottleOz','weightGoal'].map((field)=><label key={field}><span>{field}</span><input type="number" value={goals[field]} onChange={(e)=>patch((current)=>({...current,goals:{...goals,[field]:e.target.value}}))}/></label>)}
-          <label className="wide nutrition-toggle"><span><strong>Share nutrition with connected coach</strong><small>Optional. AVAREN works fully without a coach.</small></span><input type="checkbox" checked={Boolean(goals.coachAccess)} onChange={(e)=>patch((current)=>({...current,goals:{...goals,coachAccess:e.target.checked}}))}/></label>
-          <label><span>Today’s weight</span><input type="number" step="0.1" value={day.weight} onChange={(e)=>patchDay((current)=>({...current,weight:e.target.value}))}/></label>
-          <label><span>Workout calories</span><input type="number" value={day.workoutCalories} onChange={(e)=>patchDay((current)=>({...current,workoutCalories:e.target.value}))}/></label>
-        </div>
-      </section>}
+      {tab === 'Goals' && (
+        nutritionConfigured ? <section className="nutrition-panel">
+          <header>
+            <div>
+              <span className="eyebrow">PERSONAL TARGETS</span>
+              <h2>Your nutrition targets</h2>
+              <p>
+                {goals.source === 'ava_estimated'
+                  ? 'AVAREN starting estimate · fully editable'
+                  : 'Your saved nutrition targets'}
+              </p>
+            </div>
+          </header>
+          <div className="nutrition-food-form">
+            {['calories','protein','carbs','fat','fiber','waterOz','bottleOz','weightGoal'].map((field)=><label key={field}><span>{field}</span><input type="number" value={goals[field] ?? ''} onChange={(e)=>patch((current)=>({...current,goals:{...goals,[field]:e.target.value,configured:true,source:goals.source === 'coach_set' ? 'coach_set' : 'user_set'}}))}/></label>)}
+            <label className="wide nutrition-toggle"><span><strong>Share nutrition with connected coach</strong><small>Optional. AVAREN works fully without a coach.</small></span><input type="checkbox" checked={Boolean(goals.coachAccess)} onChange={(e)=>patch((current)=>({...current,goals:{...goals,coachAccess:e.target.checked}}))}/></label>
+            <label><span>Today’s weight</span><input type="number" step="0.1" value={day.weight} onChange={(e)=>patchDay((current)=>({...current,weight:e.target.value}))}/></label>
+            <label><span>Workout calories</span><input type="number" value={day.workoutCalories} onChange={(e)=>patchDay((current)=>({...current,workoutCalories:e.target.value}))}/></label>
+          </div>
+          <button
+            className="nutrition-secondary-button nutrition-recalculate"
+            onClick={() => {
+              setEditingTargets(true)
+              setTab('Today')
+            }}
+          >
+            Recalculate from my goals & activity
+          </button>
+        </section> : <section className="nutrition-panel nutrition-goals-empty">
+          <span className="eyebrow">PERSONAL TARGETS</span>
+          <h2>No target has been set yet.</h2>
+          <p>Set up your nutrition first. AVAREN will not guess a calorie target for you.</p>
+          <button className="gold-button machined" onClick={() => setTab('Today')}>
+            <Sparkles size={17}/> Set Up Nutrition
+          </button>
+        </section>
+      )}
       {tab !== 'Meals' && <button className="nutrition-fab" onClick={() => setTab('Meals')}><Plus size={20}/><span>Log Food</span></button>}
     </div>
   )

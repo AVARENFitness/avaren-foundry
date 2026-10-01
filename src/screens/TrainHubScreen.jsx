@@ -70,6 +70,13 @@ export default function TrainHubScreen({
     normalizeProgramWorkoutName(state.program?.nextWorkout) ??
     state.program?.rotation?.[0] ??
     null
+  const hasPersonalProgram = programWorkouts.length > 0
+  const hasTrainingAvailable = Boolean(
+    activeWorkout ||
+      todayContext.assignmentId ||
+      todayContext.name ||
+      hasPersonalProgram,
+  )
   const appointmentContext = useMemo(
     () =>
       buildAthleteAppointmentContextLine(upcomingAppointments, {
@@ -90,21 +97,25 @@ export default function TrainHubScreen({
     return executionPlanSummaryLabel(state.sessionExecutionPlan)
   }, [state.sessionExecutionPlan])
 
-  const heroTitle = activeWorkout
-    ? activeWorkout.name
-    : workoutDaySummary.completedToday
-      ? 'Workout complete'
-      : todayContext.displayName ?? recommendedWorkout ?? 'Open schedule'
+  const heroTitle = !hasTrainingAvailable
+    ? 'Your training starts here.'
+    : activeWorkout
+      ? activeWorkout.name
+      : workoutDaySummary.completedToday
+        ? 'Workout complete'
+        : todayContext.displayName ?? recommendedWorkout ?? 'Open schedule'
 
-  const heroCopy = activeWorkout
-    ? 'Continue exactly where you left off.'
-    : workoutDaySummary.completedToday
-      ? `${workoutDaySummary.completedWorkoutName} · Today${
-          workoutDaySummary.nextRecommendedWorkout
-            ? `. Next: ${workoutDaySummary.nextRecommendedWorkout} tomorrow.`
-            : ''
-        }`
-      : 'Your selected workout is ready when you are.'
+  const heroCopy = !hasTrainingAvailable
+    ? 'Build your first workout or train freely. Nothing is preloaded until you choose it.'
+    : activeWorkout
+      ? 'Continue exactly where you left off.'
+      : workoutDaySummary.completedToday
+        ? `${workoutDaySummary.completedWorkoutName} · Today${
+            workoutDaySummary.nextRecommendedWorkout
+              ? `. Next: ${workoutDaySummary.nextRecommendedWorkout} tomorrow.`
+              : ''
+          }`
+        : 'Your selected workout is ready when you are.'
 
   return (
     <div className="train-hub-screen">
@@ -116,7 +127,13 @@ export default function TrainHubScreen({
 
       <section className="train-hub-hero">
         <div>
-          <span className="eyebrow">{activeWorkout ? 'IN PROGRESS' : 'UP NEXT'}</span>
+          <span className="eyebrow">
+            {!hasTrainingAvailable
+              ? 'CLEAN SLATE'
+              : activeWorkout
+                ? 'IN PROGRESS'
+                : 'UP NEXT'}
+          </span>
           {coachLabel ? (
             <span className="train-coach-ownership eyebrow">{coachLabel}</span>
           ) : null}
@@ -129,9 +146,18 @@ export default function TrainHubScreen({
           ) : null}
           <p>{heroCopy}</p>
         </div>
-        <button className="gold-button machined" onClick={onStart}>
+        <button
+          className="gold-button machined"
+          onClick={() =>
+            hasTrainingAvailable ? onStart?.() : navigate('builder')
+          }
+        >
           <Dumbbell size={18} />
-          {activeWorkout ? 'Resume Workout' : 'Start Session'}
+          {!hasTrainingAvailable
+            ? 'Create First Workout'
+            : activeWorkout
+              ? 'Resume Workout'
+              : 'Start Session'}
           <ArrowRight size={17} />
         </button>
         {!activeWorkout && programWorkouts.length > 1 ? (
@@ -150,7 +176,7 @@ export default function TrainHubScreen({
             className="ui-btn-secondary athlete-choose-workout-action train-freeform-workout-link"
             onClick={() => onStartFreeform?.()}
           >
-            Start a workout
+            {hasTrainingAvailable ? 'Start a workout' : 'Start without a plan'}
             <ArrowRight size={16} />
           </button>
         ) : null}
