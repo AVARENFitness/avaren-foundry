@@ -3,6 +3,7 @@ import {
   ArrowLeft,
   ArrowUp,
   Copy,
+  Dumbbell,
   Link2,
   Plus,
   Save,
@@ -27,11 +28,19 @@ export default function WorkoutBuilderScreen({
   onSave,
   onClose,
 }) {
-  const [draft, setDraft] = useState(() => structuredClone(program))
-  const [selectedWorkout, setSelectedWorkout] = useState(program.rotation[0])
+  const [draft, setDraft] = useState(() =>
+    structuredClone(
+      program ?? { rotation: [], nextWorkout: null, workouts: {} },
+    ),
+  )
+  const [selectedWorkout, setSelectedWorkout] = useState(
+    program?.rotation?.[0] ?? null,
+  )
   const [saved, setSaved] = useState(false)
 
-  const exercises = draft.workouts[selectedWorkout] ?? []
+  const exercises = selectedWorkout
+    ? draft.workouts[selectedWorkout] ?? []
+    : []
 
   const updateExercise = (index, key, value) => {
     setDraft((current) => {
@@ -105,6 +114,7 @@ export default function WorkoutBuilderScreen({
 
     setDraft((current) => ({
       ...current,
+      nextWorkout: current.nextWorkout ?? name,
       rotation: [...current.rotation, name],
       workouts: { ...current.workouts, [name]: [] },
     }))
@@ -186,6 +196,21 @@ export default function WorkoutBuilderScreen({
         </div>
       </header>
 
+      {draft.rotation.length === 0 ? (
+        <section className="builder-empty-state">
+          <Dumbbell size={26} />
+          <span className="eyebrow">YOUR PROGRAM</span>
+          <h2>Build your first workout.</h2>
+          <p>
+            Start with a blank workout and add only the exercises you actually
+            want. AVAREN will not preload a routine for you.
+          </p>
+          <button className="gold-button machined" onClick={addWorkout}>
+            <Plus size={17} /> Create First Workout
+          </button>
+        </section>
+      ) : null}
+
       <section className="builder-workout-tabs">
         {draft.rotation.map((workout) => (
           <button
@@ -201,29 +226,31 @@ export default function WorkoutBuilderScreen({
         </button>
       </section>
 
-      <section className="builder-name-card">
-        <label>Workout name</label>
-        <input
-          value={selectedWorkout}
-          onChange={(event) => {
-            const value = event.target.value
-            if (value !== selectedWorkout) renameWorkout(value)
-          }}
-          onBlur={(event) => renameWorkout(event.target.value)}
-        />
-        <div>
-          <button onClick={duplicateWorkout}><Copy size={15} /> Duplicate</button>
-          <button
-            className="builder-delete-workout"
-            disabled={draft.rotation.length <= 1}
-            onClick={deleteWorkout}
-          >
-            <Trash2 size={15} /> Delete
-          </button>
-        </div>
-      </section>
+      {selectedWorkout ? (
+        <section className="builder-name-card">
+          <label>Workout name</label>
+          <input
+            value={selectedWorkout}
+            onChange={(event) => {
+              const value = event.target.value
+              if (value !== selectedWorkout) renameWorkout(value)
+            }}
+            onBlur={(event) => renameWorkout(event.target.value)}
+          />
+          <div>
+            <button onClick={duplicateWorkout}><Copy size={15} /> Duplicate</button>
+            <button
+              className="builder-delete-workout"
+              disabled={draft.rotation.length <= 1}
+              onClick={deleteWorkout}
+            >
+              <Trash2 size={15} /> Delete
+            </button>
+          </div>
+        </section>
+      ) : null}
 
-      <div className="builder-exercise-list">
+      {selectedWorkout ? <div className="builder-exercise-list">
         {exercises.map((exercise, index) => (
           <article
             className={`builder-exercise-card ${
@@ -332,18 +359,22 @@ export default function WorkoutBuilderScreen({
             )}
           </article>
         ))}
-      </div>
+      </div> : null}
 
-      <button className="builder-add-exercise" onClick={addExercise}>
-        <Plus size={18} /> Add Exercise
-      </button>
+      {selectedWorkout ? (
+        <>
+          <button className="builder-add-exercise" onClick={addExercise}>
+            <Plus size={18} /> Add Exercise
+          </button>
 
-      <div className="builder-save-bar">
-        <button className="gold-button machined" onClick={saveBuilder}>
-          <Save size={18} />
-          {saved ? 'Saved' : 'Save Program'}
-        </button>
-      </div>
+          <div className="builder-save-bar">
+            <button className="gold-button machined" onClick={saveBuilder}>
+              <Save size={18} />
+              {saved ? 'Saved' : 'Save Program'}
+            </button>
+          </div>
+        </>
+      ) : null}
     </section>
   )
 }
