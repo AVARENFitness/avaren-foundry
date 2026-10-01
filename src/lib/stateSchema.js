@@ -1,6 +1,6 @@
 import { createNutritionState } from './nutrition'
 
-export const STATE_SCHEMA_VERSION = 4
+export const STATE_SCHEMA_VERSION = 5
 
 const emptyMobility = () => ({
   durationPreferences: {},
@@ -40,6 +40,7 @@ const emptyCoachWorkspace = () => ({
 export function detectStoredSchemaVersion(raw = {}) {
   const explicit = Number(raw.schemaVersion)
   if (Number.isFinite(explicit) && explicit > 0) return explicit
+  if (Number(raw?.nutrition?.schemaVersion) >= 4) return 5
   if (Number(raw?.nutrition?.schemaVersion) >= 3) return 4
   if (raw.nutrition) return 3
   if (
@@ -112,6 +113,58 @@ export function migrateStoredState(raw = {}, fallback = {}) {
               ...goals,
               configured: false,
               source: 'not_configured',
+            },
+      },
+    }
+  }
+
+  if (fromVersion < 5) {
+    const nutrition = state.nutrition ?? fallback.nutrition ?? createNutritionState()
+    const goals = nutrition.goals ?? {}
+    const isUntouchedLegacySeed =
+      Number(goals.calories) === 2200 &&
+      Number(goals.protein) === 170 &&
+      Number(goals.carbs) === 230 &&
+      Number(goals.fat) === 70 &&
+      Number(goals.fiber) === 30 &&
+      [undefined, null, '', 'legacy_existing'].includes(goals.source) &&
+      !goals.calculationVersion &&
+      !goals.inputs &&
+      !String(goals.weightGoal ?? '').trim() &&
+      !Boolean(goals.coachAccess)
+
+    state = {
+      ...state,
+      nutrition: {
+        ...nutrition,
+        schemaVersion: 4,
+        goals: isUntouchedLegacySeed
+          ? {
+              ...createNutritionState().goals,
+              timezone:
+                goals.timezone ??
+                createNutritionState().goals.timezone,
+              waterOz:
+                goals.waterOz ??
+                createNutritionState().goals.waterOz,
+              bottleOz:
+                goals.bottleOz ??
+                createNutritionState().goals.bottleOz,
+              configured: false,
+              source: 'not_configured',
+            }
+          : {
+              ...goals,
+              configured:
+                goals.configured ??
+                (Number(goals.calories) > 0 &&
+                  Number(goals.protein) > 0 &&
+                  Number(goals.fat) > 0),
+              source:
+                goals.source ??
+                (Number(goals.calories) > 0
+                  ? 'legacy_existing'
+                  : 'not_configured'),
             },
       },
     }
