@@ -102,11 +102,16 @@ export default function NutritionScreen({ nutrition, onChange }) {
     }
   })
   const [setupError, setSetupError] = useState('')
+  const [editingTargets, setEditingTargets] = useState(false)
 
   useAppModalLayer(Boolean(selectedFood || recipeLogTarget))
 
   const goals = { ...DEFAULT_NUTRITION_GOALS, ...(nutrition?.goals ?? {}) }
-  const nutritionConfigured = hasConfiguredNutritionTargets(goals)
+  const nutritionConfigured =
+    hasConfiguredNutritionTargets(goals) && !editingTargets
+  const visibleTabs = nutritionConfigured
+    ? tabs
+    : tabs.filter((item) => item.value !== 'Insights')
   const day = nutrition?.days?.[date] ?? emptyNutritionDay(date)
   const totals = useMemo(() => nutritionTotals(day), [day])
   const remaining = useMemo(() => remainingNutrition(goals, totals, day), [goals, totals, day])
@@ -219,6 +224,7 @@ export default function NutritionScreen({ nutrition, onChange }) {
         },
       }))
       setSetupError('')
+      setEditingTargets(false)
       setNotice(
         `Starting targets set at ${calculated.calories.toLocaleString()} calories. You can adjust them anytime.`,
       )
@@ -394,7 +400,7 @@ export default function NutritionScreen({ nutrition, onChange }) {
       </header>
 
       <nav className="nutrition-tabs">
-        {tabs.map((item) => <button key={item.value} className={tab === item.value ? 'active' : ''} onClick={() => setTab(item.value)}>{item.label}</button>)}
+        {visibleTabs.map((item) => <button key={item.value} className={tab === item.value ? 'active' : ''} onClick={() => setTab(item.value)}>{item.label}</button>)}
       </nav>
 
       {notice && <div className="nutrition-notice">{notice}</div>}
@@ -773,11 +779,8 @@ export default function NutritionScreen({ nutrition, onChange }) {
           <button
             className="nutrition-secondary-button nutrition-recalculate"
             onClick={() => {
+              setEditingTargets(true)
               setTab('Today')
-              patch((current) => ({
-                ...current,
-                goals: { ...current.goals, configured: false },
-              }))
             }}
           >
             Recalculate from my goals & activity
