@@ -396,7 +396,7 @@ export default function NutritionScreen({ nutrition, onChange }) {
     <div className="nutrition-screen">
       <header className="nutrition-screen-header">
         <div><span className="eyebrow">NUTRITION</span><h1>Today’s Nutrition</h1><p>Everything important today, with deeper tools one tap away.</p></div>
-        <button onClick={() => setTab('Goals')}><Settings2 size={18}/>Goals</button>
+        <button onClick={() => setTab('Goals')}><Settings2 size={18}/>Targets</button>
       </header>
 
       <nav className="nutrition-tabs">
@@ -562,6 +562,28 @@ export default function NutritionScreen({ nutrition, onChange }) {
         <section className="nutrition-calorie-hero">
           <div><span className="eyebrow">CALORIES REMAINING</span><strong>{Math.round(remaining.calories)}</strong><small>{Math.round(totals.calories)} eaten · {Math.round(Number(goals.calories) + Number(day.workoutCalories || 0))} budget</small></div>
           <ProgressBar value={totals.calories} goal={Number(goals.calories) + Number(day.workoutCalories || 0)} />
+        </section>
+
+        <section className="nutrition-target-summary">
+          <div>
+            <span className="eyebrow">YOUR TARGETS</span>
+            <strong>{Math.round(Number(goals.calories || 0)).toLocaleString()} calories</strong>
+            <small>
+              {Math.round(Number(goals.protein || 0))}g protein · {Math.round(Number(goals.carbs || 0))}g carbs · {Math.round(Number(goals.fat || 0))}g fat
+            </small>
+          </div>
+          <button
+            type="button"
+            className="nutrition-secondary-button"
+            onClick={() => {
+              setEditingTargets(true)
+              setSetupError('')
+              setTab('Today')
+            }}
+          >
+            <Sparkles size={16} />
+            Recalculate Targets
+          </button>
         </section>
 
         <section className="nutrition-macro-grid">
