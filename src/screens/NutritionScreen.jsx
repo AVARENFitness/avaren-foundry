@@ -799,6 +799,36 @@ export default function NutritionScreen({ nutrition, onChange }) {
                   ))}
                 </select>
                 <small>Choose your normal movement outside intentional workouts. Log Apple Watch Active Calories separately after training.</small>
+
+              <label>
+                <span>Strength sessions / week</span>
+                <input
+                  type="number"
+                  min="0"
+                  max="14"
+                  value={nutritionSetup.strengthSessionsPerWeek}
+                  onChange={(event) =>
+                    updateSetupField('strengthSessionsPerWeek', event.target.value)
+                  }
+                  placeholder="0"
+                />
+                <small>Used to shape protein/fat/carbohydrate priorities, not base calories.</small>
+              </label>
+
+              <label>
+                <span>Cardio / conditioning sessions / week</span>
+                <input
+                  type="number"
+                  min="0"
+                  max="14"
+                  value={nutritionSetup.cardioSessionsPerWeek}
+                  onChange={(event) =>
+                    updateSetupField('cardioSessionsPerWeek', event.target.value)
+                  }
+                  placeholder="0"
+                />
+                <small>Higher training demand shifts more of the base target toward carbohydrate fuel.</small>
+              </label>
               </label>
 
             </div>
@@ -815,9 +845,10 @@ export default function NutritionScreen({ nutrition, onChange }) {
             </div>
 
             <p className="nutrition-estimate-note">
-              AVAREN estimates a base target from body size, goal, and normal daily movement.
-              Intentional workout calories are added separately from Apple Watch Active Calories,
-              which helps avoid counting the same training twice.
+              AVAREN builds the base target from body size, age, sex, goal, and normal daily movement.
+              Protein is anchored to bodyweight and goal, fat stays above a physiological floor, and
+              carbohydrate rises with training demand. Apple Watch Active Calories are still added
+              separately after training so exercise is not counted twice.
             </p>
           </section>
         ) : (
@@ -836,6 +867,9 @@ export default function NutritionScreen({ nutrition, onChange }) {
             <small>
               {Math.round(Number(goals.protein || 0))}g protein · {Math.round(Number(goals.carbs || 0))}g carbs · {Math.round(Number(goals.fat || 0))}g fat
             </small>
+            {goals.macroStrategy ? <small className="nutrition-target-rationale">
+              {goals.macroStrategy.goalLabel} strategy · {Number(goals.macroStrategy.proteinGPerKg || 0).toFixed(1)} g/kg protein · training demand shapes carb/fat split
+            </small> : null}
           </div>
           <button
             type="button"
