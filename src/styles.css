@@ -19358,3 +19358,132 @@ body > .nutrition-food-sheet-backdrop > .nutrition-food-sheet {
     place-self: center !important;
   }
 }
+
+
+/* ===== NUTRITION · WORKOUT ACTIVITY ===== */
+.nutrition-workout-activity-card {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid var(--border-subtle, rgba(246,242,233,.06));
+  border-radius: 16px;
+  background: var(--surface-1, rgba(255,255,255,.012));
+}
+
+.nutrition-workout-activity-card > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.nutrition-workout-activity-card > header > div {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.nutrition-workout-activity-card > header span {
+  display: grid;
+  gap: 3px;
+}
+
+.nutrition-workout-activity-card > header strong {
+  color: #eee7dc;
+  font-size: 15px;
+}
+
+.nutrition-workout-activity-card > header small {
+  color: var(--text-supporting, #948d84);
+  font-size: 12px;
+}
+
+.nutrition-workout-activity-form {
+  display: grid;
+  grid-template-columns: 1.4fr .8fr auto;
+  gap: 10px;
+  align-items: end;
+}
+
+.nutrition-workout-activity-form label {
+  display: grid;
+  gap: 7px;
+}
+
+.nutrition-workout-activity-form label > span {
+  color: var(--text-supporting, #948d84);
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.nutrition-workout-activity-form input {
+  width: 100%;
+  min-height: 46px;
+  padding: 0 12px;
+  border: 1px solid rgba(246,242,233,.1);
+  border-radius: 11px;
+  background: #11171d;
+  color: #f5ede0;
+}
+
+.nutrition-workout-activity-list {
+  display: grid;
+  gap: 8px;
+}
+
+.nutrition-workout-activity-list > p {
+  margin: 0;
+  color: var(--text-supporting, #948d84);
+  font-size: 12px;
+}
+
+.nutrition-workout-activity-list article {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 38px;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  border-top: 1px solid rgba(246,242,233,.06);
+}
+
+.nutrition-workout-activity-list article > div {
+  display: grid;
+  gap: 3px;
+}
+
+.nutrition-workout-activity-list article strong {
+  color: #eee7dc;
+  font-size: 14px;
+}
+
+.nutrition-workout-activity-list article span {
+  color: #c9b77f;
+  font-size: 12px;
+}
+
+.nutrition-workout-activity-list article > button {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border: 1px solid rgba(191,103,92,.16);
+  border-radius: 10px;
+  background: rgba(191,103,92,.04);
+  color: #d79a90;
+}
+
+@media (max-width: 680px) {
+  .nutrition-workout-activity-card > header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .nutrition-workout-activity-card > header > button {
+    width: 100%;
+  }
+
+  .nutrition-workout-activity-form {
+    grid-template-columns: 1fr;
+  }
+}
