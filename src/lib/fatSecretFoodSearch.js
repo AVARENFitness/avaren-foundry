@@ -52,3 +52,40 @@ export async function searchFatSecretFoods(
     foods: Array.isArray(data?.foods) ? data.foods : [],
   }
 }
+
+
+export async function getFatSecretFood(foodId) {
+  const id = String(foodId ?? '').trim()
+  if (!id) throw new Error('FatSecret food id is required.')
+
+  if (!supabase) {
+    throw new Error('AVAREN food search is unavailable right now.')
+  }
+
+  const { data, error } = await supabase.functions.invoke(
+    'fatsecret-food-search',
+    {
+      body: {
+        action: 'get',
+        foodId: id,
+      },
+    },
+  )
+
+  if (error) {
+    throw new Error(error.message || 'FatSecret food details failed.')
+  }
+
+  if (data?.error) {
+    throw new Error('FatSecret food details failed.')
+  }
+
+  return {
+    provider: 'fatsecret',
+    foodId: String(data?.foodId ?? id),
+    name: String(data?.name ?? ''),
+    brand: String(data?.brand ?? ''),
+    foodType: String(data?.foodType ?? ''),
+    servings: Array.isArray(data?.servings) ? data.servings : [],
+  }
+}
