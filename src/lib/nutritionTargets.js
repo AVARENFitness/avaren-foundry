@@ -9,11 +9,11 @@ export const NUTRITION_GOAL_OPTIONS = [
 ]
 
 export const ACTIVITY_OPTIONS = [
-  { value: 'sedentary', label: 'Mostly sedentary', factor: 1.2 },
-  { value: 'lightly_active', label: 'Lightly active', factor: 1.375 },
-  { value: 'moderately_active', label: 'Moderately active', factor: 1.55 },
-  { value: 'very_active', label: 'Very active', factor: 1.725 },
-  { value: 'highly_active', label: 'Highly active', factor: 1.9 },
+  { value: 'sedentary', label: 'Mostly seated', factor: 1.2 },
+  { value: 'lightly_active', label: 'Light daily movement', factor: 1.3 },
+  { value: 'moderately_active', label: 'Moderate daily movement', factor: 1.4 },
+  { value: 'very_active', label: 'On your feet most of the day', factor: 1.5 },
+  { value: 'highly_active', label: 'Very physical day-to-day work', factor: 1.6 },
 ]
 
 const ACTIVITY_FACTORS = Object.fromEntries(
@@ -23,13 +23,13 @@ const ACTIVITY_FACTORS = Object.fromEntries(
 const GOAL_ADJUSTMENTS = {
   lose_fat: -0.15,
   maintain: 0,
-  build_muscle: 0.08,
-  performance: 0.05,
+  build_muscle: 0.05,
+  performance: 0,
 }
 
 const PROTEIN_PER_LB = {
-  lose_fat: 0.9,
-  maintain: 0.8,
+  lose_fat: 1.0,
+  maintain: 0.85,
   build_muscle: 0.9,
   performance: 0.85,
 }
@@ -96,7 +96,7 @@ export function calculateNutritionTargets(inputs = {}) {
     waterOz,
     source: 'ava_estimated',
     configured: true,
-    calculationVersion: 'mifflin-st-jeor-v1',
+    calculationVersion: 'mifflin-st-jeor-v2-watch-adjusted',
     estimatedMaintenanceCalories: roundTo(maintenanceCalories, 10),
     inputs: {
       goal,
