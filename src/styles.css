@@ -19851,3 +19851,133 @@ body > .nutrition-food-sheet-backdrop > .nutrition-food-sheet {
     flex-direction: column;
   }
 }
+
+
+/* ===== NUTRITION · QUICK LOG + SCAN CHOICES ===== */
+.nutrition-quick-log-launcher {
+  display: grid;
+  gap: 12px;
+  margin: 12px 0 16px;
+  padding: 14px;
+  border: 1px solid rgba(216,184,109,.14);
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(216,184,109,.055), rgba(255,255,255,.012));
+}
+
+.nutrition-quick-log-launcher > div:first-child {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.nutrition-quick-log-launcher > div:first-child > strong {
+  color: #eee7dc;
+  font-size: 14px;
+}
+
+.nutrition-quick-log-actions {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.nutrition-quick-log-actions button {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  min-height: 62px;
+  padding: 10px 8px;
+  border: 1px solid rgba(246,242,233,.07);
+  border-radius: 12px;
+  background: rgba(255,255,255,.018);
+  color: #dcd3c7;
+}
+
+.nutrition-quick-log-actions button:hover {
+  border-color: rgba(216,184,109,.22);
+  background: rgba(216,184,109,.04);
+}
+
+.nutrition-quick-log-actions button span {
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.nutrition-scan-food {
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+.nutrition-scan-food-copy {
+  display: grid;
+  gap: 4px;
+}
+
+.nutrition-scan-food-copy > strong {
+  color: #eee7dc;
+  font-size: 15px;
+}
+
+.nutrition-scan-food-copy > small {
+  color: #8f8880;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.nutrition-scan-choice-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.nutrition-scan-choice-grid > button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid rgba(246,242,233,.07);
+  border-radius: 13px;
+  background: rgba(255,255,255,.018);
+  color: #ddd4c8;
+  text-align: left;
+}
+
+.nutrition-scan-choice-grid > button > span {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.nutrition-scan-choice-grid > button strong {
+  font-size: 12px;
+}
+
+.nutrition-scan-choice-grid > button small {
+  color: #8f8880;
+  font-size: 10px;
+  line-height: 1.3;
+}
+
+@media (max-width: 680px) {
+  .nutrition-quick-log-actions {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+  }
+
+  .nutrition-quick-log-actions button {
+    min-height: 58px;
+    padding: 9px 4px;
+  }
+
+  .nutrition-scan-choice-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .nutrition-quick-log-launcher > div:first-child {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 3px;
+  }
+}
