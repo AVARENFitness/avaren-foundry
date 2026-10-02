@@ -467,6 +467,66 @@ const buildTrustedRecentTraining = (
   }
 }
 
+const buildTrustedSchedule = (
+  appointments: Array<Record<string, unknown>> = [],
+) => {
+  const upcoming = appointments
+    .filter((item) => String(item.status ?? 'scheduled') === 'scheduled')
+    .sort((a, b) =>
+      String(a.starts_at ?? '').localeCompare(String(b.starts_at ?? '')),
+    )
+    .slice(0, 5)
+    .map((item) => ({
+      id: item.id ?? null,
+      startsAt: item.starts_at ?? null,
+      endsAt: item.ends_at ?? null,
+      sessionDate: item.session_date ?? null,
+      startTime: item.start_time ?? null,
+      durationMinutes: item.duration_minutes ?? null,
+      coachDisplayName: item.coach_display_name ?? 'Coach',
+      rsvpStatus: item.rsvp_status ?? null,
+      appointmentType: item.appointment_type ?? 'IN_PERSON_TRAINING',
+      locationType: item.location_type ?? null,
+      locationName: item.location_name ?? null,
+      linkedWorkoutTitle: item.linked_workout_title ?? null,
+    }))
+
+  return {
+    trust: 'server-trusted',
+    upcomingCount: upcoming.length,
+    nextAppointment: upcoming[0] ?? null,
+    upcoming,
+  }
+}
+
+const buildTrustedWeeklyCheckIn = (
+  row: Record<string, unknown> | null,
+) => {
+  if (!row) {
+    return {
+      trust: 'server-trusted',
+      hasSubmission: false,
+      latest: null,
+    }
+  }
+
+  return {
+    trust: 'server-trusted',
+    hasSubmission: true,
+    latest: {
+      weekStart: row.week_start ?? null,
+      weekEnd: row.week_end ?? null,
+      submittedAt: row.submitted_at ?? null,
+      trainingRating: Number(row.training_rating ?? 0) || null,
+      recoveryRating: Number(row.recovery_rating ?? 0) || null,
+      nutritionRating: Number(row.nutrition_rating ?? 0) || null,
+      painOrIssue: row.pain_or_issue ?? null,
+      weeklyWin: row.weekly_win ?? null,
+      status: row.status ?? null,
+    },
+  }
+}
+
 const buildTrustedNutrition = ({
   nutritionProfile,
   nutritionDay,
@@ -587,6 +647,8 @@ export type TrustedFetchResult = {
   serverAssignments: Array<Record<string, unknown>>
   nutritionProfile: Record<string, unknown> | null
   nutritionDay: Record<string, unknown> | null
+  athleteAppointments: Array<Record<string, unknown>>
+  weeklyCheckIn: Record<string, unknown> | null
   hasCloudState: boolean
   queryCount: number
 }
@@ -598,8 +660,14 @@ export async function fetchTrustedAthleteData(
 ): Promise<TrustedFetchResult> {
   const logDate = todayKey(now)
 
-  const [foundryResult, assignmentsResult, nutritionProfileResult, nutritionDayResult] =
-    await Promise.all([
+  const [
+    foundryResult,
+    assignmentsResult,
+    nutritionProfileResult,
+    nutritionDayResult,
+    appointmentsResult,
+    weeklyCheckInResult,
+  ] = await Promise.all([
       userClient
         .from('foundry_state')
         .select('state')
@@ -624,6 +692,16 @@ export async function fetchTrustedAthleteData(
         .eq('user_id', userId)
         .eq('log_date', logDate)
         .maybeSingle(),
+      userClient.rpc('list_athlete_scheduled_sessions'),
+      userClient
+        .from('athlete_weekly_check_ins')
+        .select(
+          'id, week_start, week_end, submitted_at, training_rating, recovery_rating, nutrition_rating, pain_or_issue, weekly_win, status',
+        )
+        .eq('athlete_id', userId)
+        .order('week_start', { ascending: false })
+        .limit(1)
+        .maybeSingle(),
     ])
 
   if (foundryResult.error) {
@@ -645,8 +723,13 @@ export async function fetchTrustedAthleteData(
       | null) ?? null,
     nutritionDay: (nutritionDayResult.data as Record<string, unknown> | null) ??
       null,
+    athleteAppointments: (Array.isArray(appointmentsResult.data)
+      ? appointmentsResult.data
+      : []) as Array<Record<string, unknown>>,
+    weeklyCheckIn:
+      (weeklyCheckInResult.data as Record<string, unknown> | null) ?? null,
     hasCloudState: Boolean(foundryState),
-    queryCount: 4,
+    queryCount: 6,
   }
 }
 
@@ -656,6 +739,8 @@ export function buildTrustedModelContext({
   serverAssignments = [],
   nutritionProfile = null,
   nutritionDay = null,
+  athleteAppointments = [],
+  weeklyCheckIn = null,
   sessionContext = {},
   clientHints = {},
   profileFirstName = null,
@@ -667,6 +752,8 @@ export function buildTrustedModelContext({
   serverAssignments: Array<Record<string, unknown>>
   nutritionProfile: Record<string, unknown> | null
   nutritionDay: Record<string, unknown> | null
+  athleteAppointments: Array<Record<string, unknown>>
+  weeklyCheckIn: Record<string, unknown> | null
   sessionContext: ReturnType<typeof extractSessionContext>
   clientHints: ReturnType<typeof extractClientHints>
   profileFirstName?: string | null
@@ -730,6 +817,8 @@ export function buildTrustedModelContext({
         foundryState: state,
         now,
       }),
+      schedule: buildTrustedSchedule(athleteAppointments),
+      weeklyCheckIn: buildTrustedWeeklyCheckIn(weeklyCheckIn),
     },
     sessionContext,
     clientHints,
