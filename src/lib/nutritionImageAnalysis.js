@@ -40,7 +40,7 @@ export async function prepareNutritionScanImage(file) {
   return canvas.toDataURL('image/jpeg', JPEG_QUALITY)
 }
 
-export async function analyzeNutritionImage({ imageDataUrl, context = '' }) {
+export async function analyzeNutritionImage({ imageDataUrl, context = '', mode = 'food' }) {
   if (!supabase) {
     throw new Error('Food scanning is unavailable right now.')
   }
@@ -51,6 +51,7 @@ export async function analyzeNutritionImage({ imageDataUrl, context = '' }) {
       body: {
         imageDataUrl,
         context: String(context || '').trim().slice(0, 600),
+        mode: mode === 'barcode' ? 'barcode' : 'food',
       },
     },
   )
