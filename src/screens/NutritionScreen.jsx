@@ -22,6 +22,7 @@ import {
   Star,
 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useAppModalLayer } from '../hooks/useAppModalLayer'
 import {
   DEFAULT_NUTRITION_GOALS,
@@ -900,7 +901,8 @@ export default function NutritionScreen({ nutrition, onChange }) {
           </div>
         </>}
 
-        {selectedFood && <div className="nutrition-food-sheet-backdrop" data-app-ui-backdrop="open" onClick={() => setSelectedFood(null)}>
+        {selectedFood && typeof document !== 'undefined' && createPortal(
+          <div className="nutrition-food-sheet-backdrop" data-app-ui-backdrop="open" onClick={() => setSelectedFood(null)}>
           <section className="nutrition-food-sheet" onClick={(event) => event.stopPropagation()}>
             <header>
               <div><span className="eyebrow">FOOD DETAIL</span><h2>{selectedFood.name}</h2><p>{selectedFood.brand} · choose the serving you actually had</p></div>
@@ -961,7 +963,9 @@ export default function NutritionScreen({ nutrition, onChange }) {
               </div>
             </>}
           </section>
-        </div>}
+        </div>,
+          document.body,
+        )}
 
         {showCustomFood && <div className="nutrition-custom-food-card">
           <header><div><span className="eyebrow">CUSTOM FOOD</span><h3>Enter it once, then save it.</h3></div><button onClick={() => setShowCustomFood(false)}><X size={17}/></button></header>
