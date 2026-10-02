@@ -2368,8 +2368,8 @@ function App() {
           enabled
           showFloatingEntry
           coachContext={coachAvaContext}
-          role={avaRoleState.role}
-          actionRuntime={avaRuntimeForUser}
+          role="coach"
+          actionRuntime={coachAvaActionRuntime}
           userName={
             session?.user?.user_metadata?.display_name ??
             session?.user?.email?.split('@')[0] ??
@@ -2413,9 +2413,9 @@ function App() {
         ''
       }
       onAvaAction={handleAvaAction}
-      actionRuntime={avaRuntimeForUser}
-      coachContext={coachAvaContext}
-      role={avaRoleState.role}
+      actionRuntime={avaActionRuntime}
+      coachContext={null}
+      role="athlete"
       nutrition={state.nutrition ?? createNutritionState()}
       onNutritionChange={handleNutritionChange}
       weeklyCheckInRequired={weeklyCheckInRequired}
