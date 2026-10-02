@@ -1,4 +1,3 @@
-const FATSECRET_TOKEN_URL = 'https://oauth.fatsecret.com/connect/token'
 const FATSECRET_API_URL = 'https://platform.fatsecret.com/rest/server.api'
 
 const corsHeaders = {
@@ -6,8 +5,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
-
-let cachedToken: { value: string; expiresAt: number } | null = null
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {
@@ -31,7 +28,7 @@ const numberOrNull = (value: unknown) => {
 
 const parseSummaryNutrition = (description = '') => {
   const capture = (label: string) => {
-    const match = description.match(new RegExp(`${label}:\\s*([0-9.]+)g?`, 'i'))
+    const match = description.match(new RegExp(`${label}:\\s*([0-9.]+)`, 'i'))
     return match ? numberOrNull(match[1]) : null
   }
 
@@ -43,51 +40,56 @@ const parseSummaryNutrition = (description = '') => {
   }
 }
 
-const getAccessToken = async () => {
-  const now = Date.now()
-  if (cachedToken && cachedToken.expiresAt > now + 60_000) {
-    return cachedToken.value
-  }
+const percentEncode = (value: string) =>
+  encodeURIComponent(value)
+    .replace(/[!'()*]/g, (char) =>
+      '%' + char.charCodeAt(0).toString(16).toUpperCase(),
+    )
 
-  const clientId = Deno.env.get('FATSECRET_CLIENT_ID')
-  const clientSecret = Deno.env.get('FATSECRET_CLIENT_SECRET')
+const base64FromBytes = (bytes: Uint8Array) => {
+  let binary = ''
+  for (const byte of bytes) binary += String.fromCharCode(byte)
+  return btoa(binary)
+}
 
-  if (!clientId || !clientSecret) {
-    throw new Error('fatsecret_not_configured')
-  }
+const makeNonce = () => {
+  const bytes = crypto.getRandomValues(new Uint8Array(18))
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('')
+}
 
-  const body = new URLSearchParams({
-    grant_type: 'client_credentials',
-    scope: 'basic',
-  })
+const signOAuth1 = async (
+  params: Record<string, string>,
+  consumerSecret: string,
+) => {
+  const normalized = Object.entries(params)
+    .map(([key, value]) => [percentEncode(key), percentEncode(value)] as const)
+    .sort(([aKey, aValue], [bKey, bValue]) =>
+      aKey === bKey ? aValue.localeCompare(bValue) : aKey.localeCompare(bKey),
+    )
+    .map(([key, value]) => `${key}=${value}`)
+    .join('&')
 
-  const response = await fetch(FATSECRET_TOKEN_URL, {
-    method: 'POST',
-    headers: {
-      Authorization: `Basic ${btoa(`${clientId}:${clientSecret}`)}`,
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-    body,
-  })
+  const baseString = [
+    'POST',
+    percentEncode(FATSECRET_API_URL),
+    percentEncode(normalized),
+  ].join('&')
 
-  if (!response.ok) {
-    const details = await response.text()
-    console.error('FatSecret token request failed', response.status, details.slice(0, 300))
-    throw new Error('fatsecret_auth_failed')
-  }
+  const signingKey = `${percentEncode(consumerSecret)}&`
+  const key = await crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(signingKey),
+    { name: 'HMAC', hash: 'SHA-1' },
+    false,
+    ['sign'],
+  )
+  const signature = await crypto.subtle.sign(
+    'HMAC',
+    key,
+    new TextEncoder().encode(baseString),
+  )
 
-  const payload = await response.json()
-  const token = String(payload?.access_token ?? '')
-  const expiresIn = Math.max(60, Number(payload?.expires_in ?? 3600))
-
-  if (!token) throw new Error('fatsecret_auth_failed')
-
-  cachedToken = {
-    value: token,
-    expiresAt: now + expiresIn * 1000,
-  }
-
-  return token
+  return base64FromBytes(new Uint8Array(signature))
 }
 
 const searchFoods = async ({
@@ -99,44 +101,67 @@ const searchFoods = async ({
   pageNumber?: number
   maxResults?: number
 }) => {
-  const token = await getAccessToken()
-  const body = new URLSearchParams({
+  const consumerKey = Deno.env.get('FATSECRET_CONSUMER_KEY')
+  const consumerSecret = Deno.env.get('FATSECRET_CONSUMER_SECRET')
+
+  if (!consumerKey || !consumerSecret) {
+    throw new Error('fatsecret_not_configured')
+  }
+
+  const params: Record<string, string> = {
     method: 'foods.search',
     search_expression: query,
     page_number: String(Math.max(0, pageNumber)),
     max_results: String(Math.min(50, Math.max(1, maxResults))),
     format: 'json',
-  })
+    oauth_consumer_key: consumerKey,
+    oauth_signature_method: 'HMAC-SHA1',
+    oauth_timestamp: String(Math.floor(Date.now() / 1000)),
+    oauth_nonce: makeNonce(),
+    oauth_version: '1.0',
+  }
+
+  params.oauth_signature = await signOAuth1(params, consumerSecret)
 
   const response = await fetch(FATSECRET_API_URL, {
     method: 'POST',
     headers: {
-      Authorization: `Bearer ${token}`,
       'Content-Type': 'application/x-www-form-urlencoded',
     },
-    body,
+    body: new URLSearchParams(params),
   })
 
-  if (!response.ok) {
-    const details = await response.text()
-    console.error('FatSecret food search failed', response.status, details.slice(0, 300))
-    throw new Error('fatsecret_search_failed')
+  const payload = await response.json().catch(() => null)
+
+  if (!response.ok || payload?.error) {
+    console.error(
+      'FatSecret food search failed',
+      response.status,
+      payload?.error?.code ?? '',
+      payload?.error?.message ?? '',
+    )
+    throw new Error(
+      payload?.error?.message
+        ? `fatsecret_search_failed:${payload.error.message}`
+        : 'fatsecret_search_failed',
+    )
   }
 
-  const payload = await response.json()
   const foodsNode = payload?.foods ?? {}
-  const foods = asArray(foodsNode?.food).map((food: Record<string, unknown>) => {
-    const description = String(food.food_description ?? '')
-    return {
-      provider: 'fatsecret',
-      foodId: String(food.food_id ?? ''),
-      name: String(food.food_name ?? ''),
-      brand: String(food.brand_name ?? ''),
-      foodType: String(food.food_type ?? ''),
-      description,
-      summaryNutrition: parseSummaryNutrition(description),
-    }
-  }).filter((food) => food.foodId && food.name)
+  const foods = asArray(foodsNode?.food)
+    .map((food: Record<string, unknown>) => {
+      const description = String(food.food_description ?? '')
+      return {
+        provider: 'fatsecret',
+        foodId: String(food.food_id ?? ''),
+        name: String(food.food_name ?? ''),
+        brand: String(food.brand_name ?? ''),
+        foodType: String(food.food_type ?? ''),
+        description,
+        summaryNutrition: parseSummaryNutrition(description),
+      }
+    })
+    .filter((food) => food.foodId && food.name)
 
   return {
     provider: 'fatsecret',
@@ -180,12 +205,7 @@ Deno.serve(async (req: Request) => {
     return json(result)
   } catch (error) {
     const message = error instanceof Error ? error.message : 'unknown_error'
-    const status =
-      message === 'fatsecret_not_configured' ? 503 :
-      message === 'fatsecret_auth_failed' ? 502 :
-      message === 'fatsecret_search_failed' ? 502 :
-      500
-
+    const status = message === 'fatsecret_not_configured' ? 503 : 502
     return json({ error: message }, status)
   }
 })
