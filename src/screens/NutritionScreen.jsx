@@ -20,8 +20,10 @@ import {
   Trash2,
   Utensils,
   Star,
+  Watch,
 } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useAppModalLayer } from '../hooks/useAppModalLayer'
 import {
   DEFAULT_NUTRITION_GOALS,
@@ -30,9 +32,11 @@ import {
   nutritionDateKey,
   nutritionTotals,
   remainingNutrition,
+  workoutActivityCalories,
 } from '../lib/nutrition'
 import {
   appendFoodToNutrition,
+  appendFatSecretFoodReference,
   addWaterToNutrition,
   logRecipeToNutrition,
   nutritionRound as round,
@@ -40,6 +44,7 @@ import {
 import { COMMON_FOODS, FOOD_CATEGORIES } from '../data/commonFoods'
 import { appUi } from '../lib/appUi'
 import { createRuntimeId } from '../lib/createRuntimeId'
+import { getFatSecretFood, searchFatSecretFoods } from '../lib/fatSecretFoodSearch'
 import {
   ACTIVITY_OPTIONS,
   NUTRITION_GOAL_OPTIONS,
@@ -71,6 +76,42 @@ const ProgressBar = ({ value, goal }) => {
   return <span className="nutrition-progress"><i style={{ width: `${percent}%` }} /></span>
 }
 
+const resolveFatSecretRuntimeEntry = (food, detailCache) => {
+  if (food?.source !== 'fatsecret' || !food?.fatSecret?.foodId) return food
+
+  const foodId = String(food.fatSecret.foodId)
+  const hasAttempted = Object.prototype.hasOwnProperty.call(detailCache, foodId)
+  const detail = detailCache[foodId]
+  const serving = detail?.servings?.find(
+    (item) => String(item.servingId) === String(food.fatSecret.servingId),
+  )
+
+  if (!detail || !serving) {
+    return {
+      ...food,
+      name: hasAttempted ? 'Food unavailable' : 'Loading food…',
+      calories: 0,
+      protein: 0,
+      carbs: 0,
+      fat: 0,
+      fiber: 0,
+    }
+  }
+
+  const quantity = Math.max(0.01, Number(food.quantity || 1))
+  return {
+    ...food,
+    name: detail.name || 'FatSecret food',
+    brand: detail.brand || '',
+    serving: serving.description,
+    calories: round(Number(serving.calories || 0) * quantity),
+    protein: round(Number(serving.protein || 0) * quantity),
+    carbs: round(Number(serving.carbs || 0) * quantity),
+    fat: round(Number(serving.fat || 0) * quantity),
+    fiber: round(Number(serving.fiber || 0) * quantity),
+  }
+}
+
 export default function NutritionScreen({ nutrition, onChange }) {
   const [tab, setTab] = useState('Today')
   const [date, setDate] = useState(nutritionDateKey())
@@ -80,11 +121,24 @@ export default function NutritionScreen({ nutrition, onChange }) {
   const [selectedFood, setSelectedFood] = useState(null)
   const [selectedMultiplier, setSelectedMultiplier] = useState(1)
   const [foodCategory, setFoodCategory] = useState('All')
+  const [fatSecretFoods, setFatSecretFoods] = useState([])
+  const [fatSecretSearchState, setFatSecretSearchState] = useState('idle')
+  const [fatSecretSearchError, setFatSecretSearchError] = useState('')
+  const [fatSecretDetailCache, setFatSecretDetailCache] = useState({})
+  const [fatSecretDetailState, setFatSecretDetailState] = useState('idle')
+  const [fatSecretDetailError, setFatSecretDetailError] = useState('')
+  const [selectedFatSecretServingId, setSelectedFatSecretServingId] = useState('')
+  const [fatSecretQuantity, setFatSecretQuantity] = useState(1)
   const [recipeDraft, setRecipeDraft] = useState({ name: '', servings: 4, ingredients: [] })
   const [recipeSearch, setRecipeSearch] = useState('')
   const [recipeLogTarget, setRecipeLogTarget] = useState(null)
   const [recipeLogAmount, setRecipeLogAmount] = useState(1)
   const [notice, setNotice] = useState('')
+  const [showWorkoutActivityForm, setShowWorkoutActivityForm] = useState(false)
+  const [workoutActivityDraft, setWorkoutActivityDraft] = useState({
+    label: 'Strength Training',
+    activeCalories: '',
+  })
   const [nutritionSetup, setNutritionSetup] = useState(() => {
     const inputs = nutrition?.goals?.inputs ?? {}
     const heightIn = Number(inputs.heightIn || 0)
@@ -113,8 +167,24 @@ export default function NutritionScreen({ nutrition, onChange }) {
     ? tabs
     : tabs.filter((item) => item.value !== 'Insights')
   const day = nutrition?.days?.[date] ?? emptyNutritionDay(date)
-  const totals = useMemo(() => nutritionTotals(day), [day])
-  const remaining = useMemo(() => remainingNutrition(goals, totals, day), [goals, totals, day])
+
+  const resolvedDayFoods = useMemo(
+    () => (day.foods ?? []).map((food) =>
+      resolveFatSecretRuntimeEntry(food, fatSecretDetailCache),
+    ),
+    [day.foods, fatSecretDetailCache],
+  )
+
+  const resolvedDay = useMemo(
+    () => ({ ...day, foods: resolvedDayFoods }),
+    [day, resolvedDayFoods],
+  )
+  const totals = useMemo(() => nutritionTotals(resolvedDay), [resolvedDay])
+  const remaining = useMemo(() => remainingNutrition(goals, totals, resolvedDay), [goals, totals, resolvedDay])
+  const workoutActivityTotal = useMemo(
+    () => workoutActivityCalories(day),
+    [day],
+  )
   const favoriteIds = nutrition?.favoriteFoodIds ?? []
   const recentIds = nutrition?.recentFoodIds ?? []
   const foodMatches = useMemo(() => {
@@ -140,6 +210,128 @@ export default function NutritionScreen({ nutrition, onChange }) {
       .slice(0, 28)
   }, [foodSearch, foodCategory, favoriteIds, recentIds, nutrition.savedFoods])
 
+  useEffect(() => {
+    const today = new Date(`${nutritionDateKey()}T12:00:00`)
+    const recentKeys = new Set(
+      Array.from({ length: 7 }, (_, index) => {
+        const current = new Date(today)
+        current.setDate(today.getDate() - index)
+        return nutritionDateKey(current)
+      }),
+    )
+
+    const relevantDays = Object.values(nutrition?.days ?? {}).filter(
+      (entry) => entry?.date === date || recentKeys.has(entry?.date),
+    )
+
+    const foodIds = [
+      ...new Set(
+        relevantDays
+          .flatMap((entry) => entry?.foods ?? [])
+          .filter((food) => food.source === 'fatsecret' && food.fatSecret?.foodId)
+          .map((food) => String(food.fatSecret.foodId)),
+      ),
+    ].filter(
+      (foodId) =>
+        !Object.prototype.hasOwnProperty.call(fatSecretDetailCache, foodId),
+    )
+
+    if (!foodIds.length) return undefined
+
+    let cancelled = false
+
+    Promise.all(
+      foodIds.map(async (foodId) => {
+        try {
+          return [foodId, await getFatSecretFood(foodId)]
+        } catch {
+          return [foodId, null]
+        }
+      }),
+    ).then((rows) => {
+      if (cancelled) return
+      setFatSecretDetailCache((current) => ({
+        ...current,
+        ...Object.fromEntries(rows),
+      }))
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [nutrition?.days, date, fatSecretDetailCache])
+
+  useEffect(() => {
+    const query = foodSearch.trim()
+
+    if (tab !== 'Meals' || showCustomFood || query.length < 2) {
+      setFatSecretFoods([])
+      setFatSecretSearchState('idle')
+      setFatSecretSearchError('')
+      return undefined
+    }
+
+    let cancelled = false
+    setFatSecretSearchState('loading')
+    setFatSecretSearchError('')
+
+    const timer = window.setTimeout(async () => {
+      try {
+        const result = await searchFatSecretFoods(query, { maxResults: 20 })
+        if (cancelled) return
+
+        const foods = (result.foods ?? []).map((food) => ({
+          id: `fatsecret:${food.foodId}`,
+          foodId: food.foodId,
+          provider: 'fatsecret',
+          sourceLabel: 'FatSecret',
+          name: food.name,
+          brand: food.brand || 'FatSecret',
+          serving:
+            food.description?.match(/^Per ([^-]+?)\s+-/i)?.[1]?.trim() ??
+            'Serving details',
+          category: food.foodType || 'Food',
+          calories: Number(food.summaryNutrition?.calories ?? 0),
+          protein: Number(food.summaryNutrition?.protein ?? 0),
+          carbs: Number(food.summaryNutrition?.carbs ?? 0),
+          fat: Number(food.summaryNutrition?.fat ?? 0),
+          fiber: 0,
+          description: food.description,
+          servingOptions: [],
+          fatSecretSummaryOnly: true,
+        }))
+
+        setFatSecretFoods(foods)
+        setFatSecretSearchState('success')
+      } catch (error) {
+        if (cancelled) return
+        setFatSecretFoods([])
+        setFatSecretSearchState('error')
+        setFatSecretSearchError(
+          error?.message ?? 'Live food search is unavailable right now.',
+        )
+      }
+    }, 350)
+
+    return () => {
+      cancelled = true
+      window.clearTimeout(timer)
+    }
+  }, [foodSearch, tab, showCustomFood])
+
+  const visibleFoodMatches = useMemo(() => {
+    const query = foodSearch.trim()
+    if (query.length < 2 || foodCategory === 'Favorites') {
+      return foodMatches
+    }
+
+    const remoteIds = new Set(fatSecretFoods.map((food) => food.id))
+    return [
+      ...foodMatches.filter((food) => !remoteIds.has(food.id)),
+      ...fatSecretFoods,
+    ]
+  }, [foodMatches, fatSecretFoods, foodSearch, foodCategory])
+
   const weeklyInsights = useMemo(() => {
     const today = new Date(`${nutritionDateKey()}T12:00:00`)
     const days = Array.from({ length: 7 }, (_, index) => {
@@ -147,7 +339,13 @@ export default function NutritionScreen({ nutrition, onChange }) {
       current.setDate(today.getDate() - (6 - index))
       const key = nutritionDateKey(current)
       const entry = nutrition?.days?.[key] ?? emptyNutritionDay(key)
-      const totalsForDay = nutritionTotals(entry)
+      const resolvedEntry = {
+        ...entry,
+        foods: (entry.foods ?? []).map((food) =>
+          resolveFatSecretRuntimeEntry(food, fatSecretDetailCache),
+        ),
+      }
+      const totalsForDay = nutritionTotals(resolvedEntry)
       return {
         key,
         label: current.toLocaleDateString([], { weekday: 'short' }),
@@ -175,7 +373,7 @@ export default function NutritionScreen({ nutrition, onChange }) {
       hydrationDays,
       weightChange,
     }
-  }, [nutrition?.days, goals.protein, goals.waterOz])
+  }, [nutrition?.days, goals.protein, goals.waterOz, fatSecretDetailCache])
 
   const patch = (updater) => onChange((current) => {
     const base = current ?? { goals: DEFAULT_NUTRITION_GOALS, days: {}, savedFoods: [], recipes: [], recentFoodIds: [], favoriteFoodIds: [] }
@@ -187,6 +385,45 @@ export default function NutritionScreen({ nutrition, onChange }) {
     const nextDay = typeof updater === 'function' ? updater(currentDay) : updater
     return { ...current, days: { ...(current.days ?? {}), [date]: nextDay } }
   })
+
+  const addWorkoutActivity = () => {
+    const activeCalories = Math.round(Number(workoutActivityDraft.activeCalories || 0))
+    if (activeCalories <= 0) {
+      setNotice('Enter the Active Calories from your Apple Watch.')
+      return
+    }
+
+    const label = workoutActivityDraft.label || 'Strength Training'
+    patchDay((current) => ({
+      ...current,
+      workoutActivities: [
+        ...(current.workoutActivities ?? []),
+        {
+          id: createRuntimeId(),
+          label,
+          source: 'apple_watch_manual',
+          activeCalories,
+          loggedAt: new Date().toISOString(),
+        },
+      ],
+    }))
+
+    setWorkoutActivityDraft({
+      label: 'Strength Training',
+      activeCalories: '',
+    })
+    setShowWorkoutActivityForm(false)
+    setNotice(`${activeCalories} active calories added from ${label}.`)
+  }
+
+  const removeWorkoutActivity = (id) => {
+    patchDay((current) => ({
+      ...current,
+      workoutActivities: (current.workoutActivities ?? []).filter(
+        (entry) => entry.id !== id,
+      ),
+    }))
+  }
 
   const updateSetupField = (field, value) => {
     setNutritionSetup((current) => ({ ...current, [field]: value }))
@@ -264,9 +501,64 @@ export default function NutritionScreen({ nutrition, onChange }) {
     }
   })
 
-  const openFood = (food) => {
+  const openFood = async (food) => {
     setSelectedFood(food)
     setSelectedMultiplier(1)
+
+    if (food.provider !== 'fatsecret') {
+      setFatSecretDetailState('idle')
+      setFatSecretDetailError('')
+      setSelectedFatSecretServingId('')
+      setFatSecretQuantity(1)
+      return
+    }
+
+    setFatSecretDetailState('loading')
+    setFatSecretDetailError('')
+    setSelectedFatSecretServingId('')
+    setFatSecretQuantity(1)
+
+    try {
+      const cached = fatSecretDetailCache[food.foodId]
+      const detail = cached ?? await getFatSecretFood(food.foodId)
+
+      setFatSecretDetailCache((current) => ({
+        ...current,
+        [food.foodId]: detail,
+      }))
+
+      const firstServing = detail.servings?.[0]
+      setSelectedFatSecretServingId(firstServing?.servingId ?? '')
+      setFatSecretDetailState('success')
+    } catch (error) {
+      setFatSecretDetailState('error')
+      setFatSecretDetailError(
+        error?.message ?? 'Unable to load serving details right now.',
+      )
+    }
+  }
+
+  const addFatSecretFood = () => {
+    if (selectedFood?.provider !== 'fatsecret') return
+    if (!selectedFatSecretServingId) return
+
+    patch((current) =>
+      appendFatSecretFoodReference(current, date, {
+        foodId: selectedFood.foodId,
+        servingId: selectedFatSecretServingId,
+        quantity: fatSecretQuantity,
+      }).nutrition,
+    )
+
+    const detail = fatSecretDetailCache[selectedFood.foodId]
+    setNotice(`${detail?.name ?? selectedFood.name} added to today.`)
+    setSelectedFood(null)
+    setFoodSearch('')
+    setFatSecretFoods([])
+    setFatSecretDetailState('idle')
+    setSelectedFatSecretServingId('')
+    setFatSecretQuantity(1)
+    setTab('Today')
   }
 
   const recipeFoodMatches = useMemo(() => {
@@ -560,8 +852,8 @@ export default function NutritionScreen({ nutrition, onChange }) {
         <div className="nutrition-date-switcher"><button onClick={() => changeDate(-1)}><ChevronLeft/></button><strong>{new Date(`${date}T12:00:00`).toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' })}</strong><button disabled={date === nutritionDateKey()} onClick={() => changeDate(1)}><ChevronRight/></button></div>
 
         <section className="nutrition-calorie-hero">
-          <div><span className="eyebrow">CALORIES REMAINING</span><strong>{Math.round(remaining.calories)}</strong><small>{Math.round(totals.calories)} eaten · {Math.round(Number(goals.calories) + Number(day.workoutCalories || 0))} budget</small></div>
-          <ProgressBar value={totals.calories} goal={Number(goals.calories) + Number(day.workoutCalories || 0)} />
+          <div><span className="eyebrow">CALORIES REMAINING</span><strong>{Math.round(remaining.calories)}</strong><small>{Math.round(totals.calories)} eaten · {Math.round(Number(goals.calories) + workoutActivityTotal)} budget{workoutActivityTotal > 0 ? ` · +${Math.round(workoutActivityTotal)} activity` : ''}</small></div>
+          <ProgressBar value={totals.calories} goal={Number(goals.calories) + workoutActivityTotal} />
         </section>
 
         <section className="nutrition-target-summary">
@@ -599,9 +891,67 @@ export default function NutritionScreen({ nutrition, onChange }) {
 
         <section className="nutrition-hydration-card"><div><Droplets/><span><strong>Hydration</strong><small>{round(day.waterOz)} of {goals.waterOz} oz</small></span></div><ProgressBar value={day.waterOz} goal={goals.waterOz}/></section>
 
+        <section className="nutrition-workout-activity-card">
+          <header>
+            <div>
+              <Watch size={19}/>
+              <span>
+                <strong>Workout Activity</strong>
+                <small>{workoutActivityTotal > 0 ? `+${Math.round(workoutActivityTotal)} active calories today` : 'Add Active Calories from Apple Watch'}</small>
+              </span>
+            </div>
+            <button className="nutrition-secondary-button" onClick={() => setShowWorkoutActivityForm((value) => !value)}>
+              <Plus size={16}/>{showWorkoutActivityForm ? 'Close' : 'Add Watch Calories'}
+            </button>
+          </header>
+
+          {showWorkoutActivityForm && <div className="nutrition-workout-activity-form">
+            <label>
+              <span>Workout</span>
+              <select
+                value={workoutActivityDraft.label}
+                onChange={(event) => setWorkoutActivityDraft((current) => ({ ...current, label: event.target.value }))}
+              >
+                {['Strength Training', 'Cardio', 'Running', 'Walking', 'Cycling', 'HIIT', 'Sports', 'Other'].map((option) => (
+                  <option key={option} value={option}>{option}</option>
+                ))}
+              </select>
+            </label>
+            <label>
+              <span>Active Calories</span>
+              <input
+                type="number"
+                min="1"
+                step="1"
+                inputMode="numeric"
+                value={workoutActivityDraft.activeCalories}
+                onChange={(event) => setWorkoutActivityDraft((current) => ({ ...current, activeCalories: event.target.value }))}
+                placeholder="347"
+              />
+            </label>
+            <button className="gold-button machined" onClick={addWorkoutActivity}>
+              <Plus size={17}/>Add Activity
+            </button>
+          </div>}
+
+          <div className="nutrition-workout-activity-list">
+            {(day.workoutActivities ?? []).length ? (day.workoutActivities ?? []).map((entry) => (
+              <article key={entry.id}>
+                <div>
+                  <strong>{entry.label || 'Apple Watch Workout'}</strong>
+                  <span>+{Math.round(Number(entry.activeCalories || 0))} active calories</span>
+                </div>
+                <button aria-label={`Remove ${entry.label || 'workout activity'}`} onClick={() => removeWorkoutActivity(entry.id)}>
+                  <Trash2 size={16}/>
+                </button>
+              </article>
+            )) : <p>No workout activity added yet.</p>}
+          </div>
+        </section>
+
         <section className="nutrition-food-log">
-          <header><div><span className="eyebrow">FOOD LOG</span><h2>{day.foods.length ? `${day.foods.length} items` : 'Nothing logged yet'}</h2></div><button onClick={() => setTab('Meals')}><Plus/>Add</button></header>
-          {day.foods.length ? day.foods.map((food) => <article key={food.id}><div><strong>{food.name}</strong><span>{food.calories} cal · P {food.protein} · C {food.carbs} · F {food.fat}</span></div><button onClick={() => patchDay((current) => ({ ...current, foods: current.foods.filter((item) => item.id !== food.id) }))}><Trash2 size={16}/></button></article>) : <div className="nutrition-empty"><Utensils/><p>Log your first meal to start today’s dashboard.</p></div>}
+          <header><div><span className="eyebrow">FOOD LOG</span><h2>{resolvedDayFoods.length ? `${resolvedDayFoods.length} items` : 'Nothing logged yet'}</h2></div><button onClick={() => setTab('Meals')}><Plus/>Add</button></header>
+          {resolvedDayFoods.length ? resolvedDayFoods.map((food) => <article key={food.id}><div><strong>{food.name}</strong><span>{food.source === 'fatsecret' && (food.name === 'Loading food…' || food.name === 'Food unavailable') ? (food.name === 'Loading food…' ? 'Refreshing nutrition…' : 'Nutrition unavailable') : `${food.calories} cal · P ${food.protein} · C ${food.carbs} · F ${food.fat}`}</span></div><button onClick={() => patchDay((current) => ({ ...current, foods: current.foods.filter((item) => item.id !== food.id) }))}><Trash2 size={16}/></button></article>) : <div className="nutrition-empty"><Utensils/><p>Log your first meal to start today’s dashboard.</p></div>}
         </section>
           </>
         )}
@@ -618,7 +968,7 @@ export default function NutritionScreen({ nutrition, onChange }) {
             onChange={(event) => setFoodSearch(event.target.value)}
             placeholder="Try “Clif Bar”, “chicken breast”, or “Greek yogurt”…"
           />
-          {foodSearch && <button aria-label="Clear search" onClick={() => setFoodSearch('')}><X size={17}/></button>}
+          {foodSearch && <button aria-label="Clear search" onClick={() => { setFoodSearch(''); setFatSecretFoods([]); setFatSecretSearchError('') }}><X size={17}/></button>}
         </div>
 
         <div className="nutrition-search-tools">
@@ -632,13 +982,20 @@ export default function NutritionScreen({ nutrition, onChange }) {
               <button key={category} className={foodCategory === category ? 'active' : ''} onClick={() => setFoodCategory(category)}>{category}</button>
             ))}
           </div>
+          {foodSearch.trim().length >= 2 && (
+            <div className="nutrition-live-search-status" data-state={fatSecretSearchState}>
+              {fatSecretSearchState === 'loading' && <span>Searching verified foods…</span>}
+              {fatSecretSearchState === 'success' && fatSecretFoods.length > 0 && <span>Live food database · {fatSecretFoods.length} matches shown</span>}
+              {fatSecretSearchState === 'error' && <span>{fatSecretSearchError}</span>}
+            </div>
+          )}
           <div className="nutrition-food-results">
-            {foodMatches.length ? foodMatches.map((food) => (
+            {visibleFoodMatches.length ? visibleFoodMatches.map((food) => (
               <article key={`${food.sourceLabel}-${food.id ?? food.name}`}>
                 <button className="nutrition-food-result-main" onClick={() => openFood(food)}>
                   <span className="nutrition-food-result-copy">
                     <strong>{food.name}</strong>
-                    <small>{food.serving ?? '1 serving'} · {food.category ?? food.sourceLabel}</small>
+                    <small>{food.serving ?? '1 serving'} · {food.brand || food.category || food.sourceLabel}</small>
                   </span>
                   <span className="nutrition-food-result-macros">
                     <strong>{Math.round(Number(food.calories || 0))} cal</strong>
@@ -652,28 +1009,71 @@ export default function NutritionScreen({ nutrition, onChange }) {
           </div>
         </>}
 
-        {selectedFood && <div className="nutrition-food-sheet-backdrop" data-app-ui-backdrop="open" onClick={() => setSelectedFood(null)}>
+        {selectedFood && typeof document !== 'undefined' && createPortal(
+          <div className="nutrition-food-sheet-backdrop" data-app-ui-backdrop="open" onClick={() => setSelectedFood(null)}>
           <section className="nutrition-food-sheet" onClick={(event) => event.stopPropagation()}>
             <header>
-              <div><span className="eyebrow">FOOD DETAIL</span><h2>{selectedFood.name}</h2><p>{selectedFood.brand} · values are per listed serving</p></div>
+              <div><span className="eyebrow">FOOD DETAIL</span><h2>{selectedFood.name}</h2><p>{selectedFood.brand} · choose the serving you actually had</p></div>
               <button onClick={() => setSelectedFood(null)}><X size={18}/></button>
             </header>
-            <div className="nutrition-sheet-macros">
-              <article><span>Calories</span><strong>{Math.round(Number(selectedFood.calories || 0) * selectedMultiplier)}</strong></article>
-              <article><span>Protein</span><strong>{round(Number(selectedFood.protein || 0) * selectedMultiplier)}g</strong></article>
-              <article><span>Carbs</span><strong>{round(Number(selectedFood.carbs || 0) * selectedMultiplier)}g</strong></article>
-              <article><span>Fat</span><strong>{round(Number(selectedFood.fat || 0) * selectedMultiplier)}g</strong></article>
-            </div>
-            <div className="nutrition-serving-picker">
-              <span>Serving</span>
-              <div>{(selectedFood.servingOptions ?? [{label:selectedFood.serving ?? '1 serving',multiplier:1}]).map((option) => <button key={`${option.label}-${option.multiplier}`} className={selectedMultiplier === option.multiplier ? 'active' : ''} onClick={() => setSelectedMultiplier(option.multiplier)}>{option.label}</button>)}</div>
-            </div>
-            <div className="nutrition-sheet-actions">
-              <button className="nutrition-secondary-button" onClick={() => toggleFavorite(selectedFood)}>{favoriteIds.includes(selectedFood.id) ? <BookmarkCheck/> : <BookmarkPlus/>}{favoriteIds.includes(selectedFood.id) ? 'Favorited' : 'Favorite'}</button>
-              <button className="gold-button machined" onClick={() => addFood({ ...selectedFood, servings: selectedMultiplier }, selectedFood.sourceLabel === 'Saved' ? 'saved' : 'catalog')}><Plus/>Add to Today</button>
-            </div>
+
+            {selectedFood.provider === 'fatsecret' ? (() => {
+              const detail = fatSecretDetailCache[selectedFood.foodId]
+              const serving = detail?.servings?.find((item) => String(item.servingId) === String(selectedFatSecretServingId))
+              const quantity = Math.max(0.01, Number(fatSecretQuantity || 1))
+
+              if (fatSecretDetailState === 'loading') {
+                return <div className="nutrition-fatsecret-detail-state"><span>Loading serving options…</span></div>
+              }
+
+              if (fatSecretDetailState === 'error') {
+                return <div className="nutrition-fatsecret-detail-state error"><strong>Couldn’t load this food.</strong><span>{fatSecretDetailError}</span><button onClick={() => openFood(selectedFood)}>Try Again</button></div>
+              }
+
+              return <>
+                {serving && <div className="nutrition-sheet-macros">
+                  <article><span>Calories</span><strong>{Math.round(Number(serving.calories || 0) * quantity)}</strong></article>
+                  <article><span>Protein</span><strong>{round(Number(serving.protein || 0) * quantity)}g</strong></article>
+                  <article><span>Carbs</span><strong>{round(Number(serving.carbs || 0) * quantity)}g</strong></article>
+                  <article><span>Fat</span><strong>{round(Number(serving.fat || 0) * quantity)}g</strong></article>
+                </div>}
+
+                <div className="nutrition-serving-picker">
+                  <span>Serving</span>
+                  <div>{(detail?.servings ?? []).map((option) => <button key={option.servingId} className={String(selectedFatSecretServingId) === String(option.servingId) ? 'active' : ''} onClick={() => setSelectedFatSecretServingId(option.servingId)}>{option.description}</button>)}</div>
+                </div>
+
+                <label className="nutrition-fatsecret-quantity">
+                  <span>Quantity</span>
+                  <input type="number" min="0.25" step="0.25" value={fatSecretQuantity} onChange={(event) => setFatSecretQuantity(Math.max(0.25, Number(event.target.value || 0.25)))}/>
+                </label>
+
+                <div className="nutrition-sheet-actions">
+                  <button className="nutrition-secondary-button" onClick={() => toggleFavorite(selectedFood)}>{favoriteIds.includes(selectedFood.id) ? <BookmarkCheck/> : <BookmarkPlus/>}{favoriteIds.includes(selectedFood.id) ? 'Favorited' : 'Favorite'}</button>
+                  <button className="gold-button machined" disabled={!selectedFatSecretServingId} onClick={addFatSecretFood}><Plus/>Add to Today</button>
+                </div>
+                <p className="nutrition-fatsecret-detail-note">AVAREN saves the FatSecret food/serving IDs and your quantity, then refreshes nutrition details live when needed.</p>
+              </>
+            })() : <>
+              <div className="nutrition-sheet-macros">
+                <article><span>Calories</span><strong>{Math.round(Number(selectedFood.calories || 0) * selectedMultiplier)}</strong></article>
+                <article><span>Protein</span><strong>{round(Number(selectedFood.protein || 0) * selectedMultiplier)}g</strong></article>
+                <article><span>Carbs</span><strong>{round(Number(selectedFood.carbs || 0) * selectedMultiplier)}g</strong></article>
+                <article><span>Fat</span><strong>{round(Number(selectedFood.fat || 0) * selectedMultiplier)}g</strong></article>
+              </div>
+              <div className="nutrition-serving-picker">
+                <span>Serving</span>
+                <div>{(selectedFood.servingOptions ?? [{label:selectedFood.serving ?? '1 serving',multiplier:1}]).map((option) => <button key={`${option.label}-${option.multiplier}`} className={selectedMultiplier === option.multiplier ? 'active' : ''} onClick={() => setSelectedMultiplier(option.multiplier)}>{option.label}</button>)}</div>
+              </div>
+              <div className="nutrition-sheet-actions">
+                <button className="nutrition-secondary-button" onClick={() => toggleFavorite(selectedFood)}>{favoriteIds.includes(selectedFood.id) ? <BookmarkCheck/> : <BookmarkPlus/>}{favoriteIds.includes(selectedFood.id) ? 'Favorited' : 'Favorite'}</button>
+                <button className="gold-button machined" onClick={() => addFood({ ...selectedFood, servings: selectedMultiplier }, selectedFood.sourceLabel === 'Saved' ? 'saved' : 'catalog')}><Plus/>Add to Today</button>
+              </div>
+            </>}
           </section>
-        </div>}
+        </div>,
+          document.body,
+        )}
 
         {showCustomFood && <div className="nutrition-custom-food-card">
           <header><div><span className="eyebrow">CUSTOM FOOD</span><h3>Enter it once, then save it.</h3></div><button onClick={() => setShowCustomFood(false)}><X size={17}/></button></header>

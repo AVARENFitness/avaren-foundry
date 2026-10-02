@@ -265,3 +265,51 @@ export function replaceFoodEntriesInNutrition(
   const without = removeFoodEntriesFromNutrition(nutrition, date, entryIds)
   return appendFoodToNutrition(without.nutrition, date, replacementFood, source)
 }
+
+
+export function appendFatSecretFoodReference(
+  nutrition,
+  date = nutritionDateKey(),
+  { foodId, servingId, quantity = 1 } = {},
+) {
+  const resolvedFoodId = String(foodId ?? '').trim()
+  const resolvedServingId = String(servingId ?? '').trim()
+  const resolvedQuantity = Math.max(0.01, Number(quantity || 1))
+
+  if (!resolvedFoodId || !resolvedServingId) {
+    throw new Error('FatSecret food and serving are required.')
+  }
+
+  const currentDay = nutrition?.days?.[date] ?? emptyNutritionDay(date)
+  const entry = {
+    id: createRuntimeId(),
+    source: 'fatsecret',
+    provider: 'fatsecret',
+    fatSecret: {
+      foodId: resolvedFoodId,
+      servingId: resolvedServingId,
+    },
+    quantity: resolvedQuantity,
+    loggedAt: new Date().toISOString(),
+  }
+
+  return {
+    nutrition: {
+      ...nutrition,
+      recentFoodIds: [
+        `fatsecret:${resolvedFoodId}`,
+        ...(nutrition?.recentFoodIds ?? []).filter(
+          (id) => id !== `fatsecret:${resolvedFoodId}`,
+        ),
+      ].slice(0, 30),
+      days: {
+        ...(nutrition?.days ?? {}),
+        [date]: {
+          ...currentDay,
+          foods: [...(currentDay.foods ?? []), entry],
+        },
+      },
+    },
+    entry,
+  }
+}
