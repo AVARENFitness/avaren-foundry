@@ -9,30 +9,53 @@ export const NUTRITION_GOAL_OPTIONS = [
 ]
 
 export const ACTIVITY_OPTIONS = [
-  { value: 'sedentary', label: 'Mostly sedentary', factor: 1.2 },
-  { value: 'lightly_active', label: 'Lightly active', factor: 1.375 },
-  { value: 'moderately_active', label: 'Moderately active', factor: 1.55 },
-  { value: 'very_active', label: 'Very active', factor: 1.725 },
-  { value: 'highly_active', label: 'Highly active', factor: 1.9 },
+  { value: 'sedentary', label: 'Mostly seated', factor: 1.2 },
+  { value: 'lightly_active', label: 'Light daily movement', factor: 1.3 },
+  { value: 'moderately_active', label: 'Moderate daily movement', factor: 1.4 },
+  { value: 'very_active', label: 'On your feet most of the day', factor: 1.5 },
+  { value: 'highly_active', label: 'Very physical day-to-day work', factor: 1.6 },
 ]
 
 const ACTIVITY_FACTORS = Object.fromEntries(
   ACTIVITY_OPTIONS.map((option) => [option.value, option.factor]),
 )
 
-const GOAL_ADJUSTMENTS = {
-  lose_fat: -0.15,
-  maintain: 0,
-  build_muscle: 0.08,
-  performance: 0.05,
+const GOAL_PROFILES = {
+  lose_fat: {
+    calorieAdjustment: -0.15,
+    proteinGPerKg: 2.2,
+    baseFatShare: 0.27,
+    label: 'Fat loss',
+  },
+  maintain: {
+    calorieAdjustment: 0,
+    proteinGPerKg: 1.8,
+    baseFatShare: 0.28,
+    label: 'Maintenance',
+  },
+  build_muscle: {
+    calorieAdjustment: 0.05,
+    proteinGPerKg: 1.8,
+    baseFatShare: 0.25,
+    label: 'Muscle gain',
+  },
+  performance: {
+    calorieAdjustment: 0,
+    proteinGPerKg: 1.7,
+    baseFatShare: 0.23,
+    label: 'Performance',
+  },
 }
 
-const PROTEIN_PER_LB = {
-  lose_fat: 0.9,
-  maintain: 0.8,
-  build_muscle: 0.9,
-  performance: 0.85,
-}
+const clamp = (value, min, max) => Math.min(max, Math.max(min, value))
+
+const trainingDemandScore = (strengthSessionsPerWeek, cardioSessionsPerWeek) =>
+  clamp(
+    Number(strengthSessionsPerWeek || 0) +
+      Number(cardioSessionsPerWeek || 0) * 1.25,
+    0,
+    8,
+  )
 
 const roundTo = (value, increment = 5) =>
   Math.round(Number(value || 0) / increment) * increment
@@ -57,7 +80,7 @@ export function calculateNutritionTargets(inputs = {}) {
   if (!['male', 'female'].includes(sex)) {
     throw new Error('Choose the sex used for the energy estimate.')
   }
-  if (!(goal in GOAL_ADJUSTMENTS)) {
+  if (!(goal in GOAL_PROFILES)) {
     throw new Error('Choose a nutrition goal.')
   }
   if (!(activityLevel in ACTIVITY_FACTORS)) {
@@ -69,16 +92,39 @@ export function calculateNutritionTargets(inputs = {}) {
   const sexConstant = sex === 'male' ? 5 : -161
   const restingCalories =
     10 * weightKg + 6.25 * heightCm - 5 * age + sexConstant
+  const strengthSessionsPerWeek = clamp(
+    Number(inputs.strengthSessionsPerWeek || 0),
+    0,
+    14,
+  )
+  const cardioSessionsPerWeek = clamp(
+    Number(inputs.cardioSessionsPerWeek || 0),
+    0,
+    14,
+  )
+  const profile = GOAL_PROFILES[goal]
+  const trainingDemand = trainingDemandScore(
+    strengthSessionsPerWeek,
+    cardioSessionsPerWeek,
+  )
+
   const maintenanceCalories = restingCalories * ACTIVITY_FACTORS[activityLevel]
   const targetCalories = roundTo(
-    maintenanceCalories * (1 + GOAL_ADJUSTMENTS[goal]),
+    maintenanceCalories * (1 + profile.calorieAdjustment),
     10,
   )
 
-  const protein = roundTo(weightLb * PROTEIN_PER_LB[goal], 5)
-  const fatFloor = weightLb * 0.3
-  const fatFromCalories = (targetCalories * 0.25) / 9
-  const fat = roundTo(Math.max(fatFloor, fatFromCalories), 5)
+  // Protein is goal-led and bodyweight anchored. Training demand then shifts
+  // the non-protein calorie split toward carbohydrate without changing base
+  // calories; intentional workout energy is handled separately by the day log.
+  const protein = roundTo(weightKg * profile.proteinGPerKg, 5)
+  const trainingCarbBias = trainingDemand * 0.006
+  const fatShare = clamp(profile.baseFatShare - trainingCarbBias, 0.2, 0.3)
+  const fatFloorGrams = weightKg * 0.65
+  const fat = roundTo(
+    Math.max(fatFloorGrams, (targetCalories * fatShare) / 9),
+    5,
+  )
   const remainingCalories = Math.max(
     0,
     targetCalories - protein * 4 - fat * 9,
@@ -96,7 +142,7 @@ export function calculateNutritionTargets(inputs = {}) {
     waterOz,
     source: 'ava_estimated',
     configured: true,
-    calculationVersion: 'mifflin-st-jeor-v1',
+    calculationVersion: 'mifflin-st-jeor-v3-goal-training-aware',
     estimatedMaintenanceCalories: roundTo(maintenanceCalories, 10),
     inputs: {
       goal,
@@ -105,14 +151,15 @@ export function calculateNutritionTargets(inputs = {}) {
       heightIn,
       weightLb,
       activityLevel,
-      strengthSessionsPerWeek: Math.max(
-        0,
-        Math.min(14, Number(inputs.strengthSessionsPerWeek || 0)),
-      ),
-      cardioSessionsPerWeek: Math.max(
-        0,
-        Math.min(14, Number(inputs.cardioSessionsPerWeek || 0)),
-      ),
+      strengthSessionsPerWeek,
+      cardioSessionsPerWeek,
+    },
+    macroStrategy: {
+      goalLabel: profile.label,
+      proteinGPerKg: profile.proteinGPerKg,
+      fatShare: Number(fatShare.toFixed(3)),
+      trainingDemand: Number(trainingDemand.toFixed(2)),
+      workoutCaloriesHandledSeparately: true,
     },
     calculatedAt: new Date().toISOString(),
   }

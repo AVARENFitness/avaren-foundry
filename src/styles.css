@@ -19488,3 +19488,104 @@ body > .nutrition-food-sheet-backdrop > .nutrition-food-sheet {
     grid-template-columns: 1fr;
   }
 }
+
+
+/* ===== NUTRITION · ADAPTIVE COACHING ===== */
+.nutrition-adaptive-card {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid rgba(216,184,109,.14);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(216,184,109,.07), transparent 38%),
+    rgba(255,255,255,.012);
+}
+
+.nutrition-adaptive-card > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.nutrition-adaptive-card h3 {
+  margin: 5px 0 0;
+  color: #eee7dc;
+  font-size: 18px;
+  line-height: 1.25;
+}
+
+.nutrition-adaptive-card > p {
+  margin: 0;
+  color: #a39b91;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.nutrition-adaptive-trend {
+  flex-shrink: 0;
+  color: #d8c17a;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.nutrition-adaptive-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.nutrition-adaptive-meta span {
+  padding: 6px 9px;
+  border: 1px solid rgba(246,242,233,.06);
+  border-radius: 999px;
+  background: rgba(255,255,255,.018);
+  color: #9a9389;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.nutrition-adaptive-action {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding-top: 4px;
+}
+
+.nutrition-adaptive-action > div {
+  display: grid;
+  gap: 4px;
+}
+
+.nutrition-adaptive-action span {
+  color: #8f8880;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.nutrition-adaptive-action strong {
+  color: #eee7dc;
+  font-size: 16px;
+}
+
+.nutrition-adaptive-card[data-state='on_track'] {
+  border-color: rgba(105,170,121,.16);
+}
+
+.nutrition-adaptive-card[data-state='hold_for_adherence'] {
+  border-color: rgba(216,184,109,.11);
+}
+
+@media (max-width: 680px) {
+  .nutrition-adaptive-card > header,
+  .nutrition-adaptive-action {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .nutrition-adaptive-action > button {
+    width: 100%;
+  }
+}
