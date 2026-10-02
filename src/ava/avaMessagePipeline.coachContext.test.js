@@ -84,6 +84,33 @@ describe('avaMessagePipeline coach context guard', () => {
     expect(outcome.message).toMatch(/check-in|trained|review|recovery/i)
   })
 
+  it('keeps a coach-capable account in athlete AVA when the active role is athlete', async () => {
+    const session = createAvaSession()
+    const coachContext = buildCoachContext({ isCoachMode: false })
+    const routeMessage = vi.fn().mockResolvedValue({
+      source: 'model',
+      summary: 'You can log that from nutrition.',
+      actions: [],
+      suggestions: [],
+    })
+
+    const outcome = await runAvaMessagePipeline({
+      message: 'I need to log food',
+      nutrition: { goals: {}, days: {} },
+      session,
+      packet: { briefing: { headline: 'Chest + Back' } },
+      coachContext,
+      role: 'athlete',
+      actionRuntime: {
+        openNutritionLog: () => {},
+        getSnapshot: () => ({ screen: 'home', showWeeklyCheckIn: false }),
+      },
+      routeMessage,
+    })
+
+    expect(outcome.message).not.toMatch(/client|roster|coach operations/i)
+  })
+
   it('uses coach fallback instead of athlete conversation when coach access is active', async () => {
     const session = createAvaSession()
     const coachContext = buildCoachContext({ isCoachMode: false })
