@@ -19216,3 +19216,45 @@ input, textarea, select {
 .coach-connection-request-actions .coach-primary-action:disabled svg {
   color: rgba(246, 242, 233, 0.52);
 }
+
+
+/* ===== NUTRITION · FATSECRET LIVE SEARCH ===== */
+.nutrition-live-search-status {
+  min-height: 22px;
+  margin: 4px 2px 8px;
+  color: var(--text-supporting, #948d84);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.nutrition-live-search-status[data-state="loading"] span::before {
+  content: "";
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 8px;
+  border-radius: 999px;
+  background: #d8b86d;
+  box-shadow: 0 0 0 4px rgba(216, 184, 109, .08);
+}
+
+.nutrition-live-search-status[data-state="success"] {
+  color: #aaa297;
+}
+
+.nutrition-live-search-status[data-state="error"] {
+  color: #d79a90;
+}
+
+.nutrition-fatsecret-detail-note {
+  margin: 10px 0 0;
+  color: var(--text-supporting, #948d84);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.nutrition-sheet-actions .gold-button:disabled {
+  opacity: .48;
+  cursor: not-allowed;
+  box-shadow: none;
+}
