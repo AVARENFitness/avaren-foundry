@@ -1144,7 +1144,18 @@ function App() {
         openDailyReset()
         return
       case 'open-progress':
+      case 'OPEN_PROGRESS':
         navigate('progress')
+        return
+      case 'OPEN_SCHEDULE':
+        navigate('schedule')
+        return
+      case 'OPEN_NUTRITION_LOG':
+        setNutritionInitialTab('Meals')
+        navigate('nutrition')
+        return
+      case 'OPEN_WEEKLY_CHECKIN':
+        setShowWeeklyCheckIn(true)
         return
       case 'view-assignment':
         navigate('home')
@@ -1158,6 +1169,7 @@ function App() {
     screen: 'home',
     activeWorkout: null,
     showReadinessCheckIn: false,
+    showWeeklyCheckIn: false,
   })
   const coachAvaSnapshotRef = useRef({
     coachHub: false,
@@ -1174,8 +1186,9 @@ function App() {
       screen,
       activeWorkout: state.activeWorkout ?? null,
       showReadinessCheckIn,
+      showWeeklyCheckIn,
     }
-  }, [screen, state.activeWorkout, showReadinessCheckIn])
+  }, [screen, state.activeWorkout, showReadinessCheckIn, showWeeklyCheckIn])
 
   const avaActionRuntime = useMemo(
     () =>
@@ -1208,7 +1221,37 @@ function App() {
             ...avaSnapshotRef.current,
             screen: 'nutrition',
           }
+          setNutritionInitialTab('Today')
           navigate('nutrition')
+        },
+        openNutritionLog: () => {
+          avaSnapshotRef.current = {
+            ...avaSnapshotRef.current,
+            screen: 'nutrition',
+          }
+          setNutritionInitialTab('Meals')
+          navigate('nutrition')
+        },
+        openProgress: () => {
+          avaSnapshotRef.current = {
+            ...avaSnapshotRef.current,
+            screen: 'progress',
+          }
+          navigate('progress')
+        },
+        openSchedule: () => {
+          avaSnapshotRef.current = {
+            ...avaSnapshotRef.current,
+            screen: 'schedule',
+          }
+          navigate('schedule')
+        },
+        openWeeklyCheckIn: () => {
+          avaSnapshotRef.current = {
+            ...avaSnapshotRef.current,
+            showWeeklyCheckIn: true,
+          }
+          setShowWeeklyCheckIn(true)
         },
         onNavigateIntent: (destination) => {
           avaSnapshotRef.current = {
@@ -1257,7 +1300,7 @@ function App() {
           return saved
         },
       }),
-    [startWorkout, navigate, openDailyReset, openHomeReset, state.weeklySchedule, state.program, state.history, state.readiness, state.activeWorkout, state.sessionExecutionPlan],
+    [startWorkout, navigate, openDailyReset, openHomeReset, state.weeklySchedule, state.program, state.history, state.readiness, state.activeWorkout, state.sessionExecutionPlan, setNutritionInitialTab],
   )
 
   const avaRoleState = useMemo(
