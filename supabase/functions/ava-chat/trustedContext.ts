@@ -527,6 +527,21 @@ const buildTrustedWeeklyCheckIn = (
   }
 }
 
+const sumWorkoutActivityCalories = (day: Record<string, unknown> | null) => {
+  const activities = Array.isArray(day?.workoutActivities)
+    ? (day?.workoutActivities as Array<Record<string, unknown>>)
+    : []
+
+  if (activities.length) {
+    return activities.reduce(
+      (sum, item) => sum + Math.max(0, Number(item.activeCalories ?? 0)),
+      0,
+    )
+  }
+
+  return Math.max(0, Number(day?.workoutCalories ?? 0))
+}
+
 const buildTrustedNutrition = ({
   nutritionProfile,
   nutritionDay,
@@ -538,44 +553,183 @@ const buildTrustedNutrition = ({
   foundryState: Record<string, unknown>
   now?: Date
 }) => {
-  const goals = (nutritionProfile?.goals as Record<string, unknown> | undefined) ??
+  const goals =
+    (nutritionProfile?.goals as Record<string, unknown> | undefined) ??
     ((foundryState.nutrition as { goals?: Record<string, unknown> } | undefined)
       ?.goals ?? { calories: 2200, protein: 170 })
 
-  const daySnapshot =
-    (nutritionDay?.snapshot as { foods?: Array<unknown> } | undefined) ??
-    ((foundryState.nutrition as { days?: Record<string, { foods?: Array<unknown> }> })
-      ?.days?.[todayKey(now)] ?? null)
+  const nutritionState =
+    (foundryState.nutrition as {
+      days?: Record<string, Record<string, unknown>>
+    } | undefined) ?? {}
 
-  const foods = daySnapshot?.foods ?? []
+  const daySnapshot =
+    (nutritionDay?.snapshot as Record<string, unknown> | undefined) ??
+    nutritionState.days?.[todayKey(now)] ??
+    null
+
+  const foods = Array.isArray(daySnapshot?.foods)
+    ? (daySnapshot?.foods as Array<Record<string, unknown>>)
+    : []
+
   const totals = foods.reduce(
-    (acc: { calories: number; protein: number }, food) => {
-      const item = food as { calories?: number; protein?: number }
-      return {
-        calories: acc.calories + Number(item.calories || 0),
-        protein: acc.protein + Number(item.protein || 0),
-      }
-    },
-    { calories: 0, protein: 0 },
+    (
+      acc: {
+        calories: number
+        protein: number
+        carbs: number
+        fat: number
+        fiber: number
+      },
+      food,
+    ) => ({
+      calories: acc.calories + Number(food.calories || 0),
+      protein: acc.protein + Number(food.protein || 0),
+      carbs: acc.carbs + Number(food.carbs || 0),
+      fat: acc.fat + Number(food.fat || 0),
+      fiber: acc.fiber + Number(food.fiber || 0),
+    }),
+    { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 },
   )
 
   const hasLoggedFood = foods.length > 0
-  const proteinGoal = Number(goals.protein ?? 170)
-  const calorieGoal = Number(goals.calories ?? 2200)
+  const proteinGoal = Number(goals.protein ?? 0) || null
+  const calorieGoal = Number(goals.calories ?? 0) || null
+  const activeCalories = sumWorkoutActivityCalories(daySnapshot)
+  const effectiveCalorieBudget =
+    calorieGoal == null ? null : Math.round(calorieGoal + activeCalories)
+
+  const recentDays = Object.values(nutritionState.days ?? {})
+    .filter((day) => day?.date)
+    .sort((a, b) => String(a.date).localeCompare(String(b.date)))
+    .slice(-14)
+
+  const recentWeights = recentDays
+    .filter((day) => Number(day.weight) > 0)
+    .map((day) => ({
+      date: String(day.date),
+      weight: Number(day.weight),
+    }))
+
+  const loggedNutritionDays = recentDays.filter(
+    (day) => Array.isArray(day.foods) && day.foods.length > 0,
+  ).length
+
+  const adaptation =
+    goals.adaptation && typeof goals.adaptation === 'object'
+      ? (goals.adaptation as Record<string, unknown>)
+      : null
+  const adaptationHistory = Array.isArray(adaptation?.history)
+    ? (adaptation?.history as Array<Record<string, unknown>>).slice(-5)
+    : []
 
   return {
     trust: 'server-trusted',
     hasLoggedFood,
     calories: hasLoggedFood ? Math.round(totals.calories) : null,
     calorieGoal,
+    activeCalories: Math.round(activeCalories),
+    effectiveCalorieBudget,
     protein: hasLoggedFood ? Math.round(totals.protein) : null,
     proteinGoal,
+    carbs: hasLoggedFood ? Math.round(totals.carbs) : null,
+    carbsGoal: Number(goals.carbs ?? 0) || null,
+    fat: hasLoggedFood ? Math.round(totals.fat) : null,
+    fatGoal: Number(goals.fat ?? 0) || null,
+    fiber: hasLoggedFood ? Math.round(totals.fiber) : null,
+    fiberGoal: Number(goals.fiber ?? 0) || null,
+    waterOz: Number(daySnapshot?.waterOz ?? 0),
+    waterGoalOz: Number(goals.waterOz ?? 0) || null,
+    weightToday: Number(daySnapshot?.weight ?? 0) || null,
+    goalType:
+      (goals.inputs as Record<string, unknown> | undefined)?.goal ?? null,
+    configured: Boolean(goals.configured),
+    source: goals.source ?? null,
     proteinProgress:
-      hasLoggedFood && proteinGoal > 0
+      hasLoggedFood && proteinGoal && proteinGoal > 0
         ? Math.round((totals.protein / proteinGoal) * 100)
         : null,
+    recent14Days: {
+      loggedNutritionDays,
+      weighIns: recentWeights.length,
+      weights: recentWeights,
+    },
+    adaptation: adaptation
+      ? {
+          enabled: Boolean(adaptation.enabled),
+          lastAppliedAt: adaptation.lastAppliedAt ?? null,
+          lastAdjustmentCalories:
+            Number(adaptation.lastAdjustmentCalories ?? 0) || 0,
+          lastObservedPercentPerWeek:
+            Number(adaptation.lastObservedPercentPerWeek ?? 0) || null,
+          history: adaptationHistory.map((item) => ({
+            appliedAt: item.appliedAt ?? null,
+            previousCalories: Number(item.previousCalories ?? 0) || null,
+            nextCalories: Number(item.nextCalories ?? 0) || null,
+            adjustmentCalories:
+              Number(item.adjustmentCalories ?? 0) || 0,
+            percentPerWeek:
+              Number(item.percentPerWeek ?? 0) || null,
+            adherence: Number(item.adherence ?? 0) || null,
+          })),
+        }
+      : null,
   }
 }
+
+const buildTrustedProgress = (
+  foundryState: Record<string, unknown>,
+  now = new Date(),
+) => {
+  const history = ((foundryState.history as Array<Record<string, unknown>>) ?? [])
+    .filter((session) => Array.isArray(session?.sets))
+    .sort((a, b) =>
+      String(sessionDate(a)).localeCompare(String(sessionDate(b))),
+    )
+
+  const withinDays = (session: Record<string, unknown>, days: number) => {
+    const time = new Date(String(sessionDate(session))).getTime()
+    return Number.isFinite(time) && now.getTime() - time <= days * DAY_MS
+  }
+
+  const recent7 = history.filter((session) => withinDays(session, 7))
+  const recent30 = history.filter((session) => withinDays(session, 30))
+  const last = history.at(-1) ?? null
+
+  const nutritionDays =
+    ((foundryState.nutrition as {
+      days?: Record<string, Record<string, unknown>>
+    } | undefined)?.days ?? {})
+
+  const weights = Object.values(nutritionDays)
+    .filter((day) => day?.date && Number(day.weight) > 0)
+    .sort((a, b) => String(a.date).localeCompare(String(b.date)))
+    .slice(-14)
+    .map((day) => ({
+      date: String(day.date),
+      weight: Number(day.weight),
+    }))
+
+  return {
+    trust: 'server-trusted',
+    totalRecordedSessions: history.length,
+    sessionsLast7Days: recent7.length,
+    sessionsLast30Days: recent30.length,
+    lastSession: last
+      ? {
+          name: last.name ?? null,
+          date: String(sessionDate(last)).slice(0, 10),
+          sets: mapTrustedSessionSets(last, 8),
+        }
+      : null,
+    weightTrend: {
+      latest: weights.at(-1) ?? null,
+      earliestInWindow: weights[0] ?? null,
+      recent: weights,
+    },
+  }
+}
+
 
 export const resolveAuthenticatedUserId = (
   authenticatedUserId: string,
@@ -819,6 +973,7 @@ export function buildTrustedModelContext({
       }),
       schedule: buildTrustedSchedule(athleteAppointments),
       weeklyCheckIn: buildTrustedWeeklyCheckIn(weeklyCheckIn),
+      progress: buildTrustedProgress(state, now),
     },
     sessionContext,
     clientHints,
