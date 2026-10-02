@@ -128,8 +128,8 @@ const resolveFatSecretRuntimeEntry = (food, detailCache) => {
   }
 }
 
-export default function NutritionScreen({ nutrition, onChange }) {
-  const [tab, setTab] = useState('Today')
+export default function NutritionScreen({ nutrition, onChange, initialTab = 'Today' }) {
+  const [tab, setTab] = useState(initialTab)
   const [date, setDate] = useState(nutritionDateKey())
   const [foodDraft, setFoodDraft] = useState(blankFood)
   const [foodSearch, setFoodSearch] = useState('')
