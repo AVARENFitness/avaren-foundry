@@ -16,35 +16,18 @@ const json = (body: unknown, status = 200) =>
     },
   })
 
-const asArray = <T>(value: T | T[] | null | undefined): T[] => {
-  if (value == null) return []
-  return Array.isArray(value) ? value : [value]
-}
+const asArray = <T>(value: T | T[] | null | undefined): T[] =>
+  value == null ? [] : Array.isArray(value) ? value : [value]
 
 const numberOrNull = (value: unknown) => {
   const parsed = Number(value)
   return Number.isFinite(parsed) ? parsed : null
 }
 
-const parseSummaryNutrition = (description = '') => {
-  const capture = (label: string) => {
-    const match = description.match(new RegExp(`${label}:\\s*([0-9.]+)`, 'i'))
-    return match ? numberOrNull(match[1]) : null
-  }
-
-  return {
-    calories: capture('Calories'),
-    fat: capture('Fat'),
-    carbs: capture('Carbs'),
-    protein: capture('Protein'),
-  }
-}
-
 const percentEncode = (value: string) =>
-  encodeURIComponent(value)
-    .replace(/[!'()*]/g, (char) =>
-      '%' + char.charCodeAt(0).toString(16).toUpperCase(),
-    )
+  encodeURIComponent(value).replace(/[!'()*]/g, (char) =>
+    '%' + char.charCodeAt(0).toString(16).toUpperCase(),
+  )
 
 const base64FromBytes = (bytes: Uint8Array) => {
   let binary = ''
@@ -92,15 +75,7 @@ const signOAuth1 = async (
   return base64FromBytes(new Uint8Array(signature))
 }
 
-const searchFoods = async ({
-  query,
-  pageNumber = 0,
-  maxResults = 20,
-}: {
-  query: string
-  pageNumber?: number
-  maxResults?: number
-}) => {
+const fatSecretRequest = async (requestParams: Record<string, string>) => {
   const consumerKey = Deno.env.get('FATSECRET_CONSUMER_KEY')
   const consumerSecret = Deno.env.get('FATSECRET_CONSUMER_SECRET')
 
@@ -109,10 +84,7 @@ const searchFoods = async ({
   }
 
   const params: Record<string, string> = {
-    method: 'foods.search',
-    search_expression: query,
-    page_number: String(Math.max(0, pageNumber)),
-    max_results: String(Math.min(50, Math.max(1, maxResults))),
+    ...requestParams,
     format: 'json',
     oauth_consumer_key: consumerKey,
     oauth_signature_method: 'HMAC-SHA1',
@@ -125,9 +97,7 @@ const searchFoods = async ({
 
   const response = await fetch(FATSECRET_API_URL, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams(params),
   })
 
@@ -135,17 +105,50 @@ const searchFoods = async ({
 
   if (!response.ok || payload?.error) {
     console.error(
-      'FatSecret food search failed',
+      'FatSecret request failed',
       response.status,
       payload?.error?.code ?? '',
       payload?.error?.message ?? '',
     )
     throw new Error(
       payload?.error?.message
-        ? `fatsecret_search_failed:${payload.error.message}`
-        : 'fatsecret_search_failed',
+        ? `fatsecret_request_failed:${payload.error.message}`
+        : 'fatsecret_request_failed',
     )
   }
+
+  return payload
+}
+
+const parseSummaryNutrition = (description = '') => {
+  const capture = (label: string) => {
+    const match = description.match(new RegExp(`${label}:\\s*([0-9.]+)`, 'i'))
+    return match ? numberOrNull(match[1]) : null
+  }
+
+  return {
+    calories: capture('Calories'),
+    fat: capture('Fat'),
+    carbs: capture('Carbs'),
+    protein: capture('Protein'),
+  }
+}
+
+const searchFoods = async ({
+  query,
+  pageNumber = 0,
+  maxResults = 20,
+}: {
+  query: string
+  pageNumber?: number
+  maxResults?: number
+}) => {
+  const payload = await fatSecretRequest({
+    method: 'foods.search',
+    search_expression: query,
+    page_number: String(Math.max(0, pageNumber)),
+    max_results: String(Math.min(50, Math.max(1, maxResults))),
+  })
 
   const foodsNode = payload?.foods ?? {}
   const foods = asArray(foodsNode?.food)
@@ -173,39 +176,68 @@ const searchFoods = async ({
   }
 }
 
-Deno.serve(async (req: Request) => {
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
-  }
+const getFood = async (foodId: string) => {
+  const payload = await fatSecretRequest({
+    method: 'food.get.v5',
+    food_id: foodId,
+  })
 
-  if (req.method !== 'POST') {
-    return json({ error: 'method_not_allowed' }, 405)
+  const food = payload?.food ?? payload ?? {}
+  const servingsNode = food?.servings?.serving ?? food?.servings ?? []
+  const servings = asArray(servingsNode)
+    .map((serving: Record<string, unknown>) => ({
+      servingId: String(serving.serving_id ?? ''),
+      description: String(serving.serving_description ?? ''),
+      metricAmount: numberOrNull(serving.metric_serving_amount),
+      metricUnit: String(serving.metric_serving_unit ?? ''),
+      numberOfUnits: numberOrNull(serving.number_of_units),
+      measurementDescription: String(serving.measurement_description ?? ''),
+      calories: numberOrNull(serving.calories) ?? 0,
+      protein: numberOrNull(serving.protein) ?? 0,
+      carbs: numberOrNull(serving.carbohydrate) ?? 0,
+      fat: numberOrNull(serving.fat) ?? 0,
+      fiber: numberOrNull(serving.fiber) ?? 0,
+    }))
+    .filter((serving) => serving.servingId && serving.description)
+
+  return {
+    provider: 'fatsecret',
+    foodId: String(food.food_id ?? foodId),
+    name: String(food.food_name ?? ''),
+    brand: String(food.brand_name ?? ''),
+    foodType: String(food.food_type ?? ''),
+    servings,
   }
+}
+
+Deno.serve(async (req: Request) => {
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
+  if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405)
 
   try {
     const body = await req.json().catch(() => ({}))
+    const action = String(body?.action ?? 'search')
+
+    if (action === 'get') {
+      const foodId = String(body?.foodId ?? '').trim()
+      if (!foodId) return json({ error: 'food_id_required' }, 400)
+      return json(await getFood(foodId))
+    }
+
     const query = String(body?.query ?? '').trim()
     const pageNumber = Number(body?.pageNumber ?? 0)
     const maxResults = Number(body?.maxResults ?? 20)
 
-    if (query.length < 2) {
-      return json({ error: 'query_too_short' }, 400)
-    }
+    if (query.length < 2) return json({ error: 'query_too_short' }, 400)
+    if (query.length > 120) return json({ error: 'query_too_long' }, 400)
 
-    if (query.length > 120) {
-      return json({ error: 'query_too_long' }, 400)
-    }
-
-    const result = await searchFoods({
+    return json(await searchFoods({
       query,
       pageNumber: Number.isFinite(pageNumber) ? pageNumber : 0,
       maxResults: Number.isFinite(maxResults) ? maxResults : 20,
-    })
-
-    return json(result)
+    }))
   } catch (error) {
     const message = error instanceof Error ? error.message : 'unknown_error'
-    const status = message === 'fatsecret_not_configured' ? 503 : 502
-    return json({ error: message }, status)
+    return json({ error: message }, message === 'fatsecret_not_configured' ? 503 : 502)
   }
 })
