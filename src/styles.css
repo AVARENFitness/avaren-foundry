@@ -19417,7 +19417,8 @@ body > .nutrition-food-sheet-backdrop > .nutrition-food-sheet {
   font-weight: 750;
 }
 
-.nutrition-workout-activity-form input {
+.nutrition-workout-activity-form input,
+.nutrition-workout-activity-form select {
   width: 100%;
   min-height: 46px;
   padding: 0 12px;
