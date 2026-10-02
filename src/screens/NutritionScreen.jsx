@@ -73,6 +73,42 @@ const ProgressBar = ({ value, goal }) => {
   return <span className="nutrition-progress"><i style={{ width: `${percent}%` }} /></span>
 }
 
+const resolveFatSecretRuntimeEntry = (food, detailCache) => {
+  if (food?.source !== 'fatsecret' || !food?.fatSecret?.foodId) return food
+
+  const foodId = String(food.fatSecret.foodId)
+  const hasAttempted = Object.prototype.hasOwnProperty.call(detailCache, foodId)
+  const detail = detailCache[foodId]
+  const serving = detail?.servings?.find(
+    (item) => String(item.servingId) === String(food.fatSecret.servingId),
+  )
+
+  if (!detail || !serving) {
+    return {
+      ...food,
+      name: hasAttempted ? 'Food unavailable' : 'Loading food…',
+      calories: 0,
+      protein: 0,
+      carbs: 0,
+      fat: 0,
+      fiber: 0,
+    }
+  }
+
+  const quantity = Math.max(0.01, Number(food.quantity || 1))
+  return {
+    ...food,
+    name: detail.name || 'FatSecret food',
+    brand: detail.brand || '',
+    serving: serving.description,
+    calories: round(Number(serving.calories || 0) * quantity),
+    protein: round(Number(serving.protein || 0) * quantity),
+    carbs: round(Number(serving.carbs || 0) * quantity),
+    fat: round(Number(serving.fat || 0) * quantity),
+    fiber: round(Number(serving.fiber || 0) * quantity),
+  }
+}
+
 export default function NutritionScreen({ nutrition, onChange }) {
   const [tab, setTab] = useState('Today')
   const [date, setDate] = useState(nutritionDateKey())
@@ -125,39 +161,9 @@ export default function NutritionScreen({ nutrition, onChange }) {
   const day = nutrition?.days?.[date] ?? emptyNutritionDay(date)
 
   const resolvedDayFoods = useMemo(
-    () => (day.foods ?? []).map((food) => {
-      if (food.source !== 'fatsecret' || !food.fatSecret?.foodId) return food
-
-      const detail = fatSecretDetailCache[food.fatSecret.foodId]
-      const serving = detail?.servings?.find(
-        (item) => String(item.servingId) === String(food.fatSecret.servingId),
-      )
-
-      if (!detail || !serving) {
-        return {
-          ...food,
-          name: 'Loading food…',
-          calories: 0,
-          protein: 0,
-          carbs: 0,
-          fat: 0,
-          fiber: 0,
-        }
-      }
-
-      const quantity = Math.max(0.01, Number(food.quantity || 1))
-      return {
-        ...food,
-        name: detail.name || 'FatSecret food',
-        brand: detail.brand || '',
-        serving: serving.description,
-        calories: round(Number(serving.calories || 0) * quantity),
-        protein: round(Number(serving.protein || 0) * quantity),
-        carbs: round(Number(serving.carbs || 0) * quantity),
-        fat: round(Number(serving.fat || 0) * quantity),
-        fiber: round(Number(serving.fiber || 0) * quantity),
-      }
-    }),
+    () => (day.foods ?? []).map((food) =>
+      resolveFatSecretRuntimeEntry(food, fatSecretDetailCache),
+    ),
     [day.foods, fatSecretDetailCache],
   )
 
@@ -193,13 +199,30 @@ export default function NutritionScreen({ nutrition, onChange }) {
   }, [foodSearch, foodCategory, favoriteIds, recentIds, nutrition.savedFoods])
 
   useEffect(() => {
+    const today = new Date(`${nutritionDateKey()}T12:00:00`)
+    const recentKeys = new Set(
+      Array.from({ length: 7 }, (_, index) => {
+        const current = new Date(today)
+        current.setDate(today.getDate() - index)
+        return nutritionDateKey(current)
+      }),
+    )
+
+    const relevantDays = Object.values(nutrition?.days ?? {}).filter(
+      (entry) => entry?.date === date || recentKeys.has(entry?.date),
+    )
+
     const foodIds = [
       ...new Set(
-        (day.foods ?? [])
+        relevantDays
+          .flatMap((entry) => entry?.foods ?? [])
           .filter((food) => food.source === 'fatsecret' && food.fatSecret?.foodId)
           .map((food) => String(food.fatSecret.foodId)),
       ),
-    ].filter((foodId) => !fatSecretDetailCache[foodId])
+    ].filter(
+      (foodId) =>
+        !Object.prototype.hasOwnProperty.call(fatSecretDetailCache, foodId),
+    )
 
     if (!foodIds.length) return undefined
 
@@ -217,14 +240,14 @@ export default function NutritionScreen({ nutrition, onChange }) {
       if (cancelled) return
       setFatSecretDetailCache((current) => ({
         ...current,
-        ...Object.fromEntries(rows.filter(([, detail]) => detail)),
+        ...Object.fromEntries(rows),
       }))
     })
 
     return () => {
       cancelled = true
     }
-  }, [day.foods, fatSecretDetailCache])
+  }, [nutrition?.days, date, fatSecretDetailCache])
 
   useEffect(() => {
     const query = foodSearch.trim()
@@ -304,7 +327,13 @@ export default function NutritionScreen({ nutrition, onChange }) {
       current.setDate(today.getDate() - (6 - index))
       const key = nutritionDateKey(current)
       const entry = nutrition?.days?.[key] ?? emptyNutritionDay(key)
-      const totalsForDay = nutritionTotals(entry)
+      const resolvedEntry = {
+        ...entry,
+        foods: (entry.foods ?? []).map((food) =>
+          resolveFatSecretRuntimeEntry(food, fatSecretDetailCache),
+        ),
+      }
+      const totalsForDay = nutritionTotals(resolvedEntry)
       return {
         key,
         label: current.toLocaleDateString([], { weekday: 'short' }),
@@ -332,7 +361,7 @@ export default function NutritionScreen({ nutrition, onChange }) {
       hydrationDays,
       weightChange,
     }
-  }, [nutrition?.days, goals.protein, goals.waterOz])
+  }, [nutrition?.days, goals.protein, goals.waterOz, fatSecretDetailCache])
 
   const patch = (updater) => onChange((current) => {
     const base = current ?? { goals: DEFAULT_NUTRITION_GOALS, days: {}, savedFoods: [], recipes: [], recentFoodIds: [], favoriteFoodIds: [] }
@@ -813,7 +842,7 @@ export default function NutritionScreen({ nutrition, onChange }) {
 
         <section className="nutrition-food-log">
           <header><div><span className="eyebrow">FOOD LOG</span><h2>{resolvedDayFoods.length ? `${resolvedDayFoods.length} items` : 'Nothing logged yet'}</h2></div><button onClick={() => setTab('Meals')}><Plus/>Add</button></header>
-          {resolvedDayFoods.length ? resolvedDayFoods.map((food) => <article key={food.id}><div><strong>{food.name}</strong><span>{food.source === 'fatsecret' && food.name === 'Loading food…' ? 'Refreshing nutrition…' : `${food.calories} cal · P ${food.protein} · C ${food.carbs} · F ${food.fat}`}</span></div><button onClick={() => patchDay((current) => ({ ...current, foods: current.foods.filter((item) => item.id !== food.id) }))}><Trash2 size={16}/></button></article>) : <div className="nutrition-empty"><Utensils/><p>Log your first meal to start today’s dashboard.</p></div>}
+          {resolvedDayFoods.length ? resolvedDayFoods.map((food) => <article key={food.id}><div><strong>{food.name}</strong><span>{food.source === 'fatsecret' && (food.name === 'Loading food…' || food.name === 'Food unavailable') ? (food.name === 'Loading food…' ? 'Refreshing nutrition…' : 'Nutrition unavailable') : `${food.calories} cal · P ${food.protein} · C ${food.carbs} · F ${food.fat}`}</span></div><button onClick={() => patchDay((current) => ({ ...current, foods: current.foods.filter((item) => item.id !== food.id) }))}><Trash2 size={16}/></button></article>) : <div className="nutrition-empty"><Utensils/><p>Log your first meal to start today’s dashboard.</p></div>}
         </section>
           </>
         )}
