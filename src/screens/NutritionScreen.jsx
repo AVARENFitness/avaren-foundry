@@ -50,6 +50,10 @@ import {
   NUTRITION_GOAL_OPTIONS,
   calculateNutritionTargets,
 } from '../lib/nutritionTargets'
+import {
+  analyzeNutritionAdaptation,
+  applyAdaptiveNutritionAdjustment,
+} from '../lib/nutritionAdaptation'
 
 const tabs = [
   { label: 'Today', value: 'Today' },
@@ -212,8 +216,9 @@ export default function NutritionScreen({ nutrition, onChange }) {
 
   useEffect(() => {
     const today = new Date(`${nutritionDateKey()}T12:00:00`)
+    const historyWindowDays = tab === 'Insights' ? 14 : 7
     const recentKeys = new Set(
-      Array.from({ length: 7 }, (_, index) => {
+      Array.from({ length: historyWindowDays }, (_, index) => {
         const current = new Date(today)
         current.setDate(today.getDate() - index)
         return nutritionDateKey(current)
@@ -259,7 +264,7 @@ export default function NutritionScreen({ nutrition, onChange }) {
     return () => {
       cancelled = true
     }
-  }, [nutrition?.days, date, fatSecretDetailCache])
+  }, [nutrition?.days, date, fatSecretDetailCache, tab])
 
   useEffect(() => {
     const query = foodSearch.trim()
@@ -375,6 +380,59 @@ export default function NutritionScreen({ nutrition, onChange }) {
     }
   }, [nutrition?.days, goals.protein, goals.waterOz, fatSecretDetailCache])
 
+  const adaptiveHistory = useMemo(() => {
+    const today = new Date(`${nutritionDateKey()}T12:00:00`)
+    return Array.from({ length: 14 }, (_, index) => {
+      const current = new Date(today)
+      current.setDate(today.getDate() - (13 - index))
+      const key = nutritionDateKey(current)
+      const entry = nutrition?.days?.[key] ?? emptyNutritionDay(key)
+      const fatSecretFoods = (entry.foods ?? []).filter(
+        (food) => food.source === 'fatsecret' && food.fatSecret?.foodId,
+      )
+      const completeNutrition = fatSecretFoods.every((food) => {
+        const detail = fatSecretDetailCache[String(food.fatSecret.foodId)]
+        return Boolean(
+          detail?.servings?.some(
+            (serving) =>
+              String(serving.servingId) === String(food.fatSecret.servingId),
+          ),
+        )
+      })
+      const resolvedEntry = {
+        ...entry,
+        foods: (entry.foods ?? []).map((food) =>
+          resolveFatSecretRuntimeEntry(food, fatSecretDetailCache),
+        ),
+      }
+      const totalsForDay = nutritionTotals(resolvedEntry)
+      return {
+        date: key,
+        calories: Number(totalsForDay.calories || 0),
+        budget:
+          Number(goals.calories || 0) + workoutActivityCalories(entry),
+        weight: Number(entry.weight || 0),
+        completeNutrition,
+      }
+    })
+  }, [nutrition?.days, goals.calories, fatSecretDetailCache])
+
+  const adaptiveAnalysis = useMemo(
+    () =>
+      analyzeNutritionAdaptation({
+        days: adaptiveHistory,
+        goal: goals.inputs?.goal,
+        currentBaseCalories: goals.calories,
+        lastAppliedAt: goals.adaptation?.lastAppliedAt,
+      }),
+    [
+      adaptiveHistory,
+      goals.inputs?.goal,
+      goals.calories,
+      goals.adaptation?.lastAppliedAt,
+    ],
+  )
+
   const patch = (updater) => onChange((current) => {
     const base = current ?? { goals: DEFAULT_NUTRITION_GOALS, days: {}, savedFoods: [], recipes: [], recentFoodIds: [], favoriteFoodIds: [] }
     return typeof updater === 'function' ? updater(base) : updater
@@ -423,6 +481,24 @@ export default function NutritionScreen({ nutrition, onChange }) {
         (entry) => entry.id !== id,
       ),
     }))
+  }
+
+  const applyAdaptiveAdjustment = () => {
+    if (adaptiveAnalysis.status !== 'recommend') return
+
+    patch((current) => ({
+      ...current,
+      goals: applyAdaptiveNutritionAdjustment(
+        current.goals ?? goals,
+        adaptiveAnalysis,
+      ),
+    }))
+
+    const direction =
+      adaptiveAnalysis.adjustmentCalories > 0 ? 'increased' : 'reduced'
+    setNotice(
+      `AVAREN ${direction} your base target by ${Math.abs(adaptiveAnalysis.adjustmentCalories)} calories. Hold this target for at least 7 days before reassessing.`,
+    )
   }
 
   const updateSetupField = (field, value) => {
@@ -1182,6 +1258,38 @@ export default function NutritionScreen({ nutrition, onChange }) {
         <section className="nutrition-week-strip">
           {weeklyInsights.days.map((item) => <article key={item.key}><span>{item.label}</span><i style={{height:`${Math.max(8,Math.min(100, goals.calories ? (item.calories / goals.calories) * 100 : 0))}%`}}/><small>{item.calories ? Math.round(item.calories) : '—'}</small></article>)}
         </section>
+        <section className="nutrition-adaptive-card" data-state={adaptiveAnalysis.status}>
+          <header>
+            <div>
+              <span className="eyebrow">ADAPTIVE NUTRITION</span>
+              <h3>{adaptiveAnalysis.status === 'recommend' ? 'AVAREN recommends a target adjustment.' : adaptiveAnalysis.status === 'on_track' ? 'Your current target is tracking well.' : 'AVAREN is still learning your response.'}</h3>
+            </div>
+            {Number.isFinite(adaptiveAnalysis.percentPerWeek) ? <strong className="nutrition-adaptive-trend">{adaptiveAnalysis.percentPerWeek > 0 ? '+' : ''}{round(adaptiveAnalysis.percentPerWeek)}% / week</strong> : null}
+          </header>
+
+          <p>{adaptiveAnalysis.reason ?? (
+            adaptiveAnalysis.status === 'recommend'
+              ? `Your weight trend and recent intake suggest a ${adaptiveAnalysis.adjustmentCalories > 0 ? 'small increase' : 'small reduction'} is appropriate.`
+              : 'Weight trend and intake adherence currently support holding the plan steady.'
+          )}</p>
+
+          {adaptiveAnalysis.adherence != null ? <div className="nutrition-adaptive-meta">
+            <span>{Math.round(adaptiveAnalysis.adherence * 100)}% calorie adherence</span>
+            <span>{adaptiveAnalysis.weighIns ?? 0} weigh-ins</span>
+            <span>{adaptiveAnalysis.loggedDays ?? 0}/14 nutrition days</span>
+          </div> : null}
+
+          {adaptiveAnalysis.status === 'recommend' ? <div className="nutrition-adaptive-action">
+            <div>
+              <span>Current base</span>
+              <strong>{Math.round(Number(goals.calories || 0)).toLocaleString()} → {Math.round(Number(adaptiveAnalysis.proposedBaseCalories || goals.calories)).toLocaleString()} cal</strong>
+            </div>
+            <button className="gold-button machined" onClick={applyAdaptiveAdjustment}>
+              <Sparkles size={16}/>Apply {adaptiveAnalysis.adjustmentCalories > 0 ? '+' : ''}{adaptiveAnalysis.adjustmentCalories} cal
+            </button>
+          </div> : null}
+        </section>
+
         <section className="nutrition-coaching-insight"><Sparkles size={18}/><div><strong>{weeklyInsights.proteinDays >= 5 ? 'Protein consistency is strong.' : 'Protein is the clearest opportunity.'}</strong><span>{weeklyInsights.proteinDays >= 5 ? 'Keep the same routine and focus on consistency.' : `You reached at least 90% of your protein goal on ${weeklyInsights.proteinDays} days.`}</span></div></section>
         <details className="nutrition-history-disclosure"><summary><History size={17}/>View daily history</summary><div className="nutrition-history-list">{Object.values(nutrition.days ?? {}).sort((a,b)=>b.date.localeCompare(a.date)).map((entry)=>{const t=nutritionTotals(entry);return <article key={entry.date}><div><strong>{new Date(`${entry.date}T12:00:00`).toLocaleDateString()}</strong><span>{entry.foods.length} foods · {round(entry.waterOz)} oz water</span></div><div><strong>{Math.round(t.calories)} cal</strong><span>{round(t.protein)}g protein</span></div></article>})}</div></details>
       </section>}
@@ -1203,7 +1311,7 @@ export default function NutritionScreen({ nutrition, onChange }) {
             {['calories','protein','carbs','fat','fiber','waterOz','bottleOz','weightGoal'].map((field)=><label key={field}><span>{field}</span><input type="number" value={goals[field] ?? ''} onChange={(e)=>patch((current)=>({...current,goals:{...goals,[field]:e.target.value,configured:true,source:goals.source === 'coach_set' ? 'coach_set' : 'user_set'}}))}/></label>)}
             <label className="wide nutrition-toggle"><span><strong>Share nutrition with connected coach</strong><small>Optional. AVAREN works fully without a coach.</small></span><input type="checkbox" checked={Boolean(goals.coachAccess)} onChange={(e)=>patch((current)=>({...current,goals:{...goals,coachAccess:e.target.checked}}))}/></label>
             <label><span>Today’s weight</span><input type="number" step="0.1" value={day.weight} onChange={(e)=>patchDay((current)=>({...current,weight:e.target.value}))}/></label>
-            <label><span>Workout calories</span><input type="number" value={day.workoutCalories} onChange={(e)=>patchDay((current)=>({...current,workoutCalories:e.target.value}))}/></label>
+
           </div>
           <button
             className="nutrition-secondary-button nutrition-recalculate"
