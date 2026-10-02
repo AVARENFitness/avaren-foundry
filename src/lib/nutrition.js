@@ -49,6 +49,7 @@ export const emptyNutritionDay = (date = nutritionDateKey()) => ({
   waterOz: 0,
   weight: '',
   workoutCalories: 0,
+  workoutActivities: [],
   notes: '',
 })
 
@@ -59,6 +60,22 @@ export const ensureNutritionDay = (nutrition, date = nutritionDateKey()) => ({
     [date]: nutrition?.days?.[date] ?? emptyNutritionDay(date),
   },
 })
+
+export const workoutActivityCalories = (day) => {
+  const entries = Array.isArray(day?.workoutActivities)
+    ? day.workoutActivities
+    : []
+
+  if (entries.length) {
+    return entries.reduce(
+      (sum, entry) => sum + Math.max(0, Number(entry?.activeCalories || 0)),
+      0,
+    )
+  }
+
+  // Legacy fallback for older nutrition-day snapshots.
+  return Math.max(0, Number(day?.workoutCalories || 0))
+}
 
 export const nutritionTotals = (day) =>
   (day?.foods ?? []).reduce(
@@ -77,7 +94,7 @@ export const remainingNutrition = (goals, totals, day) => ({
     goals?.calories == null
       ? null
       : Number(goals.calories) +
-        Number(day?.workoutCalories || 0) -
+        workoutActivityCalories(day) -
         totals.calories,
   protein:
     goals?.protein == null ? null : Number(goals.protein) - totals.protein,
