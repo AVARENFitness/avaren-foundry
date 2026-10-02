@@ -20,8 +20,9 @@ describe('calculateNutritionTargets', () => {
     expect(result.protein).toBeGreaterThan(100)
     expect(result.carbs).toBeGreaterThan(0)
     expect(result.fat).toBeGreaterThan(0)
-    expect(result.calculationVersion).toBe('mifflin-st-jeor-v2-watch-adjusted')
-    expect(result.carbs).toBeLessThan(400)
+    expect(result.calculationVersion).toBe('mifflin-st-jeor-v3-goal-training-aware')
+    expect(result.macroStrategy.goalLabel).toBe('Maintenance')
+    expect(result.macroStrategy.proteinGPerKg).toBe(1.8)
   })
 
   it('uses lower calories for a fat-loss goal than maintenance', () => {
@@ -63,7 +64,32 @@ describe('calculateNutritionTargets', () => {
     })
 
     expect(frequentTraining.calories).toBe(noTraining.calories)
-    expect(frequentTraining.carbs).toBe(noTraining.carbs)
+    expect(frequentTraining.protein).toBe(noTraining.protein)
+    expect(frequentTraining.carbs).toBeGreaterThan(noTraining.carbs)
+    expect(frequentTraining.fat).toBeLessThan(noTraining.fat)
+  })
+
+
+  it('changes macro emphasis by goal rather than using one universal split', () => {
+    const shared = {
+      age: 30,
+      sexForEnergyEstimation: 'male',
+      heightIn: 70,
+      weightLb: 180,
+      activityLevel: 'moderately_active',
+      strengthSessionsPerWeek: 4,
+      cardioSessionsPerWeek: 1,
+    }
+
+    const loss = calculateNutritionTargets({ ...shared, goal: 'lose_fat' })
+    const build = calculateNutritionTargets({ ...shared, goal: 'build_muscle' })
+    const performance = calculateNutritionTargets({ ...shared, goal: 'performance' })
+
+    expect(loss.protein).toBeGreaterThan(build.protein)
+    expect(build.calories).toBeGreaterThan(performance.calories)
+    expect(performance.carbs).toBeGreaterThan(loss.carbs)
+    expect(loss.macroStrategy.goalLabel).toBe('Fat loss')
+    expect(build.macroStrategy.goalLabel).toBe('Muscle gain')
   })
 
   it('rejects incomplete inputs instead of inventing a target', () => {
