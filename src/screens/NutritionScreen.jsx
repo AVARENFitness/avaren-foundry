@@ -136,7 +136,7 @@ export default function NutritionScreen({ nutrition, onChange }) {
   const [notice, setNotice] = useState('')
   const [showWorkoutActivityForm, setShowWorkoutActivityForm] = useState(false)
   const [workoutActivityDraft, setWorkoutActivityDraft] = useState({
-    label: 'Apple Watch Workout',
+    label: 'Strength Training',
     activeCalories: '',
   })
   const [nutritionSetup, setNutritionSetup] = useState(() => {
@@ -393,7 +393,7 @@ export default function NutritionScreen({ nutrition, onChange }) {
       return
     }
 
-    const label = workoutActivityDraft.label.trim() || 'Apple Watch Workout'
+    const label = workoutActivityDraft.label || 'Strength Training'
     patchDay((current) => ({
       ...current,
       workoutActivities: [
@@ -409,7 +409,7 @@ export default function NutritionScreen({ nutrition, onChange }) {
     }))
 
     setWorkoutActivityDraft({
-      label: 'Apple Watch Workout',
+      label: 'Strength Training',
       activeCalories: '',
     })
     setShowWorkoutActivityForm(false)
@@ -908,11 +908,14 @@ export default function NutritionScreen({ nutrition, onChange }) {
           {showWorkoutActivityForm && <div className="nutrition-workout-activity-form">
             <label>
               <span>Workout</span>
-              <input
+              <select
                 value={workoutActivityDraft.label}
                 onChange={(event) => setWorkoutActivityDraft((current) => ({ ...current, label: event.target.value }))}
-                placeholder="Strength workout, cardio, run…"
-              />
+              >
+                {['Strength Training', 'Cardio', 'Running', 'Walking', 'Cycling', 'HIIT', 'Sports', 'Other'].map((option) => (
+                  <option key={option} value={option}>{option}</option>
+                ))}
+              </select>
             </label>
             <label>
               <span>Active Calories</span>
