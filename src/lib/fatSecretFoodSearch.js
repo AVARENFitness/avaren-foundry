@@ -89,3 +89,46 @@ export async function getFatSecretFood(foodId) {
     servings: Array.isArray(data?.servings) ? data.servings : [],
   }
 }
+
+
+export async function getFatSecretFoodByBarcode(barcode) {
+  const digits = String(barcode ?? '').replace(/\D/g, '')
+  if (![8, 12, 13].includes(digits.length)) {
+    throw new Error('Scan a valid UPC or EAN barcode.')
+  }
+
+  if (!supabase) {
+    throw new Error('AVAREN food search is unavailable right now.')
+  }
+
+  const { data, error } = await supabase.functions.invoke(
+    'fatsecret-food-search',
+    {
+      body: {
+        action: 'barcode',
+        barcode: digits.padStart(13, '0'),
+      },
+    },
+  )
+
+  if (error) {
+    throw new Error(error.message || 'Barcode lookup failed.')
+  }
+
+  if (data?.error) {
+    if (String(data.error).includes('211') || data.error === 'barcode_not_found') {
+      throw new Error('No verified food matched that barcode.')
+    }
+    throw new Error('Barcode lookup is unavailable right now.')
+  }
+
+  return {
+    provider: 'fatsecret',
+    foodId: String(data?.foodId ?? ''),
+    barcode: String(data?.barcode ?? digits.padStart(13, '0')),
+    name: String(data?.name ?? ''),
+    brand: String(data?.brand ?? ''),
+    foodType: String(data?.foodType ?? ''),
+    servings: Array.isArray(data?.servings) ? data.servings : [],
+  }
+}
