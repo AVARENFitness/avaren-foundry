@@ -22,7 +22,7 @@ const schema = {
     additionalProperties: false,
     required: [
       'kind','title','brand','servingDescription','calories','protein','carbs','fat','fiber',
-      'confidence','sourceType','searchQuery','components','followUpQuestion','notes'
+      'confidence','sourceType','searchQuery','barcode','components','followUpQuestion','notes'
     ],
     properties: {
       kind: { type: 'string', enum: ['nutrition_label','packaged_product','meal'] },
@@ -35,8 +35,9 @@ const schema = {
       fat: { type: 'number' },
       fiber: { type: 'number' },
       confidence: { type: 'string', enum: ['high','moderate','low'] },
-      sourceType: { type: 'string', enum: ['label_read','product_identification','visual_estimate'] },
+      sourceType: { type: 'string', enum: ['label_read','product_identification','visual_estimate','barcode_read'] },
       searchQuery: { type: 'string' },
+      barcode: { type: 'string' },
       components: {
         type: 'array',
         items: {
@@ -69,6 +70,13 @@ PRIORITY OF EVIDENCE
 2. Clearly readable Nutrition Facts or package text in the image.
 3. Recognizable branded packaged-food identity.
 4. Visual portion estimates.
+
+BARCODE MODE
+- If the request explicitly says BARCODE MODE, focus on the barcode area and the human-readable digits beneath it.
+- Return the barcode as digits only in the barcode field.
+- Normalize UPC-A or EAN-8 to a 13-digit GTIN by left-padding zeros when needed.
+- Do not guess missing digits. If the digits are not readable enough, return an empty barcode, low confidence, and explain briefly in notes.
+- In BARCODE MODE use sourceType barcode_read. Other nutrition fields may be zero because the barcode will be resolved against a verified database.
 
 CLASSIFICATION
 - nutrition_label: a readable Nutrition Facts panel is visible. Read the printed serving and macros directly. Do not invent missing numbers.
@@ -112,6 +120,7 @@ export default {
       const body = await req.json()
       const imageDataUrl = String(body?.imageDataUrl ?? '')
       const context = String(body?.context ?? '').trim().slice(0, MAX_CONTEXT_CHARS)
+      const mode = body?.mode === 'barcode' ? 'barcode' : 'food'
 
       if (!imageDataUrl.startsWith('data:image/')) {
         return json({ ok: false, reason: 'image-required' }, 400)
@@ -124,9 +133,11 @@ export default {
       if (!apiKey) return json({ ok: false, reason: 'model-not-configured' }, 503)
 
       const model = Deno.env.get('AVA_VISION_MODEL') || Deno.env.get('AVA_CHAT_MODEL') || 'gpt-4o-mini'
-      const userText = context
-        ? `Analyze this food photo. User context: ${context}`
-        : 'Analyze this food photo. No extra context was provided, so do not ask a follow-up question.'
+      const userText = mode === 'barcode'
+        ? 'BARCODE MODE. Read the UPC/EAN barcode digits from this close-up. Do not ask a follow-up question.'
+        : context
+          ? `Analyze this food photo. User context: ${context}`
+          : 'Analyze this food photo. No extra context was provided, so do not ask a follow-up question.'
 
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
