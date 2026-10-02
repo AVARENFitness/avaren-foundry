@@ -23,6 +23,8 @@ import {
   Watch,
   Camera,
   ImagePlus,
+  ScanLine,
+  Upload,
 } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
@@ -46,7 +48,11 @@ import {
 import { COMMON_FOODS, FOOD_CATEGORIES } from '../data/commonFoods'
 import { appUi } from '../lib/appUi'
 import { createRuntimeId } from '../lib/createRuntimeId'
-import { getFatSecretFood, searchFatSecretFoods } from '../lib/fatSecretFoodSearch'
+import {
+  getFatSecretFood,
+  getFatSecretFoodByBarcode,
+  searchFatSecretFoods,
+} from '../lib/fatSecretFoodSearch'
 import {
   analyzeNutritionImage,
   prepareNutritionScanImage,
@@ -63,7 +69,7 @@ import {
 
 const tabs = [
   { label: 'Today', value: 'Today' },
-  { label: 'Meals', value: 'Meals' },
+  { label: 'Log', value: 'Meals' },
   { label: 'Library', value: 'Library' },
   { label: 'Insights', value: 'Insights' },
 ]
@@ -144,7 +150,9 @@ export default function NutritionScreen({ nutrition, onChange }) {
   const [recipeLogTarget, setRecipeLogTarget] = useState(null)
   const [recipeLogAmount, setRecipeLogAmount] = useState(1)
   const [notice, setNotice] = useState('')
-  const scanInputRef = useRef(null)
+  const cameraInputRef = useRef(null)
+  const uploadInputRef = useRef(null)
+  const barcodeInputRef = useRef(null)
   const [scanState, setScanState] = useState('idle')
   const [scanError, setScanError] = useState('')
   const [scanPreview, setScanPreview] = useState('')
@@ -466,10 +474,12 @@ export default function NutritionScreen({ nutrition, onChange }) {
     setScanResult(null)
     setScanDraft(null)
     setScanMatches([])
-    if (scanInputRef.current) scanInputRef.current.value = ''
+    if (cameraInputRef.current) cameraInputRef.current.value = ''
+    if (uploadInputRef.current) uploadInputRef.current.value = ''
+    if (barcodeInputRef.current) barcodeInputRef.current.value = ''
   }
 
-  const runFoodScan = async (file, contextOverride = null) => {
+  const runFoodScan = async (file, contextOverride = null, mode = 'food') => {
     try {
       setScanState('loading')
       setScanError('')
@@ -482,7 +492,40 @@ export default function NutritionScreen({ nutrition, onChange }) {
       const result = await analyzeNutritionImage({
         imageDataUrl: prepared,
         context: contextOverride ?? scanContext,
+        mode,
       })
+
+      if (mode === 'barcode') {
+        const barcode = String(result.barcode || '').replace(/\D/g, '')
+        if (![8, 12, 13].includes(barcode.length)) {
+          throw new Error('AVA could not read that barcode clearly. Try moving closer and keeping it in focus.')
+        }
+
+        const matched = await getFatSecretFoodByBarcode(barcode)
+        const food = {
+          id: `fatsecret:${matched.foodId}`,
+          foodId: matched.foodId,
+          provider: 'fatsecret',
+          sourceLabel: 'FatSecret',
+          name: matched.name,
+          brand: matched.brand || 'FatSecret',
+          serving: matched.servings?.[0]?.description || 'Serving details',
+          category: matched.foodType || 'Food',
+          calories: Number(matched.servings?.[0]?.calories || 0),
+          protein: Number(matched.servings?.[0]?.protein || 0),
+          carbs: Number(matched.servings?.[0]?.carbs || 0),
+          fat: Number(matched.servings?.[0]?.fat || 0),
+          fiber: Number(matched.servings?.[0]?.fiber || 0),
+        }
+
+        setFatSecretDetailCache((current) => ({
+          ...current,
+          [matched.foodId]: matched,
+        }))
+        resetFoodScan()
+        await openFood(food)
+        return
+      }
 
       const draft = {
         name: result.title || 'Scanned food',
@@ -568,7 +611,7 @@ export default function NutritionScreen({ nutrition, onChange }) {
   const addWorkoutActivity = () => {
     const activeCalories = Math.round(Number(workoutActivityDraft.activeCalories || 0))
     if (activeCalories <= 0) {
-      setNotice('Enter the Active Calories from your Apple Watch.')
+      setNotice('Enter the Active Calories from your wearable or fitness tracker.')
       return
     }
 
@@ -580,7 +623,7 @@ export default function NutritionScreen({ nutrition, onChange }) {
         {
           id: createRuntimeId(),
           label,
-          source: 'apple_watch_manual',
+          source: 'wearable_manual',
           activeCalories,
           loggedAt: new Date().toISOString(),
         },
@@ -995,7 +1038,7 @@ export default function NutritionScreen({ nutrition, onChange }) {
                     <option key={option.value} value={option.value}>{option.label}</option>
                   ))}
                 </select>
-                <small>Choose your normal movement outside intentional workouts. Log Apple Watch Active Calories separately after training.</small>
+                <small>Choose your normal movement outside intentional workouts. Log Active Calories from your wearable or fitness tracker separately after training.</small>
 
               <label>
                 <span>Strength sessions / week</span>
@@ -1044,7 +1087,7 @@ export default function NutritionScreen({ nutrition, onChange }) {
             <p className="nutrition-estimate-note">
               AVAREN builds the base target from body size, age, sex, goal, and normal daily movement.
               Protein is anchored to bodyweight and goal, fat stays above a physiological floor, and
-              carbohydrate rises with training demand. Apple Watch Active Calories are still added
+              carbohydrate rises with training demand. Active Calories from your wearable or fitness tracker are still added
               separately after training so exercise is not counted twice.
             </p>
           </section>
@@ -1086,6 +1129,19 @@ export default function NutritionScreen({ nutrition, onChange }) {
           {[['Protein', totals.protein, goals.protein, 'g'], ['Carbs', totals.carbs, goals.carbs, 'g'], ['Fat', totals.fat, goals.fat, 'g'], ['Fiber', totals.fiber, goals.fiber, 'g']].map(([label,value,goal,unit]) => <article key={label}><span>{label}</span><strong>{round(value)}<small> / {goal}{unit}</small></strong><ProgressBar value={value} goal={goal}/></article>)}
         </section>
 
+        <section className="nutrition-quick-log-launcher">
+          <div>
+            <span className="eyebrow">QUICK LOG</span>
+            <strong>Add food in seconds</strong>
+          </div>
+          <div className="nutrition-quick-log-actions">
+            <button onClick={() => setTab('Meals')}><Search size={17}/><span>Search</span></button>
+            <button onClick={() => cameraInputRef.current?.click()}><Camera size={17}/><span>Camera</span></button>
+            <button onClick={() => uploadInputRef.current?.click()}><Upload size={17}/><span>Upload</span></button>
+            <button onClick={() => barcodeInputRef.current?.click()}><ScanLine size={17}/><span>Barcode</span></button>
+          </div>
+        </section>
+
         <section className="nutrition-quick-grid">
           <button onClick={() => setTab('Meals')}><Plus/><strong>Log Food</strong><span>Manual, saved, or recent</span></button>
           <button onClick={() => addWater(Number(goals.bottleOz || 33.8))}><Droplets/><strong>1 Bottle</strong><span>{goals.bottleOz} oz</span></button>
@@ -1101,11 +1157,11 @@ export default function NutritionScreen({ nutrition, onChange }) {
               <Watch size={19}/>
               <span>
                 <strong>Workout Activity</strong>
-                <small>{workoutActivityTotal > 0 ? `+${Math.round(workoutActivityTotal)} active calories today` : 'Add Active Calories from Apple Watch'}</small>
+                <small>{workoutActivityTotal > 0 ? `+${Math.round(workoutActivityTotal)} active calories today` : 'Add Active Calories from a wearable or tracker'}</small>
               </span>
             </div>
             <button className="nutrition-secondary-button" onClick={() => setShowWorkoutActivityForm((value) => !value)}>
-              <Plus size={16}/>{showWorkoutActivityForm ? 'Close' : 'Add Watch Calories'}
+              <Plus size={16}/>{showWorkoutActivityForm ? 'Close' : 'Add Active Calories'}
             </button>
           </header>
 
@@ -1142,7 +1198,7 @@ export default function NutritionScreen({ nutrition, onChange }) {
             {(day.workoutActivities ?? []).length ? (day.workoutActivities ?? []).map((entry) => (
               <article key={entry.id}>
                 <div>
-                  <strong>{entry.label || 'Apple Watch Workout'}</strong>
+                  <strong>{entry.label || 'Workout Activity'}</strong>
                   <span>+{Math.round(Number(entry.activeCalories || 0))} active calories</span>
                 </div>
                 <button aria-label={`Remove ${entry.label || 'workout activity'}`} onClick={() => removeWorkoutActivity(entry.id)}>
@@ -1176,25 +1232,60 @@ export default function NutritionScreen({ nutrition, onChange }) {
         </div>
 
         <input
-          ref={scanInputRef}
+          ref={cameraInputRef}
           className="nutrition-scan-input"
           type="file"
           accept="image/*"
           capture="environment"
           onChange={(event) => {
             const file = event.target.files?.[0]
-            if (file) runFoodScan(file)
+            if (file) runFoodScan(file, null, 'food')
+          }}
+        />
+        <input
+          ref={uploadInputRef}
+          className="nutrition-scan-input"
+          type="file"
+          accept="image/*"
+          onChange={(event) => {
+            const file = event.target.files?.[0]
+            if (file) runFoodScan(file, null, 'food')
+          }}
+        />
+        <input
+          ref={barcodeInputRef}
+          className="nutrition-scan-input"
+          type="file"
+          accept="image/*"
+          capture="environment"
+          onChange={(event) => {
+            const file = event.target.files?.[0]
+            if (file) runFoodScan(file, '', 'barcode')
           }}
         />
 
         <div className="nutrition-scan-food">
-          <button className="nutrition-scan-food-button" onClick={() => scanInputRef.current?.click()}>
-            <Camera size={18}/>
-            <span><strong>Scan Food</strong><small>Label, package, or meal photo</small></span>
-            <ChevronRight size={17}/>
-          </button>
+          <div className="nutrition-scan-food-copy">
+            <span className="eyebrow">SCAN FOOD</span>
+            <strong>Use the fastest source you have</strong>
+            <small>Take a photo, upload one you already have, or scan a barcode.</small>
+          </div>
+          <div className="nutrition-scan-choice-grid">
+            <button onClick={() => cameraInputRef.current?.click()}>
+              <Camera size={19}/>
+              <span><strong>Camera</strong><small>Meal, package, or label</small></span>
+            </button>
+            <button onClick={() => uploadInputRef.current?.click()}>
+              <ImagePlus size={19}/>
+              <span><strong>Upload</strong><small>Choose an existing photo</small></span>
+            </button>
+            <button onClick={() => barcodeInputRef.current?.click()}>
+              <ScanLine size={19}/>
+              <span><strong>Barcode</strong><small>UPC or EAN product lookup</small></span>
+            </button>
+          </div>
           <label>
-            <span>Optional details</span>
+            <span>Optional meal details</span>
             <input
               value={scanContext}
               onChange={(event) => setScanContext(event.target.value)}
@@ -1298,7 +1389,7 @@ export default function NutritionScreen({ nutrition, onChange }) {
                   <strong>{scanResult.followUpQuestion}</strong>
                   <div>
                     <input value={scanContext} onChange={(event) => setScanContext(event.target.value)} placeholder="Add one detail"/>
-                    <button onClick={() => runFoodScan(null, scanContext)}>Refine</button>
+                    <button onClick={() => runFoodScan(null, scanContext, 'food')}>Refine</button>
                   </div>
                   <button className="nutrition-scan-skip" onClick={() => setScanResult((current) => ({...current, followUpQuestion:''}))}>Use estimate as-is</button>
                 </div> : null}
