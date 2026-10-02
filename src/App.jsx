@@ -352,6 +352,7 @@ function App() {
     coachAuthorized,
   })
   const [screenReturnTo, setScreenReturnTo] = useState(null)
+  const [nutritionInitialTab, setNutritionInitialTab] = useState('Today')
   const [coachCalendarFocusSessionId, setCoachCalendarFocusSessionId] =
     useState(null)
 
@@ -383,6 +384,7 @@ function App() {
   const handleAthleteTabChange = useCallback(
     (nextScreen) => {
       setScreenReturnTo(null)
+      if (nextScreen === 'nutrition') setNutritionInitialTab('Today')
       navigate(nextScreen)
     },
     [navigate],
@@ -1907,6 +1909,7 @@ function App() {
         <NutritionScreen
           nutrition={state.nutrition}
           onChange={handleNutritionChange}
+          initialTab={nutritionInitialTab}
         />
       )
     }
@@ -2230,6 +2233,10 @@ function App() {
           })()}
           showCoachHubShortcut={canShowCoachHubShortcut(session)}
           onOpenCoachHub={enterCoachMode}
+          onOpenNutritionLog={() => {
+            setNutritionInitialTab('Meals')
+            setScreen('nutrition')
+          }}
         />
       </>
     )

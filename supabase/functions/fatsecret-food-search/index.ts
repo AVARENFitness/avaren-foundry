@@ -176,6 +176,32 @@ const searchFoods = async ({
   }
 }
 
+const normalizeBarcode = (value: string) => {
+  const digits = String(value ?? '').replace(/\D/g, '')
+  if (![8, 12, 13].includes(digits.length)) {
+    throw new Error('barcode_invalid')
+  }
+  return digits.padStart(13, '0')
+}
+
+const getFoodByBarcode = async (barcode: string) => {
+  const normalizedBarcode = normalizeBarcode(barcode)
+  const payload = await fatSecretRequest({
+    method: 'food.find_id_for_barcode.v2',
+    barcode: normalizedBarcode,
+  })
+
+  const food = payload?.food ?? payload ?? {}
+  const foodId = String(food?.food_id ?? '')
+  if (!foodId) throw new Error('barcode_not_found')
+
+  const detail = await getFood(foodId)
+  return {
+    ...detail,
+    barcode: normalizedBarcode,
+  }
+}
+
 const getFood = async (foodId: string) => {
   const payload = await fatSecretRequest({
     method: 'food.get.v5',
@@ -222,6 +248,12 @@ Deno.serve(async (req: Request) => {
       const foodId = String(body?.foodId ?? '').trim()
       if (!foodId) return json({ error: 'food_id_required' }, 400)
       return json(await getFood(foodId))
+    }
+
+    if (action === 'barcode') {
+      const barcode = String(body?.barcode ?? '').trim()
+      if (!barcode) return json({ error: 'barcode_required' }, 400)
+      return json(await getFoodByBarcode(barcode))
     }
 
     const query = String(body?.query ?? '').trim()
