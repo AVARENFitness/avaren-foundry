@@ -19311,3 +19311,50 @@ input, textarea, select {
   letter-spacing: 0;
   text-transform: none;
 }
+
+
+/* ===== FATSECRET MODAL HARDENING ===== */
+body > .nutrition-food-sheet-backdrop {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 1000 !important;
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) !important;
+  grid-template-rows: minmax(0, 1fr) !important;
+  align-items: end !important;
+  justify-items: center !important;
+  padding: 16px !important;
+  overflow: hidden !important;
+  background: rgba(0,0,0,.72) !important;
+}
+
+body > .nutrition-food-sheet-backdrop > .nutrition-food-sheet {
+  position: relative !important;
+  z-index: 1001 !important;
+  display: block !important;
+  place-self: end center !important;
+  width: min(620px, calc(100vw - 32px)) !important;
+  max-width: 620px !important;
+  max-height: min(82dvh, 720px) !important;
+  margin: 0 !important;
+  padding: 20px !important;
+  overflow-y: auto !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  transform: none !important;
+  animation: none !important;
+  border: 1px solid rgba(255,255,255,.12) !important;
+  border-radius: 22px !important;
+  background: #171b1f !important;
+  box-shadow: 0 -24px 80px rgba(0,0,0,.55) !important;
+}
+
+@media (min-width: 680px) {
+  body > .nutrition-food-sheet-backdrop {
+    align-items: center !important;
+  }
+
+  body > .nutrition-food-sheet-backdrop > .nutrition-food-sheet {
+    place-self: center !important;
+  }
+}
