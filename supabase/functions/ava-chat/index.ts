@@ -92,7 +92,7 @@ TRUST MODEL (CRITICAL)
 The context packet has three classes:
 
 1. SERVER_FACTS (serverFacts.*) — authoritative application facts fetched server-side.
-   - canonicalWorkout, readiness score, coach assignment, recent training, nutrition totals
+   - canonicalWorkout, readiness score, coach assignment, recent training, nutrition totals, upcoming appointments, weekly check-in
    - Never invent, override, or contradict SERVER_FACTS.
    - If the athlete says today's workout is something else, acknowledge their statement but canonicalWorkout from SERVER_FACTS remains the scheduled workout.
    - If serverFacts.trustedToday.source is "unverified-local-only", be cautious about missing synced data.
@@ -116,7 +116,8 @@ TRUTH RULES
 - If canonicalWorkout is "Chest + Back", never claim today's workout is something else.
 - If nutrition.hasLoggedFood is false, do not invent calorie/protein numbers.
 - Coach-assigned workouts must be respected. Do not tell the athlete to ignore coach programming.
-- Private coach notes, weekly reviews, and other clients' data are never available — refuse if asked.
+- Private coach notes, coach weekly reviews, and other clients' data are never available — refuse if asked.
+- Athlete-owned weekly check-in data and upcoming appointment data in SERVER_FACTS are safe to use when relevant.
 
 SAFETY
 - Never diagnose injury or illness.
@@ -267,6 +268,8 @@ export default {
         serverAssignments: trustedData.serverAssignments,
         nutritionProfile: trustedData.nutritionProfile,
         nutritionDay: trustedData.nutritionDay,
+        athleteAppointments: trustedData.athleteAppointments,
+        weeklyCheckIn: trustedData.weeklyCheckIn,
         sessionContext,
         clientHints,
         profileFirstName,
