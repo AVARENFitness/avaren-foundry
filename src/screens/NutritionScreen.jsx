@@ -21,7 +21,7 @@ import {
   Utensils,
   Star,
 } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useAppModalLayer } from '../hooks/useAppModalLayer'
 import {
   DEFAULT_NUTRITION_GOALS,
@@ -40,6 +40,7 @@ import {
 import { COMMON_FOODS, FOOD_CATEGORIES } from '../data/commonFoods'
 import { appUi } from '../lib/appUi'
 import { createRuntimeId } from '../lib/createRuntimeId'
+import { searchFatSecretFoods } from '../lib/fatSecretFoodSearch'
 import {
   ACTIVITY_OPTIONS,
   NUTRITION_GOAL_OPTIONS,
@@ -80,6 +81,9 @@ export default function NutritionScreen({ nutrition, onChange }) {
   const [selectedFood, setSelectedFood] = useState(null)
   const [selectedMultiplier, setSelectedMultiplier] = useState(1)
   const [foodCategory, setFoodCategory] = useState('All')
+  const [fatSecretFoods, setFatSecretFoods] = useState([])
+  const [fatSecretSearchState, setFatSecretSearchState] = useState('idle')
+  const [fatSecretSearchError, setFatSecretSearchError] = useState('')
   const [recipeDraft, setRecipeDraft] = useState({ name: '', servings: 4, ingredients: [] })
   const [recipeSearch, setRecipeSearch] = useState('')
   const [recipeLogTarget, setRecipeLogTarget] = useState(null)
@@ -139,6 +143,77 @@ export default function NutritionScreen({ nutrition, onChange }) {
       })
       .slice(0, 28)
   }, [foodSearch, foodCategory, favoriteIds, recentIds, nutrition.savedFoods])
+
+  useEffect(() => {
+    const query = foodSearch.trim()
+
+    if (tab !== 'Meals' || showCustomFood || query.length < 2) {
+      setFatSecretFoods([])
+      setFatSecretSearchState('idle')
+      setFatSecretSearchError('')
+      return undefined
+    }
+
+    let cancelled = false
+    setFatSecretSearchState('loading')
+    setFatSecretSearchError('')
+
+    const timer = window.setTimeout(async () => {
+      try {
+        const result = await searchFatSecretFoods(query, { maxResults: 20 })
+        if (cancelled) return
+
+        const foods = (result.foods ?? []).map((food) => ({
+          id: `fatsecret:${food.foodId}`,
+          foodId: food.foodId,
+          provider: 'fatsecret',
+          sourceLabel: 'FatSecret',
+          name: food.name,
+          brand: food.brand || 'FatSecret',
+          serving:
+            food.description?.match(/^Per ([^-]+?)\s+-/i)?.[1]?.trim() ??
+            'Serving details',
+          category: food.foodType || 'Food',
+          calories: Number(food.summaryNutrition?.calories ?? 0),
+          protein: Number(food.summaryNutrition?.protein ?? 0),
+          carbs: Number(food.summaryNutrition?.carbs ?? 0),
+          fat: Number(food.summaryNutrition?.fat ?? 0),
+          fiber: 0,
+          description: food.description,
+          servingOptions: [],
+          fatSecretSummaryOnly: true,
+        }))
+
+        setFatSecretFoods(foods)
+        setFatSecretSearchState('success')
+      } catch (error) {
+        if (cancelled) return
+        setFatSecretFoods([])
+        setFatSecretSearchState('error')
+        setFatSecretSearchError(
+          error?.message ?? 'Live food search is unavailable right now.',
+        )
+      }
+    }, 350)
+
+    return () => {
+      cancelled = true
+      window.clearTimeout(timer)
+    }
+  }, [foodSearch, tab, showCustomFood])
+
+  const visibleFoodMatches = useMemo(() => {
+    const query = foodSearch.trim()
+    if (query.length < 2 || foodCategory === 'Favorites') {
+      return foodMatches
+    }
+
+    const remoteIds = new Set(fatSecretFoods.map((food) => food.id))
+    return [
+      ...foodMatches.filter((food) => !remoteIds.has(food.id)),
+      ...fatSecretFoods,
+    ]
+  }, [foodMatches, fatSecretFoods, foodSearch, foodCategory])
 
   const weeklyInsights = useMemo(() => {
     const today = new Date(`${nutritionDateKey()}T12:00:00`)
@@ -618,7 +693,7 @@ export default function NutritionScreen({ nutrition, onChange }) {
             onChange={(event) => setFoodSearch(event.target.value)}
             placeholder="Try “Clif Bar”, “chicken breast”, or “Greek yogurt”…"
           />
-          {foodSearch && <button aria-label="Clear search" onClick={() => setFoodSearch('')}><X size={17}/></button>}
+          {foodSearch && <button aria-label="Clear search" onClick={() => { setFoodSearch(''); setFatSecretFoods([]); setFatSecretSearchError('') }}><X size={17}/></button>}
         </div>
 
         <div className="nutrition-search-tools">
@@ -632,13 +707,20 @@ export default function NutritionScreen({ nutrition, onChange }) {
               <button key={category} className={foodCategory === category ? 'active' : ''} onClick={() => setFoodCategory(category)}>{category}</button>
             ))}
           </div>
+          {foodSearch.trim().length >= 2 && (
+            <div className="nutrition-live-search-status" data-state={fatSecretSearchState}>
+              {fatSecretSearchState === 'loading' && <span>Searching verified foods…</span>}
+              {fatSecretSearchState === 'success' && fatSecretFoods.length > 0 && <span>Live food database · {fatSecretFoods.length} matches shown</span>}
+              {fatSecretSearchState === 'error' && <span>{fatSecretSearchError}</span>}
+            </div>
+          )}
           <div className="nutrition-food-results">
-            {foodMatches.length ? foodMatches.map((food) => (
+            {visibleFoodMatches.length ? visibleFoodMatches.map((food) => (
               <article key={`${food.sourceLabel}-${food.id ?? food.name}`}>
                 <button className="nutrition-food-result-main" onClick={() => openFood(food)}>
                   <span className="nutrition-food-result-copy">
                     <strong>{food.name}</strong>
-                    <small>{food.serving ?? '1 serving'} · {food.category ?? food.sourceLabel}</small>
+                    <small>{food.serving ?? '1 serving'} · {food.brand || food.category || food.sourceLabel}</small>
                   </span>
                   <span className="nutrition-food-result-macros">
                     <strong>{Math.round(Number(food.calories || 0))} cal</strong>
@@ -670,8 +752,15 @@ export default function NutritionScreen({ nutrition, onChange }) {
             </div>
             <div className="nutrition-sheet-actions">
               <button className="nutrition-secondary-button" onClick={() => toggleFavorite(selectedFood)}>{favoriteIds.includes(selectedFood.id) ? <BookmarkCheck/> : <BookmarkPlus/>}{favoriteIds.includes(selectedFood.id) ? 'Favorited' : 'Favorite'}</button>
-              <button className="gold-button machined" onClick={() => addFood({ ...selectedFood, servings: selectedMultiplier }, selectedFood.sourceLabel === 'Saved' ? 'saved' : 'catalog')}><Plus/>Add to Today</button>
+              {selectedFood.provider === 'fatsecret' && selectedFood.fatSecretSummaryOnly ? (
+                <button className="gold-button machined" disabled title="Serving details are added in the next integration step"><Plus/>Choose Serving Next</button>
+              ) : (
+                <button className="gold-button machined" onClick={() => addFood({ ...selectedFood, servings: selectedMultiplier }, selectedFood.sourceLabel === 'Saved' ? 'saved' : 'catalog')}><Plus/>Add to Today</button>
+              )}
             </div>
+            {selectedFood.provider === 'fatsecret' && selectedFood.fatSecretSummaryOnly && (
+              <p className="nutrition-fatsecret-detail-note">Live FatSecret match confirmed. Exact serving options are the next integration step before AVAREN allows this item to be logged.</p>
+            )}
           </section>
         </div>}
 
