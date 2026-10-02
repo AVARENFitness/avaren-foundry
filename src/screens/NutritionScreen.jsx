@@ -798,36 +798,9 @@ export default function NutritionScreen({ nutrition, onChange }) {
                     <option key={option.value} value={option.value}>{option.label}</option>
                   ))}
                 </select>
-                <small>Include your normal work, daily movement, and training lifestyle.</small>
+                <small>Choose your normal movement outside intentional workouts. Log Apple Watch Active Calories separately after training.</small>
               </label>
 
-              <label>
-                <span>Strength sessions / week</span>
-                <input
-                  type="number"
-                  min="0"
-                  max="14"
-                  value={nutritionSetup.strengthSessionsPerWeek}
-                  onChange={(event) =>
-                    updateSetupField('strengthSessionsPerWeek', event.target.value)
-                  }
-                  placeholder="0"
-                />
-              </label>
-
-              <label>
-                <span>Cardio sessions / week</span>
-                <input
-                  type="number"
-                  min="0"
-                  max="14"
-                  value={nutritionSetup.cardioSessionsPerWeek}
-                  onChange={(event) =>
-                    updateSetupField('cardioSessionsPerWeek', event.target.value)
-                  }
-                  placeholder="0"
-                />
-              </label>
             </div>
 
             {setupError ? <p className="nutrition-setup-error">{setupError}</p> : null}
@@ -842,9 +815,9 @@ export default function NutritionScreen({ nutrition, onChange }) {
             </div>
 
             <p className="nutrition-estimate-note">
-              AVAREN uses a standard energy equation to create a starting estimate.
-              It is not a metabolic test, and your targets can be refined as your
-              real-world progress develops.
+              AVAREN estimates a base target from body size, goal, and normal daily movement.
+              Intentional workout calories are added separately from Apple Watch Active Calories,
+              which helps avoid counting the same training twice.
             </p>
           </section>
         ) : (
@@ -859,7 +832,7 @@ export default function NutritionScreen({ nutrition, onChange }) {
         <section className="nutrition-target-summary">
           <div>
             <span className="eyebrow">YOUR TARGETS</span>
-            <strong>{Math.round(Number(goals.calories || 0)).toLocaleString()} calories</strong>
+            <strong>{Math.round(Number(goals.calories || 0)).toLocaleString()} base calories</strong>
             <small>
               {Math.round(Number(goals.protein || 0))}g protein · {Math.round(Number(goals.carbs || 0))}g carbs · {Math.round(Number(goals.fat || 0))}g fat
             </small>
