@@ -19258,3 +19258,56 @@ input, textarea, select {
   cursor: not-allowed;
   box-shadow: none;
 }
+
+
+.nutrition-fatsecret-detail-state {
+  display: grid;
+  gap: 8px;
+  padding: 18px;
+  margin: 4px 0 14px;
+  border: 1px solid var(--border-subtle, rgba(246,242,233,.08));
+  border-radius: 14px;
+  background: var(--surface-1, rgba(255,255,255,.02));
+  color: var(--text-supporting, #948d84);
+  font-size: 13px;
+}
+
+.nutrition-fatsecret-detail-state.error {
+  color: #d79a90;
+}
+
+.nutrition-fatsecret-detail-state button {
+  justify-self: start;
+  min-height: 38px;
+  padding: 0 12px;
+  border: 1px solid rgba(216,184,109,.24);
+  border-radius: 10px;
+  background: rgba(216,184,109,.06);
+  color: #d9c27f;
+}
+
+.nutrition-fatsecret-quantity {
+  display: grid;
+  gap: 8px;
+  margin: 14px 0;
+  color: var(--text-supporting, #948d84);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.nutrition-fatsecret-quantity input {
+  width: 100%;
+  min-height: 46px;
+  box-sizing: border-box;
+  padding: 0 12px;
+  border: 1px solid var(--border-subtle, rgba(246,242,233,.08));
+  border-radius: 12px;
+  background: rgba(255,255,255,.025);
+  color: #f6f2e9;
+  font: inherit;
+  font-size: 16px;
+  letter-spacing: 0;
+  text-transform: none;
+}
