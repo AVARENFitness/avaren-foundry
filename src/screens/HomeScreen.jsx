@@ -8,6 +8,7 @@ import {
   Moon,
   Sun,
   Utensils,
+  Plus,
 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useLocalCalendarDay } from '../hooks/useLocalCalendarDay'
@@ -102,6 +103,7 @@ export default function HomeScreen({
   weeklyCheckInRequired = true,
   navigateToBuilder,
   trainingRecommendation = null,
+  onOpenNutritionLog,
 }) {
   const { openAva } = useAvaUi()
   const localCalendarDay = useLocalCalendarDay()
@@ -496,6 +498,25 @@ export default function HomeScreen({
         />
       ))}
  
+
+      <section className="home-nutrition-quicklog">
+        <div className="home-nutrition-quicklog-copy">
+          <span className="eyebrow">NUTRITION</span>
+          <strong>Log food</strong>
+          <span>
+            {nutritionSummary?.calories || 0} / {nutritionSummary?.goal || 2200} cal
+            {' · '}{nutritionSummary?.protein || 0}g protein
+          </span>
+        </div>
+        <button
+          type="button"
+          className="home-nutrition-quicklog-action"
+          onClick={() => onOpenNutritionLog?.()}
+        >
+          <Plus size={17} strokeWidth={1.8} />
+          Log Food
+        </button>
+      </section>
 
       <AvaDailyBriefing
         briefing={avaBriefing}
