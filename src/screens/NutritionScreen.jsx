@@ -20,6 +20,7 @@ import {
   Trash2,
   Utensils,
   Star,
+  Watch,
 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
@@ -31,6 +32,7 @@ import {
   nutritionDateKey,
   nutritionTotals,
   remainingNutrition,
+  workoutActivityCalories,
 } from '../lib/nutrition'
 import {
   appendFoodToNutrition,
@@ -132,6 +134,11 @@ export default function NutritionScreen({ nutrition, onChange }) {
   const [recipeLogTarget, setRecipeLogTarget] = useState(null)
   const [recipeLogAmount, setRecipeLogAmount] = useState(1)
   const [notice, setNotice] = useState('')
+  const [showWorkoutActivityForm, setShowWorkoutActivityForm] = useState(false)
+  const [workoutActivityDraft, setWorkoutActivityDraft] = useState({
+    label: 'Apple Watch Workout',
+    activeCalories: '',
+  })
   const [nutritionSetup, setNutritionSetup] = useState(() => {
     const inputs = nutrition?.goals?.inputs ?? {}
     const heightIn = Number(inputs.heightIn || 0)
@@ -174,6 +181,10 @@ export default function NutritionScreen({ nutrition, onChange }) {
   )
   const totals = useMemo(() => nutritionTotals(resolvedDay), [resolvedDay])
   const remaining = useMemo(() => remainingNutrition(goals, totals, resolvedDay), [goals, totals, resolvedDay])
+  const workoutActivityTotal = useMemo(
+    () => workoutActivityCalories(day),
+    [day],
+  )
   const favoriteIds = nutrition?.favoriteFoodIds ?? []
   const recentIds = nutrition?.recentFoodIds ?? []
   const foodMatches = useMemo(() => {
@@ -374,6 +385,45 @@ export default function NutritionScreen({ nutrition, onChange }) {
     const nextDay = typeof updater === 'function' ? updater(currentDay) : updater
     return { ...current, days: { ...(current.days ?? {}), [date]: nextDay } }
   })
+
+  const addWorkoutActivity = () => {
+    const activeCalories = Math.round(Number(workoutActivityDraft.activeCalories || 0))
+    if (activeCalories <= 0) {
+      setNotice('Enter the Active Calories from your Apple Watch.')
+      return
+    }
+
+    const label = workoutActivityDraft.label.trim() || 'Apple Watch Workout'
+    patchDay((current) => ({
+      ...current,
+      workoutActivities: [
+        ...(current.workoutActivities ?? []),
+        {
+          id: createRuntimeId(),
+          label,
+          source: 'apple_watch_manual',
+          activeCalories,
+          loggedAt: new Date().toISOString(),
+        },
+      ],
+    }))
+
+    setWorkoutActivityDraft({
+      label: 'Apple Watch Workout',
+      activeCalories: '',
+    })
+    setShowWorkoutActivityForm(false)
+    setNotice(`${activeCalories} active calories added from ${label}.`)
+  }
+
+  const removeWorkoutActivity = (id) => {
+    patchDay((current) => ({
+      ...current,
+      workoutActivities: (current.workoutActivities ?? []).filter(
+        (entry) => entry.id !== id,
+      ),
+    }))
+  }
 
   const updateSetupField = (field, value) => {
     setNutritionSetup((current) => ({ ...current, [field]: value }))
@@ -802,8 +852,8 @@ export default function NutritionScreen({ nutrition, onChange }) {
         <div className="nutrition-date-switcher"><button onClick={() => changeDate(-1)}><ChevronLeft/></button><strong>{new Date(`${date}T12:00:00`).toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' })}</strong><button disabled={date === nutritionDateKey()} onClick={() => changeDate(1)}><ChevronRight/></button></div>
 
         <section className="nutrition-calorie-hero">
-          <div><span className="eyebrow">CALORIES REMAINING</span><strong>{Math.round(remaining.calories)}</strong><small>{Math.round(totals.calories)} eaten · {Math.round(Number(goals.calories) + Number(day.workoutCalories || 0))} budget</small></div>
-          <ProgressBar value={totals.calories} goal={Number(goals.calories) + Number(day.workoutCalories || 0)} />
+          <div><span className="eyebrow">CALORIES REMAINING</span><strong>{Math.round(remaining.calories)}</strong><small>{Math.round(totals.calories)} eaten · {Math.round(Number(goals.calories) + workoutActivityTotal)} budget{workoutActivityTotal > 0 ? ` · +${Math.round(workoutActivityTotal)} activity` : ''}</small></div>
+          <ProgressBar value={totals.calories} goal={Number(goals.calories) + workoutActivityTotal} />
         </section>
 
         <section className="nutrition-target-summary">
@@ -840,6 +890,61 @@ export default function NutritionScreen({ nutrition, onChange }) {
         </section>
 
         <section className="nutrition-hydration-card"><div><Droplets/><span><strong>Hydration</strong><small>{round(day.waterOz)} of {goals.waterOz} oz</small></span></div><ProgressBar value={day.waterOz} goal={goals.waterOz}/></section>
+
+        <section className="nutrition-workout-activity-card">
+          <header>
+            <div>
+              <Watch size={19}/>
+              <span>
+                <strong>Workout Activity</strong>
+                <small>{workoutActivityTotal > 0 ? `+${Math.round(workoutActivityTotal)} active calories today` : 'Add Active Calories from Apple Watch'}</small>
+              </span>
+            </div>
+            <button className="nutrition-secondary-button" onClick={() => setShowWorkoutActivityForm((value) => !value)}>
+              <Plus size={16}/>{showWorkoutActivityForm ? 'Close' : 'Add Watch Calories'}
+            </button>
+          </header>
+
+          {showWorkoutActivityForm && <div className="nutrition-workout-activity-form">
+            <label>
+              <span>Workout</span>
+              <input
+                value={workoutActivityDraft.label}
+                onChange={(event) => setWorkoutActivityDraft((current) => ({ ...current, label: event.target.value }))}
+                placeholder="Strength workout, cardio, run…"
+              />
+            </label>
+            <label>
+              <span>Active Calories</span>
+              <input
+                type="number"
+                min="1"
+                step="1"
+                inputMode="numeric"
+                value={workoutActivityDraft.activeCalories}
+                onChange={(event) => setWorkoutActivityDraft((current) => ({ ...current, activeCalories: event.target.value }))}
+                placeholder="347"
+              />
+            </label>
+            <button className="gold-button machined" onClick={addWorkoutActivity}>
+              <Plus size={17}/>Add Activity
+            </button>
+          </div>}
+
+          <div className="nutrition-workout-activity-list">
+            {(day.workoutActivities ?? []).length ? (day.workoutActivities ?? []).map((entry) => (
+              <article key={entry.id}>
+                <div>
+                  <strong>{entry.label || 'Apple Watch Workout'}</strong>
+                  <span>+{Math.round(Number(entry.activeCalories || 0))} active calories</span>
+                </div>
+                <button aria-label={`Remove ${entry.label || 'workout activity'}`} onClick={() => removeWorkoutActivity(entry.id)}>
+                  <Trash2 size={16}/>
+                </button>
+              </article>
+            )) : <p>No workout activity added yet.</p>}
+          </div>
+        </section>
 
         <section className="nutrition-food-log">
           <header><div><span className="eyebrow">FOOD LOG</span><h2>{resolvedDayFoods.length ? `${resolvedDayFoods.length} items` : 'Nothing logged yet'}</h2></div><button onClick={() => setTab('Meals')}><Plus/>Add</button></header>
