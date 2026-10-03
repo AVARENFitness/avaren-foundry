@@ -671,7 +671,24 @@ export const coachBackend = {
     return unwrap(supabase.from('coach_assignments').update({ status: 'started', started_at: new Date().toISOString() }).eq('id', id).select().single())
   },
   async markAssignmentCompleted(id, completedSessionId, completionSummary = {}) {
-    return unwrap(supabase.from('coach_assignments').update({ status: 'completed', completed_at: new Date().toISOString(), completed_session_id: completedSessionId, completion_summary: completionSummary }).eq('id', id).select().single())
+    const {
+      completedAt = null,
+      ...summary
+    } = completionSummary ?? {}
+
+    return unwrap(
+      supabase
+        .from('coach_assignments')
+        .update({
+          status: 'completed',
+          completed_at: completedAt ?? new Date().toISOString(),
+          completed_session_id: completedSessionId,
+          completion_summary: summary,
+        })
+        .eq('id', id)
+        .select()
+        .single(),
+    )
   },
   async cancelAssignment(id) {
     await unwrap(
