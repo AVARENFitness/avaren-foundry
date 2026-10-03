@@ -27,6 +27,7 @@ vi.mock('../lib/appUi', () => ({
 import { appUi } from '../lib/appUi'
 import { coachBackend } from '../lib/coachBackend'
 import { completeWorkoutSession } from '../lib/athleteWorkoutSessionsBackend'
+import { listQueuedWorkoutCompletionSideEffects } from '../lib/workoutCompletionSideEffects'
 import {
   OPEN_WORKOUT_NAME,
   WORKOUT_ORIGIN,
@@ -63,6 +64,7 @@ function buildState(overrides = {}) {
 describe('useWorkoutSession reliability', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    localStorage.clear()
   })
 
   it('reuses existing active session on double start', () => {
@@ -174,6 +176,66 @@ describe('useWorkoutSession reliability', () => {
     })
 
     expect(navigate).toHaveBeenCalledWith('home')
+  })
+
+  it('keeps coach completion side effects queued until the workout is durably persisted', async () => {
+    completeWorkoutSession.mockResolvedValueOnce({
+      persisted: false,
+      queued: true,
+      created: false,
+    })
+
+    let latestState = buildState({
+      activeWorkout: {
+        id: 'session-offline',
+        assignmentId: 'assign-1',
+        scheduledSessionId: 'appt-1',
+        name: 'Arms',
+        date: '2026-10-03',
+        startedAt: '2026-10-03T14:00:00.000Z',
+        activeExerciseIndex: 0,
+        exercises: [
+          {
+            id: 'ex-1',
+            name: 'Curl',
+            muscle: 'Biceps',
+            loadType: 'external',
+            sets: [
+              {
+                ...makeActiveSet(1, 'Working'),
+                weight: 30,
+                reps: 10,
+                done: true,
+              },
+            ],
+          },
+        ],
+      },
+    })
+
+    const setState = vi.fn((updater) => {
+      latestState =
+        typeof updater === 'function' ? updater(latestState) : updater
+    })
+
+    const { result } = renderHook(() =>
+      useWorkoutSession({
+        state: latestState,
+        setState,
+        navigate: vi.fn(),
+        athleteId: 'athlete-1',
+      }),
+    )
+
+    await act(async () => {
+      await result.current.finishWorkout()
+    })
+
+    expect(coachBackend.markAssignmentCompleted).not.toHaveBeenCalled()
+    expect(coachBackend.updateScheduledSession).not.toHaveBeenCalled()
+    expect(
+      listQueuedWorkoutCompletionSideEffects('athlete-1'),
+    ).toHaveLength(2)
   })
 
   it('reuses active coach assignment session instead of creating another', async () => {
