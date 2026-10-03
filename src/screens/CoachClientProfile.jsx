@@ -64,11 +64,6 @@ import {
 import { appUi } from '../lib/appUi'
 import AppUiBackdrop from '../components/ui/AppUiBackdrop'
 import AppUiCloseButton from '../components/ui/AppUiCloseButton'
-import {
-  emptySessionPackage,
-  formatPackageDate,
-  normalizeSessionPackage,
-} from '../lib/sessionPackages'
 import ClientIntelligenceDashboard from '../components/ClientIntelligenceDashboard'
 import CoachClientInPersonPanel from '../components/coach/CoachClientInPersonPanel'
 import CoachEndCoachingSheet, {
@@ -145,8 +140,6 @@ export default function CoachClientProfile({
   const [passAvaContext, setPassAvaContext] = useState(null)
 
   const [activeSection, setActiveSection] = useState(initialActiveSection)
-  const [packageSummary, setPackageSummary] = useState(emptySessionPackage())
-  const [packageLoading, setPackageLoading] = useState(true)
   const [athleteState, setAthleteState] = useState(null)
   const [nutritionProfile, setNutritionProfile] = useState(null)
   const [nutritionDays, setNutritionDays] = useState([])
@@ -315,19 +308,6 @@ export default function CoachClientProfile({
     [clientAssignments],
   )
 
-  const recentActivity = useMemo(
-    () =>
-      [...clientAssignments]
-        .filter((item) => item.status === 'completed')
-        .sort(
-          (a, b) =>
-            new Date(b.completed_at).getTime() -
-            new Date(a.completed_at).getTime(),
-        )
-        .slice(0, 4),
-    [clientAssignments],
-  )
-
   const intelligence = useMemo(
     () =>
       buildClientIntelligence({
@@ -349,33 +329,6 @@ export default function CoachClientProfile({
       notesUpdatedAt,
     ],
   )
-
-  useEffect(() => {
-    let active = true
-    setPackageLoading(true)
-
-    if (!linkedAthleteId) {
-      setPackageSummary(emptySessionPackage())
-      setPackageLoading(false)
-      return undefined
-    }
-
-    coachBackend
-      .getSessionPackage(linkedAthleteId)
-      .then((row) => {
-        if (active) setPackageSummary(normalizeSessionPackage(row))
-      })
-      .catch(() => {
-        if (active) setPackageSummary(emptySessionPackage())
-      })
-      .finally(() => {
-        if (active) setPackageLoading(false)
-      })
-
-    return () => {
-      active = false
-    }
-  }, [linkedAthleteId])
 
   useEffect(() => {
     let active = true
