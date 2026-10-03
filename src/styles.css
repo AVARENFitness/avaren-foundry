@@ -20259,3 +20259,62 @@ body > .nutrition-food-sheet-backdrop > .nutrition-food-sheet {
     grid-column: 1 / -1;
   }
 }
+
+
+/* ===== PRODUCT REFINEMENT P3 · GOAL-AWARE PROGRESS ===== */
+.progress-summary-hero--goal {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.progress-summary-hero--goal > p {
+  max-width: 620px;
+  margin: 0;
+  color: var(--text-supporting);
+  line-height: 1.55;
+}
+
+.progress-goal-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-3);
+  margin-top: var(--space-2);
+}
+
+.progress-goal-card {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+  padding: var(--space-4);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--surface-1);
+}
+
+.progress-goal-card small {
+  color: var(--text-metadata);
+  font-size: var(--type-meta);
+  line-height: 1.3;
+}
+
+.progress-goal-card strong {
+  color: var(--cream);
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1.45;
+}
+
+.progress-summary-supporting {
+  color: var(--text-metadata);
+  line-height: 1.45;
+}
+
+@media (max-width: 680px) {
+  .progress-goal-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .progress-goal-card {
+    padding: var(--space-3) var(--space-4);
+  }
+}
