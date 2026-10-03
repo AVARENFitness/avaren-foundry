@@ -4,6 +4,7 @@ import {
   APPOINTMENT_SCHEDULE_CONFLICT_HANDOFF,
   buildAppointmentScheduleConflictProposal,
   findOpenScheduleConflictFollowUp,
+  formatAppointmentReschedulePreference,
   formatAppointmentScheduleConflictLine,
   hasOpenScheduleConflictFollowUp,
   submitAppointmentScheduleConflict,
@@ -46,6 +47,32 @@ describe('appointmentScheduleConflict', () => {
     expect(formatAppointmentScheduleConflictLine(appointment)).toBe(
       'In-person training with Jacob Corell',
     )
+  })
+
+  it('formats an optional preferred replacement date and time without timezone conversion', () => {
+    expect(
+      formatAppointmentReschedulePreference({
+        preferredDate: '2026-08-14',
+        preferredTime: '16:30',
+      }),
+    ).toBe('Fri, Aug 14 at 4:30 PM')
+
+    expect(
+      formatAppointmentReschedulePreference({
+        preferredDate: '2026-08-14',
+      }),
+    ).toBe('Fri, Aug 14')
+  })
+
+  it('adds the replacement preference to the appointment-linked follow-up summary', () => {
+    const proposal = buildAppointmentScheduleConflictProposal(appointment, {
+      preferredDate: '2026-08-14',
+      preferredTime: '16:30',
+    })
+
+    expect(proposal.summary).toContain('Requested another time')
+    expect(proposal.summary).toContain('Fri, Aug 14 at 4:30 PM')
+    expect(proposal.summary.length).toBeLessThanOrEqual(280)
   })
 
   it('detects an open schedule-conflict follow-up for the same appointment', () => {
@@ -274,7 +301,7 @@ describe('appointment schedule conflict coach attention', () => {
 
 describe('appointment schedule conflict copy', () => {
   it('uses athlete-facing handoff strings', () => {
-    expect(APPOINTMENT_SCHEDULE_CONFLICT_HANDOFF.SEND_LABEL).toBe('Send to coach')
+    expect(APPOINTMENT_SCHEDULE_CONFLICT_HANDOFF.SEND_LABEL).toBe('Send request')
     expect(APPOINTMENT_SCHEDULE_CONFLICT_HANDOFF.SUCCESS_TITLE).toBe('Coach notified')
   })
 })
