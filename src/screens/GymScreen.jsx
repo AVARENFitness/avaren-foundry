@@ -44,6 +44,7 @@ import {
   isRestTimerActive,
   isRestTimerVisible,
 } from '../lib/activeWorkoutSession'
+import { canEditActiveWorkoutPlan } from '../lib/inWorkoutPlanEditing'
 import {
   exerciseExecutionRole,
   isExecutionPlanCurrent,
@@ -63,6 +64,7 @@ export default function GymScreen({
   onRepeatSet,
   onSkipExercise,
   onQuickAddExercise,
+  onRemoveExercise,
   onRemoveSet,
   onUndoSkip,
   workoutOptions = [],
@@ -79,6 +81,7 @@ export default function GymScreen({
   const [navigationDirection, setNavigationDirection] = useState('next')
   const [showWorkoutPicker, setShowWorkoutPicker] = useState(false)
   const [showWorkoutMenu, setShowWorkoutMenu] = useState(false)
+  const [removeExerciseIndex, setRemoveExerciseIndex] = useState(null)
   const [showSessionNotes, setShowSessionNotes] = useState(
     Boolean(
       state.activeWorkout?.intent ||
@@ -89,7 +92,11 @@ export default function GymScreen({
   const persistedRestTimer = workout?.restTimer ?? null
   const restDuration = persistedRestTimer?.duration ?? 90
 
-  useAppModalLayer(showWorkoutPicker || showWorkoutMenu)
+  useAppModalLayer(
+    showWorkoutPicker ||
+      showWorkoutMenu ||
+      removeExerciseIndex !== null,
+  )
   const restRemaining = getRestTimerRemainingSeconds(
     persistedRestTimer,
     now,
@@ -97,6 +104,11 @@ export default function GymScreen({
   const restRunning = isRestTimerActive(persistedRestTimer, now)
   const restVisible = isRestTimerVisible(persistedRestTimer, now)
   const restContext = persistedRestTimer?.context ?? null
+  const canEditPlan = canEditActiveWorkoutPlan(state)
+  const removeCandidate =
+    removeExerciseIndex == null
+      ? null
+      : workout?.exercises?.[removeExerciseIndex] ?? null
 
   const guidedScrollExercise = workout?.exercises?.[activeExercise] ?? null
   const guidedScrollGroup = guidedScrollExercise?.supersetGroup ?? ''
@@ -361,6 +373,8 @@ export default function GymScreen({
         {showQuickAdd && (
           <QuickAddModal
             onClose={() => setShowQuickAdd(false)}
+            canSaveToPlan={canEditPlan}
+            workoutName={workout?.name ?? ''}
             onAdd={(exercise) => {
               onQuickAddExercise(exercise)
               setShowQuickAdd(false)
@@ -672,6 +686,11 @@ export default function GymScreen({
           onRepeatSet={(setIndex) => onRepeatSet(activeExercise, setIndex)}
           onSkipExercise={() => onSkipExercise(activeExercise)}
           onQuickAdd={() => setShowQuickAdd(true)}
+          onRemoveExercise={
+            onRemoveExercise
+              ? () => setRemoveExerciseIndex(activeExercise)
+              : undefined
+          }
           onRemoveSet={(setIndex) => onRemoveSet(activeExercise, setIndex)}
           onUndoSkip={() => onUndoSkip(activeExercise)}
           navigationDirection={navigationDirection}
@@ -856,12 +875,82 @@ export default function GymScreen({
       {showQuickAdd && (
         <QuickAddModal
           onClose={() => setShowQuickAdd(false)}
+          canSaveToPlan={canEditPlan}
+          workoutName={workout?.name ?? ''}
           onAdd={(exercise) => {
             onQuickAddExercise(exercise)
             setShowQuickAdd(false)
           }}
         />
       )}
+
+      {removeCandidate && onRemoveExercise
+        ? createPortal(
+            <div
+              className="modal-backdrop workout-menu-portal"
+              data-app-ui-backdrop="open"
+              onClick={() => setRemoveExerciseIndex(null)}
+            >
+              <section
+                className="workout-options-modal"
+                role="dialog"
+                aria-modal="true"
+                aria-label="Remove exercise"
+                onClick={(event) => event.stopPropagation()}
+              >
+                <header>
+                  <div>
+                    <span className="eyebrow">IN-WORKOUT EDIT</span>
+                    <h2>Remove {removeCandidate.name}?</h2>
+                  </div>
+                  <button
+                    className="workout-options-close"
+                    onClick={() => setRemoveExerciseIndex(null)}
+                    aria-label="Close remove exercise"
+                  >
+                    <X size={20} />
+                  </button>
+                </header>
+
+                <p>
+                  {canEditPlan
+                    ? 'Choose whether this change is only for today or should update this workout plan too.'
+                    : 'This removes the exercise from today’s session only.'}
+                </p>
+
+                <div className="workout-plan-edit-actions">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onRemoveExercise(removeExerciseIndex, {
+                        removeFromPlan: false,
+                      })
+                      setRemoveExerciseIndex(null)
+                    }}
+                  >
+                    Remove for today
+                  </button>
+
+                  {canEditPlan ? (
+                    <button
+                      type="button"
+                      className="danger"
+                      onClick={() => {
+                        onRemoveExercise(removeExerciseIndex, {
+                          removeFromPlan: true,
+                        })
+                        setRemoveExerciseIndex(null)
+                      }}
+                    >
+                      Remove from {workout.name} plan
+                    </button>
+                  ) : null}
+                </div>
+              </section>
+            </div>,
+            document.body,
+          )
+        : null}
 
       {restVisible && restContext && (
         <section
