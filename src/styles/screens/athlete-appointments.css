@@ -219,6 +219,74 @@
   line-height: 1.45;
 }
 
+.athlete-appointment-reschedule-request {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid color-mix(in srgb, var(--gold) 12%, transparent);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--ink) 82%, transparent);
+}
+
+.athlete-appointment-reschedule-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.athlete-appointment-reschedule-heading strong {
+  font-size: 0.95rem;
+}
+
+.athlete-appointment-reschedule-heading span,
+.athlete-appointment-reschedule-request small {
+  color: var(--text-supporting, #948d84);
+  font-size: 0.8rem;
+}
+
+.athlete-appointment-reschedule-fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 10px;
+}
+
+.athlete-appointment-reschedule-fields label {
+  display: grid;
+  gap: 6px;
+}
+
+.athlete-appointment-reschedule-fields label > span {
+  color: color-mix(in srgb, var(--cream) 72%, var(--muted));
+  font-size: 0.78rem;
+  font-weight: 650;
+}
+
+.athlete-appointment-reschedule-fields input {
+  width: 100%;
+  min-height: 44px;
+  padding: 0 10px;
+  border: 1px solid color-mix(in srgb, var(--cream) 10%, transparent);
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--ink) 72%, #000);
+  color: var(--cream);
+  font: inherit;
+}
+
+.athlete-appointment-reschedule-fields input:disabled {
+  opacity: 0.45;
+}
+
+.athlete-appointment-reschedule-request small {
+  line-height: 1.45;
+}
+
+@media (max-width: 390px) {
+  .athlete-appointment-reschedule-fields {
+    grid-template-columns: 1fr;
+  }
+}
+
 .athlete-appointment-handoff-error {
   margin: 0;
   color: #e8b4a8;
