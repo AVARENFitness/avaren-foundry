@@ -342,3 +342,39 @@ export function appendFatSecretFoodReference(
     entry,
   }
 }
+
+
+export const needsFatSecretNutritionSnapshot = (food = null) =>
+  Boolean(
+    food?.source === 'fatsecret' &&
+      food?.fatSecret?.foodId &&
+      food?.fatSecret?.servingId &&
+      !Object.prototype.hasOwnProperty.call(food, 'calories'),
+  )
+
+export const hydrateFatSecretNutritionSnapshot = (
+  food,
+  detail,
+) => {
+  if (!needsFatSecretNutritionSnapshot(food) || !detail) return food
+
+  const serving = detail?.servings?.find(
+    (item) =>
+      String(item.servingId) === String(food.fatSecret.servingId),
+  )
+  if (!serving) return food
+
+  const quantity = Math.max(0.01, Number(food.quantity || 1))
+
+  return {
+    ...food,
+    name: String(detail.name ?? 'FatSecret food').trim(),
+    brand: String(detail.brand ?? '').trim(),
+    serving: String(serving.description ?? '').trim(),
+    calories: nutritionRound(Number(serving.calories || 0) * quantity),
+    protein: nutritionRound(Number(serving.protein || 0) * quantity),
+    carbs: nutritionRound(Number(serving.carbs || 0) * quantity),
+    fat: nutritionRound(Number(serving.fat || 0) * quantity),
+    fiber: nutritionRound(Number(serving.fiber || 0) * quantity),
+  }
+}
