@@ -270,7 +270,12 @@ export function replaceFoodEntriesInNutrition(
 export function appendFatSecretFoodReference(
   nutrition,
   date = nutritionDateKey(),
-  { foodId, servingId, quantity = 1 } = {},
+  {
+    foodId,
+    servingId,
+    quantity = 1,
+    servingSnapshot = null,
+  } = {},
 ) {
   const resolvedFoodId = String(foodId ?? '').trim()
   const resolvedServingId = String(servingId ?? '').trim()
@@ -281,6 +286,29 @@ export function appendFatSecretFoodReference(
   }
 
   const currentDay = nutrition?.days?.[date] ?? emptyNutritionDay(date)
+  const snapshot = servingSnapshot
+    ? {
+        name: String(servingSnapshot.name ?? '').trim(),
+        brand: String(servingSnapshot.brand ?? '').trim(),
+        serving: String(servingSnapshot.serving ?? '').trim(),
+        calories: nutritionRound(
+          Number(servingSnapshot.calories || 0) * resolvedQuantity,
+        ),
+        protein: nutritionRound(
+          Number(servingSnapshot.protein || 0) * resolvedQuantity,
+        ),
+        carbs: nutritionRound(
+          Number(servingSnapshot.carbs || 0) * resolvedQuantity,
+        ),
+        fat: nutritionRound(
+          Number(servingSnapshot.fat || 0) * resolvedQuantity,
+        ),
+        fiber: nutritionRound(
+          Number(servingSnapshot.fiber || 0) * resolvedQuantity,
+        ),
+      }
+    : {}
+
   const entry = {
     id: createRuntimeId(),
     source: 'fatsecret',
@@ -290,6 +318,7 @@ export function appendFatSecretFoodReference(
       servingId: resolvedServingId,
     },
     quantity: resolvedQuantity,
+    ...snapshot,
     loggedAt: new Date().toISOString(),
   }
 
