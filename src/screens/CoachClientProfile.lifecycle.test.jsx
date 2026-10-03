@@ -132,6 +132,8 @@ describe('CoachClientProfile offline lifecycle', () => {
   })
 
   it('shows end coaching and hides unlink for offline clients', async () => {
+    const user = userEvent.setup()
+
     render(
       <CoachClientProfile
         client={offlineClient}
@@ -140,6 +142,8 @@ describe('CoachClientProfile offline lifecycle', () => {
         onBack={vi.fn()}
       />,
     )
+
+    await user.click(screen.getByRole('button', { name: /^manage$/i }))
 
     await waitFor(() => {
       expect(screen.getByTestId('coach-end-coaching-button')).toBeInTheDocument()
@@ -151,6 +155,8 @@ describe('CoachClientProfile offline lifecycle', () => {
   })
 
   it('shows connected status and unlink for linked clients', async () => {
+    const user = userEvent.setup()
+
     render(
       <CoachClientProfile
         client={connectedClient}
@@ -165,6 +171,7 @@ describe('CoachClientProfile offline lifecycle', () => {
     })
 
     expect(screen.getByText(/connected since/i)).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: /^manage$/i }))
     expect(screen.getByTestId('coach-unlink-account-button')).toBeInTheDocument()
   })
 
@@ -188,6 +195,8 @@ describe('CoachClientProfile offline lifecycle', () => {
         onClientUpdated={onClientUpdated}
       />,
     )
+
+    await user.click(screen.getByRole('button', { name: /^manage$/i }))
 
     await waitFor(() => {
       expect(screen.getByTestId('coach-end-coaching-button')).toBeInTheDocument()
@@ -226,6 +235,8 @@ describe('CoachClientProfile offline lifecycle', () => {
         onClientUpdated={onClientUpdated}
       />,
     )
+
+    await user.click(screen.getByRole('button', { name: /^manage$/i }))
 
     await waitFor(() => {
       expect(screen.getByTestId('coach-end-coaching-button')).toBeInTheDocument()
@@ -267,6 +278,8 @@ describe('CoachClientProfile offline lifecycle', () => {
       />,
     )
 
+    await user.click(screen.getByRole('button', { name: /^manage$/i }))
+
     await waitFor(() => {
       expect(screen.getByTestId('coach-unlink-account-button')).toBeInTheDocument()
     })
@@ -303,6 +316,8 @@ describe('CoachClientProfile offline lifecycle', () => {
         onClientUpdated={onClientUpdated}
       />,
     )
+
+    await user.click(screen.getByRole('button', { name: /^manage$/i }))
 
     await waitFor(() => {
       expect(screen.getByTestId('coach-reopen-coaching-button')).toBeInTheDocument()
