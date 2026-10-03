@@ -594,11 +594,13 @@ export function useWorkoutSession({
         activeExerciseIndex:
           activeWorkout.activeExerciseIndex ?? activeExercise,
       })
+      const shouldSaveToPlan =
+        saveToPlan && canEditActiveWorkoutPlan(current)
       const nextExercise = {
         id: createRuntimeId(),
         name,
         muscle,
-        oneTime: !saveToPlan,
+        oneTime: !shouldSaveToPlan,
         sets: Array.from({ length: Math.max(1, sets || 3) }, (_, index) =>
           makeSet(index + 1, 'Working'),
         ),
@@ -618,7 +620,7 @@ export function useWorkoutSession({
       }
 
       const program =
-        saveToPlan && canEditActiveWorkoutPlan(current)
+        shouldSaveToPlan
           ? addExerciseToWorkoutPlan(
               current.program,
               current.activeWorkout,
@@ -671,10 +673,17 @@ export function useWorkoutSession({
       return { ...current, activeWorkout, program }
     })
 
-    setActiveExerciseState((currentIndex) =>
-      Math.max(0, currentIndex > exerciseIndex ? currentIndex - 1 : currentIndex),
+    const remainingLength = Math.max(
+      0,
+      (state.activeWorkout?.exercises?.length ?? 0) - 1,
     )
-  }, [setState])
+    setActiveExerciseState((currentIndex) => {
+      if (!remainingLength) return 0
+      const shifted =
+        currentIndex > exerciseIndex ? currentIndex - 1 : currentIndex
+      return Math.min(shifted, remainingLength - 1)
+    })
+  }, [setState, state.activeWorkout?.exercises?.length])
 
   const removeSet = useCallback((exerciseIndex, setIndex) => {
     setState((current) => {
