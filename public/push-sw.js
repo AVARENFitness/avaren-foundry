@@ -3,11 +3,56 @@ const CACHE_PREFIX = 'avaren-app-shell-'
 const CACHE_NAME = `${CACHE_PREFIX}v1`
 const APP_SHELL_KEY = '/__avaren_app_shell__'
 const CORE_ASSETS = [
-  '/',
   '/manifest.webmanifest',
   '/brand/foundation/icon-192.png',
   '/brand/foundation/icon-512.png',
 ]
+
+const buildAssetUrlsFromHtml = (html = '') => {
+  const urls = new Set()
+  const pattern = /(?:src|href)=["']([^"']+)["']/g
+  let match
+
+  while ((match = pattern.exec(html))) {
+    const value = match[1]
+    if (
+      value.startsWith('/assets/') ||
+      value.startsWith('/brand/') ||
+      value === '/manifest.webmanifest'
+    ) {
+      urls.add(value)
+    }
+  }
+
+  return [...urls]
+}
+
+const primeAppShell = async () => {
+  const cache = await caches.open(CACHE_NAME)
+  const response = await fetch('/')
+
+  if (!response?.ok) {
+    throw new Error('app_shell_unavailable')
+  }
+
+  await Promise.all([
+    cache.put('/', response.clone()),
+    cache.put(APP_SHELL_KEY, response.clone()),
+  ])
+
+  const html = await response.clone().text()
+  const discoveredAssets = buildAssetUrlsFromHtml(html)
+  const urls = [...new Set([...CORE_ASSETS, ...discoveredAssets])]
+
+  await Promise.allSettled(
+    urls.map(async (url) => {
+      const assetResponse = await fetch(url)
+      if (assetResponse?.ok) {
+        await cache.put(url, assetResponse.clone())
+      }
+    }),
+  )
+}
 
 const cacheAppShellResponse = async (response) => {
   if (!response?.ok) return
@@ -48,10 +93,7 @@ const cacheFirstStatic = async (request) => {
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches
-      .open(CACHE_NAME)
-      .then((cache) => cache.addAll(CORE_ASSETS))
-      .then(() => self.skipWaiting()),
+    primeAppShell().then(() => self.skipWaiting()),
   )
 })
 
