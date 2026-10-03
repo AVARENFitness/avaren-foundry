@@ -128,7 +128,7 @@ const resolveFatSecretRuntimeEntry = (food, detailCache) => {
   }
 }
 
-export default function NutritionScreen({ nutrition, onChange, initialTab = 'Today' }) {
+export default function NutritionScreen({ nutrition, onChange, initialTab = 'Today', trainingHistory = [] }) {
   const [tab, setTab] = useState(initialTab)
   const [date, setDate] = useState(nutritionDateKey())
   const [foodDraft, setFoodDraft] = useState(blankFood)
@@ -447,12 +447,14 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
         goal: goals.inputs?.goal,
         currentBaseCalories: goals.calories,
         lastAppliedAt: goals.adaptation?.lastAppliedAt,
+        trainingHistory,
       }),
     [
       adaptiveHistory,
       goals.inputs?.goal,
       goals.calories,
       goals.adaptation?.lastAppliedAt,
+      trainingHistory,
     ],
   )
 

@@ -39,11 +39,136 @@ const average = (values = []) =>
     ? values.reduce((sum, value) => sum + Number(value || 0), 0) / values.length
     : 0
 
+const sessionDate = (session = {}) =>
+  String(
+    session.date ??
+      session.completedAt ??
+      session.finishedAt ??
+      session.startedAt ??
+      '',
+  ).slice(0, 10)
+
+const sessionEffortUnits = (session = {}) => {
+  const sets = Array.isArray(session.sets) ? session.sets : []
+  return sets.filter((set) => {
+    if (set?.done === false) return false
+    const reps = Number(set?.reps ?? 0)
+    const weight = Number(set?.weight ?? 0)
+    return reps > 0 || weight > 0
+  }).length
+}
+
+export function analyzeTrainingDemandStabilization({
+  history = [],
+  now = new Date(),
+} = {}) {
+  const end = new Date(now)
+  const recentStart = new Date(end)
+  recentStart.setDate(recentStart.getDate() - 13)
+  const baselineEnd = new Date(recentStart)
+  baselineEnd.setDate(baselineEnd.getDate() - 1)
+  const baselineStart = new Date(baselineEnd)
+  baselineStart.setDate(baselineStart.getDate() - 27)
+
+  const dated = (Array.isArray(history) ? history : [])
+    .map((session) => ({
+      session,
+      date: sessionDate(session),
+    }))
+    .filter((item) => item.date)
+
+  const inRange = (date, start, finish) => {
+    const time = new Date(`${date}T12:00:00`).getTime()
+    return (
+      Number.isFinite(time) &&
+      time >= start.getTime() &&
+      time <= finish.getTime()
+    )
+  }
+
+  const recent = dated.filter((item) =>
+    inRange(item.date, recentStart, end),
+  )
+  const baseline = dated.filter((item) =>
+    inRange(item.date, baselineStart, baselineEnd),
+  )
+
+  if (baseline.length < 8) {
+    return {
+      status: 'learning',
+      reason:
+        'AVAREN needs more workout history before training demand can influence nutrition.',
+      baselineSessionsPerWeek: null,
+      recentSessionsPerWeek: recent.length / 2,
+      demandRatio: 1,
+      calorieBias: 0,
+    }
+  }
+
+  const baselineSessionsPerWeek = baseline.length / 4
+  const recentSessionsPerWeek = recent.length / 2
+  const frequencyRatio =
+    baselineSessionsPerWeek > 0
+      ? recentSessionsPerWeek / baselineSessionsPerWeek
+      : 1
+
+  const baselineEffort = average(
+    baseline.map((item) => sessionEffortUnits(item.session)),
+  )
+  const recentEffort = average(
+    recent.map((item) => sessionEffortUnits(item.session)),
+  )
+  const effortRatio =
+    baselineEffort > 0 && recent.length > 0
+      ? recentEffort / baselineEffort
+      : 1
+
+  // Frequency is intentionally dominant. Exercise/set effort is a secondary
+  // stabilizer so one unusually hard or easy workout cannot swing nutrition.
+  const demandRatio =
+    clamp(frequencyRatio, 0.4, 1.6) * 0.8 +
+    clamp(effortRatio, 0.6, 1.4) * 0.2
+
+  let direction = 'stable'
+  let calorieBias = 0
+
+  if (demandRatio <= 0.68) {
+    direction = 'substantially_lower'
+    calorieBias = -100
+  } else if (demandRatio <= 0.82) {
+    direction = 'lower'
+    calorieBias = -50
+  } else if (demandRatio >= 1.32) {
+    direction = 'substantially_higher'
+    calorieBias = 100
+  } else if (demandRatio >= 1.18) {
+    direction = 'higher'
+    calorieBias = 50
+  }
+
+  return {
+    status: 'ready',
+    direction,
+    baselineSessionsPerWeek,
+    recentSessionsPerWeek,
+    frequencyRatio,
+    baselineEffortPerSession: baselineEffort,
+    recentEffortPerSession: recentEffort,
+    effortRatio,
+    demandRatio,
+    calorieBias,
+    baselineSessionCount: baseline.length,
+    recentSessionCount: recent.length,
+  }
+}
+
 export function analyzeNutritionAdaptation({
   days = [],
   goal,
   currentBaseCalories,
   lastAppliedAt = null,
+  trainingHistory = [],
+  now = new Date(),
 } = {}) {
   const rule = GOAL_TREND_RULES[goal]
   if (!rule) {
@@ -150,7 +275,6 @@ export function analyzeNutritionAdaptation({
 
   if (lastAppliedAt) {
     const lastApplied = new Date(lastAppliedAt)
-    const now = new Date()
     const daysSinceAdjustment = (now.getTime() - lastApplied.getTime()) / 86400000
     if (Number.isFinite(daysSinceAdjustment) && daysSinceAdjustment < 7) {
       return {
@@ -178,10 +302,43 @@ export function analyzeNutritionAdaptation({
     direction = 'too_slow'
   }
 
+  const trainingDemand = analyzeTrainingDemandStabilization({
+    history: trainingHistory,
+    now,
+  })
+
+  if (trainingDemand.status === 'ready' && trainingDemand.calorieBias !== 0) {
+    const trainingBias = Number(trainingDemand.calorieBias || 0)
+
+    // Body-weight response remains the primary signal. Training demand only
+    // nudges the recommendation, and can create at most a small standalone
+    // adjustment when weight trend is otherwise on target.
+    if (adjustmentCalories === 0) {
+      adjustmentCalories = trainingBias
+      direction =
+        trainingBias < 0
+          ? 'training_demand_lower'
+          : 'training_demand_higher'
+    } else if (Math.sign(adjustmentCalories) === Math.sign(trainingBias)) {
+      adjustmentCalories += Math.sign(trainingBias) * 50
+    } else {
+      adjustmentCalories += Math.sign(trainingBias) * 50
+    }
+  }
+
   adjustmentCalories = clamp(roundTo(adjustmentCalories, 50), -200, 200)
+
+  const trainingOnlyAdjustment =
+    direction === 'training_demand_lower' ||
+    direction === 'training_demand_higher'
+
+  const reason = trainingOnlyAdjustment
+    ? `Your recent training is averaging ${trainingDemand.recentSessionsPerWeek.toFixed(1)} sessions per week versus a ${trainingDemand.baselineSessionsPerWeek.toFixed(1)}-session baseline. AVAREN is recommending only a small calorie ${adjustmentCalories < 0 ? 'reduction' : 'increase'} while keeping protein unchanged.`
+    : null
 
   return {
     status: adjustmentCalories === 0 ? 'on_track' : 'recommend',
+    reason,
     adjustmentCalories,
     direction,
     adherence,
@@ -191,6 +348,7 @@ export function analyzeNutritionAdaptation({
     loggedDays: calorieDays.length,
     weighIns: weightDays.length,
     targetRange: [rule.minPercentPerWeek, rule.maxPercentPerWeek],
+    trainingDemand,
     proposedBaseCalories: Math.max(
       1200,
       roundTo(Number(currentBaseCalories || 0) + adjustmentCalories, 10),
@@ -243,6 +401,17 @@ export function applyAdaptiveNutritionAdjustment(goals = {}, analysis = {}) {
           adjustmentCalories: delta,
           percentPerWeek: Number(analysis.percentPerWeek || 0),
           adherence: Number(analysis.adherence || 0),
+          trainingDemand: analysis.trainingDemand
+            ? {
+                direction: analysis.trainingDemand.direction ?? 'stable',
+                baselineSessionsPerWeek:
+                  Number(analysis.trainingDemand.baselineSessionsPerWeek || 0),
+                recentSessionsPerWeek:
+                  Number(analysis.trainingDemand.recentSessionsPerWeek || 0),
+                demandRatio:
+                  Number(analysis.trainingDemand.demandRatio || 1),
+              }
+            : null,
         },
       ].slice(-12),
     },

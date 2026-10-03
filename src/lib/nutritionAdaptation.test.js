@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   analyzeNutritionAdaptation,
+  analyzeTrainingDemandStabilization,
   applyAdaptiveNutritionAdjustment,
 } from './nutritionAdaptation'
 
@@ -26,6 +27,37 @@ const buildDays = ({
       completeNutrition: true,
     }
   })
+
+const buildTrainingHistory = ({
+  baselinePerWeek = 6,
+  recentPerWeek = 3,
+  baselineSets = 18,
+  recentSets = 18,
+  now = new Date('2026-10-03T12:00:00'),
+} = {}) => {
+  const sessions = []
+  const addWindow = (startDaysAgo, days, perWeek, setsPerSession, prefix) => {
+    for (let offset = 0; offset < days; offset += 1) {
+      const dayInWeek = offset % 7
+      if (dayInWeek >= perWeek) continue
+      const date = new Date(now)
+      date.setDate(date.getDate() - (startDaysAgo - offset))
+      sessions.push({
+        id: `${prefix}-${offset}`,
+        date: date.toISOString().slice(0, 10),
+        sets: Array.from({ length: setsPerSession }, (_, index) => ({
+          exercise: `Exercise ${index + 1}`,
+          reps: 8,
+          weight: 100,
+        })),
+      })
+    }
+  }
+
+  addWindow(41, 28, baselinePerWeek, baselineSets, 'baseline')
+  addWindow(13, 14, recentPerWeek, recentSets, 'recent')
+  return sessions
+}
 
 describe('nutrition adaptation', () => {
   it('waits for enough data before changing targets', () => {
@@ -98,6 +130,61 @@ describe('nutrition adaptation', () => {
 
     expect(result.status).toBe('on_track')
     expect(result.adjustmentCalories).toBe(0)
+  })
+
+  it('recognizes a sustained drop from six workouts per week to three', () => {
+    const result = analyzeTrainingDemandStabilization({
+      history: buildTrainingHistory({
+        baselinePerWeek: 6,
+        recentPerWeek: 3,
+      }),
+      now: new Date('2026-10-03T12:00:00'),
+    })
+
+    expect(result.status).toBe('ready')
+    expect(result.baselineSessionsPerWeek).toBeCloseTo(6, 1)
+    expect(result.recentSessionsPerWeek).toBeCloseTo(3, 1)
+    expect(result.direction).toBe('substantially_lower')
+    expect(result.calorieBias).toBe(-100)
+  })
+
+  it('keeps stable training demand from changing an on-track nutrition target', () => {
+    const result = analyzeNutritionAdaptation({
+      goal: 'lose_fat',
+      currentBaseCalories: 2200,
+      days: buildDays({
+        firstWeekWeight: 180,
+        secondWeekWeight: 178.8,
+      }),
+      trainingHistory: buildTrainingHistory({
+        baselinePerWeek: 6,
+        recentPerWeek: 6,
+      }),
+      now: new Date('2026-10-03T12:00:00'),
+    })
+
+    expect(result.status).toBe('on_track')
+    expect(result.adjustmentCalories).toBe(0)
+  })
+
+  it('uses a persistent training drop only as a small nutrition nudge', () => {
+    const result = analyzeNutritionAdaptation({
+      goal: 'lose_fat',
+      currentBaseCalories: 2200,
+      days: buildDays({
+        firstWeekWeight: 180,
+        secondWeekWeight: 178.8,
+      }),
+      trainingHistory: buildTrainingHistory({
+        baselinePerWeek: 6,
+        recentPerWeek: 3,
+      }),
+      now: new Date('2026-10-03T12:00:00'),
+    })
+
+    expect(result.status).toBe('recommend')
+    expect(result.adjustmentCalories).toBe(-100)
+    expect(result.trainingDemand.direction).toBe('substantially_lower')
   })
 
   it('applies calorie changes while preserving protein and recalculating carbs/fat', () => {
