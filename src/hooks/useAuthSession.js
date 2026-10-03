@@ -8,8 +8,24 @@ import {
   flushDurableWorkoutQueue,
   loadMergedAthleteWorkoutHistory,
 } from '../lib/athleteWorkoutSessionsBackend'
+import { coachBackend } from '../lib/coachBackend'
+import { flushWorkoutCompletionSideEffects } from '../lib/workoutCompletionSideEffects'
 import { loadState, normalizeAppState, saveState } from '../lib/storage'
 import { isSupabaseConfigured, supabase } from '../lib/supabase'
+
+const flushCompletionSideEffects = (athleteId) =>
+  flushWorkoutCompletionSideEffects(athleteId, {
+    markAssignmentCompleted: (assignmentId, workoutSessionId, summary) =>
+      coachBackend.markAssignmentCompleted(
+        assignmentId,
+        workoutSessionId,
+        summary,
+      ),
+    linkAppointmentWorkout: (scheduledSessionId, workoutSessionId) =>
+      coachBackend.updateScheduledSession(scheduledSessionId, {
+        workoutSessionId,
+      }),
+  })
 
 export function useAuthSession({
   state,
@@ -98,6 +114,12 @@ export function useAuthSession({
         if (navigator.onLine) {
           await flushDurableWorkoutQueue(userId).catch((error) => {
             console.error('Durable workout queue flush failed:', error)
+          })
+          await flushCompletionSideEffects(userId).catch((error) => {
+            console.error(
+              'Workout completion side-effect queue flush failed:',
+              error,
+            )
           })
         }
 
@@ -212,6 +234,7 @@ export function useAuthSession({
       try {
         setCloudStatus('syncing')
         await flushDurableWorkoutQueue(userId)
+        await flushCompletionSideEffects(userId)
         const mergedHistory = await loadMergedAthleteWorkoutHistory(
           userId,
           latestStateRef.current?.history ?? [],

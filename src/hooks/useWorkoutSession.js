@@ -48,6 +48,10 @@ import {
   completeWorkoutSession,
   updateWorkoutSession,
 } from '../lib/athleteWorkoutSessionsBackend'
+import {
+  enqueueWorkoutCompletionSideEffects,
+  flushWorkoutCompletionSideEffects,
+} from '../lib/workoutCompletionSideEffects'
 
 const makeSet = makeActiveSet
 
@@ -741,57 +745,70 @@ export function useWorkoutSession({
     const completionPayload = { session: completedWorkoutSession, nextWorkout }
     setCompletedSession(completionPayload)
 
-    if (athleteId) {
-      completeWorkoutSession(athleteId, completedWorkoutSession).catch(
-        (error) => {
-          console.error('Could not persist durable workout session:', error)
-        },
-      )
-    }
+    const hasCompletionSideEffects = Boolean(
+      workout.assignmentId || workout.scheduledSessionId,
+    )
 
-    if (workout.assignmentId) {
-      coachBackend
-        .markAssignmentCompleted(
-          workout.assignmentId,
-          completedWorkoutSession.id,
-          {
-            durationMinutes: Math.max(
-              1,
-              Math.round(
-                (new Date(completedWorkoutSession.finishedAt) -
-                  new Date(completedWorkoutSession.startedAt)) /
-                  60000,
-              ),
+    if (athleteId && hasCompletionSideEffects) {
+      const completionSummary = {
+        durationMinutes: Math.max(
+          1,
+          Math.round(
+            (new Date(completedWorkoutSession.finishedAt) -
+              new Date(completedWorkoutSession.startedAt)) /
+              60000,
+          ),
+        ),
+        volume: sessionLoadVolume(completedWorkoutSession),
+        sets: completedWorkoutSession.sets.length,
+        exercises: [
+          ...new Set(
+            completedWorkoutSession.sets.map(
+              (set) => set.exercise,
             ),
-            volume: sessionLoadVolume(completedWorkoutSession),
-            sets: completedWorkoutSession.sets.length,
-            exercises: [
-              ...new Set(
-                completedWorkoutSession.sets.map(
-                  (set) => set.exercise,
-                ),
-              ),
-            ].length,
-            reflection: completedWorkoutSession.reflection ?? '',
-            notes: completedWorkoutSession.notes ?? '',
-          },
-        )
-        .catch((error) => {
-          console.error(
-            'Could not mark assignment complete:',
-            error,
-          )
-        })
+          ),
+        ].length,
+        reflection: completedWorkoutSession.reflection ?? '',
+        notes: completedWorkoutSession.notes ?? '',
+      }
+
+      enqueueWorkoutCompletionSideEffects(athleteId, {
+        assignmentId: workout.assignmentId ?? null,
+        scheduledSessionId: workout.scheduledSessionId ?? null,
+        workoutSessionId: completedWorkoutSession.id,
+        completionSummary,
+        completedAt: completedWorkoutSession.finishedAt,
+      })
     }
 
-    if (workout.scheduledSessionId) {
-      coachBackend
-        .updateScheduledSession(workout.scheduledSessionId, {
-          workoutSessionId: completedWorkoutSession.id,
+    if (athleteId) {
+      completeWorkoutSession(athleteId, completedWorkoutSession)
+        .then((result) => {
+          if (!result?.persisted || !hasCompletionSideEffects) return null
+
+          return flushWorkoutCompletionSideEffects(athleteId, {
+            markAssignmentCompleted: (
+              assignmentId,
+              workoutSessionId,
+              summary,
+            ) =>
+              coachBackend.markAssignmentCompleted(
+                assignmentId,
+                workoutSessionId,
+                summary,
+              ),
+            linkAppointmentWorkout: (
+              scheduledSessionId,
+              workoutSessionId,
+            ) =>
+              coachBackend.updateScheduledSession(scheduledSessionId, {
+                workoutSessionId,
+              }),
+          })
         })
         .catch((error) => {
           console.error(
-            'Could not link workout session to appointment:',
+            'Could not persist/sync workout completion:',
             error,
           )
         })
