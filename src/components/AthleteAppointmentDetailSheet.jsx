@@ -43,12 +43,16 @@ export default function AthleteAppointmentDetailSheet({
   const [handoffError, setHandoffError] = useState('')
   const [handoffAlreadySent, setHandoffAlreadySent] = useState(false)
   const [athleteFollowUps, setAthleteFollowUps] = useState([])
+  const [preferredDate, setPreferredDate] = useState('')
+  const [preferredTime, setPreferredTime] = useState('')
 
   useEffect(() => {
     setSession(appointment)
     setView(HANDOFF_VIEW.DETAIL)
     setHandoffError('')
     setHandoffAlreadySent(false)
+    setPreferredDate('')
+    setPreferredTime('')
   }, [appointment])
 
   useEffect(() => {
@@ -56,6 +60,8 @@ export default function AthleteAppointmentDetailSheet({
       setView(HANDOFF_VIEW.DETAIL)
       setHandoffError('')
       setHandoffAlreadySent(false)
+      setPreferredDate('')
+      setPreferredTime('')
       return
     }
 
@@ -157,6 +163,10 @@ export default function AthleteAppointmentDetailSheet({
       const result = await submitAppointmentScheduleConflict({
         appointment: session,
         existingFollowUps: followUps,
+        rescheduleRequest: {
+          preferredDate,
+          preferredTime,
+        },
         createFollowUp: (proposal) =>
           coachBackend.createClientFollowUp({
             ...proposal,
@@ -333,7 +343,34 @@ export default function AthleteAppointmentDetailSheet({
                 <p className="athlete-appointment-handoff-note">
                   {APPOINTMENT_SCHEDULE_CONFLICT_HANDOFF.ALREADY_SENT_BODY}
                 </p>
-              ) : null}
+              ) : (
+                <div className="athlete-appointment-reschedule-request">
+                  <div className="athlete-appointment-reschedule-heading">
+                    <strong>Prefer another time?</strong>
+                    <span>Optional</span>
+                  </div>
+                  <div className="athlete-appointment-reschedule-fields">
+                    <label>
+                      <span>Preferred date</span>
+                      <input
+                        type="date"
+                        value={preferredDate}
+                        onChange={(event) => setPreferredDate(event.target.value)}
+                      />
+                    </label>
+                    <label>
+                      <span>Preferred time</span>
+                      <input
+                        type="time"
+                        value={preferredTime}
+                        disabled={!preferredDate}
+                        onChange={(event) => setPreferredTime(event.target.value)}
+                      />
+                    </label>
+                  </div>
+                  <small>{APPOINTMENT_SCHEDULE_CONFLICT_HANDOFF.REQUEST_NOTE}</small>
+                </div>
+              )}
             </div>
             <footer className="athlete-appointment-detail-footer">
               <button
