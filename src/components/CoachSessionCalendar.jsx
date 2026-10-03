@@ -39,6 +39,10 @@ import CoachSessionDetailSheet from './coach/CoachSessionDetailSheet'
 import CoachAppointmentCard from './coach/CoachAppointmentCard'
 import CoachScheduleSessionSheet from './CoachScheduleSessionSheet'
 import { getClientDisplayName } from '../lib/clientDisplayName'
+import {
+  resolveAthleteDataId,
+  resolveRecordBusinessClientId,
+} from '../lib/coachBusinessClient'
 import { useCoachSessionDetail } from '../hooks/useCoachSessionDetail'
 import { formatCoachCalendarEmptyHint } from '../lib/coachingAppointment'
 import {
@@ -87,7 +91,8 @@ export default function CoachSessionCalendar({
   const [showComposer, setShowComposer] = useState(initialOpenComposer)
   const [scheduling, setScheduling] = useState(false)
   const [draft, setDraft] = useState({
-    athleteId: initialClientId,
+    athleteId: '',
+    businessClientId: '',
     sessionDate: dateKey(new Date()),
     startTime: '09:00',
     durationMinutes: '60',
@@ -101,11 +106,22 @@ export default function CoachSessionCalendar({
 
   useEffect(() => {
     if (!initialClientId) return
+    const client = clients.find((entry) => {
+      const businessClientId = resolveRecordBusinessClientId(entry)
+      const athleteId = resolveAthleteDataId(entry)
+      return (
+        String(businessClientId ?? '') === String(initialClientId) ||
+        String(athleteId ?? '') === String(initialClientId)
+      )
+    })
+    if (!client) return
+
     setDraft((current) => ({
       ...current,
-      athleteId: initialClientId,
+      businessClientId: resolveRecordBusinessClientId(client) ?? '',
+      athleteId: resolveAthleteDataId(client) ?? '',
     }))
-  }, [initialClientId])
+  }, [initialClientId, clients])
 
   useEffect(() => {
     if (!initialOpenComposer) return
@@ -217,9 +233,29 @@ export default function CoachSessionCalendar({
   const clientByAthleteId = useMemo(
     () =>
       Object.fromEntries(
-        clients.map((client) => [client.athlete_id, client]),
+        clients
+          .map((client) => [resolveAthleteDataId(client), client])
+          .filter(([athleteId]) => Boolean(athleteId)),
       ),
     [clients],
+  )
+
+  const clientByBusinessClientId = useMemo(
+    () =>
+      Object.fromEntries(
+        clients
+          .map((client) => [resolveRecordBusinessClientId(client), client])
+          .filter(([businessClientId]) => Boolean(businessClientId)),
+      ),
+    [clients],
+  )
+
+  const resolveClientForSession = useCallback(
+    (session) =>
+      clientByBusinessClientId[session?.businessClientId] ??
+      clientByAthleteId[session?.athleteId] ??
+      null,
+    [clientByBusinessClientId, clientByAthleteId],
   )
 
   const sortedSessions = useMemo(
@@ -261,11 +297,11 @@ export default function CoachSessionCalendar({
           id: session.id,
           message: buildCoachRsvpAlert(
             session,
-            getClientDisplayName(clientByAthleteId[session.athleteId] ?? {}),
+            getClientDisplayName(resolveClientForSession(session) ?? {}),
           ),
         }))
         .filter((entry) => entry.message),
-    [agendaSessions, clientByAthleteId],
+    [agendaSessions, resolveClientForSession],
   )
 
   const jumpToToday = () => {
@@ -303,7 +339,7 @@ export default function CoachSessionCalendar({
           <CoachAppointmentCard
             key={session.id}
             session={session}
-            client={clientByAthleteId[session.athleteId]}
+            client={resolveClientForSession(session)}
             onClick={sessionDetail.openSession}
             isPast={isPastCoachAppointment(session, now)}
             isNext={nextAppointment?.id === session.id}
@@ -314,7 +350,7 @@ export default function CoachSessionCalendar({
   }
 
   const handleSchedule = async () => {
-    if (!draft.athleteId) {
+    if (!draft.businessClientId) {
       appUi.toast('Select a client.', 'error')
       return
     }
@@ -345,7 +381,10 @@ export default function CoachSessionCalendar({
     const scheduledTime = draft.startTime
 
     try {
-      const selectedClient = clientByAthleteId[draft.athleteId]
+      const selectedClient =
+        clientByBusinessClientId[draft.businessClientId] ??
+        clientByAthleteId[draft.athleteId] ??
+        null
 
       if (draft.recurrence?.enabled) {
         const weekdays = resolveRecurrenceWeekdays({
@@ -356,8 +395,8 @@ export default function CoachSessionCalendar({
 
         await coachBackend.createRecurringAppointmentSeries({
           businessClientId:
-            selectedClient?.business_client_id ??
-            selectedClient?.businessClientId ??
+            resolveRecordBusinessClientId(selectedClient) ??
+            draft.businessClientId ??
             null,
           startsOn: draft.sessionDate,
           startTime: draft.startTime,
@@ -381,10 +420,10 @@ export default function CoachSessionCalendar({
         })
       } else {
         const created = await coachBackend.createScheduledSession({
-          athleteId: draft.athleteId,
+          athleteId: resolveAthleteDataId(selectedClient) ?? null,
           businessClientId:
-            selectedClient?.business_client_id ??
-            selectedClient?.businessClientId ??
+            resolveRecordBusinessClientId(selectedClient) ??
+            draft.businessClientId ??
             null,
           sessionDate: scheduledDate,
           startTime: scheduledTime,
@@ -404,7 +443,9 @@ export default function CoachSessionCalendar({
           timezone: DEFAULT_COACH_SCHEDULE_TIMEZONE,
           row: created,
         })
-        logCoachCreateCheckpoint(created, { expectedAthleteId: draft.athleteId })
+        if (draft.athleteId) {
+          logCoachCreateCheckpoint(created, { expectedAthleteId: draft.athleteId })
+        }
       }
 
       setShowComposer(false)
