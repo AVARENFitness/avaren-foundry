@@ -1953,6 +1953,7 @@ function App() {
           nutrition={state.nutrition}
           onChange={handleNutritionChange}
           initialTab={nutritionInitialTab}
+          trainingHistory={state.history ?? []}
         />
       )
     }
