@@ -52,6 +52,12 @@ import {
   enqueueWorkoutCompletionSideEffects,
   flushWorkoutCompletionSideEffects,
 } from '../lib/workoutCompletionSideEffects'
+import {
+  addExerciseToWorkoutPlan,
+  buildPlanExerciseFromQuickAdd,
+  canEditActiveWorkoutPlan,
+  removeExerciseFromWorkoutPlan,
+} from '../lib/inWorkoutPlanEditing'
 
 const makeSet = makeActiveSet
 
@@ -569,11 +575,20 @@ export function useWorkoutSession({
     setActiveExercise(next)
   }, [state.activeWorkout, setActiveExercise, setState])
 
-  const quickAddExercise = useCallback(({ name, sets, muscle }) => {
+  const quickAddExercise = useCallback(({
+    name,
+    sets,
+    muscle,
+    saveToPlan = false,
+  }) => {
     setState((current) => {
       if (!current.activeWorkout) return current
 
       const activeWorkout = structuredClone(current.activeWorkout)
+      const anchorExercise =
+        activeWorkout.exercises?.[
+          activeWorkout.activeExerciseIndex ?? activeExercise
+        ] ?? null
       const afterIndex = resolveQuickAddAfterIndex({
         exercises: activeWorkout.exercises,
         activeExerciseIndex:
@@ -583,7 +598,7 @@ export function useWorkoutSession({
         id: createRuntimeId(),
         name,
         muscle,
-        oneTime: true,
+        oneTime: !saveToPlan,
         sets: Array.from({ length: Math.max(1, sets || 3) }, (_, index) =>
           makeSet(index + 1, 'Working'),
         ),
@@ -595,7 +610,6 @@ export function useWorkoutSession({
         afterIndex,
       )
 
-      // Preserve current position; do not jump onto the inserted exercise.
       if (
         !Number.isInteger(activeWorkout.activeExerciseIndex) ||
         activeWorkout.activeExerciseIndex < 0
@@ -603,9 +617,64 @@ export function useWorkoutSession({
         activeWorkout.activeExerciseIndex = Math.max(0, Number(activeExercise) || 0)
       }
 
-      return { ...current, activeWorkout }
+      const program =
+        saveToPlan && canEditActiveWorkoutPlan(current)
+          ? addExerciseToWorkoutPlan(
+              current.program,
+              current.activeWorkout,
+              buildPlanExerciseFromQuickAdd({ name, sets, muscle }),
+              anchorExercise,
+            )
+          : current.program
+
+      return { ...current, activeWorkout, program }
     })
   }, [activeExercise, setState])
+
+  const removeExercise = useCallback((exerciseIndex, {
+    removeFromPlan = false,
+  } = {}) => {
+    setState((current) => {
+      if (!current.activeWorkout) return current
+
+      const activeWorkout = structuredClone(current.activeWorkout)
+      const targetExercise = activeWorkout.exercises?.[exerciseIndex]
+      if (!targetExercise) return current
+
+      activeWorkout.exercises.splice(exerciseIndex, 1)
+
+      if (!activeWorkout.exercises.length) {
+        activeWorkout.activeExerciseIndex = 0
+      } else if (
+        (activeWorkout.activeExerciseIndex ?? exerciseIndex) >=
+        activeWorkout.exercises.length
+      ) {
+        activeWorkout.activeExerciseIndex =
+          activeWorkout.exercises.length - 1
+      } else if (
+        exerciseIndex <
+        (activeWorkout.activeExerciseIndex ?? exerciseIndex)
+      ) {
+        activeWorkout.activeExerciseIndex =
+          Math.max(0, activeWorkout.activeExerciseIndex - 1)
+      }
+
+      const program =
+        removeFromPlan && canEditActiveWorkoutPlan(current)
+          ? removeExerciseFromWorkoutPlan(
+              current.program,
+              current.activeWorkout,
+              targetExercise,
+            )
+          : current.program
+
+      return { ...current, activeWorkout, program }
+    })
+
+    setActiveExerciseState((currentIndex) =>
+      Math.max(0, currentIndex > exerciseIndex ? currentIndex - 1 : currentIndex),
+    )
+  }, [setState])
 
   const removeSet = useCallback((exerciseIndex, setIndex) => {
     setState((current) => {
@@ -956,6 +1025,7 @@ export function useWorkoutSession({
     repeatPreviousSet,
     skipExercise,
     quickAddExercise,
+    removeExercise,
     removeSet,
     undoSkipExercise,
     finishWorkout,
