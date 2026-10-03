@@ -270,3 +270,32 @@ end;
 $$;
 
 revoke all on function public.touch_coach_conversation_from_message() from public;
+
+
+-- M1 hardening: active relationship check may inspect coach-private business status.
+create or replace function public.is_active_coaching_relationship(
+  p_coach_id uuid,
+  p_athlete_id uuid
+)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1
+    from public.coach_clients cc
+    left join public.coach_business_clients bc
+      on bc.id = cc.business_client_id
+    where cc.coach_id = p_coach_id
+      and cc.athlete_id = p_athlete_id
+      and (
+        cc.business_client_id is null
+        or bc.status = 'active'
+      )
+  );
+$$;
+
+revoke all on function public.is_active_coaching_relationship(uuid, uuid) from public;
+grant execute on function public.is_active_coaching_relationship(uuid, uuid) to authenticated;
