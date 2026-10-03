@@ -499,24 +499,26 @@ export default function HomeScreen({
       ))}
  
 
-      <section className="home-nutrition-quicklog">
-        <div className="home-nutrition-quicklog-copy">
-          <span className="eyebrow">NUTRITION</span>
-          <strong>Log food</strong>
-          <span>
-            {nutritionSummary?.calories || 0} / {nutritionSummary?.goal || 2200} cal
-            {' · '}{nutritionSummary?.protein || 0}g protein
-          </span>
-        </div>
-        <button
-          type="button"
-          className="home-nutrition-quicklog-action"
-          onClick={() => onOpenNutritionLog?.()}
-        >
-          <Plus size={17} strokeWidth={1.8} />
-          Log Food
-        </button>
-      </section>
+      {homeState.primaryAction?.id !== HOME_ACTION_IDS.NUTRITION ? (
+        <section className="home-nutrition-quicklog">
+          <div className="home-nutrition-quicklog-copy">
+            <span className="eyebrow">NUTRITION</span>
+            <strong>Log food</strong>
+            <span>
+              {nutritionSummary?.calories || 0} / {nutritionSummary?.goal || 2200} cal
+              {' · '}{nutritionSummary?.protein || 0}g protein
+            </span>
+          </div>
+          <button
+            type="button"
+            className="home-nutrition-quicklog-action"
+            onClick={() => onOpenNutritionLog?.()}
+          >
+            <Plus size={17} strokeWidth={1.8} />
+            Log Food
+          </button>
+        </section>
+      ) : null}
 
       <AvaDailyBriefing
         briefing={avaBriefing}
@@ -703,9 +705,13 @@ export default function HomeScreen({
         </p>
       )}
 
-      {(readinessDue || weeklyCheckInDue) && (
+      {((readinessDue &&
+          homeState.primaryAction?.id !== HOME_ACTION_IDS.READINESS) ||
+        (weeklyCheckInDue &&
+          homeState.primaryAction?.id !== HOME_ACTION_IDS.WEEKLY_CHECKIN)) && (
         <section className="home-reminders" aria-label="Essentials">
-          {readinessDue && (
+          {readinessDue &&
+          homeState.primaryAction?.id !== HOME_ACTION_IDS.READINESS ? (
             <button
               type="button"
               className="home-reminder-row home-reminder-row--daily"
@@ -719,9 +725,10 @@ export default function HomeScreen({
               </div>
               <ChevronRight size={16} strokeWidth={1.75} />
             </button>
-          )}
+          ) : null}
 
-          {weeklyCheckInDue && (
+          {weeklyCheckInDue &&
+          homeState.primaryAction?.id !== HOME_ACTION_IDS.WEEKLY_CHECKIN ? (
             <div className="home-reminder-row home-reminder-row--weekly">
               <CalendarCheck2 size={18} strokeWidth={1.75} />
               <div>
@@ -736,7 +743,7 @@ export default function HomeScreen({
                 Check In
               </button>
             </div>
-          )}
+          ) : null}
         </section>
       )}
 
