@@ -184,11 +184,30 @@ export const buildAvaContextPacket = (state = {}, options = {}) => {
       }
     : null
 
+  const structuredGoal = options.structuredGoal ?? null
+
   return {
     generatedAt: now.toISOString(),
     athlete: {
       firstName: extractFirstName(options.userName),
     },
+    goal: structuredGoal
+      ? {
+          primaryGoal: structuredGoal.primaryGoal ?? null,
+          targetLabel: structuredGoal.targetLabel ?? '',
+          targetValue:
+            structuredGoal.targetValue === null ||
+            structuredGoal.targetValue === undefined
+              ? null
+              : Number(structuredGoal.targetValue),
+          targetUnit: structuredGoal.targetUnit ?? '',
+          targetDate: structuredGoal.targetDate ?? '',
+          priorityAreas: Array.isArray(structuredGoal.priorityAreas)
+            ? structuredGoal.priorityAreas
+            : [],
+          note: structuredGoal.note ?? '',
+        }
+      : null,
     daypart: daypart(now),
     workout: {
       displayName: workoutName,

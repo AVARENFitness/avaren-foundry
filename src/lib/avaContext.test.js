@@ -68,6 +68,35 @@ describe('avaContext', () => {
     )
   })
 
+  it('includes the athlete structured goal without coach-private fields', () => {
+    const packet = buildAvaContextPacket(baseState, {
+      userName: 'Jacob Corell',
+      structuredGoal: {
+        primaryGoal: 'performance',
+        targetLabel: 'Bench press',
+        targetValue: 225,
+        targetUnit: 'lb',
+        targetDate: '2027-01-15',
+        priorityAreas: ['Strength', 'Recovery'],
+        note: 'Build strength without beating up shoulders.',
+        privateCoachNote: 'Internal only',
+      },
+      now: new Date(`${today}T18:00:00`),
+    })
+
+    expect(packet.goal).toEqual({
+      primaryGoal: 'performance',
+      targetLabel: 'Bench press',
+      targetValue: 225,
+      targetUnit: 'lb',
+      targetDate: '2027-01-15',
+      priorityAreas: ['Strength', 'Recovery'],
+      note: 'Build strength without beating up shoulders.',
+    })
+    expect(JSON.stringify(packet.goal)).not.toContain('Internal only')
+    expect(JSON.stringify(packet.goal)).not.toContain('privateCoachNote')
+  })
+
   it('includes coach assignment context without private coach-hub fields', () => {
     const assignment = {
       id: 'assign-1',
