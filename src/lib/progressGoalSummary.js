@@ -5,6 +5,8 @@ const goalLabels = {
   maintain: 'Maintain',
   build_muscle: 'Build muscle',
   performance: 'Performance',
+  consistency: 'Training consistency',
+  general_fitness: 'General fitness',
 }
 
 const sessionTime = (session = {}) => {
@@ -52,9 +54,13 @@ const countRecentPRs = (prs = [], days = 28, now = new Date()) => {
 export const buildGoalAwareProgress = ({
   state = {},
   prs = [],
+  structuredGoal = null,
   now = new Date(),
 } = {}) => {
-  const goal = state?.nutrition?.goals?.inputs?.goal ?? null
+  const goal =
+    structuredGoal?.primaryGoal ??
+    state?.nutrition?.goals?.inputs?.goal ??
+    null
   const goalLabel = goalLabels[goal] ?? 'Training progress'
   const recent = recentSessions(state.history, 28, now)
   const previousWindowStart = now.getTime() - 56 * DAY_MS
@@ -114,6 +120,19 @@ export const buildGoalAwareProgress = ({
         value: 'Use Readiness trends to review sleep, soreness, energy, and stress',
       },
     ],
+    consistency: [
+      { label: 'Training consistency', value: frequencyDetail },
+      { label: 'Strength trend', value: strengthDetail },
+      {
+        label: 'Recovery support',
+        value: 'Use Readiness trends to keep the routine sustainable',
+      },
+    ],
+    general_fitness: [
+      { label: 'Training consistency', value: frequencyDetail },
+      { label: 'Strength trend', value: strengthDetail },
+      { label: 'Body-weight trend', value: weightDetail },
+    ],
   }
 
   const descriptions = {
@@ -125,6 +144,10 @@ export const buildGoalAwareProgress = ({
       'Prioritize consistent training, improving strength, and a controlled body-weight trend.',
     performance:
       'Prioritize training consistency, performance trend, and recovery quality.',
+    consistency:
+      'Build a repeatable training rhythm first, then improve the quality of each session.',
+    general_fitness:
+      'Use consistency, strength, recovery, and body-weight context to build overall fitness.',
   }
 
   return {
