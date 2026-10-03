@@ -1,11 +1,9 @@
 import {
   ArrowRight,
-  BookOpen,
   CalendarDays,
   Dumbbell,
   Hammer,
   History,
-  ListChecks,
   Settings2,
   Sparkles,
 } from 'lucide-react'
@@ -183,12 +181,10 @@ export default function TrainHubScreen({
       </section>
 
       <section className="train-hub-grid">
-        <ActionCard icon={CalendarDays} title="Weekly Plan" description="Organize your training week" onClick={() => navigate('planner')} />
-        <ActionCard icon={Settings2} title="Workout Builder" description="Create or edit workouts" onClick={() => navigate('builder')} />
-        <ActionCard icon={History} title="Workout History" description="Review sessions, sets, and notes" onClick={() => navigate('history')} />
-        <ActionCard icon={Hammer} title="The Forge" description="Achievements and milestones" onClick={() => navigate('forge')} />
-        <ActionCard icon={ListChecks} title="Exercise Library" description="Browse movements in your programs" onClick={() => navigate('builder')} />
-        <ActionCard icon={BookOpen} title="Programs" description="Program scheduling lives in Coach Hub today" onClick={() => navigate('more')} />
+        <ActionCard icon={CalendarDays} title="Weekly Plan" description="See training days, rest days, and what is next" onClick={() => navigate('planner')} />
+        <ActionCard icon={Settings2} title="My Workouts" description="Create or edit your own training sessions" onClick={() => navigate('builder')} />
+        <ActionCard icon={History} title="Workout History" description="Review completed sessions, sets, and notes" onClick={() => navigate('history')} />
+        <ActionCard icon={Hammer} title="The Forge" description="Achievements and long-term milestones" onClick={() => navigate('forge')} />
       </section>
 
       <section

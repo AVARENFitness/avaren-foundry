@@ -41,11 +41,12 @@ export default function CoachClientInPersonPanel({
 
   const athleteId = client?.athlete_id ?? null
   const businessClientId =
-    client?.business_client_id ?? client?.businessClientId ?? null
+    client?.business_client_id ?? client?.businessClientId ?? client?.id ?? null
 
   const loadSessions = useCallback(async () => {
-    if (!athleteId) {
+    if (!athleteId && !businessClientId) {
       setSessions([])
+      setLedger([])
       setLoading(false)
       return
     }
@@ -60,6 +61,7 @@ export default function CoachClientInPersonPanel({
           startDate,
           endDate,
           athleteId,
+          businessClientId,
         }),
         businessClientId
           ? coachBackend.listClientPassLedger(businessClientId, 200)

@@ -30,6 +30,10 @@ import {
 } from '../lib/coachPassForensics'
 import { buildSessionLinkageForensics } from '../lib/coachBusinessClientLinkage'
 import {
+  resolveAthleteDataId,
+  resolveRecordBusinessClientId,
+} from '../lib/coachBusinessClient'
+import {
   mapAppointmentOverlapError,
   mapRecurrenceConflictError,
 } from '../lib/coachingAppointment'
@@ -78,45 +82,75 @@ export function useCoachSessionDetail({
   const [recurrenceScopePrompt, setRecurrenceScopePrompt] = useState(null)
 
   const clientByAthleteId = useMemo(
-    () => Object.fromEntries(clients.map((client) => [client.athlete_id, client])),
+    () =>
+      Object.fromEntries(
+        clients
+          .map((client) => [resolveAthleteDataId(client), client])
+          .filter(([athleteId]) => Boolean(athleteId)),
+      ),
     [clients],
+  )
+
+  const clientByBusinessClientId = useMemo(
+    () =>
+      Object.fromEntries(
+        clients
+          .map((client) => [resolveRecordBusinessClientId(client), client])
+          .filter(([businessClientId]) => Boolean(businessClientId)),
+      ),
+    [clients],
+  )
+
+  const resolveClientForSession = useCallback(
+    (session) =>
+      clientByBusinessClientId[session?.businessClientId] ??
+      clientByAthleteId[session?.athleteId] ??
+      null,
+    [clientByBusinessClientId, clientByAthleteId],
   )
 
   const loadPassSummaries = useCallback(async () => {
     const entries = await Promise.all(
       clients.map(async (client) => {
-        const businessClientId =
-          client.business_client_id ?? client.businessClientId
-        if (!businessClientId) {
-          return [client.athlete_id, summarizeClientPasses([])]
+        const businessClientId = resolveRecordBusinessClientId(client)
+        const athleteId = resolveAthleteDataId(client)
+        let summary = summarizeClientPasses([])
+
+        if (businessClientId) {
+          try {
+            const rows = await coachBackend.listClientPassBalances(businessClientId)
+            const passes = (rows ?? [])
+              .map(normalizePassBalanceViewRow)
+              .filter(Boolean)
+            summary = summarizeClientPasses(passes)
+          } catch {
+            summary = summarizeClientPasses([])
+          }
         }
 
-        try {
-          const rows = await coachBackend.listClientPassBalances(businessClientId)
-          const passes = (rows ?? [])
-            .map(normalizePassBalanceViewRow)
-            .filter(Boolean)
-          return [client.athlete_id, summarizeClientPasses(passes)]
-        } catch {
-          return [client.athlete_id, summarizeClientPasses([])]
-        }
+        return [
+          businessClientId ? [businessClientId, summary] : null,
+          athleteId ? [athleteId, summary] : null,
+        ].filter(Boolean)
       }),
     )
-    setPassSummaries(Object.fromEntries(entries))
+    setPassSummaries(Object.fromEntries(entries.flat()))
   }, [clients])
 
   const loadPackages = useCallback(async () => {
     const entries = await Promise.all(
       clients.map(async (client) => {
+        const athleteId = resolveAthleteDataId(client)
+        if (!athleteId) return null
         try {
-          const row = await coachBackend.getSessionPackage(client.athlete_id)
-          return [client.athlete_id, normalizeSessionPackage(row)]
+          const row = await coachBackend.getSessionPackage(athleteId)
+          return [athleteId, normalizeSessionPackage(row)]
         } catch {
-          return [client.athlete_id, emptySessionPackage()]
+          return [athleteId, emptySessionPackage()]
         }
       }),
     )
-    setPackages(Object.fromEntries(entries))
+    setPackages(Object.fromEntries(entries.filter(Boolean)))
   }, [clients])
 
   const loadSessionsInternal = useCallback(async () => {
@@ -163,7 +197,7 @@ export function useCoachSessionDetail({
   useEffect(() => {
     if (!activeSession || import.meta.env?.DEV !== true) return
 
-    const client = clientByAthleteId[activeSession.athleteId]
+    const client = resolveClientForSession(activeSession)
     const linkage = buildSessionLinkageForensics({
       ...activeSession,
       businessClientId:
@@ -179,12 +213,10 @@ export function useCoachSessionDetail({
     ) {
       console.debug('[coach-appointment-linkage]', linkage)
     }
-  }, [activeSession, clientByAthleteId])
+  }, [activeSession, resolveClientForSession])
 
   useEffect(() => {
-    const client = activeSession
-      ? clientByAthleteId[activeSession.athleteId]
-      : null
+    const client = activeSession ? resolveClientForSession(activeSession) : null
     const businessClientId =
       activeSession?.businessClientId ??
       client?.business_client_id ??
@@ -219,11 +251,20 @@ export function useCoachSessionDetail({
     activeSession?.status,
     activeSession?.athleteId,
     activeSession?.businessClientId,
-    clientByAthleteId,
+    resolveClientForSession,
   ])
 
   const passSummaryFor = useCallback(
-    (athleteId) => passSummaries[athleteId] ?? summarizeClientPasses([]),
+    (identity) => {
+      if (identity && typeof identity === 'object') {
+        return (
+          passSummaries[identity.businessClientId] ??
+          passSummaries[identity.athleteId] ??
+          summarizeClientPasses([])
+        )
+      }
+      return passSummaries[identity] ?? summarizeClientPasses([])
+    },
     [passSummaries],
   )
 
@@ -242,11 +283,13 @@ export function useCoachSessionDetail({
     setRescheduleMode(false)
   }, [])
 
-  const reloadLedgerForAthlete = useCallback(
-    async (athleteId) => {
-      const client = clientByAthleteId[athleteId]
+  const reloadLedgerForSession = useCallback(
+    async (session) => {
+      const client = resolveClientForSession(session)
       const businessClientId =
-        client?.business_client_id ?? client?.businessClientId ?? null
+        session?.businessClientId ??
+        resolveRecordBusinessClientId(client) ??
+        null
       if (!businessClientId) {
         setLedgerBySessionId({})
         return
@@ -263,25 +306,26 @@ export function useCoachSessionDetail({
         setLedgerBySessionId({})
       }
     },
-    [clientByAthleteId],
+    [resolveClientForSession],
   )
 
   const refreshAfterPassAction = useCallback(
-    async (athleteId) => {
+    async (session) => {
       await Promise.all([
         loadSessions(),
         loadPassSummaries(),
         loadPackages(),
-        reloadLedgerForAthlete(athleteId),
+        reloadLedgerForSession(session),
       ])
-      if (athleteId && import.meta.env?.DEV) {
+      if (session && import.meta.env?.DEV) {
         console.debug('[coach-pass-complete]', {
-          athleteId,
-          summary: passSummaryFor(athleteId),
+          businessClientId: session.businessClientId ?? null,
+          athleteId: session.athleteId ?? null,
+          summary: passSummaryFor(session),
         })
       }
     },
-    [loadSessions, loadPassSummaries, loadPackages, reloadLedgerForAthlete, passSummaryFor],
+    [loadSessions, loadPassSummaries, loadPackages, reloadLedgerForSession, passSummaryFor],
   )
 
   const notifyMutated = useCallback(async () => {
@@ -291,7 +335,7 @@ export function useCoachSessionDetail({
 
   const reportPassUsage = useCallback(
     ({ session, passResult, passUsageError, refreshCalled = false }) => {
-      const summary = passSummaryFor(session?.athleteId)
+      const summary = passSummaryFor(session)
       logPassCompletionForensics(
         buildPassCompletionForensics({
           session,
@@ -324,7 +368,7 @@ export function useCoachSessionDetail({
             : 'Choose a pass to debit.',
           'info',
         )
-        await refreshAfterPassAction(session.athleteId)
+        await refreshAfterPassAction(session)
         return { handled: true }
       }
 
@@ -335,7 +379,7 @@ export function useCoachSessionDetail({
             : passUsageResultUserMessage(passResult),
           afterComplete ? 'info' : 'error',
         )
-        await refreshAfterPassAction(session.athleteId)
+        await refreshAfterPassAction(session)
         return { handled: true }
       }
 
@@ -354,7 +398,7 @@ export function useCoachSessionDetail({
         appUi.toast('1 session applied', 'success')
       }
 
-      await refreshAfterPassAction(session.athleteId)
+      await refreshAfterPassAction(session)
       await notifyMutated()
       return { handled: true }
     },
@@ -438,7 +482,7 @@ export function useCoachSessionDetail({
           passResult: result,
           refreshCalled: true,
         })
-        await refreshAfterPassAction(session.athleteId)
+        await refreshAfterPassAction(session)
 
         if (result.unchanged) {
           appUi.toast('Pass already applied.', 'info')
@@ -558,7 +602,7 @@ export function useCoachSessionDetail({
           passResult,
           refreshCalled: true,
         })
-        await refreshAfterPassAction(session.athleteId)
+        await refreshAfterPassAction(session)
         await notifyMutated()
       } catch (error) {
         appUi.toast(error.message ?? 'Could not complete session.', 'error')
@@ -601,7 +645,7 @@ export function useCoachSessionDetail({
       )
       setMissedChargeSession(null)
       appUi.toast('Missed session recorded. No charge applied.', 'success')
-      await refreshAfterPassAction(missedChargeSession.athleteId)
+      await refreshAfterPassAction(missedChargeSession)
       await notifyMutated()
     } catch (error) {
       appUi.toast(error.message ?? 'Could not save missed decision.', 'error')
@@ -643,7 +687,7 @@ export function useCoachSessionDetail({
 
       setMissedChargeSession(null)
       appUi.toast('Missed session charged.', 'success')
-      await refreshAfterPassAction(missedChargeSession.athleteId)
+      await refreshAfterPassAction(missedChargeSession)
       await notifyMutated()
     } catch (error) {
       appUi.toast(error.message ?? 'Could not charge missed session.', 'error')
@@ -848,18 +892,16 @@ export function useCoachSessionDetail({
   }, [activeSession, rescheduleDraft, handleReschedule])
 
   const handleViewClient = useCallback(() => {
-    const client = activeSession
-      ? clientByAthleteId[activeSession.athleteId]
-      : null
+    const client = activeSession ? resolveClientForSession(activeSession) : null
     onOpenClientProfile?.(client)
     closeDetail()
-  }, [activeSession, clientByAthleteId, onOpenClientProfile, closeDetail])
+  }, [activeSession, resolveClientForSession, onOpenClientProfile, closeDetail])
 
   const activeClient = activeSession
-    ? clientByAthleteId[activeSession.athleteId]
+    ? resolveClientForSession(activeSession)
     : null
   const activePassSummary = activeSession
-    ? passSummaryFor(activeSession.athleteId)
+    ? passSummaryFor(activeSession)
     : summarizeClientPasses([])
 
   const passDebitState = useMemo(

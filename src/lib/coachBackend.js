@@ -1152,7 +1152,12 @@ export const coachBackend = {
     return rows[0] ?? null
   },
 
-  async listScheduledSessions({ startDate, endDate, athleteId = null } = {}) {
+  async listScheduledSessions({
+    startDate,
+    endDate,
+    athleteId = null,
+    businessClientId = null,
+  } = {}) {
     const user = await currentUser()
     let query = supabase
       .from('coach_scheduled_sessions')
@@ -1163,7 +1168,11 @@ export const coachBackend = {
       .order('session_date', { ascending: true })
       .order('start_time', { ascending: true })
 
-    if (athleteId) query = query.eq('athlete_id', athleteId)
+    if (businessClientId) {
+      query = query.eq('business_client_id', businessClientId)
+    } else if (athleteId) {
+      query = query.eq('athlete_id', athleteId)
+    }
 
     return unwrap(query)
   },

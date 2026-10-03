@@ -2,6 +2,7 @@ import {
   ArrowLeft,
   ArrowRight,
   BarChart3,
+  CalendarDays,
   Check,
   Dumbbell,
   Gauge,
@@ -9,6 +10,7 @@ import {
   RefreshCcw,
   Sparkles,
   Target,
+  UtensilsCrossed,
 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 
@@ -16,81 +18,76 @@ const STEPS = [
   {
     id: 'welcome',
     eyebrow: 'WELCOME TO AVAREN',
-    title: 'Training, made clear.',
+    title: 'Your day, made clear.',
     copy:
-      'AVAREN brings workouts, readiness, movement, recovery, and progress into one calm daily system.',
+      'AVAREN brings training, nutrition, readiness, coaching, schedule, and progress into one calm daily system.',
     points: [
       {
         icon: Home,
         title: 'Home',
-        copy: 'Your daily plan and the fastest way into training.',
-      },
-      {
-        icon: Dumbbell,
-        title: 'Gym',
-        copy: 'Log sets, use the rest timer, and finish with a complete session summary.',
-      },
-      {
-        icon: BarChart3,
-        title: 'Progress',
-        copy: 'Review trends, records, and the work you have built over time.',
-      },
-    ],
-  },
-  {
-    id: 'readiness',
-    eyebrow: 'YOUR MORNING',
-    title: 'Check in before you push.',
-    copy:
-      'Readiness helps AVAREN understand how prepared you feel and shapes the guidance you see that day.',
-    points: [
-      {
-        icon: Gauge,
-        title: 'Readiness',
-        copy: 'Log sleep, energy, soreness, and stress in under a minute.',
+        copy: 'See the one thing that matters most today, plus what is coming next.',
       },
       {
         icon: Sparkles,
-        title: 'Morning Movement',
-        copy: 'Use an equipment-free flow to prepare your body for the day.',
+        title: 'AVA',
+        copy: 'Ask questions across your training, recovery, nutrition, schedule, and progress.',
       },
     ],
   },
   {
     id: 'training',
-    eyebrow: 'DURING TRAINING',
-    title: 'Log the work. Keep moving.',
+    eyebrow: 'TRAIN',
+    title: 'Open the session. Log the work.',
     copy:
-      'Choose a workout, enter weight and reps, complete each set, and let AVAREN remember your history.',
+      'Start today’s workout, continue where you left off, or choose another workout when you need flexibility.',
     points: [
       {
         icon: Dumbbell,
-        title: 'Set logging',
-        copy: 'Previous performance, quick adjustments, rest timing, and PR awareness stay close.',
+        title: 'Train',
+        copy: 'Log weight, reps, sets, notes, and previous performance without leaving the session.',
       },
       {
         icon: Target,
-        title: 'Session intent',
-        copy: 'Save the cue or purpose you want to carry through the workout.',
+        title: 'Stay on plan',
+        copy: 'Coach assignments and your own training stay clear without mixing appointments with workouts.',
       },
     ],
   },
   {
-    id: 'recovery',
-    eyebrow: 'AFTER TRAINING',
-    title: 'Recover with a reason.',
+    id: 'nutrition',
+    eyebrow: 'FOOD',
+    title: 'Track without the friction.',
     copy:
-      'Daily Reset uses recent training to choose relevant equipment-free movements instead of giving everyone the same routine.',
+      'Search, scan, upload, or use the camera. AVAREN keeps protein visible and learns from your long-term response.',
     points: [
       {
-        icon: RefreshCcw,
-        title: 'Daily Reset',
-        copy: 'Restore the regions you trained and avoid movements you do not enjoy.',
+        icon: UtensilsCrossed,
+        title: 'Nutrition',
+        copy: 'Log food quickly, choose the amount you ate, and review calories, protein, and trends.',
       },
       {
-        icon: Check,
-        title: 'Workout completion',
-        copy: 'See session time, volume, highlights, notes, and records from that workout only.',
+        icon: Sparkles,
+        title: 'Adaptive guidance',
+        copy: 'Targets can stabilize over time using your goal, adherence, body-weight trend, and training demand.',
+      },
+    ],
+  },
+  {
+    id: 'schedule',
+    eyebrow: 'COACHING',
+    title: 'Know what is next.',
+    copy:
+      'Appointments with your coach stay separate from workout assignments so the day is always easy to understand.',
+    points: [
+      {
+        icon: CalendarDays,
+        title: 'Schedule',
+        copy: 'See upcoming in-person sessions, details, confirmation status, and past appointments.',
+      },
+      {
+        icon: Gauge,
+        title: 'Readiness & check-ins',
+        copy: 'Complete the short check-ins that help AVAREN and your coach understand how you are doing.',
       },
     ],
   },
@@ -99,17 +96,22 @@ const STEPS = [
     eyebrow: 'YOU ARE READY',
     title: 'Start with today.',
     copy:
-      'You do not need to learn every feature now. AVAREN will stay simple and reveal more as you use it.',
+      'You do not need to manage every feature. AVAREN will surface what matters when it matters.',
     points: [
       {
         icon: Home,
         title: 'Begin on Home',
-        copy: 'Complete readiness, review the day, or start your next workout.',
+        copy: 'Follow the primary action, then use Train, Food, Schedule, or Progress when you need more.',
       },
       {
         icon: BarChart3,
+        title: 'Progress',
+        copy: 'Review strength, consistency, recovery patterns, records, and the work you have built over time.',
+      },
+      {
+        icon: RefreshCcw,
         title: 'Replay anytime',
-        copy: 'Open Profile and choose Replay App Tour whenever you need a refresher.',
+        copy: 'Open Profile and choose Replay App Tour whenever you want a refresher.',
       },
     ],
   },

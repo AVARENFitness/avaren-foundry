@@ -187,7 +187,7 @@ h1, h2, strong { font-family: 'Manrope', sans-serif; }
   right: 0;
   bottom: 0;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   width: 100%;
   max-width: 760px;
   margin: 0 auto;

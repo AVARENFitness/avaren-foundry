@@ -41,6 +41,17 @@ const sarah = {
   coach_label: 'Sarah',
 }
 
+const offlineClient = {
+  id: 'bc-offline',
+  business_client_id: 'bc-offline',
+  businessClientId: 'bc-offline',
+  linked_user_id: null,
+  athlete_id: null,
+  first_name: 'Offline',
+  last_name: 'Client',
+  display_name: 'Offline Client',
+}
+
 const buildSessionsFixture = () => {
   const todayKey = dateKey(new Date(), DEFAULT_COACH_SCHEDULE_TIMEZONE)
   const weekDayKey = addDaysKey(todayKey, 3)
@@ -84,7 +95,7 @@ const buildSessionsFixture = () => {
     },
     {
       id: 'offline-day',
-      athlete_id: 'offline-client',
+      athlete_id: null,
       business_client_id: 'bc-offline',
       session_date: addDaysKey(todayKey, 1),
       start_time: '14:00',
@@ -202,6 +213,44 @@ describe('CoachSessionCalendar usability', () => {
     expect(within(sheet).getByText('Jake')).toBeInTheDocument()
   })
 
+  it('schedules a true non-app client using business client identity', async () => {
+    const user = userEvent.setup()
+    coachBackend.createScheduledSession.mockResolvedValue({
+      id: 'session-offline',
+      athlete_id: null,
+      business_client_id: 'bc-offline',
+      session_date: dateKey(new Date(), DEFAULT_COACH_SCHEDULE_TIMEZONE),
+      start_time: '15:00',
+      duration_minutes: 60,
+      status: 'scheduled',
+    })
+
+    render(
+      <CoachSessionCalendar
+        clients={[offlineClient]}
+        assignments={[]}
+        initialClientId="bc-offline"
+        initialOpenComposer
+      />,
+    )
+
+    const sheet = await screen.findByTestId('coach-schedule-session-sheet')
+    expect(within(sheet).getByText('Offline Client')).toBeInTheDocument()
+
+    await user.click(
+      within(sheet).getByRole('button', { name: /^save appointment$/i }),
+    )
+
+    await waitFor(() => {
+      expect(coachBackend.createScheduledSession).toHaveBeenCalledWith(
+        expect.objectContaining({
+          athleteId: null,
+          businessClientId: 'bc-offline',
+        }),
+      )
+    })
+  })
+
   it('successful schedule submit closes sheet and refreshes calendar', async () => {
     const user = userEvent.setup()
     const onScheduleComplete = vi.fn()
@@ -239,14 +288,7 @@ describe('CoachSessionCalendar usability', () => {
 
     render(
       <CoachSessionCalendar
-        clients={[
-          jake,
-          {
-            ...jake,
-            athlete_id: 'offline-client',
-            coach_label: 'Offline Client',
-          },
-        ]}
+        clients={[jake, offlineClient]}
         assignments={[]}
       />,
     )
