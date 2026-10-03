@@ -48,6 +48,27 @@ export const coachMessagingBackend = {
     return (data ?? []).map(normalizeCoachMessage)
   },
 
+  async getUnreadCount(conversationId) {
+    if (!conversationId) return 0
+
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser()
+
+    if (userError || !user) return 0
+
+    const { count, error } = await supabase
+      .from('coach_messages')
+      .select('id', { count: 'exact', head: true })
+      .eq('conversation_id', conversationId)
+      .neq('sender_id', user.id)
+      .is('read_at', null)
+
+    if (error) throw error
+    return count ?? 0
+  },
+
   async sendMessage(conversationId, body) {
     const text = String(body ?? '').trim()
     if (!conversationId || !text) {
@@ -115,7 +136,7 @@ export const coachMessagingBackend = {
       .on(
         'postgres_changes',
         {
-          event: 'INSERT',
+          event: '*',
           schema: 'public',
           table: 'coach_messages',
           filter: `conversation_id=eq.${conversationId}`,
