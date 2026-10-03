@@ -14,6 +14,7 @@ import {
   recentPRs,
   totalVolume,
 } from '../lib/metrics'
+import { buildGoalAwareProgress } from '../lib/progressGoalSummary'
 
 const METRICS = [
   { id: 'e1rm', label: 'Current estimate' },
@@ -46,6 +47,14 @@ export default function ProgressScreen({
   const streak = consistencyStreak(state.history)
   const monthlyPrs = prsThisMonth(state.history)
   const lifetimeVolume = Math.round(totalVolume(state.history))
+  const goalProgress = useMemo(
+    () =>
+      buildGoalAwareProgress({
+        state,
+        prs,
+      }),
+    [state, prs],
+  )
 
   if (selectedSession) {
     const current =
@@ -68,12 +77,23 @@ export default function ProgressScreen({
 
   return (
     <>
-      <section className="progress-summary-hero">
-        <span className="eyebrow">YOUR PROGRESS</span>
-        <h1>{state.history.length} workouts logged</h1>
-        <p>
-          {streak} day streak · {monthlyPrs} PRs this month · {lifetimeVolume.toLocaleString()} lb lifetime volume
-        </p>
+      <section className="progress-summary-hero progress-summary-hero--goal">
+        <span className="eyebrow">YOUR PROGRESS · {goalProgress.goalLabel.toUpperCase()}</span>
+        <h1>{goalProgress.goalLabel}</h1>
+        <p>{goalProgress.description}</p>
+
+        <div className="progress-goal-grid">
+          {goalProgress.cards.map((card) => (
+            <article className="progress-goal-card" key={card.label}>
+              <small>{card.label}</small>
+              <strong>{card.value}</strong>
+            </article>
+          ))}
+        </div>
+
+        <small className="progress-summary-supporting">
+          {state.history.length} workouts logged · {streak} day streak · {monthlyPrs} PRs this month
+        </small>
       </section>
 
       <button
