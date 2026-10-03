@@ -3,6 +3,8 @@ import {
   deactivatePushSubscriptionForDevice,
   enablePushNotifications,
   registerPushSubscriptionRpcArgs,
+  registerPushWorker,
+  serviceWorkerSupported,
   syncPushSubscription,
 } from './pushNotifications'
 
@@ -70,6 +72,20 @@ describe('pushNotifications ownership RPC', () => {
         })),
       },
     })
+  })
+
+  it('registers the shared app worker even when push APIs are unavailable', async () => {
+    delete window.PushManager
+    delete window.Notification
+
+    expect(serviceWorkerSupported()).toBe(true)
+
+    await registerPushWorker()
+
+    expect(navigator.serviceWorker.register).toHaveBeenCalledWith(
+      '/push-sw.js',
+      { scope: '/' },
+    )
   })
 
   it('registers via register_push_subscription RPC instead of direct upsert', async () => {
