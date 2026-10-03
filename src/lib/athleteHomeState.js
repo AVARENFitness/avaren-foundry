@@ -9,6 +9,36 @@ import {
   resolveLastWorkoutCompletionToday,
 } from './dailyAthleteFlow'
 
+const APPOINTMENT_PRIORITY_WINDOW_MS = 3 * 60 * 60 * 1000
+
+const appointmentStartsAtMs = (appointment = null) => {
+  if (!appointment) return null
+  if (appointment.startsAt) {
+    const parsed = new Date(appointment.startsAt).getTime()
+    if (Number.isFinite(parsed)) return parsed
+  }
+
+  if (appointment.sessionDate && appointment.startTime) {
+    const parsed = new Date(
+      `${appointment.sessionDate}T${String(appointment.startTime).slice(0, 5)}:00`,
+    ).getTime()
+    if (Number.isFinite(parsed)) return parsed
+  }
+
+  return null
+}
+
+export const isAppointmentPrioritySoon = (
+  appointment,
+  now = new Date(),
+  windowMs = APPOINTMENT_PRIORITY_WINDOW_MS,
+) => {
+  const startsAt = appointmentStartsAtMs(appointment)
+  if (!Number.isFinite(startsAt)) return false
+  const delta = startsAt - now.getTime()
+  return delta >= 0 && delta <= windowMs
+}
+
 export const MORNING_MOVEMENT_END_HOUR = 11
 /** @deprecated Recovery is due for the remainder of the local day after training. */
 export const POST_WORKOUT_RECOVERY_WINDOW_MS = 60 * 60 * 1000
@@ -211,6 +241,8 @@ export const getAthleteHomeState = ({
   const secondary = []
   let primary = null
 
+  const appointmentSoon = isAppointmentPrioritySoon(nextAppointment, now)
+
   if (activeWorkout?.name) {
     primary = buildHomeAction({
       id: HOME_ACTION_IDS.CONTINUE_WORKOUT,
@@ -233,6 +265,15 @@ export const getAthleteHomeState = ({
       eyebrow: 'DAILY READINESS',
       label: "Complete Today's Readiness",
       priority: 90,
+    })
+  } else if (appointmentSoon && nextAppointment) {
+    primary = buildHomeAction({
+      id: HOME_ACTION_IDS.APPOINTMENT,
+      eyebrow: 'UPCOMING SESSION',
+      label: 'View coaching appointment',
+      detail: 'Your in-person session is coming up soon',
+      priority: 86,
+      meta: { appointmentId: nextAppointment.id },
     })
   } else if (morningMovementEligible) {
     primary = buildHomeAction({
@@ -374,6 +415,7 @@ export const getAthleteHomeState = ({
     activeWorkout,
     inRecoveryWindow,
     morningMovementEligible,
+    appointmentSoon,
     suppressWorkoutReminder: shouldSuppressWorkoutReminder({
       todayTrained,
       activeWorkout,
