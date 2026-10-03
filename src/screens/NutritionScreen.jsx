@@ -587,7 +587,6 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
   const scaledScanDraft = scanDraft
     ? {
         ...scanDraft,
-        servings: scanQuantityValue,
         calories: round(Number(scanDraft.calories || 0) * scanQuantityValue),
         protein: round(Number(scanDraft.protein || 0) * scanQuantityValue),
         carbs: round(Number(scanDraft.carbs || 0) * scanQuantityValue),
@@ -597,13 +596,18 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
     : null
 
   const logScannedFood = () => {
-    if (!scaledScanDraft?.name?.trim()) return
+    if (!scanDraft?.name?.trim()) return
+
+    const foodToLog = {
+      ...scanDraft,
+      servings: scanQuantityValue,
+    }
 
     patch((current) =>
       appendFoodToNutrition(
         current,
         date,
-        scaledScanDraft,
+        foodToLog,
         scanResult?.sourceType === 'label_read'
           ? 'nutrition_label_scan'
           : 'ava_photo_estimate',
