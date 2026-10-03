@@ -12962,6 +12962,9 @@ html.coach-mode-active,body.coach-mode-active{overflow:hidden;height:100%;width:
 .push-settings-state.warning{border-color:rgba(190,145,90,.16);background:rgba(190,145,90,.025);color:#bfa67f}
 .push-settings-message{border-color:rgba(91,163,112,.14);background:rgba(91,163,112,.025);color:#96b49e}
 
+.push-settings-diagnostics{display:grid;gap:10px}
+.push-settings-test{display:inline-flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:44px}
+
 
 /* ===== SPRINT 6.4.1 + 6.5 · COACH NAVIGATION, WORKOUT DESIGNER & GYM VISIBILITY ===== */
 

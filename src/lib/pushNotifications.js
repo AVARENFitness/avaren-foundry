@@ -184,3 +184,47 @@ export const syncPushSubscription = async () => {
 
   await registerSubscriptionWithOwnership(subscription)
 }
+
+
+export const sendTestPushNotification = async () => {
+  if (!pushSupported()) {
+    throw new Error('This device does not support phone notifications.')
+  }
+
+  if (Notification.permission !== 'granted') {
+    throw new Error('Enable phone notifications on this device first.')
+  }
+
+  const registration = await registerPushWorker()
+  const subscription =
+    await registration?.pushManager?.getSubscription()
+
+  if (!subscription) {
+    throw new Error('Enable phone notifications on this device first.')
+  }
+
+  await registerSubscriptionWithOwnership(subscription)
+
+  const { data, error } = await supabase.functions.invoke(
+    'send-test-push',
+    { body: {} },
+  )
+
+  if (error) {
+    throw new Error(
+      error.message ?? 'Could not send a test notification.',
+    )
+  }
+
+  if (!data?.delivered) {
+    throw new Error(
+      data?.error === 'no_active_push_subscription'
+        ? 'This device is not registered for phone alerts yet.'
+        : 'Could not deliver the test notification.',
+    )
+  }
+
+  return {
+    delivered: Number(data.delivered) || 0,
+  }
+}

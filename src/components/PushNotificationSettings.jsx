@@ -9,6 +9,7 @@ import {
   disablePushNotifications,
   enablePushNotifications,
   getPushState,
+  sendTestPushNotification,
 } from '../lib/pushNotifications'
 
 const initialState = {
@@ -23,6 +24,7 @@ export default function PushNotificationSettings() {
   const [status, setStatus] = useState(initialState)
   const [loading, setLoading] = useState(true)
   const [message, setMessage] = useState('')
+  const [testing, setTesting] = useState(false)
 
   const refresh = async () => {
     setLoading(true)
@@ -58,6 +60,27 @@ export default function PushNotificationSettings() {
       await refresh()
     } finally {
       setLoading(false)
+    }
+  }
+
+  const sendTest = async () => {
+    if (testing || loading) return
+
+    setTesting(true)
+    setMessage('')
+
+    try {
+      const result = await sendTestPushNotification()
+      setMessage(
+        result.delivered > 1
+          ? `Test sent to ${result.delivered} registered devices.`
+          : 'Test sent. Check your lock screen or notification center.',
+      )
+    } catch (error) {
+      setMessage(error.message ?? 'Could not send a test notification.')
+      await refresh()
+    } finally {
+      setTesting(false)
     }
   }
 
@@ -120,9 +143,26 @@ export default function PushNotificationSettings() {
       )}
 
       {!needsHomeScreen && status.supported && status.configured && (
-        <p className="push-settings-message subtle">
-          Get training reminders
-        </p>
+        <div className="push-settings-diagnostics">
+          <p className="push-settings-message subtle">
+            {status.subscribed && status.permission === 'granted'
+              ? 'Phone alerts are active on this device.'
+              : status.permission === 'denied'
+                ? 'Phone alerts are blocked in device/browser settings.'
+                : 'Enable phone alerts to receive lock-screen and banner notifications.'}
+          </p>
+          {status.subscribed && status.permission === 'granted' ? (
+            <button
+              type="button"
+              className="ui-btn-tertiary push-settings-test"
+              onClick={sendTest}
+              disabled={testing || loading}
+            >
+              <Bell size={16} />
+              {testing ? 'Sending test…' : 'Send test notification'}
+            </button>
+          ) : null}
+        </div>
       )}
 
       {message && (
