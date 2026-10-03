@@ -107,23 +107,15 @@ export const coachMessagingBackend = {
   },
 
   async markConversationRead(conversationId) {
-    if (!conversationId) return
+    if (!conversationId) return 0
 
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser()
-
-    if (userError || !user) return
-
-    const { error } = await supabase
-      .from('coach_messages')
-      .update({ read_at: new Date().toISOString() })
-      .eq('conversation_id', conversationId)
-      .neq('sender_id', user.id)
-      .is('read_at', null)
+    const { data, error } = await supabase.rpc(
+      'mark_coach_conversation_read',
+      { p_conversation_id: conversationId },
+    )
 
     if (error) throw error
+    return Number(data ?? 0)
   },
 
   subscribe(conversationId, onMessage) {
