@@ -2424,6 +2424,7 @@ function App() {
       onNutritionChange={handleNutritionChange}
       weeklyCheckInRequired={weeklyCheckInRequired}
       weeklyCheckInState={currentWeeklyCheckInState}
+      athleteId={session?.user?.id ?? null}
     >
       <AppShell
         screen={screen}
