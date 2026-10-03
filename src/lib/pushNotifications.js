@@ -53,9 +53,12 @@ const registerSubscriptionWithOwnership = async (subscription) => {
   if (error) throw error
 }
 
+export const serviceWorkerSupported = () =>
+  Boolean('serviceWorker' in navigator)
+
 export const pushSupported = () =>
   Boolean(
-    'serviceWorker' in navigator &&
+    serviceWorkerSupported() &&
     'PushManager' in window &&
     'Notification' in window,
   )
@@ -65,7 +68,7 @@ export const isStandaloneApp = () =>
   window.navigator.standalone === true
 
 export const registerPushWorker = async () => {
-  if (!pushSupported()) return null
+  if (!serviceWorkerSupported()) return null
   return navigator.serviceWorker.register('/push-sw.js', {
     scope: '/',
   })
