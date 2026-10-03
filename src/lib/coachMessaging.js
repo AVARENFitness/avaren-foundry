@@ -31,7 +31,7 @@ export const coachMessagingBackend = {
       { p_other_user_id: otherUserId },
     )
     if (error) throw error
-    return normalizeConversation(data)
+    return normalizeConversation(Array.isArray(data) ? data[0] : data)
   },
 
   async listMessages(conversationId, limit = 100) {
