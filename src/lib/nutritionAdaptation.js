@@ -328,8 +328,17 @@ export function analyzeNutritionAdaptation({
 
   adjustmentCalories = clamp(roundTo(adjustmentCalories, 50), -200, 200)
 
+  const trainingOnlyAdjustment =
+    direction === 'training_demand_lower' ||
+    direction === 'training_demand_higher'
+
+  const reason = trainingOnlyAdjustment
+    ? `Your recent training is averaging ${trainingDemand.recentSessionsPerWeek.toFixed(1)} sessions per week versus a ${trainingDemand.baselineSessionsPerWeek.toFixed(1)}-session baseline. AVAREN is recommending only a small calorie ${adjustmentCalories < 0 ? 'reduction' : 'increase'} while keeping protein unchanged.`
+    : null
+
   return {
     status: adjustmentCalories === 0 ? 'on_track' : 'recommend',
+    reason,
     adjustmentCalories,
     direction,
     adherence,
@@ -392,6 +401,17 @@ export function applyAdaptiveNutritionAdjustment(goals = {}, analysis = {}) {
           adjustmentCalories: delta,
           percentPerWeek: Number(analysis.percentPerWeek || 0),
           adherence: Number(analysis.adherence || 0),
+          trainingDemand: analysis.trainingDemand
+            ? {
+                direction: analysis.trainingDemand.direction ?? 'stable',
+                baselineSessionsPerWeek:
+                  Number(analysis.trainingDemand.baselineSessionsPerWeek || 0),
+                recentSessionsPerWeek:
+                  Number(analysis.trainingDemand.recentSessionsPerWeek || 0),
+                demandRatio:
+                  Number(analysis.trainingDemand.demandRatio || 1),
+              }
+            : null,
         },
       ].slice(-12),
     },
