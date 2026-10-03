@@ -6,6 +6,7 @@ export const CLIENT_PROFILE_SECTIONS = [
   { id: 'training', label: 'Training' },
   { id: 'notes', label: 'Notes' },
   { id: 'progress', label: 'Progress' },
+  { id: 'manage', label: 'Manage' },
 ]
 
 const ICON = { size: 18, strokeWidth: 1.75 }
