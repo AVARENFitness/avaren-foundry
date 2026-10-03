@@ -1,4 +1,144 @@
 const DEFAULT_URL = '/?open=notifications'
+const CACHE_PREFIX = 'avaren-app-shell-'
+const CACHE_NAME = `${CACHE_PREFIX}v1`
+const APP_SHELL_KEY = '/__avaren_app_shell__'
+const CORE_ASSETS = [
+  '/manifest.webmanifest',
+  '/brand/foundation/icon-192.png',
+  '/brand/foundation/icon-512.png',
+]
+
+const buildAssetUrlsFromHtml = (html = '') => {
+  const urls = new Set()
+  const pattern = /(?:src|href)=["']([^"']+)["']/g
+  let match
+
+  while ((match = pattern.exec(html))) {
+    const value = match[1]
+    if (
+      value.startsWith('/assets/') ||
+      value.startsWith('/brand/') ||
+      value === '/manifest.webmanifest'
+    ) {
+      urls.add(value)
+    }
+  }
+
+  return [...urls]
+}
+
+const primeAppShell = async () => {
+  const cache = await caches.open(CACHE_NAME)
+  const response = await fetch('/')
+
+  if (!response?.ok) {
+    throw new Error('app_shell_unavailable')
+  }
+
+  await Promise.all([
+    cache.put('/', response.clone()),
+    cache.put(APP_SHELL_KEY, response.clone()),
+  ])
+
+  const html = await response.clone().text()
+  const discoveredAssets = buildAssetUrlsFromHtml(html)
+  const urls = [...new Set([...CORE_ASSETS, ...discoveredAssets])]
+
+  await Promise.allSettled(
+    urls.map(async (url) => {
+      const assetResponse = await fetch(url)
+      if (assetResponse?.ok) {
+        await cache.put(url, assetResponse.clone())
+      }
+    }),
+  )
+}
+
+const cacheAppShellResponse = async (response) => {
+  if (!response?.ok) return
+  const cache = await caches.open(CACHE_NAME)
+  await cache.put(APP_SHELL_KEY, response.clone())
+}
+
+const networkFirstNavigation = async (request) => {
+  try {
+    const response = await fetch(request)
+    await cacheAppShellResponse(response)
+    return response
+  } catch {
+    const cache = await caches.open(CACHE_NAME)
+    return (
+      (await cache.match(APP_SHELL_KEY)) ||
+      (await cache.match('/')) ||
+      Response.error()
+    )
+  }
+}
+
+const cacheFirstStatic = async (request) => {
+  const cache = await caches.open(CACHE_NAME)
+  const cached = await cache.match(request)
+
+  const refresh = fetch(request)
+    .then(async (response) => {
+      if (response?.ok) {
+        await cache.put(request, response.clone())
+      }
+      return response
+    })
+    .catch(() => null)
+
+  return cached || (await refresh) || Response.error()
+}
+
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    primeAppShell().then(() => self.skipWaiting()),
+  )
+})
+
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    Promise.all([
+      caches
+        .keys()
+        .then((keys) =>
+          Promise.all(
+            keys
+              .filter(
+                (key) =>
+                  key.startsWith(CACHE_PREFIX) &&
+                  key !== CACHE_NAME,
+              )
+              .map((key) => caches.delete(key)),
+          ),
+        ),
+      self.clients.claim(),
+    ]),
+  )
+})
+
+self.addEventListener('fetch', (event) => {
+  const { request } = event
+
+  if (request.method !== 'GET') return
+
+  const url = new URL(request.url)
+  if (url.origin !== self.location.origin) return
+
+  if (request.mode === 'navigate') {
+    event.respondWith(networkFirstNavigation(request))
+    return
+  }
+
+  if (
+    ['script', 'style', 'font', 'image', 'manifest'].includes(
+      request.destination,
+    )
+  ) {
+    event.respondWith(cacheFirstStatic(request))
+  }
+})
 
 self.addEventListener('push', (event) => {
   let payload = {}
