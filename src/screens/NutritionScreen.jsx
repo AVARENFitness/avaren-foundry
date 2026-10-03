@@ -159,6 +159,7 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
   const [scanContext, setScanContext] = useState('')
   const [scanResult, setScanResult] = useState(null)
   const [scanDraft, setScanDraft] = useState(null)
+  const [scanQuantity, setScanQuantity] = useState(1)
   const [scanMatches, setScanMatches] = useState([])
   const [showWorkoutActivityForm, setShowWorkoutActivityForm] = useState(false)
   const [workoutActivityDraft, setWorkoutActivityDraft] = useState({
@@ -473,6 +474,7 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
     setScanContext('')
     setScanResult(null)
     setScanDraft(null)
+    setScanQuantity(1)
     setScanMatches([])
     if (cameraInputRef.current) cameraInputRef.current.value = ''
     if (uploadInputRef.current) uploadInputRef.current.value = ''
@@ -539,6 +541,7 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
 
       setScanResult(result)
       setScanDraft(draft)
+      setScanQuantity(1)
       setScanMatches([])
 
       if (result.kind === 'packaged_product' && result.searchQuery?.trim()) {
@@ -580,24 +583,42 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
     }
   }
 
+  const scanQuantityValue = Math.max(0.25, Number(scanQuantity || 1))
+  const scaledScanDraft = scanDraft
+    ? {
+        ...scanDraft,
+        servings: scanQuantityValue,
+        calories: round(Number(scanDraft.calories || 0) * scanQuantityValue),
+        protein: round(Number(scanDraft.protein || 0) * scanQuantityValue),
+        carbs: round(Number(scanDraft.carbs || 0) * scanQuantityValue),
+        fat: round(Number(scanDraft.fat || 0) * scanQuantityValue),
+        fiber: round(Number(scanDraft.fiber || 0) * scanQuantityValue),
+      }
+    : null
+
   const logScannedFood = () => {
-    if (!scanDraft?.name?.trim()) return
+    if (!scaledScanDraft?.name?.trim()) return
 
     patch((current) =>
       appendFoodToNutrition(
         current,
         date,
-        scanDraft,
+        scaledScanDraft,
         scanResult?.sourceType === 'label_read'
           ? 'nutrition_label_scan'
           : 'ava_photo_estimate',
       ).nutrition,
     )
 
+    const quantityLabel =
+      scanQuantityValue === 1
+        ? '1 portion'
+        : `${scanQuantityValue} portions`
+
     setNotice(
       scanResult?.sourceType === 'label_read'
-        ? `${scanDraft.name} added from the nutrition label.`
-        : `${scanDraft.name} estimate added. You can edit or remove it anytime.`,
+        ? `${scanDraft.name} · ${quantityLabel} added from the nutrition label.`
+        : `${scanDraft.name} · ${quantityLabel} estimate added. You can edit or remove it anytime.`,
     )
     resetFoodScan()
     setTab('Today')
@@ -1365,14 +1386,50 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
                   </button>)}
                 </section> : null}
 
+                <section className="nutrition-scan-portions">
+                  <div>
+                    <span className="eyebrow">PORTIONS</span>
+                    <strong>How much did you have?</strong>
+                    <small>
+                      {scanResult.sourceType === 'label_read'
+                        ? 'Label values are per serving. AVAREN will scale the totals before logging.'
+                        : 'Choose the amount you actually ate. AVAREN will scale the estimate once.'}
+                    </small>
+                  </div>
+                  <div className="nutrition-scan-portion-options" role="group" aria-label="Portion amount">
+                    {[0.5, 1, 1.5, 2].map((quantity) => (
+                      <button
+                        type="button"
+                        key={quantity}
+                        className={scanQuantityValue === quantity ? 'active' : ''}
+                        onClick={() => setScanQuantity(quantity)}
+                      >
+                        {quantity}×
+                      </button>
+                    ))}
+                    <label>
+                      <span>Custom</span>
+                      <input
+                        type="number"
+                        min="0.25"
+                        step="0.25"
+                        value={scanQuantity}
+                        onChange={(event) => setScanQuantity(event.target.value)}
+                        inputMode="decimal"
+                      />
+                    </label>
+                  </div>
+                </section>
+
                 <div className="nutrition-sheet-macros">
-                  <article><span>Calories</span><strong>{Math.round(Number(scanDraft.calories || 0))}</strong></article>
-                  <article><span>Protein</span><strong>{round(scanDraft.protein)}g</strong></article>
-                  <article><span>Carbs</span><strong>{round(scanDraft.carbs)}g</strong></article>
-                  <article><span>Fat</span><strong>{round(scanDraft.fat)}g</strong></article>
+                  <article><span>Calories</span><strong>{Math.round(Number(scaledScanDraft?.calories || 0))}</strong></article>
+                  <article><span>Protein</span><strong>{round(scaledScanDraft?.protein)}g</strong></article>
+                  <article><span>Carbs</span><strong>{round(scaledScanDraft?.carbs)}g</strong></article>
+                  <article><span>Fat</span><strong>{round(scaledScanDraft?.fat)}g</strong></article>
                 </div>
 
                 <div className="nutrition-scan-edit-grid">
+                  <p className="nutrition-scan-edit-hint">Nutrition below is per 1 portion. Edit the label values here if needed.</p>
                   <label><span>Name</span><input value={scanDraft.name} onChange={(event) => setScanDraft((current) => ({...current, name:event.target.value}))}/></label>
                   {['calories','protein','carbs','fat','fiber'].map((field) => <label key={field}><span>{field}</span><input type="number" min="0" step="0.1" value={scanDraft[field]} onChange={(event) => setScanDraft((current) => ({...current, [field]:event.target.value}))}/></label>)}
                 </div>
