@@ -4,6 +4,7 @@ import {
   enablePushNotifications,
   registerPushSubscriptionRpcArgs,
   registerPushWorker,
+  sendTestPushNotification,
   serviceWorkerSupported,
   syncPushSubscription,
 } from './pushNotifications'
@@ -11,6 +12,7 @@ import {
 const mockRpc = vi.fn()
 const mockFrom = vi.fn()
 const mockGetUser = vi.fn()
+const mockInvoke = vi.fn()
 
 vi.mock('./supabase', () => ({
   supabase: {
@@ -18,6 +20,9 @@ vi.mock('./supabase', () => ({
     from: (...args) => mockFrom(...args),
     auth: {
       getUser: () => mockGetUser(),
+    },
+    functions: {
+      invoke: (...args) => mockInvoke(...args),
     },
   },
 }))
@@ -39,6 +44,10 @@ describe('pushNotifications ownership RPC', () => {
       error: null,
     })
     mockRpc.mockResolvedValue({ error: null })
+    mockInvoke.mockResolvedValue({
+      data: { delivered: 1 },
+      error: null,
+    })
     mockFrom.mockReturnValue({
       update: vi.fn(() => ({
         eq: vi.fn().mockResolvedValue({ error: null }),
@@ -126,5 +135,20 @@ describe('pushNotifications ownership RPC', () => {
       'register_push_subscription',
       registerPushSubscriptionRpcArgs(subscription),
     )
+  })
+
+  it('sends an authenticated real-device push diagnostic after ensuring ownership', async () => {
+    const result = await sendTestPushNotification()
+
+    expect(mockRpc).toHaveBeenCalledWith(
+      'register_push_subscription',
+      expect.objectContaining({
+        p_endpoint: subscription.endpoint,
+      }),
+    )
+    expect(mockInvoke).toHaveBeenCalledWith('send-test-push', {
+      body: {},
+    })
+    expect(result).toEqual({ delivered: 1 })
   })
 })
