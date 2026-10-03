@@ -63,6 +63,41 @@ describe('goal-aware progress summary', () => {
     expect(result.cards[1].label).toBe('Strength trend')
   })
 
+  it('prefers the structured athlete goal over the nutrition proxy', () => {
+    const result = buildGoalAwareProgress({
+      state: {
+        history: [session(2, 'a'), session(5, 'b')],
+        nutrition: nutrition('lose_fat'),
+      },
+      structuredGoal: {
+        primaryGoal: 'performance',
+      },
+      prs: [],
+      now,
+    })
+
+    expect(result.goalLabel).toBe('Performance')
+    expect(result.cards[0].label).toBe('Training consistency')
+    expect(result.cards[2].label).toBe('Recovery context')
+  })
+
+  it('supports consistency as a first-class structured goal', () => {
+    const result = buildGoalAwareProgress({
+      state: {
+        history: [session(2, 'a')],
+        nutrition: nutrition('build_muscle'),
+      },
+      structuredGoal: {
+        primaryGoal: 'consistency',
+      },
+      prs: [],
+      now,
+    })
+
+    expect(result.goalLabel).toBe('Training consistency')
+    expect(result.cards[0].label).toBe('Training consistency')
+  })
+
   it('falls back to a neutral training lens when no goal is configured', () => {
     const result = buildGoalAwareProgress({
       state: {

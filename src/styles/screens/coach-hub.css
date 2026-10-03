@@ -798,3 +798,35 @@
     width: 100%;
   }
 }
+
+
+/* P9 · structured goal visibility */
+.coach-client-goal-context{
+  display:grid;
+  gap:8px;
+  margin-top:12px;
+  padding:13px 14px;
+  border:1px solid rgba(216,184,109,.1);
+  border-radius:13px;
+  background:rgba(216,184,109,.02);
+}
+.coach-client-goal-context div{
+  display:flex;
+  align-items:baseline;
+  justify-content:space-between;
+  gap:12px;
+}
+.coach-client-goal-context small,
+.coach-client-goal-context span{
+  color:#918a81;
+  font-size:12px;
+}
+.coach-client-goal-context strong{
+  color:#e8dfd1;
+}
+.coach-client-goal-context p{
+  margin:0;
+  color:#aaa197;
+  font-size:13px;
+  line-height:1.5;
+}

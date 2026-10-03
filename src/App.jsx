@@ -1964,6 +1964,7 @@ function App() {
       return (
         <ProgressScreen
           state={state}
+          athleteId={session?.user?.id ?? null}
           onOpenReadinessTrends={() =>
             navigate('readiness-trends')
           }

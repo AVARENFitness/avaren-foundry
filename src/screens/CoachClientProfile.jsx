@@ -73,6 +73,11 @@ import CoachEndCoachingSheet, {
 import CoachClientProfileShell from '../components/CoachClientProfileShell'
 import CoachSessionDetailHost from '../components/coach/CoachSessionDetailHost'
 import EmptyState from '../components/ui/EmptyState'
+import {
+  ATHLETE_GOAL_LABELS,
+  athleteGoalBackend,
+  formatGoalTarget,
+} from '../lib/athleteGoals'
 
 const ICON = { size: 18, strokeWidth: 1.75 }
 
@@ -83,12 +88,6 @@ const formatDate = (value) =>
         day: 'numeric',
       })
     : 'No due date'
-
-const goalFromNotes = (value = '') => {
-  const trimmed = value.trim()
-  if (!trimmed) return 'No goal recorded yet'
-  return trimmed.split('\n').find(Boolean) ?? 'No goal recorded yet'
-}
 
 function ProfileSection({ eyebrow, title, description, primaryAction, children }) {
   return (
@@ -147,6 +146,7 @@ export default function CoachClientProfile({
   const [intelligenceError, setIntelligenceError] = useState('')
   const [currentWeekReview, setCurrentWeekReview] = useState(null)
   const [currentWeeklyCheckIn, setCurrentWeeklyCheckIn] = useState(null)
+  const [structuredGoal, setStructuredGoal] = useState(null)
   const [coachLabelDraft, setCoachLabelDraft] = useState(() =>
     sanitizeCoachLabelDraft(client.coach_label ?? ''),
   )
@@ -375,6 +375,28 @@ export default function CoachClientProfile({
       active = false
     }
   }, [linkedAthleteId, athleteIntelligenceEnabled])
+
+  useEffect(() => {
+    let active = true
+
+    if (!linkedAthleteId) {
+      setStructuredGoal(null)
+      return undefined
+    }
+
+    athleteGoalBackend
+      .getAthleteGoal(linkedAthleteId)
+      .then((goal) => {
+        if (active) setStructuredGoal(goal)
+      })
+      .catch(() => {
+        if (active) setStructuredGoal(null)
+      })
+
+    return () => {
+      active = false
+    }
+  }, [linkedAthleteId])
 
   useEffect(() => {
     let active = true
@@ -832,7 +854,15 @@ export default function CoachClientProfile({
                 </span>
                 <div>
                   <small>Current goal</small>
-                  <strong>{goalFromNotes(clientNotes)}</strong>
+                  <strong>
+                    {structuredGoal
+                      ? ATHLETE_GOAL_LABELS[structuredGoal.primaryGoal] ??
+                        'Goal set'
+                      : 'No structured goal yet'}
+                  </strong>
+                  {structuredGoal && formatGoalTarget(structuredGoal) ? (
+                    <span>{formatGoalTarget(structuredGoal)}</span>
+                  ) : null}
                 </div>
               </article>
 
@@ -868,6 +898,21 @@ export default function CoachClientProfile({
                 </div>
               </article>
             </div>
+
+            {structuredGoal ? (
+              <section className="coach-client-goal-context">
+                <div>
+                  <small>Goal context</small>
+                  <strong>
+                    {ATHLETE_GOAL_LABELS[structuredGoal.primaryGoal] ?? 'Goal set'}
+                  </strong>
+                </div>
+                {structuredGoal.priorityAreas?.length ? (
+                  <span>{structuredGoal.priorityAreas.join(' · ')}</span>
+                ) : null}
+                {structuredGoal.note ? <p>{structuredGoal.note}</p> : null}
+              </section>
+            ) : null}
 
             {intelligence.training.recentSessions.length > 0 && (
               <div className="coach-client-profile-activity">

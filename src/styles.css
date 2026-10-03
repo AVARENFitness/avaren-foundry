@@ -20321,3 +20321,171 @@ body > .nutrition-food-sheet-backdrop > .nutrition-food-sheet {
     padding: var(--space-3) var(--space-4);
   }
 }
+
+
+/* P9 · structured athlete goals */
+.athlete-goal-panel{
+  display:grid;
+  gap:16px;
+  margin-bottom:16px;
+  padding:18px;
+  border:1px solid rgba(216,184,109,.13);
+  border-radius:18px;
+  background:rgba(255,255,255,.012);
+}
+.athlete-goal-panel-header{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:14px;
+}
+.athlete-goal-panel-title{
+  display:flex;
+  align-items:flex-start;
+  gap:12px;
+}
+.athlete-goal-panel-title h2{
+  margin:4px 0 0;
+  font-size:20px;
+}
+.athlete-goal-panel-icon{
+  display:grid;
+  place-items:center;
+  width:40px;
+  height:40px;
+  border:1px solid rgba(216,184,109,.14);
+  border-radius:12px;
+  color:#d8bf78;
+  background:rgba(216,184,109,.035);
+}
+.athlete-goal-edit{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  min-height:38px;
+  padding:0 11px;
+  border:1px solid rgba(216,184,109,.13);
+  border-radius:10px;
+  background:transparent;
+  color:#d8bf78;
+  font-weight:750;
+}
+.athlete-goal-summary{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:10px;
+}
+.athlete-goal-summary>div,
+.athlete-goal-note{
+  padding:12px;
+  border:1px solid rgba(255,255,255,.055);
+  border-radius:12px;
+  background:rgba(255,255,255,.012);
+}
+.athlete-goal-summary small{
+  display:block;
+  margin-bottom:5px;
+  color:#8f887f;
+}
+.athlete-goal-summary strong{
+  display:block;
+  color:#ece4d8;
+}
+.athlete-goal-summary-wide,
+.athlete-goal-note{
+  grid-column:1/-1;
+}
+.athlete-goal-note{
+  margin:0;
+  color:#aaa197;
+  line-height:1.5;
+}
+.athlete-goal-priority-list{
+  display:flex;
+  flex-wrap:wrap;
+  gap:7px;
+}
+.athlete-goal-priority-list span,
+.athlete-goal-priorities button{
+  border:1px solid rgba(216,184,109,.12);
+  border-radius:999px;
+  padding:7px 10px;
+  background:rgba(216,184,109,.025);
+  color:#b9ad99;
+  font-size:12px;
+}
+.athlete-goal-form{
+  display:grid;
+  gap:14px;
+}
+.athlete-goal-form label{
+  display:grid;
+  gap:6px;
+}
+.athlete-goal-form label>span,
+.athlete-goal-priorities legend{
+  color:#aaa197;
+  font-size:12px;
+  font-weight:750;
+}
+.athlete-goal-form input,
+.athlete-goal-form select,
+.athlete-goal-form textarea{
+  width:100%;
+  border:1px solid rgba(255,255,255,.07);
+  border-radius:11px;
+  background:rgba(255,255,255,.02);
+  color:#ece4d8;
+  font:inherit;
+}
+.athlete-goal-form input,
+.athlete-goal-form select{
+  min-height:44px;
+  padding:0 11px;
+}
+.athlete-goal-form textarea{
+  padding:10px 11px;
+  resize:vertical;
+}
+.athlete-goal-target-grid{
+  display:grid;
+  grid-template-columns:minmax(0,1.5fr) minmax(90px,.65fr) minmax(100px,.75fr);
+  gap:10px;
+}
+.athlete-goal-priorities{
+  margin:0;
+  padding:0;
+  border:0;
+}
+.athlete-goal-priorities>div{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin-top:8px;
+}
+.athlete-goal-priorities button{
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+}
+.athlete-goal-priorities button.active{
+  border-color:rgba(216,184,109,.34);
+  background:rgba(216,184,109,.08);
+  color:#dcc680;
+}
+.athlete-goal-actions{
+  display:flex;
+  justify-content:flex-end;
+  gap:9px;
+}
+.athlete-goal-error{
+  margin:0;
+  color:#d7a2a2;
+  font-size:12px;
+}
+@media (max-width:520px){
+  .athlete-goal-summary,
+  .athlete-goal-target-grid{
+    grid-template-columns:1fr;
+  }
+}

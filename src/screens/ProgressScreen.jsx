@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Trophy, HeartPulse, ArrowRight } from 'lucide-react'
 import { MILESTONE_CHAINS } from '../data/defaultProgram'
 import StrengthChart from '../components/StrengthChart'
@@ -15,6 +15,8 @@ import {
   totalVolume,
 } from '../lib/metrics'
 import { buildGoalAwareProgress } from '../lib/progressGoalSummary'
+import { athleteGoalBackend } from '../lib/athleteGoals'
+import AthleteGoalPanel from '../components/AthleteGoalPanel'
 
 const METRICS = [
   { id: 'e1rm', label: 'Current estimate' },
@@ -24,6 +26,7 @@ const METRICS = [
 
 export default function ProgressScreen({
   state,
+  athleteId = null,
   onOpenReadinessTrends,
   onDeleteSession,
   onUpdateSession,
@@ -41,6 +44,36 @@ export default function ProgressScreen({
   )
   const [metric, setMetric] = useState('e1rm')
   const [selectedSession, setSelectedSession] = useState(null)
+  const [structuredGoal, setStructuredGoal] = useState(null)
+  const [goalLoading, setGoalLoading] = useState(Boolean(athleteId))
+
+  useEffect(() => {
+    let active = true
+
+    if (!athleteId) {
+      setStructuredGoal(null)
+      setGoalLoading(false)
+      return undefined
+    }
+
+    setGoalLoading(true)
+    athleteGoalBackend
+      .getAthleteGoal(athleteId)
+      .then((goal) => {
+        if (active) setStructuredGoal(goal)
+      })
+      .catch((error) => {
+        console.error('Could not load structured athlete goal:', error)
+        if (active) setStructuredGoal(null)
+      })
+      .finally(() => {
+        if (active) setGoalLoading(false)
+      })
+
+    return () => {
+      active = false
+    }
+  }, [athleteId])
 
   const sessions = exerciseSessions(state.history, selectedExercise)
   const prs = recentPRs(state.history, 8)
@@ -52,8 +85,9 @@ export default function ProgressScreen({
       buildGoalAwareProgress({
         state,
         prs,
+        structuredGoal,
       }),
-    [state, prs],
+    [state, prs, structuredGoal],
   )
 
   if (selectedSession) {
@@ -77,6 +111,14 @@ export default function ProgressScreen({
 
   return (
     <>
+      {!goalLoading ? (
+        <AthleteGoalPanel
+          athleteId={athleteId}
+          goal={structuredGoal}
+          onGoalChange={setStructuredGoal}
+        />
+      ) : null}
+
       <section className="progress-summary-hero progress-summary-hero--goal">
         <span className="eyebrow">YOUR PROGRESS · {goalProgress.goalLabel.toUpperCase()}</span>
         <h1>{goalProgress.goalLabel}</h1>
