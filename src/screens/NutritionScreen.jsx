@@ -103,6 +103,17 @@ const resolveFatSecretRuntimeEntry = (food, detailCache) => {
   )
 
   if (!detail || !serving) {
+    const hasSnapshot =
+      Number(food?.calories || 0) > 0 ||
+      Number(food?.protein || 0) > 0 ||
+      Number(food?.carbs || 0) > 0 ||
+      Number(food?.fat || 0) > 0 ||
+      Boolean(food?.name)
+
+    if (hasSnapshot) {
+      return food
+    }
+
     return {
       ...food,
       name: hasAttempted ? 'Food unavailable' : 'Loading food…',
@@ -144,7 +155,7 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
   const [fatSecretDetailState, setFatSecretDetailState] = useState('idle')
   const [fatSecretDetailError, setFatSecretDetailError] = useState('')
   const [selectedFatSecretServingId, setSelectedFatSecretServingId] = useState('')
-  const [fatSecretQuantity, setFatSecretQuantity] = useState(1)
+  const [fatSecretQuantity, setFatSecretQuantity] = useState('1')
   const [recipeDraft, setRecipeDraft] = useState({ name: '', servings: 4, ingredients: [] })
   const [recipeSearch, setRecipeSearch] = useState('')
   const [recipeLogTarget, setRecipeLogTarget] = useState(null)
@@ -346,6 +357,8 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
       window.clearTimeout(timer)
     }
   }, [foodSearch, tab, showCustomFood])
+
+  const activeFoodSearch = foodSearch.trim().length >= 2
 
   const visibleFoodMatches = useMemo(() => {
     const query = foodSearch.trim()
@@ -776,14 +789,14 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
       setFatSecretDetailState('idle')
       setFatSecretDetailError('')
       setSelectedFatSecretServingId('')
-      setFatSecretQuantity(1)
+      setFatSecretQuantity('1')
       return
     }
 
     setFatSecretDetailState('loading')
     setFatSecretDetailError('')
     setSelectedFatSecretServingId('')
-    setFatSecretQuantity(1)
+    setFatSecretQuantity('1')
 
     try {
       const cached = fatSecretDetailCache[food.foodId]
@@ -809,22 +822,46 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
     if (selectedFood?.provider !== 'fatsecret') return
     if (!selectedFatSecretServingId) return
 
+    const quantity = Number(fatSecretQuantity)
+    if (!Number.isFinite(quantity) || quantity <= 0) {
+      setNotice('Enter a serving quantity greater than 0.')
+      return
+    }
+
+    const detail = fatSecretDetailCache[selectedFood.foodId]
+    const serving = detail?.servings?.find(
+      (item) =>
+        String(item.servingId) === String(selectedFatSecretServingId),
+    )
+
     patch((current) =>
       appendFatSecretFoodReference(current, date, {
         foodId: selectedFood.foodId,
         servingId: selectedFatSecretServingId,
-        quantity: fatSecretQuantity,
+        quantity,
+        servingSnapshot: serving
+          ? {
+              name: detail?.name ?? selectedFood.name,
+              brand: detail?.brand ?? selectedFood.brand ?? '',
+              serving: serving.description,
+              calories: serving.calories,
+              protein: serving.protein,
+              carbs: serving.carbs,
+              fat: serving.fat,
+              fiber: serving.fiber,
+            }
+          : null,
       }).nutrition,
     )
 
-    const detail = fatSecretDetailCache[selectedFood.foodId]
+
     setNotice(`${detail?.name ?? selectedFood.name} added to today.`)
     setSelectedFood(null)
     setFoodSearch('')
     setFatSecretFoods([])
     setFatSecretDetailState('idle')
     setSelectedFatSecretServingId('')
-    setFatSecretQuantity(1)
+    setFatSecretQuantity('1')
     setTab('Today')
   }
 
@@ -1291,7 +1328,7 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
           }}
         />
 
-        <div className="nutrition-scan-food">
+        {!activeFoodSearch && <div className="nutrition-scan-food">
           <div className="nutrition-scan-food-copy">
             <span className="eyebrow">SCAN FOOD</span>
             <strong>Use the fastest source you have</strong>
@@ -1320,19 +1357,19 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
               maxLength={600}
             />
           </label>
-        </div>
+        </div>}
 
-        <div className="nutrition-search-tools">
+        {!activeFoodSearch && <div className="nutrition-search-tools">
           <span><Sparkles size={15}/>Nutrition is filled in for you</span>
           <button onClick={() => setShowCustomFood((value) => !value)}>{showCustomFood ? 'Hide custom food' : '+ Create Custom Food'}</button>
-        </div>
+        </div>}
 
         {!showCustomFood && <>
-          <div className="nutrition-category-strip">
+          {!activeFoodSearch && <div className="nutrition-category-strip">
             {['All', 'Favorites', ...FOOD_CATEGORIES].map((category) => (
               <button key={category} className={foodCategory === category ? 'active' : ''} onClick={() => setFoodCategory(category)}>{category}</button>
             ))}
-          </div>
+          </div>}
           {foodSearch.trim().length >= 2 && (
             <div className="nutrition-live-search-status" data-state={fatSecretSearchState}>
               {fatSecretSearchState === 'loading' && <span>Searching verified foods…</span>}
@@ -1479,7 +1516,11 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
             {selectedFood.provider === 'fatsecret' ? (() => {
               const detail = fatSecretDetailCache[selectedFood.foodId]
               const serving = detail?.servings?.find((item) => String(item.servingId) === String(selectedFatSecretServingId))
-              const quantity = Math.max(0.01, Number(fatSecretQuantity || 1))
+              const parsedQuantity = Number(fatSecretQuantity)
+              const quantity =
+                Number.isFinite(parsedQuantity) && parsedQuantity > 0
+                  ? parsedQuantity
+                  : 0
 
               if (fatSecretDetailState === 'loading') {
                 return <div className="nutrition-fatsecret-detail-state"><span>Loading serving options…</span></div>
@@ -1504,14 +1545,37 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
 
                 <label className="nutrition-fatsecret-quantity">
                   <span>Quantity</span>
-                  <input type="number" min="0.25" step="0.25" value={fatSecretQuantity} onChange={(event) => setFatSecretQuantity(Math.max(0.25, Number(event.target.value || 0.25)))}/>
+                  <input
+                    type="number"
+                    min="0.01"
+                    step="0.25"
+                    value={fatSecretQuantity}
+                    onChange={(event) => setFatSecretQuantity(event.target.value)}
+                    onBlur={() => {
+                      const value = Number(fatSecretQuantity)
+                      if (!Number.isFinite(value) || value <= 0) {
+                        setFatSecretQuantity('1')
+                      }
+                    }}
+                    inputMode="decimal"
+                  />
                 </label>
 
                 <div className="nutrition-sheet-actions">
                   <button className="nutrition-secondary-button" onClick={() => toggleFavorite(selectedFood)}>{favoriteIds.includes(selectedFood.id) ? <BookmarkCheck/> : <BookmarkPlus/>}{favoriteIds.includes(selectedFood.id) ? 'Favorited' : 'Favorite'}</button>
-                  <button className="gold-button machined" disabled={!selectedFatSecretServingId} onClick={addFatSecretFood}><Plus/>Add to Today</button>
+                  <button
+                    className="gold-button machined"
+                    disabled={
+                      !selectedFatSecretServingId ||
+                      !Number.isFinite(Number(fatSecretQuantity)) ||
+                      Number(fatSecretQuantity) <= 0
+                    }
+                    onClick={addFatSecretFood}
+                  >
+                    <Plus/>Add to Today
+                  </button>
                 </div>
-                <p className="nutrition-fatsecret-detail-note">AVAREN saves the FatSecret food/serving IDs and your quantity, then refreshes nutrition details live when needed.</p>
+                <p className="nutrition-fatsecret-detail-note">AVAREN keeps the verified nutrition with the FatSecret food/serving IDs so your totals update immediately and can refresh later.</p>
               </>
             })() : <>
               <div className="nutrition-sheet-macros">
