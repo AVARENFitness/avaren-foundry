@@ -7,6 +7,7 @@ import {
 } from './avaRuntimeContext'
 import { createNutritionState } from '../lib/nutrition'
 import { coachBackend } from '../lib/coachBackend'
+import { athleteGoalBackend } from '../lib/athleteGoals'
 import { useAthleteAppointmentsContext } from '../context/athleteAppointmentsContext'
 import AvaEntryButton from './AvaEntryButton'
 import AvaSheet from './AvaSheet'
@@ -26,9 +27,11 @@ export function AvaUiProvider({
   role = 'athlete',
   weeklyCheckInRequired = false,
   weeklyCheckInState = null,
+  athleteId = null,
 }) {
   const [open, setOpen] = useState(false)
   const [assignments, setAssignments] = useState([])
+  const [structuredGoal, setStructuredGoal] = useState(null)
   const sessionRef = useRef(createAvaSession())
   const appointmentContext = useAthleteAppointmentsContext()
   const refreshAppointmentsRef = useRef(appointmentContext?.refreshAppointments)
@@ -42,6 +45,28 @@ export function AvaUiProvider({
       .then(setAssignments)
       .catch(() => {})
   }, [])
+
+  useEffect(() => {
+    let active = true
+
+    if (role === 'coach' || !athleteId) {
+      setStructuredGoal(null)
+      return undefined
+    }
+
+    athleteGoalBackend
+      .getAthleteGoal(athleteId)
+      .then((goal) => {
+        if (active) setStructuredGoal(goal)
+      })
+      .catch(() => {
+        if (active) setStructuredGoal(null)
+      })
+
+    return () => {
+      active = false
+    }
+  }, [athleteId, role])
 
   useEffect(() => {
     if (!open || role === 'coach') return
@@ -78,6 +103,7 @@ export function AvaUiProvider({
             now: new Date(),
             weeklyCheckInRequired,
             weeklyCheckInState,
+            structuredGoal,
           },
         ),
         athleteAppointments: appointmentContext?.appointments ?? [],
@@ -99,6 +125,7 @@ export function AvaUiProvider({
     appointmentContext?.userId,
     weeklyCheckInRequired,
     weeklyCheckInState,
+    structuredGoal,
   ])
 
   const openAva = useCallback(() => {
