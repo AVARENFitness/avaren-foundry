@@ -8,6 +8,10 @@ import AppUiBackdrop from './ui/AppUiBackdrop'
 import AppUiCloseButton from './ui/AppUiCloseButton'
 import { getClientDisplayName } from '../lib/clientDisplayName'
 import {
+  resolveAthleteDataId,
+  resolveRecordBusinessClientId,
+} from '../lib/coachBusinessClient'
+import {
   DURATION_PRESETS,
   LOCATION_PRESETS,
   buildScheduleTimeOptions,
@@ -72,9 +76,15 @@ export default function CoachScheduleSessionSheet({
     [draft.sessionDate, scheduleTimezone, timeOptions],
   )
 
-  const selectedClient = clients.find(
-    (client) => String(client.athlete_id) === String(draft.athleteId),
-  )
+  const selectedClient = clients.find((client) => {
+    const businessClientId = resolveRecordBusinessClientId(client)
+    const athleteId = resolveAthleteDataId(client)
+    return (
+      (draft.businessClientId &&
+        String(businessClientId) === String(draft.businessClientId)) ||
+      (draft.athleteId && String(athleteId) === String(draft.athleteId))
+    )
+  })
 
   const selectedAssignment = draft.assignments?.find(
     (assignment) => String(assignment.id) === String(draft.assignmentId),
@@ -218,29 +228,35 @@ export default function CoachScheduleSessionSheet({
                   role="listbox"
                   onClick={(event) => event.stopPropagation()}
                 >
-                  {clients.map((client) => (
-                    <button
-                      key={client.id}
-                      type="button"
-                      role="option"
-                      aria-selected={String(client.athlete_id) === String(draft.athleteId)}
-                      className={`coach-schedule-menu-option ${
-                        String(client.athlete_id) === String(draft.athleteId)
-                          ? 'active'
-                          : ''
-                      }`}
-                      onClick={() => {
-                        onDraftChange?.({
-                          ...draft,
-                          athleteId: client.athlete_id,
-                          assignmentId: null,
-                        })
-                        setOpenMenu(null)
-                      }}
-                    >
-                      {getClientDisplayName(client) || client.athlete_email}
-                    </button>
-                  ))}
+                  {clients.map((client) => {
+                    const businessClientId = resolveRecordBusinessClientId(client)
+                    const athleteId = resolveAthleteDataId(client)
+                    const selected =
+                      (draft.businessClientId &&
+                        String(businessClientId) === String(draft.businessClientId)) ||
+                      (draft.athleteId && String(athleteId) === String(draft.athleteId))
+
+                    return (
+                      <button
+                        key={businessClientId ?? athleteId ?? client.id}
+                        type="button"
+                        role="option"
+                        aria-selected={Boolean(selected)}
+                        className={`coach-schedule-menu-option ${selected ? 'active' : ''}`}
+                        onClick={() => {
+                          onDraftChange?.({
+                            ...draft,
+                            businessClientId,
+                            athleteId,
+                            assignmentId: null,
+                          })
+                          setOpenMenu(null)
+                        }}
+                      >
+                        {getClientDisplayName(client) || client.athlete_email}
+                      </button>
+                    )
+                  })}
                 </div>
               ) : null}
             </div>
