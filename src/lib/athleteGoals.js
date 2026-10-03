@@ -31,10 +31,10 @@ export const normalizeAthleteGoal = (row = null) => {
     athleteId: row.athlete_id ?? row.athleteId ?? null,
     primaryGoal: row.primary_goal ?? row.primaryGoal ?? '',
     targetLabel: row.target_label ?? row.targetLabel ?? '',
-    targetValue:
-      row.target_value == null || row.targetValue == null
-        ? row.target_value ?? row.targetValue ?? null
-        : Number(row.target_value ?? row.targetValue),
+    targetValue: (() => {
+      const value = row.target_value ?? row.targetValue ?? null
+      return value == null || value === '' ? null : Number(value)
+    })(),
     targetUnit: row.target_unit ?? row.targetUnit ?? '',
     targetDate: row.target_date ?? row.targetDate ?? '',
     priorityAreas: Array.isArray(row.priority_areas ?? row.priorityAreas)
