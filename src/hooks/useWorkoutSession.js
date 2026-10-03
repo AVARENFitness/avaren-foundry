@@ -745,15 +745,11 @@ export function useWorkoutSession({
     const completionPayload = { session: completedWorkoutSession, nextWorkout }
     setCompletedSession(completionPayload)
 
-    if (athleteId) {
-      completeWorkoutSession(athleteId, completedWorkoutSession).catch(
-        (error) => {
-          console.error('Could not persist durable workout session:', error)
-        },
-      )
-    }
+    const hasCompletionSideEffects = Boolean(
+      workout.assignmentId || workout.scheduledSessionId,
+    )
 
-    if (athleteId && (workout.assignmentId || workout.scheduledSessionId)) {
+    if (athleteId && hasCompletionSideEffects) {
       const completionSummary = {
         durationMinutes: Math.max(
           1,
@@ -783,24 +779,39 @@ export function useWorkoutSession({
         completionSummary,
         completedAt: completedWorkoutSession.finishedAt,
       })
+    }
 
-      flushWorkoutCompletionSideEffects(athleteId, {
-        markAssignmentCompleted: (assignmentId, workoutSessionId, summary) =>
-          coachBackend.markAssignmentCompleted(
-            assignmentId,
-            workoutSessionId,
-            summary,
-          ),
-        linkAppointmentWorkout: (scheduledSessionId, workoutSessionId) =>
-          coachBackend.updateScheduledSession(scheduledSessionId, {
-            workoutSessionId,
-          }),
-      }).catch((error) => {
-        console.error(
-          'Could not sync workout completion side effects:',
-          error,
-        )
-      })
+    if (athleteId) {
+      completeWorkoutSession(athleteId, completedWorkoutSession)
+        .then((result) => {
+          if (!result?.persisted || !hasCompletionSideEffects) return null
+
+          return flushWorkoutCompletionSideEffects(athleteId, {
+            markAssignmentCompleted: (
+              assignmentId,
+              workoutSessionId,
+              summary,
+            ) =>
+              coachBackend.markAssignmentCompleted(
+                assignmentId,
+                workoutSessionId,
+                summary,
+              ),
+            linkAppointmentWorkout: (
+              scheduledSessionId,
+              workoutSessionId,
+            ) =>
+              coachBackend.updateScheduledSession(scheduledSessionId, {
+                workoutSessionId,
+              }),
+          })
+        })
+        .catch((error) => {
+          console.error(
+            'Could not persist/sync workout completion:',
+            error,
+          )
+        })
     }
 
     setState((current) => {
