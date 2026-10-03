@@ -197,7 +197,11 @@ export default function CoachScreen({
 
   const openScheduleForClient = (client) => {
     if (!client) return
-    setScheduleClientId(client.athlete_id ?? '')
+    setScheduleClientId(
+      resolveRecordBusinessClientId(client) ??
+        resolveAthleteDataId(client) ??
+        '',
+    )
     setScheduleReturnClient(client)
     setOpenScheduleComposer(true)
     onNavigateCoachScreen?.('calendar')
@@ -674,7 +678,12 @@ export default function CoachScreen({
           clients={clients}
           assignments={assignments}
           coachEmail={coachEmail}
-          initialClientId={scheduleClientId || selectedClient?.athlete_id || ''}
+          initialClientId={
+            scheduleClientId ||
+            resolveRecordBusinessClientId(selectedClient) ||
+            resolveAthleteDataId(selectedClient) ||
+            ''
+          }
           initialOpenComposer={openScheduleComposer}
           onComposerOpened={() => setOpenScheduleComposer(false)}
           onScheduleComplete={handleScheduleComplete}
