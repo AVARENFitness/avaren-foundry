@@ -40,6 +40,27 @@ const EXPLICIT_OPEN_RECOVERY = [
   /^(open|show|go to|take me to) recovery\.?$/,
 ]
 
+const EXPLICIT_OPEN_PROGRESS = [
+  /^(open|show|go to|take me to) (my )?progress\.?$/,
+  /^(show|open) (my )?(results|history|progress history)\.?$/,
+]
+
+const EXPLICIT_OPEN_SCHEDULE = [
+  /^(open|show|go to|take me to) (my )?(schedule|appointments?)\.?$/,
+  /^(when|what time) (is|are) my (next )?(appointment|session)\.?$/,
+]
+
+const EXPLICIT_OPEN_NUTRITION_LOG = [
+  /^(open|show|go to|take me to) (my )?(food log|nutrition log)\.?$/,
+  /^(log|add) (some )?food\.?$/,
+  /^open food logging\.?$/,
+]
+
+const EXPLICIT_OPEN_WEEKLY_CHECKIN = [
+  /^(open|show|go to|take me to) (my )?weekly check-?in\.?$/,
+  /^(do|complete|start) (my )?weekly check-?in\.?$/,
+]
+
 const EXPLICIT_START_RECOVERY = [
   /^start (the )?recovery( flow)?\.?$/,
   /^give me (the )?recovery( option| flow)?\.?$/,
@@ -144,6 +165,42 @@ export const resolveExplicitAction = (message = '', { session, packet } = {}) =>
       source: AVA_ACTION_SOURCE.DETERMINISTIC,
       executeImmediately: true,
       label: 'Open Recovery',
+    })
+  }
+
+  if (EXPLICIT_OPEN_PROGRESS.some((pattern) => pattern.test(text))) {
+    return buildActionResolution({
+      actionId: AVA_ACTION_IDS.OPEN_PROGRESS,
+      source: AVA_ACTION_SOURCE.DETERMINISTIC,
+      executeImmediately: true,
+      label: 'Open Progress',
+    })
+  }
+
+  if (EXPLICIT_OPEN_SCHEDULE.some((pattern) => pattern.test(text))) {
+    return buildActionResolution({
+      actionId: AVA_ACTION_IDS.OPEN_SCHEDULE,
+      source: AVA_ACTION_SOURCE.DETERMINISTIC,
+      executeImmediately: true,
+      label: 'Open Schedule',
+    })
+  }
+
+  if (EXPLICIT_OPEN_NUTRITION_LOG.some((pattern) => pattern.test(text))) {
+    return buildActionResolution({
+      actionId: AVA_ACTION_IDS.OPEN_NUTRITION_LOG,
+      source: AVA_ACTION_SOURCE.DETERMINISTIC,
+      executeImmediately: true,
+      label: 'Log Food',
+    })
+  }
+
+  if (EXPLICIT_OPEN_WEEKLY_CHECKIN.some((pattern) => pattern.test(text))) {
+    return buildActionResolution({
+      actionId: AVA_ACTION_IDS.OPEN_WEEKLY_CHECKIN,
+      source: AVA_ACTION_SOURCE.DETERMINISTIC,
+      executeImmediately: true,
+      label: 'Weekly Check-In',
     })
   }
 

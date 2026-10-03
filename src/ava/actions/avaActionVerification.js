@@ -95,10 +95,26 @@ export const verifyAvaAction = ({
       }
       return { ok: false, reason: 'readiness-not-open', destination: 'readiness' }
     case AVA_ACTION_IDS.OPEN_NUTRITION:
+    case AVA_ACTION_IDS.OPEN_NUTRITION_LOG:
       if (snapshot.screen === 'nutrition') {
         return { ok: true, destination: 'nutrition' }
       }
       return { ok: false, reason: 'nutrition-not-open', destination: 'nutrition' }
+    case AVA_ACTION_IDS.OPEN_PROGRESS:
+      if (snapshot.screen === 'progress') {
+        return { ok: true, destination: 'progress' }
+      }
+      return { ok: false, reason: 'progress-not-open', destination: 'progress' }
+    case AVA_ACTION_IDS.OPEN_SCHEDULE:
+      if (snapshot.screen === 'schedule' || snapshot.screen === 'in-person-schedule') {
+        return { ok: true, destination: 'schedule' }
+      }
+      return { ok: false, reason: 'schedule-not-open', destination: 'schedule' }
+    case AVA_ACTION_IDS.OPEN_WEEKLY_CHECKIN:
+      if (snapshot.showWeeklyCheckIn) {
+        return { ok: true, destination: 'weekly-checkin' }
+      }
+      return { ok: false, reason: 'weekly-checkin-not-open', destination: 'weekly-checkin' }
     case AVA_ACTION_IDS.OPEN_RECOVERY:
     case AVA_ACTION_IDS.START_RECOVERY_FLOW:
       if (snapshot.screen === 'mobility') {

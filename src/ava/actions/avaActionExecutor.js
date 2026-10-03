@@ -166,6 +166,21 @@ const runActionHandler = async (actionId, runtime = {}, context = {}) => {
       runtime.onNavigateIntent?.('nutrition')
       runtime.openNutrition?.()
       return
+    case AVA_ACTION_IDS.OPEN_NUTRITION_LOG:
+      runtime.onNavigateIntent?.('nutrition')
+      runtime.openNutritionLog?.()
+      return
+    case AVA_ACTION_IDS.OPEN_PROGRESS:
+      runtime.onNavigateIntent?.('progress')
+      runtime.openProgress?.()
+      return
+    case AVA_ACTION_IDS.OPEN_SCHEDULE:
+      runtime.onNavigateIntent?.('schedule')
+      runtime.openSchedule?.()
+      return
+    case AVA_ACTION_IDS.OPEN_WEEKLY_CHECKIN:
+      runtime.openWeeklyCheckIn?.()
+      return
     case AVA_ACTION_IDS.OPEN_RECOVERY:
       runtime.onNavigateIntent?.('mobility')
       runtime.openRecovery?.()

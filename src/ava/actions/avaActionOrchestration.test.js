@@ -73,6 +73,10 @@ const createMockRuntime = (overrides = {}) => {
     startWorkout: 0,
     openReadiness: 0,
     openNutrition: 0,
+    openNutritionLog: 0,
+    openProgress: 0,
+    openSchedule: 0,
+    openWeeklyCheckIn: 0,
     openRecovery: 0,
     startRecoveryFlow: 0,
   }
@@ -81,6 +85,7 @@ const createMockRuntime = (overrides = {}) => {
     screen: 'home',
     activeWorkout: null,
     showReadinessCheckIn: false,
+    showWeeklyCheckIn: false,
     ...overrides.snapshot,
   }
 
@@ -97,6 +102,22 @@ const createMockRuntime = (overrides = {}) => {
     openNutrition: () => {
       calls.openNutrition += 1
       snapshot.screen = 'nutrition'
+    },
+    openNutritionLog: () => {
+      calls.openNutritionLog += 1
+      snapshot.screen = 'nutrition'
+    },
+    openProgress: () => {
+      calls.openProgress += 1
+      snapshot.screen = 'progress'
+    },
+    openSchedule: () => {
+      calls.openSchedule += 1
+      snapshot.screen = 'schedule'
+    },
+    openWeeklyCheckIn: () => {
+      calls.openWeeklyCheckIn += 1
+      snapshot.showWeeklyCheckIn = true
     },
     openRecovery: () => {
       calls.openRecovery += 1
@@ -153,6 +174,21 @@ describe('avaActionResolver 7.8.1', () => {
     )
 
     expect(resolution?.rejected).toBe(true)
+  })
+
+  it.each([
+    ['show me my progress', AVA_ACTION_IDS.OPEN_PROGRESS],
+    ['open my schedule', AVA_ACTION_IDS.OPEN_SCHEDULE],
+    ['log some food', AVA_ACTION_IDS.OPEN_NUTRITION_LOG],
+    ['complete my weekly check-in', AVA_ACTION_IDS.OPEN_WEEKLY_CHECKIN],
+  ])('resolves athlete-wide command %s', (message, actionId) => {
+    const resolution = resolveExplicitAction(message, {
+      session: createAvaSession(),
+      packet: buildPacket(),
+    })
+
+    expect(resolution?.actionId).toBe(actionId)
+    expect(resolution?.executeImmediately).toBe(true)
   })
 })
 
@@ -222,6 +258,38 @@ describe('avaActionExecutor 7.8.1', () => {
     expect(result.message.toLowerCase()).toMatch(/couldn't open/)
   })
 
+  it.each([
+    [AVA_ACTION_IDS.OPEN_NUTRITION_LOG, 'openNutritionLog', 'nutrition'],
+    [AVA_ACTION_IDS.OPEN_PROGRESS, 'openProgress', 'progress'],
+    [AVA_ACTION_IDS.OPEN_SCHEDULE, 'openSchedule', 'schedule'],
+  ])('executes and verifies %s', async (actionId, callKey, expectedScreen) => {
+    const { runtime, calls, snapshot } = createMockRuntime()
+
+    const result = await executeAvaAction({
+      actionId,
+      runtime,
+      requestId: `athlete-${actionId}`,
+    })
+
+    expect(result.ok).toBe(true)
+    expect(calls[callKey]).toBe(1)
+    expect(snapshot.screen).toBe(expectedScreen)
+  })
+
+  it('opens and verifies the weekly check-in', async () => {
+    const { runtime, calls, snapshot } = createMockRuntime()
+
+    const result = await executeAvaAction({
+      actionId: AVA_ACTION_IDS.OPEN_WEEKLY_CHECKIN,
+      runtime,
+      requestId: 'weekly-checkin-open',
+    })
+
+    expect(result.ok).toBe(true)
+    expect(calls.openWeeklyCheckIn).toBe(1)
+    expect(snapshot.showWeeklyCheckIn).toBe(true)
+  })
+
   it('deduplicates rapid duplicate taps', async () => {
     const { runtime, calls } = createMockRuntime()
 
@@ -281,6 +349,29 @@ describe('avaMessagePipeline action orchestration 7.8.1', () => {
     expect(outcome.kind).toBe(AVA_PIPELINE_KIND.ACTION_SUCCESS)
     expect(calls.openNutrition).toBe(1)
     expect(snapshot.screen).toBe('nutrition')
+  })
+
+  it.each([
+    ['show me my progress', 'openProgress', 'progress'],
+    ['open my schedule', 'openSchedule', 'schedule'],
+    ['log some food', 'openNutritionLog', 'nutrition'],
+  ])('routes %s deterministically without model fallback', async (message, callKey, expectedScreen) => {
+    const { runtime, calls, snapshot } = createMockRuntime()
+    const routeMessage = vi.fn()
+
+    const outcome = await runAvaMessagePipeline({
+      message,
+      nutrition: readyState.nutrition,
+      session: createAvaSession(),
+      packet: buildPacket(),
+      routeMessage,
+      actionRuntime: runtime,
+    })
+
+    expect(routeMessage).not.toHaveBeenCalled()
+    expect(outcome.kind).toBe(AVA_PIPELINE_KIND.ACTION_SUCCESS)
+    expect(calls[callKey]).toBe(1)
+    expect(snapshot.screen).toBe(expectedScreen)
   })
 
   it('keeps tired statements conversational', async () => {

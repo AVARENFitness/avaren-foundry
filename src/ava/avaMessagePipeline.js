@@ -159,9 +159,9 @@ export async function runAvaMessagePipeline({
 
   debugLog('submitted', { message: text })
 
-  const effectiveCoachAccess = Boolean(
-    coachContext?.coachAccess ?? coachContext?.authorized ?? role === 'coach',
-  )
+  const effectiveCoachAccess =
+    role === 'coach' &&
+    Boolean(coachContext?.coachAccess ?? coachContext?.authorized)
 
   logAvaRoleDiagnostic({
     role: effectiveCoachAccess ? 'coach' : 'athlete',

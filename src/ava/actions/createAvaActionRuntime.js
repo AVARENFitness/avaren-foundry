@@ -9,6 +9,10 @@ export function createAvaActionRuntime({
   openRecovery,
   startRecoveryFlow,
   openNutrition,
+  openNutritionLog,
+  openProgress,
+  openSchedule,
+  openWeeklyCheckIn,
   getSnapshot,
   getPlanningState,
   applyPlanningChanges,
@@ -28,6 +32,26 @@ export function createAvaActionRuntime({
         : typeof navigate === 'function'
           ? () => navigate('nutrition')
           : null,
+    openNutritionLog:
+      typeof openNutritionLog === 'function'
+        ? openNutritionLog
+        : typeof navigate === 'function'
+          ? () => navigate('nutrition')
+          : null,
+    openProgress:
+      typeof openProgress === 'function'
+        ? openProgress
+        : typeof navigate === 'function'
+          ? () => navigate('progress')
+          : null,
+    openSchedule:
+      typeof openSchedule === 'function'
+        ? openSchedule
+        : typeof navigate === 'function'
+          ? () => navigate('schedule')
+          : null,
+    openWeeklyCheckIn:
+      typeof openWeeklyCheckIn === 'function' ? openWeeklyCheckIn : null,
     getSnapshot: typeof getSnapshot === 'function' ? getSnapshot : () => ({}),
     getPlanningState:
       typeof getPlanningState === 'function' ? getPlanningState : () => ({}),
