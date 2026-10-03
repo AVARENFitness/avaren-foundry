@@ -20158,3 +20158,104 @@ body > .nutrition-food-sheet-backdrop > .nutrition-food-sheet {
     width: 100%;
   }
 }
+
+
+/* ===== NUTRITION · SCAN PORTION SELECTOR ===== */
+.nutrition-scan-portions {
+  display: grid;
+  gap: 12px;
+  margin: 2px 0 14px;
+  padding: 14px;
+  border: 1px solid rgba(216,184,109,.14);
+  border-radius: 14px;
+  background: rgba(255,255,255,.018);
+}
+
+.nutrition-scan-portions > div:first-child {
+  display: grid;
+  gap: 4px;
+}
+
+.nutrition-scan-portions > div:first-child > strong {
+  color: #eee7dc;
+  font-size: 15px;
+}
+
+.nutrition-scan-portions > div:first-child > small {
+  color: #8f8980;
+  line-height: 1.45;
+}
+
+.nutrition-scan-portion-options {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) minmax(92px, 1.15fr);
+  gap: 7px;
+  min-width: 0;
+}
+
+.nutrition-scan-portion-options > button {
+  min-width: 0;
+  min-height: 42px;
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 10px;
+  background: rgba(255,255,255,.025);
+  color: #c6c0b7;
+  font-weight: 800;
+}
+
+.nutrition-scan-portion-options > button.active {
+  border-color: rgba(216,184,109,.42);
+  background: rgba(216,184,109,.09);
+  color: #e0c982;
+}
+
+.nutrition-scan-portion-options > label {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  min-height: 42px;
+  padding: 0 8px;
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 10px;
+  background: rgba(255,255,255,.025);
+}
+
+.nutrition-scan-portion-options > label > span {
+  color: #8f8980;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.nutrition-scan-portion-options input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #eee7dc;
+  text-align: right;
+  font: inherit;
+  font-weight: 800;
+}
+
+.nutrition-scan-edit-hint {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: #8f8980;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+@media (max-width: 700px) {
+  .nutrition-scan-portion-options {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .nutrition-scan-portion-options > label {
+    grid-column: 1 / -1;
+  }
+}
