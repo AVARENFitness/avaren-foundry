@@ -299,3 +299,82 @@ $$;
 
 revoke all on function public.is_active_coaching_relationship(uuid, uuid) from public;
 grant execute on function public.is_active_coaching_relationship(uuid, uuid) to authenticated;
+
+
+-- M1 lifecycle hardening: existing conversation history remains readable after coaching ends.
+create or replace function public.get_or_create_coach_conversation(
+  p_other_user_id uuid
+)
+returns public.coach_conversations
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_user_id uuid := auth.uid();
+  v_coach_id uuid;
+  v_athlete_id uuid;
+  v_conversation public.coach_conversations;
+begin
+  if v_user_id is null then
+    raise exception 'not_authenticated';
+  end if;
+
+  if p_other_user_id is null or p_other_user_id = v_user_id then
+    raise exception 'invalid_message_recipient';
+  end if;
+
+  select c.*
+  into v_conversation
+  from public.coach_conversations c
+  where (
+    (c.coach_id = v_user_id and c.athlete_id = p_other_user_id)
+    or
+    (c.athlete_id = v_user_id and c.coach_id = p_other_user_id)
+  )
+  order by c.created_at desc
+  limit 1;
+
+  if v_conversation.id is not null then
+    return v_conversation;
+  end if;
+
+  select cc.coach_id, cc.athlete_id
+  into v_coach_id, v_athlete_id
+  from public.coach_clients cc
+  left join public.coach_business_clients bc
+    on bc.id = cc.business_client_id
+  where (
+      (cc.coach_id = v_user_id and cc.athlete_id = p_other_user_id)
+      or
+      (cc.athlete_id = v_user_id and cc.coach_id = p_other_user_id)
+    )
+    and (
+      cc.business_client_id is null
+      or bc.status = 'active'
+    )
+  order by cc.created_at desc
+  limit 1;
+
+  if v_coach_id is null or v_athlete_id is null then
+    raise exception 'active_coaching_relationship_required';
+  end if;
+
+  insert into public.coach_conversations (
+    coach_id,
+    athlete_id
+  )
+  values (
+    v_coach_id,
+    v_athlete_id
+  )
+  on conflict (coach_id, athlete_id)
+  do update set updated_at = public.coach_conversations.updated_at
+  returning * into v_conversation;
+
+  return v_conversation;
+end;
+$$;
+
+revoke all on function public.get_or_create_coach_conversation(uuid) from public;
+grant execute on function public.get_or_create_coach_conversation(uuid) to authenticated;
