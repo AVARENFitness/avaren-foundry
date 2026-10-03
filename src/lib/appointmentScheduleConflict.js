@@ -13,21 +13,71 @@ import { RSVP_STATUS } from './sessionRsvp'
 
 export const APPOINTMENT_SCHEDULE_CONFLICT_HANDOFF = {
   TITLE: "CAN'T MAKE IT?",
-  LEde: "I'll let your coach know you can't make this session.",
-  SEND_LABEL: 'Send to coach',
+  LEde:
+    "I'll let your coach know you can't make this session. If another time works better, you can suggest it below.",
+  SEND_LABEL: 'Send request',
   CANCEL_LABEL: 'Never mind',
   SUCCESS_TITLE: 'Coach notified',
-  SUCCESS_BODY: 'Your schedule conflict was sent for review.',
-  ALREADY_SENT_BODY: 'Your coach already has this schedule conflict on file.',
-  ERROR_BODY: 'Could not send your schedule conflict. Try again in a moment.',
+  SUCCESS_BODY: 'Your schedule request was sent for review.',
+  ALREADY_SENT_BODY: 'Your coach already has this schedule request on file.',
+  REQUEST_NOTE: 'This is a request, not a booking. Your coach will confirm any change.',
+  ERROR_BODY: 'Could not send your schedule request. Try again in a moment.',
 }
 
-export const buildAppointmentScheduleConflictProposal = (appointment = {}) => {
+const formatRequestedDate = (value = '') => {
+  const match = String(value ?? '').trim().match(/^(\d{4})-(\d{2})-(\d{2})$/)
+  if (!match) return ''
+
+  const [, year, month, day] = match
+  const date = new Date(Number(year), Number(month) - 1, Number(day), 12)
+  if (Number.isNaN(date.getTime())) return ''
+
+  return new Intl.DateTimeFormat('en-US', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+  }).format(date)
+}
+
+const formatRequestedTime = (value = '') => {
+  const match = String(value ?? '').trim().match(/^(\d{2}):(\d{2})/)
+  if (!match) return ''
+
+  const hours = Number(match[1])
+  const minutes = Number(match[2])
+  if (hours > 23 || minutes > 59) return ''
+
+  const date = new Date(2000, 0, 1, hours, minutes)
+  return new Intl.DateTimeFormat('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(date)
+}
+
+export const formatAppointmentReschedulePreference = ({
+  preferredDate = '',
+  preferredTime = '',
+} = {}) => {
+  const dateLabel = formatRequestedDate(preferredDate)
+  if (!dateLabel) return ''
+
+  const timeLabel = formatRequestedTime(preferredTime)
+  return timeLabel ? `${dateLabel} at ${timeLabel}` : dateLabel
+}
+
+export const buildAppointmentScheduleConflictProposal = (
+  appointment = {},
+  rescheduleRequest = {},
+) => {
   const coachId = resolveAppointmentCoachId(appointment)
+  const baseSummary = buildScheduleConflictSummaryFromAppointment(appointment)
+  const preference = formatAppointmentReschedulePreference(rescheduleRequest)
 
   return {
     reasonType: FOLLOWUP_REASON_TYPE.SCHEDULE_CONFLICT,
-    summary: buildScheduleConflictSummaryFromAppointment(appointment),
+    summary: preference
+      ? `${baseSummary} Requested another time; prefers ${preference}.`
+      : baseSummary,
     sourceType: FOLLOWUP_SOURCE_TYPE.AVA_ATHLETE,
     sessionId: null,
     coachId,
@@ -67,6 +117,7 @@ export const hasOpenScheduleConflictFollowUp = (
 export async function submitAppointmentScheduleConflict({
   appointment = null,
   existingFollowUps = [],
+  rescheduleRequest = {},
   createFollowUp,
   updateRsvp,
 } = {}) {
@@ -90,7 +141,10 @@ export async function submitAppointmentScheduleConflict({
 
   let followUp = existing
   if (!existing) {
-    const proposal = buildAppointmentScheduleConflictProposal(appointment)
+    const proposal = buildAppointmentScheduleConflictProposal(
+      appointment,
+      rescheduleRequest,
+    )
     followUp = await createFollowUp(proposal)
   }
 
