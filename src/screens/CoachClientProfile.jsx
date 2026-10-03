@@ -899,6 +899,21 @@ export default function CoachClientProfile({
               </article>
             </div>
 
+            {structuredGoal ? (
+              <section className="coach-client-goal-context">
+                <div>
+                  <small>Goal context</small>
+                  <strong>
+                    {ATHLETE_GOAL_LABELS[structuredGoal.primaryGoal] ?? 'Goal set'}
+                  </strong>
+                </div>
+                {structuredGoal.priorityAreas?.length ? (
+                  <span>{structuredGoal.priorityAreas.join(' · ')}</span>
+                ) : null}
+                {structuredGoal.note ? <p>{structuredGoal.note}</p> : null}
+              </section>
+            ) : null}
+
             {intelligence.training.recentSessions.length > 0 && (
               <div className="coach-client-profile-activity">
                 {intelligence.training.recentSessions.map((session) => (
