@@ -378,3 +378,16 @@ $$;
 
 revoke all on function public.get_or_create_coach_conversation(uuid) from public;
 grant execute on function public.get_or_create_coach_conversation(uuid) to authenticated;
+
+
+-- M1 ACL hardening: Supabase grants anon/authenticated execute by default on exposed functions.
+revoke execute on function public.get_or_create_coach_conversation(uuid) from anon;
+revoke execute on function public.mark_coach_conversation_read(uuid) from anon;
+revoke execute on function public.is_active_coaching_relationship(uuid, uuid) from anon;
+revoke execute on function public.touch_coach_conversation_from_message() from anon;
+
+revoke execute on function public.touch_coach_conversation_from_message() from authenticated;
+
+grant execute on function public.get_or_create_coach_conversation(uuid) to authenticated;
+grant execute on function public.mark_coach_conversation_read(uuid) to authenticated;
+grant execute on function public.is_active_coaching_relationship(uuid, uuid) to authenticated;
