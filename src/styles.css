@@ -20670,3 +20670,17 @@ body > .nutrition-food-sheet-backdrop > .nutrition-food-sheet {
     border-radius:22px;
   }
 }
+
+.coach-message-launcher-badge{
+  display:inline-grid;
+  place-items:center;
+  min-width:20px;
+  height:20px;
+  margin-left:2px;
+  padding:0 5px;
+  border-radius:999px;
+  background:#c5a45a;
+  color:#17130d;
+  font-size:10px;
+  font-weight:800;
+}
