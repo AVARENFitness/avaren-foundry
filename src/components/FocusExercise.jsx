@@ -81,6 +81,7 @@ export default function FocusExercise({
   onRepeatSet,
   onSkipExercise,
   onQuickAdd,
+  onRemoveExercise,
   onRemoveSet,
   onUndoSkip,
   onSetCompleted,
@@ -770,6 +771,17 @@ export default function FocusExercise({
           Skip this exercise today
         </button>
       )}
+
+      {onRemoveExercise ? (
+        <button
+          type="button"
+          className="remove-exercise-button"
+          onClick={onRemoveExercise}
+        >
+          <Trash2 size={16} />
+          Remove exercise
+        </button>
+      ) : null}
 
       <footer className="exercise-pager">
         <button

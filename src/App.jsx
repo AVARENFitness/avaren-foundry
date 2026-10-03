@@ -545,6 +545,7 @@ function App() {
     repeatPreviousSet,
     skipExercise,
     quickAddExercise,
+    removeExercise,
     removeSet,
     undoSkipExercise,
     finishWorkout,
@@ -1812,6 +1813,7 @@ function App() {
             onRepeatSet={repeatPreviousSet}
             onSkipExercise={skipExercise}
             onQuickAddExercise={quickAddExercise}
+            onRemoveExercise={removeExercise}
             onRemoveSet={removeSet}
             onUndoSkip={undoSkipExercise}
             workoutOptions={state.program.rotation}

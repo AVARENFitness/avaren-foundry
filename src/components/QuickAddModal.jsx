@@ -7,10 +7,16 @@ const MUSCLES = [
   'Quads','Hamstrings','Calves','Core','Lower Back','Glutes','Forearms','Other',
 ]
 
-export default function QuickAddModal({ onClose, onAdd }) {
+export default function QuickAddModal({
+  onClose,
+  onAdd,
+  canSaveToPlan = false,
+  workoutName = '',
+}) {
   const [name, setName] = useState('')
   const [sets, setSets] = useState(3)
   const [muscle, setMuscle] = useState('Other')
+  const [saveToPlan, setSaveToPlan] = useState(false)
 
   return (
     <AppUiBackdrop open onClose={onClose} className="modal-backdrop-host">
@@ -64,13 +70,39 @@ export default function QuickAddModal({ onClose, onAdd }) {
           </div>
         </div>
 
+        {canSaveToPlan ? (
+          <div className="quick-add-plan-choice" role="group" aria-label="Save exercise">
+            <button
+              type="button"
+              className={!saveToPlan ? 'active' : ''}
+              onClick={() => setSaveToPlan(false)}
+            >
+              Today only
+            </button>
+            <button
+              type="button"
+              className={saveToPlan ? 'active' : ''}
+              onClick={() => setSaveToPlan(true)}
+            >
+              Add to {workoutName || 'workout'} plan
+            </button>
+          </div>
+        ) : null}
+
         <button
           type="button"
           className="gold-button machined"
           disabled={!name.trim()}
-          onClick={() => onAdd({ name: name.trim(), sets, muscle })}
+          onClick={() =>
+            onAdd({
+              name: name.trim(),
+              sets,
+              muscle,
+              saveToPlan: canSaveToPlan && saveToPlan,
+            })
+          }
         >
-          Add to Today
+          {saveToPlan && canSaveToPlan ? 'Add & Save to Plan' : 'Add to Today'}
         </button>
       </section>
     </AppUiBackdrop>
