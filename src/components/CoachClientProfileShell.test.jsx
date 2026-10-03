@@ -45,9 +45,9 @@ describe('CoachClientProfileShell', () => {
       </CoachClientProfileShell>,
     )
 
-    await user.click(screen.getByRole('button', { name: 'Notes' }))
+    await user.click(screen.getByRole('button', { name: 'Manage' }))
 
-    expect(onSectionChange).toHaveBeenCalledWith('notes')
+    expect(onSectionChange).toHaveBeenCalledWith('manage')
   })
 
   it('calls onBack from the back link', async () => {

@@ -64,11 +64,6 @@ import {
 import { appUi } from '../lib/appUi'
 import AppUiBackdrop from '../components/ui/AppUiBackdrop'
 import AppUiCloseButton from '../components/ui/AppUiCloseButton'
-import {
-  emptySessionPackage,
-  formatPackageDate,
-  normalizeSessionPackage,
-} from '../lib/sessionPackages'
 import ClientIntelligenceDashboard from '../components/ClientIntelligenceDashboard'
 import CoachClientInPersonPanel from '../components/coach/CoachClientInPersonPanel'
 import CoachEndCoachingSheet, {
@@ -145,8 +140,6 @@ export default function CoachClientProfile({
   const [passAvaContext, setPassAvaContext] = useState(null)
 
   const [activeSection, setActiveSection] = useState(initialActiveSection)
-  const [packageSummary, setPackageSummary] = useState(emptySessionPackage())
-  const [packageLoading, setPackageLoading] = useState(true)
   const [athleteState, setAthleteState] = useState(null)
   const [nutritionProfile, setNutritionProfile] = useState(null)
   const [nutritionDays, setNutritionDays] = useState([])
@@ -315,19 +308,6 @@ export default function CoachClientProfile({
     [clientAssignments],
   )
 
-  const recentActivity = useMemo(
-    () =>
-      [...clientAssignments]
-        .filter((item) => item.status === 'completed')
-        .sort(
-          (a, b) =>
-            new Date(b.completed_at).getTime() -
-            new Date(a.completed_at).getTime(),
-        )
-        .slice(0, 4),
-    [clientAssignments],
-  )
-
   const intelligence = useMemo(
     () =>
       buildClientIntelligence({
@@ -349,33 +329,6 @@ export default function CoachClientProfile({
       notesUpdatedAt,
     ],
   )
-
-  useEffect(() => {
-    let active = true
-    setPackageLoading(true)
-
-    if (!linkedAthleteId) {
-      setPackageSummary(emptySessionPackage())
-      setPackageLoading(false)
-      return undefined
-    }
-
-    coachBackend
-      .getSessionPackage(linkedAthleteId)
-      .then((row) => {
-        if (active) setPackageSummary(normalizeSessionPackage(row))
-      })
-      .catch(() => {
-        if (active) setPackageSummary(emptySessionPackage())
-      })
-      .finally(() => {
-        if (active) setPackageLoading(false)
-      })
-
-    return () => {
-      active = false
-    }
-  }, [linkedAthleteId])
 
   useEffect(() => {
     let active = true
@@ -799,13 +752,6 @@ export default function CoachClientProfile({
               </button>
               <button
                 type="button"
-                className="coach-secondary-button"
-                onClick={() => setActiveSection('sessions')}
-              >
-                View usage
-              </button>
-              <button
-                type="button"
                 className="gold-button machined coach-primary-action"
                 onClick={onAssignWorkout}
               >
@@ -819,7 +765,6 @@ export default function CoachClientProfile({
                 Add note
               </button>
             </div>
-            {clientManagementPanel}
           </>
         )
 
@@ -959,6 +904,68 @@ export default function CoachClientProfile({
       case 'notes':
         return (
           <>
+            <CollapsibleIdentityPanel
+              eyebrow="COACH NOTES"
+              title="Private notes"
+              hint="Only visible to you — never shown to the athlete."
+              mode={
+                notesMode === IDENTITY_EDITOR_MODE.ERROR
+                  ? IDENTITY_EDITOR_MODE.ERROR
+                  : notesSaving
+                    ? IDENTITY_EDITOR_MODE.SAVING
+                    : notesMode
+              }
+              canEdit={Boolean(onSaveNotes)}
+              isEmpty={!clientNotes.trim()}
+              errorMessage={notesError}
+              editLabel="Edit notes"
+              addLabel="Add notes"
+              saveLabel="Save notes"
+              onEdit={() => {
+                setNotesDraft(clientNotes)
+                setNotesError('')
+                setNotesMode(IDENTITY_EDITOR_MODE.EDITING)
+              }}
+              onCancel={() => {
+                setNotesDraft(clientNotes)
+                setNotesError('')
+                setNotesMode(IDENTITY_EDITOR_MODE.VIEW)
+              }}
+              onSave={handleNotesSave}
+              viewContent={
+                <>
+                  <p className="coach-profile-notes-preview">
+                    {clientNotes.trim() || 'No private notes yet.'}
+                  </p>
+                  {notesUpdatedAt && (
+                    <small className="client-intelligence-notes-updated">
+                      Updated{' '}
+                      {new Date(notesUpdatedAt).toLocaleDateString([], {
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric',
+                      })}
+                    </small>
+                  )}
+                </>
+              }
+              editingContent={
+                <textarea
+                  className="coach-field-input coach-profile-notes-input"
+                  rows={6}
+                  value={notesDraft}
+                  onChange={(event) => setNotesDraft(event.target.value)}
+                  placeholder="Goals, limitations, check-in notes, programming context…"
+                />
+              }
+            />
+          </>
+        )
+
+
+      case 'manage':
+        return (
+          <>
             {coachLabelsEnabled ? (
               <CollapsibleIdentityPanel
                 eyebrow="ROSTER NICKNAME"
@@ -1024,79 +1031,8 @@ export default function CoachClientProfile({
                   </>
                 }
               />
-            ) : (
-              <section className="identity-panel identity-panel--view">
-                <header className="identity-panel-header">
-                  <div>
-                    <span className="eyebrow">ROSTER NICKNAME</span>
-                    <h3>Coach label</h3>
-                    <p>Private labels unlock after the identity migration is applied.</p>
-                  </div>
-                </header>
-                <div className="identity-panel-summary">
-                  <div className="identity-summary-row">
-                    <small>Athlete</small>
-                    <strong>{athleteDisplayName}</strong>
-                  </div>
-                </div>
-              </section>
-            )}
-
-            <CollapsibleIdentityPanel
-              eyebrow="COACH NOTES"
-              title="Private notes"
-              hint="Only visible to you — never shown to the athlete."
-              mode={
-                notesMode === IDENTITY_EDITOR_MODE.ERROR
-                  ? IDENTITY_EDITOR_MODE.ERROR
-                  : notesSaving
-                    ? IDENTITY_EDITOR_MODE.SAVING
-                    : notesMode
-              }
-              canEdit={Boolean(onSaveNotes)}
-              isEmpty={!clientNotes.trim()}
-              errorMessage={notesError}
-              editLabel="Edit notes"
-              addLabel="Add notes"
-              saveLabel="Save notes"
-              onEdit={() => {
-                setNotesDraft(clientNotes)
-                setNotesError('')
-                setNotesMode(IDENTITY_EDITOR_MODE.EDITING)
-              }}
-              onCancel={() => {
-                setNotesDraft(clientNotes)
-                setNotesError('')
-                setNotesMode(IDENTITY_EDITOR_MODE.VIEW)
-              }}
-              onSave={handleNotesSave}
-              viewContent={
-                <>
-                  <p className="coach-profile-notes-preview">
-                    {clientNotes.trim() || 'No private notes yet.'}
-                  </p>
-                  {notesUpdatedAt && (
-                    <small className="client-intelligence-notes-updated">
-                      Updated{' '}
-                      {new Date(notesUpdatedAt).toLocaleDateString([], {
-                        month: 'short',
-                        day: 'numeric',
-                        year: 'numeric',
-                      })}
-                    </small>
-                  )}
-                </>
-              }
-              editingContent={
-                <textarea
-                  className="coach-field-input coach-profile-notes-input"
-                  rows={6}
-                  value={notesDraft}
-                  onChange={(event) => setNotesDraft(event.target.value)}
-                  placeholder="Goals, limitations, check-in notes, programming context…"
-                />
-              }
-            />
+            ) : null}
+            {clientManagementPanel}
           </>
         )
 
