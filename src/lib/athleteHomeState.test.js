@@ -477,6 +477,28 @@ describe('athleteHomeState', () => {
     expect(home.suppressWorkoutReminder).toBe(false)
   })
 
+  it('promotes an imminent coaching appointment above a normal workout start', () => {
+    vi.setSystemTime(fridayMorning)
+
+    const appointment = {
+      id: 'appt-soon',
+      sessionDate: '2026-08-07',
+      startTime: '10:00',
+      coachDisplayName: 'Coach Ava',
+    }
+
+    const home = getAthleteHomeState({
+      now: fridayMorning,
+      state: buildState(),
+      readiness: { completed: true },
+      nextAppointment: appointment,
+    })
+
+    expect(home.appointmentSoon).toBe(true)
+    expect(home.primaryAction?.id).toBe(HOME_ACTION_IDS.APPOINTMENT)
+    expect(home.primaryAction?.meta?.appointmentId).toBe('appt-soon')
+  })
+
   it('surfaces upcoming appointment in schedule-oriented home actions', () => {
     vi.setSystemTime(fridayMorning)
 
