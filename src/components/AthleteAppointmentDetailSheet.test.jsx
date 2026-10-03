@@ -74,8 +74,42 @@ describe('AthleteAppointmentDetailSheet schedule conflict handoff', () => {
 
     expect(screen.getByText("CAN'T MAKE IT?")).toBeTruthy()
     expect(screen.getByText(/In-person training with Jacob Corell/)).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'Send to coach' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Send request' })).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Never mind' })).toBeTruthy()
+    expect(screen.getByText('Prefer another time?')).toBeTruthy()
+    expect(screen.getByLabelText('Preferred date')).toBeTruthy()
+    expect(screen.getByLabelText('Preferred time')).toBeDisabled()
+    expect(screen.getByText(/request, not a booking/i)).toBeTruthy()
+  })
+
+  it('includes an optional preferred replacement date and time in the coach follow-up', async () => {
+    render(
+      <AthleteAppointmentDetailSheet
+        appointment={appointment}
+        open
+        onClose={vi.fn()}
+      />,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: "Can't make it" }))
+    const dateInput = await screen.findByLabelText('Preferred date')
+    const timeInput = screen.getByLabelText('Preferred time')
+
+    fireEvent.change(dateInput, { target: { value: '2026-08-14' } })
+    fireEvent.change(timeInput, { target: { value: '16:30' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Send request' }))
+
+    await waitFor(() => {
+      expect(coachBackend.createClientFollowUp).toHaveBeenCalledWith(
+        expect.objectContaining({
+          summary: expect.stringContaining('Requested another time'),
+        }),
+      )
+    })
+
+    expect(coachBackend.createClientFollowUp.mock.calls[0][0].summary).toContain(
+      'Fri, Aug 14 at 4:30 PM',
+    )
   })
 
   it('submits schedule-conflict follow-up with appointment context', async () => {
@@ -91,7 +125,7 @@ describe('AthleteAppointmentDetailSheet schedule conflict handoff', () => {
     )
 
     fireEvent.click(screen.getByRole('button', { name: "Can't make it" }))
-    fireEvent.click(await screen.findByRole('button', { name: 'Send to coach' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Send request' }))
 
     await waitFor(() => {
       expect(coachBackend.createClientFollowUp).toHaveBeenCalledWith(
@@ -124,7 +158,7 @@ describe('AthleteAppointmentDetailSheet schedule conflict handoff', () => {
     )
 
     fireEvent.click(screen.getByRole('button', { name: "Can't make it" }))
-    fireEvent.click(await screen.findByRole('button', { name: 'Send to coach' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Send request' }))
 
     await waitFor(() => {
       expect(screen.getByText('network_failed')).toBeTruthy()
