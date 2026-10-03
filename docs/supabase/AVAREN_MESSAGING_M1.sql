@@ -208,3 +208,65 @@ comment on table public.coach_conversations is
   'One durable coach-athlete messaging thread per coaching relationship.';
 comment on table public.coach_messages is
   'Durable 1:1 coaching messages. History remains readable after coaching ends; new sends require an active relationship.';
+
+
+-- M1 hardening: read receipts use a narrow RPC instead of generic message UPDATE.
+drop policy if exists coach_messages_recipient_update on public.coach_messages;
+
+create or replace function public.mark_coach_conversation_read(
+  p_conversation_id uuid
+)
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_user_id uuid := auth.uid();
+  v_count integer := 0;
+begin
+  if v_user_id is null then
+    raise exception 'not_authenticated';
+  end if;
+
+  if not exists (
+    select 1
+    from public.coach_conversations c
+    where c.id = p_conversation_id
+      and (c.coach_id = v_user_id or c.athlete_id = v_user_id)
+  ) then
+    raise exception 'conversation_not_available';
+  end if;
+
+  update public.coach_messages
+  set read_at = coalesce(read_at, now())
+  where conversation_id = p_conversation_id
+    and sender_id <> v_user_id
+    and read_at is null;
+
+  get diagnostics v_count = row_count;
+  return v_count;
+end;
+$$;
+
+revoke all on function public.mark_coach_conversation_read(uuid) from public;
+grant execute on function public.mark_coach_conversation_read(uuid) to authenticated;
+
+create or replace function public.touch_coach_conversation_from_message()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  update public.coach_conversations
+  set
+    updated_at = now(),
+    last_message_at = new.created_at
+  where id = new.conversation_id;
+
+  return new;
+end;
+$$;
+
+revoke all on function public.touch_coach_conversation_from_message() from public;
