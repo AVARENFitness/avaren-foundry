@@ -73,6 +73,7 @@ import CoachEndCoachingSheet, {
 import CoachClientProfileShell from '../components/CoachClientProfileShell'
 import CoachSessionDetailHost from '../components/coach/CoachSessionDetailHost'
 import EmptyState from '../components/ui/EmptyState'
+import CoachMessageLauncher from '../components/CoachMessageLauncher'
 import {
   ATHLETE_GOAL_LABELS,
   athleteGoalBackend,
@@ -680,6 +681,12 @@ export default function CoachClientProfile({
     }
   }
 
+  const messagingAthleteId =
+    client?.athlete_id ??
+    client?.linked_user_id ??
+    client?.linkedUserId ??
+    null
+
   const clientManagementPanel = businessClientId ? (
     <>
       <CoachCoachingRequirementsPanel
@@ -779,6 +786,12 @@ export default function CoachClientProfile({
               >
                 Assign workout
               </button>
+              <CoachMessageLauncher
+                otherUserId={messagingAthleteId}
+                otherName={athleteDisplayName}
+                label="Message athlete"
+                className="coach-secondary-button"
+              />
               <button
                 type="button"
                 className="coach-secondary-button"
