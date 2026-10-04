@@ -1,4 +1,4 @@
-import { Clock3, UserRound } from 'lucide-react'
+import { Clock3, Dumbbell, UserRound } from 'lucide-react'
 import AppUiCloseButton from '../ui/AppUiCloseButton'
 import AppUiBackdrop from '../ui/AppUiBackdrop'
 import { getClientDisplayName } from '../../lib/clientDisplayName'
@@ -30,6 +30,7 @@ export default function CoachSessionDetailSheet({
   onBeginReschedule,
   onSaveReschedule,
   onViewClient,
+  onStartFloorMode,
   onComplete,
   onCancel,
   onMarkMissed,
@@ -291,11 +292,20 @@ export default function CoachSessionDetailSheet({
                 type="button"
                 className="gold-button machined coach-primary-action"
                 disabled={completingSessionId === session.id}
+                onClick={() => onStartFloorMode?.(session)}
+              >
+                <Dumbbell {...ICON} />
+                Start Session
+              </button>
+              <button
+                type="button"
+                className="coach-secondary-button"
+                disabled={completingSessionId === session.id}
                 onClick={() => onComplete?.(session)}
               >
                 {completingSessionId === session.id
                   ? 'Completing…'
-                  : 'Complete Session'}
+                  : 'Complete without workout'}
               </button>
               {rescheduleMode ? (
                 <button
