@@ -1,9 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
-import CoachClientProfileShell, {
-  CLIENT_PROFILE_SECTIONS,
-} from './CoachClientProfileShell'
+import CoachClientProfileShell from './CoachClientProfileShell'
 
 describe('CoachClientProfileShell', () => {
   const baseProps = {
@@ -15,7 +13,7 @@ describe('CoachClientProfileShell', () => {
     onBack: vi.fn(),
   }
 
-  it('renders client header and all profile sections', () => {
+  it('keeps the primary client destinations visible without a six-tab wall', () => {
     render(
       <CoachClientProfileShell {...baseProps}>
         <p>Section content</p>
@@ -27,12 +25,15 @@ describe('CoachClientProfileShell', () => {
     expect(screen.getByText('Connected since Jan 4, 2026')).toBeInTheDocument()
     expect(screen.getByText('Section content')).toBeInTheDocument()
 
-    for (const { label } of CLIENT_PROFILE_SECTIONS) {
+    for (const label of ['Overview', 'Sessions', 'Training', 'Notes', 'More']) {
       expect(screen.getByRole('button', { name: label })).toBeInTheDocument()
     }
+
+    expect(screen.queryByRole('button', { name: 'Progress' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Manage' })).not.toBeInTheDocument()
   })
 
-  it('calls onSectionChange when a section tab is tapped', async () => {
+  it('reveals secondary destinations from More and routes correctly', async () => {
     const user = userEvent.setup()
     const onSectionChange = vi.fn()
 
@@ -45,6 +46,7 @@ describe('CoachClientProfileShell', () => {
       </CoachClientProfileShell>,
     )
 
+    await user.click(screen.getByRole('button', { name: 'More' }))
     await user.click(screen.getByRole('button', { name: 'Manage' }))
 
     expect(onSectionChange).toHaveBeenCalledWith('manage')
@@ -65,7 +67,7 @@ describe('CoachClientProfileShell', () => {
     expect(onBack).toHaveBeenCalledTimes(1)
   })
 
-  it('marks the active section tab', () => {
+  it('keeps an active secondary section visible and marked', () => {
     render(
       <CoachClientProfileShell {...baseProps} activeSection="progress">
         <p>Section content</p>
@@ -76,6 +78,7 @@ describe('CoachClientProfileShell', () => {
       'aria-current',
       'page',
     )
+    expect(screen.getByRole('button', { name: 'More' })).toHaveClass('active')
     expect(screen.getByRole('button', { name: 'Overview' })).not.toHaveAttribute(
       'aria-current',
     )
