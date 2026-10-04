@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import {
   appendFatSecretFoodReference,
+  hydrateFatSecretNutritionSnapshot,
+  needsFatSecretNutritionSnapshot,
 } from './nutritionActions'
 import {
   createNutritionState,
@@ -56,6 +58,59 @@ describe('FatSecret nutrition snapshots', () => {
       carbs: 36,
       fat: 6,
       fiber: 10,
+    })
+  })
+
+  it('hydrates an older reference-only FatSecret entry for Home totals', () => {
+    const legacy = {
+      id: 'legacy-1',
+      source: 'fatsecret',
+      provider: 'fatsecret',
+      fatSecret: {
+        foodId: 'food-legacy',
+        servingId: 'serving-legacy',
+      },
+      quantity: 2,
+      loggedAt: '2026-10-03T12:00:00.000Z',
+    }
+
+    expect(needsFatSecretNutritionSnapshot(legacy)).toBe(true)
+
+    const hydrated = hydrateFatSecretNutritionSnapshot(legacy, {
+      name: 'Legendary Foods Protein Pastry',
+      brand: 'Legendary Foods',
+      servings: [
+        {
+          servingId: 'serving-legacy',
+          description: '1 pastry',
+          calories: 430,
+          protein: 24,
+          carbs: 44,
+          fat: 16,
+          fiber: 8,
+        },
+      ],
+    })
+
+    expect(hydrated).toMatchObject({
+      name: 'Legendary Foods Protein Pastry',
+      calories: 860,
+      protein: 48,
+      carbs: 88,
+      fat: 32,
+      fiber: 16,
+    })
+    expect(needsFatSecretNutritionSnapshot(hydrated)).toBe(false)
+
+    expect(
+      nutritionTotals({
+        foods: [hydrated],
+        waterOz: 0,
+        weight: '',
+      }),
+    ).toMatchObject({
+      calories: 860,
+      protein: 48,
     })
   })
 
