@@ -391,3 +391,35 @@ revoke execute on function public.touch_coach_conversation_from_message() from a
 grant execute on function public.get_or_create_coach_conversation(uuid) to authenticated;
 grant execute on function public.mark_coach_conversation_read(uuid) to authenticated;
 grant execute on function public.is_active_coaching_relationship(uuid, uuid) to authenticated;
+
+
+-- M1 privacy hardening: authenticated callers may only inspect relationships they participate in.
+create or replace function public.is_active_coaching_relationship(
+  p_coach_id uuid,
+  p_athlete_id uuid
+)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select
+    auth.uid() is not null
+    and auth.uid() in (p_coach_id, p_athlete_id)
+    and exists (
+      select 1
+      from public.coach_clients cc
+      left join public.coach_business_clients bc
+        on bc.id = cc.business_client_id
+      where cc.coach_id = p_coach_id
+        and cc.athlete_id = p_athlete_id
+        and (
+          cc.business_client_id is null
+          or bc.status = 'active'
+        )
+    );
+$$;
+
+revoke execute on function public.is_active_coaching_relationship(uuid, uuid) from anon;
+grant execute on function public.is_active_coaching_relationship(uuid, uuid) to authenticated;
