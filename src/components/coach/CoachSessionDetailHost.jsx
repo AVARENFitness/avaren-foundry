@@ -1,6 +1,12 @@
+import { useState } from 'react'
 import CoachPassSelectionModal from './CoachPassSelectionModal'
 import CoachMissedChargeSheet from './CoachMissedChargeSheet'
 import CoachSessionDetailSheet from './CoachSessionDetailSheet'
+import CoachFloorMode from '../CoachFloorMode'
+import {
+  resolveAthleteDataId,
+  resolveRecordBusinessClientId,
+} from '../../lib/coachBusinessClient'
 import { useCoachSessionDetail } from '../../hooks/useCoachSessionDetail'
 
 export default function CoachSessionDetailHost({
@@ -13,6 +19,8 @@ export default function CoachSessionDetailHost({
   onLoadSessions,
   children,
 }) {
+  const [floorSession, setFloorSession] = useState(null)
+
   const detail = useCoachSessionDetail({
     clients,
     assignments,
@@ -50,6 +58,10 @@ export default function CoachSessionDetailHost({
         onBeginReschedule={detail.beginReschedule}
         onSaveReschedule={detail.saveReschedule}
         onViewClient={detail.handleViewClient}
+        onStartFloorMode={(session) => {
+          setFloorSession(session)
+          detail.closeDetail()
+        }}
         onComplete={detail.handleComplete}
         onApplyPassDebit={detail.handleApplyPassDebit}
         onCancel={detail.handleCancel}
@@ -58,6 +70,30 @@ export default function CoachSessionDetailHost({
         passDebitState={detail.passDebitState}
         passActionBusy={detail.passActionBusy}
       />
+
+      {floorSession ? (
+        <CoachFloorMode
+          session={floorSession}
+          client={
+            clients.find((client) => {
+              const businessClientId = resolveRecordBusinessClientId(client)
+              const athleteId = resolveAthleteDataId(client)
+              return (
+                (floorSession.businessClientId &&
+                  businessClientId === floorSession.businessClientId) ||
+                (floorSession.athleteId &&
+                  athleteId === floorSession.athleteId)
+              )
+            }) ?? null
+          }
+          assignments={assignments}
+          passSummary={detail.passSummaryFor(floorSession)}
+          onClose={() => setFloorSession(null)}
+          onSessionRecorded={async () => {
+            await detail.refreshAfterExternalCompletion?.()
+          }}
+        />
+      ) : null}
 
       <CoachPassSelectionModal
         open={Boolean(detail.passSelection)}

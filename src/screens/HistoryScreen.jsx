@@ -9,6 +9,7 @@ import {
   Dumbbell,
   Flame,
   Hammer,
+  MessageCircle,
   Save,
   Search,
   Sunrise,
@@ -147,9 +148,16 @@ export function SessionDetail({ session, history, onClose, onDelete, onUpdate })
       </header>
 
       <section className="session-detail-hero">
-        <span className="eyebrow">COMPLETED SESSION</span>
+        <span className="eyebrow">
+          {session.sessionMode === 'coached_in_person'
+            ? 'COACHED SESSION'
+            : 'COMPLETED SESSION'}
+        </span>
         <h1>{session.name}</h1>
-        <p>{formatDate(session.finishedAt ?? session.date)}</p>
+        <p>
+          {formatDate(session.finishedAt ?? session.date)}
+          {session.sessionMode === 'coached_in_person' ? ' · Logged with your coach' : ''}
+        </p>
 
         <div className="session-detail-stats">
           <article><Clock3 size={17} /><strong>{formatDuration(session)}</strong><span>Duration</span></article>
@@ -164,6 +172,19 @@ export function SessionDetail({ session, history, onClose, onDelete, onUpdate })
           <article><Trophy size={17} /><strong>{prs.length}</strong><span>PRs</span></article>
         </div>
       </section>
+
+      {session.coachRecap ? (
+        <section className="session-detail-card session-coach-recap-card">
+          <div className="session-detail-title">
+            <MessageCircle size={18} />
+            <div>
+              <span className="eyebrow">COACH RECAP</span>
+              <h2>What your coach wants you to remember.</h2>
+            </div>
+          </div>
+          <p className="session-coach-recap-copy">{session.coachRecap}</p>
+        </section>
+      ) : null}
 
       {(session.intent || session.notes) && (
         <section className="session-detail-card">
