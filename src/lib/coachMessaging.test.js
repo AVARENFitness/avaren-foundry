@@ -132,6 +132,34 @@ describe('coachMessagingBackend', () => {
     })
   })
 
+  it('keeps the durable message successful when phone push delivery is unavailable', async () => {
+    const single = vi.fn().mockResolvedValue({
+      data: {
+        id: 'message-2',
+        conversation_id: 'conversation-1',
+        sender_id: 'user-1',
+        body: 'Still saved',
+        created_at: '2026-10-04T19:30:00.000Z',
+        read_at: null,
+      },
+      error: null,
+    })
+    const select = vi.fn(() => ({ single }))
+    const insert = vi.fn(() => ({ select }))
+    mockFrom.mockReturnValue({ insert })
+    mockInvoke.mockRejectedValueOnce(new Error('push unavailable'))
+
+    const result = await coachMessagingBackend.sendMessage(
+      'conversation-1',
+      'Still saved',
+    )
+
+    expect(result.body).toBe('Still saved')
+    expect(mockInvoke).toHaveBeenCalledWith('send-message-push', {
+      body: { messageId: 'message-2' },
+    })
+  })
+
   it('counts only unread messages sent by the other participant', async () => {
     const isNull = vi.fn().mockResolvedValue({
       count: 2,

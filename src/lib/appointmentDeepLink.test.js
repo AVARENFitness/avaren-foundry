@@ -41,6 +41,15 @@ describe('appointmentDeepLink push URL parsing', () => {
     })
   })
 
+  it('parses coaching message push URLs with the other participant', () => {
+    expect(
+      parsePushDeepLinkUrl('/?open=messages&with=coach-1'),
+    ).toEqual({
+      type: PUSH_DEEP_LINK_TYPES.MESSAGES,
+      otherUserId: 'coach-1',
+    })
+  })
+
   it('parses RSVP action URLs separately from appointment detail', () => {
     expect(
       parsePushDeepLinkUrl('/?session=appt-1&rsvp=confirmed'),
@@ -93,6 +102,18 @@ describe('appointmentDeepLink navigation resolution', () => {
     expect(resolvePushDeepLinkNavigation(request)).toEqual({
       screen: 'in-person-schedule',
     })
+  })
+
+  it('message push resolves to Home and opens the requested thread', () => {
+    const request = parsePushDeepLinkUrl('/?open=messages&with=coach-1')
+
+    expect(resolvePushDeepLinkNavigation(request)).toEqual({
+      screen: 'home',
+      messageUserId: 'coach-1',
+    })
+    expect(buildPushDeepLinkDedupeKey(request)).toBe(
+      'messages:coach-1',
+    )
   })
 
   it('normal launch without deep link params resolves to null', () => {

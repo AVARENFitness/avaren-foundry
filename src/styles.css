@@ -20875,3 +20875,57 @@ body > .nutrition-food-sheet-backdrop > .nutrition-food-sheet {
     padding-inline: 12px;
   }
 }
+
+
+/* ===== MESSAGING M2 · HEADER ACCESS + PUSH PRIORITY ===== */
+.app-message-button {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: 1px solid rgba(216,184,109,.12);
+  border-radius: 14px;
+  background: rgba(216,184,109,.025);
+  color: #cdb678;
+}
+
+.app-message-button > span {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  display: grid;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border: 2px solid #080a0d;
+  border-radius: 999px;
+  background: #d9bd72;
+  color: #080a0d;
+  font-size: 10px !important;
+  font-weight: 900;
+}
+
+.app-message-button:active {
+  transform: translateY(1px) scale(.98);
+}
+
+@media (max-width: 520px) {
+  .app-header-actions {
+    gap: 6px;
+  }
+
+  .status-pill:not(.active) {
+    display: none;
+  }
+
+  .app-message-button,
+  .app-notification-button {
+    width: 42px;
+    height: 42px;
+    min-height: 42px;
+  }
+}

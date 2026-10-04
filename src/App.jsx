@@ -4,6 +4,7 @@ import { appUi } from './lib/appUi'
 import { normalizeAthleteReturnScreen, useNavigation } from './hooks/useNavigation'
 import { useWorkoutSession } from './hooks/useWorkoutSession'
 import AppShell from './components/AppShell'
+import AthleteHeaderMessages from './components/AthleteHeaderMessages'
 import ErrorBoundary from './components/ErrorBoundary'
 import { createAvaActionRuntime } from './ava/actions/createAvaActionRuntime'
 import { createAvaCoachActionRuntime } from './ava/coach/createAvaCoachActionRuntime'
@@ -32,6 +33,7 @@ import {
   parsePushDeepLinkUrl,
   PUSH_DEEP_LINK_TYPES,
   requestOpenAppointment,
+  requestOpenMessageThread,
   resolvePushDeepLinkNavigation,
 } from './lib/appointmentDeepLink'
 import { coachBackend } from './lib/coachBackend'
@@ -1689,6 +1691,10 @@ function App() {
         navigate(navigation.screen)
       }
 
+      if (navigation.messageUserId) {
+        requestOpenMessageThread(navigation.messageUserId)
+      }
+
       if (navigation.openAppointment?.sessionId) {
         requestOpenAppointment(navigation.openAppointment.sessionId, {
           role: navigation.openAppointment.role,
@@ -2444,6 +2450,7 @@ function App() {
           .trim()
           .charAt(0)
           .toUpperCase()}
+        messageShortcut={<AthleteHeaderMessages />}
       >
         <CloudStatus status={cloudStatus} />
         {activeScreen}
