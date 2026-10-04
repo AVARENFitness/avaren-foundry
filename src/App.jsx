@@ -59,6 +59,11 @@ import { resetDocumentModalLayer } from './hooks/useAppModalLayer'
 import NutritionScreen from './screens/NutritionScreen'
 import { createNutritionState, nutritionDateKey, nutritionTotals } from './lib/nutrition'
 import { nutritionBackend } from './lib/nutritionBackend'
+import { getFatSecretFood } from './lib/fatSecretFoodSearch'
+import {
+  hydrateFatSecretNutritionSnapshot,
+  needsFatSecretNutritionSnapshot,
+} from './lib/nutritionActions'
 import { userProfileBackend } from './lib/userProfileBackend'
 import WeeklyPlannerScreen from './screens/WeeklyPlannerScreen'
 import HistoryScreen from './screens/HistoryScreen'
@@ -324,6 +329,78 @@ function App() {
       return { ...current, nutrition: resolvedNutrition }
     })
   }, [session?.user?.id])
+
+  useEffect(() => {
+    if (!session?.user?.id) return undefined
+
+    const date = nutritionDateKey()
+    const foods = state.nutrition?.days?.[date]?.foods ?? []
+    const legacyEntries = foods.filter(needsFatSecretNutritionSnapshot)
+
+    if (!legacyEntries.length) return undefined
+
+    let cancelled = false
+
+    const foodIds = [
+      ...new Set(
+        legacyEntries
+          .map((food) => String(food.fatSecret?.foodId ?? '').trim())
+          .filter(Boolean),
+      ),
+    ]
+
+    Promise.all(
+      foodIds.map(async (foodId) => {
+        try {
+          return [foodId, await getFatSecretFood(foodId)]
+        } catch {
+          return [foodId, null]
+        }
+      }),
+    ).then((pairs) => {
+      if (cancelled) return
+
+      const detailsById = Object.fromEntries(pairs)
+
+      handleNutritionChange((currentNutrition) => {
+        const currentDay = currentNutrition?.days?.[date]
+        if (!currentDay) return currentNutrition
+
+        let changed = false
+        const nextFoods = (currentDay.foods ?? []).map((food) => {
+          if (!needsFatSecretNutritionSnapshot(food)) return food
+
+          const detail =
+            detailsById[String(food.fatSecret?.foodId ?? '')] ?? null
+          const hydrated = hydrateFatSecretNutritionSnapshot(food, detail)
+
+          if (hydrated !== food) changed = true
+          return hydrated
+        })
+
+        if (!changed) return currentNutrition
+
+        return {
+          ...currentNutrition,
+          days: {
+            ...(currentNutrition.days ?? {}),
+            [date]: {
+              ...currentDay,
+              foods: nextFoods,
+            },
+          },
+        }
+      })
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [
+    session?.user?.id,
+    state.nutrition?.days,
+    handleNutritionChange,
+  ])
 
   const {
     authorized: coachAuthorized,
