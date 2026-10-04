@@ -559,7 +559,7 @@ export function useCoachSessionDetail({
         completingSessionId === session.id ||
         session.status !== SCHEDULED_SESSION_STATUS.SCHEDULED
       ) {
-        return
+        return { ok: false, error: new Error('Session is not available to complete.') }
       }
 
       setCompletingSessionId(session.id)
@@ -578,12 +578,12 @@ export function useCoachSessionDetail({
 
         if (passResult.passSelectionRequired) {
           await applyPassUsageResult(savedSession, passResult, { afterComplete: true })
-          return
+          return { ok: true, session: savedSession, passResult }
         }
 
         if (!passResult.ok && passResult.error) {
           await applyPassUsageResult(savedSession, passResult, { afterComplete: true })
-          return
+          return { ok: true, session: savedSession, passResult }
         }
 
         if (passResult.noPass) {
@@ -604,8 +604,10 @@ export function useCoachSessionDetail({
         })
         await refreshAfterPassAction(session)
         await notifyMutated()
+        return { ok: true, session: savedSession, passResult }
       } catch (error) {
         appUi.toast(error.message ?? 'Could not complete session.', 'error')
+        return { ok: false, error }
       } finally {
         setCompletingSessionId(null)
       }

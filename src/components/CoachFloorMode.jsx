@@ -413,7 +413,11 @@ export default function CoachFloorMode({
         }
       }
 
-      await onCompleteAppointment?.(session)
+      const appointmentResult = await onCompleteAppointment?.(session)
+      if (appointmentResult?.ok === false) {
+        throw appointmentResult.error ?? new Error('Workout saved, but appointment completion needs attention.')
+      }
+
       clearLocalFloorDraft(session.id)
 
       appUi.toast(

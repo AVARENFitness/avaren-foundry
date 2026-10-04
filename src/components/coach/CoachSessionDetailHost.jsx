@@ -90,9 +90,10 @@ export default function CoachSessionDetailHost({
           passSummary={detail.passSummaryFor(floorSession)}
           onClose={() => setFloorSession(null)}
           onCompleteAppointment={async (session) => {
-            await detail.handleComplete(session)
+            const result = await detail.handleComplete(session)
             detail.closeDetail()
-            setFloorSession(null)
+            if (result?.ok) setFloorSession(null)
+            return result
           }}
         />
       ) : null}
