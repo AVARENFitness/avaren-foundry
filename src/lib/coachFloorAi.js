@@ -7,7 +7,8 @@ export const COACH_FLOOR_AI_MODE = {
 }
 
 export async function requestCoachFloorAssist({
-  scheduledSessionId,
+  scheduledSessionId = null,
+  floorSessionId = null,
   mode,
   workout,
   coachNote = '',
@@ -17,6 +18,7 @@ export async function requestCoachFloorAssist({
   const { data, error } = await supabase.functions.invoke('coach-floor-assist', {
     body: {
       scheduledSessionId,
+      floorSessionId,
       mode,
       workout,
       coachNote,

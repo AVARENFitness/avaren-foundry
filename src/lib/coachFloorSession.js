@@ -191,6 +191,7 @@ const normalizeFloorRow = (row) =>
         athleteId: row.athlete_id,
         assignmentId: row.assignment_id,
         status: row.status,
+        origin: row.origin ?? (row.scheduled_session_id ? 'scheduled' : 'ad_hoc'),
         workoutName: row.workout_name,
         workoutPayload: row.workout_payload ?? {},
         privateCoachNote: row.private_coach_note ?? '',
@@ -210,6 +211,78 @@ export const coachFloorBackend = {
       .maybeSingle()
     if (error) throw error
     return normalizeFloorRow(data)
+  },
+
+  async getFloorSessionById(floorSessionId) {
+    const { data, error } = await supabase
+      .from('coach_floor_sessions')
+      .select('*')
+      .eq('id', floorSessionId)
+      .maybeSingle()
+    if (error) throw error
+    return normalizeFloorRow(data)
+  },
+
+  async startAdHoc({ businessClientId, workoutName = 'In-person workout' }) {
+    const { data, error } = await supabase.rpc(
+      'start_ad_hoc_coach_floor_session',
+      {
+        p_business_client_id: businessClientId,
+        p_workout_name: workoutName,
+      },
+    )
+    if (error) throw error
+    return normalizeFloorRow(data)
+  },
+
+  async saveAdHocDraft({
+    floorSessionId,
+    workout,
+    privateCoachNote = '',
+    athleteRecap = '',
+  }) {
+    const payload = flattenFloorWorkout(workout)
+    const { data, error } = await supabase.rpc(
+      'save_ad_hoc_coach_floor_session',
+      {
+        p_floor_session_id: floorSessionId,
+        p_workout_name: payload.name,
+        p_workout_payload: {
+          ...payload,
+          floorExercises: workout.exercises ?? [],
+        },
+        p_private_coach_note: privateCoachNote,
+        p_athlete_recap: athleteRecap,
+      },
+    )
+    if (error) throw error
+    return normalizeFloorRow(data)
+  },
+
+  async completeAdHoc({
+    floorSessionId,
+    workout,
+    privateCoachNote = '',
+    athleteRecap = '',
+    passId = null,
+  }) {
+    const payload = flattenFloorWorkout(workout)
+    const { data, error } = await supabase.rpc(
+      'complete_ad_hoc_coach_floor_session',
+      {
+        p_floor_session_id: floorSessionId,
+        p_workout_name: payload.name,
+        p_workout_payload: {
+          ...payload,
+          floorExercises: workout.exercises ?? [],
+        },
+        p_private_coach_note: privateCoachNote,
+        p_athlete_recap: athleteRecap,
+        p_pass_id: passId,
+      },
+    )
+    if (error) throw error
+    return data
   },
 
   async listFloorSessions({ businessClientId, limit = 20 } = {}) {

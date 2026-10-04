@@ -14,6 +14,29 @@ describe('Coach Floor Mode integration', () => {
     expect(source).toContain('Complete without workout')
   })
 
+  it('lets an active client start training without a scheduled appointment', () => {
+    const source = readFileSync(
+      resolve(process.cwd(), 'src/screens/CoachClientProfile.jsx'),
+      'utf8',
+    )
+
+    expect(source).toContain('Start Training')
+    expect(source).toContain('showAdHocFloorMode')
+    expect(source).toContain('<CoachFloorMode')
+    expect(source).toContain('adHoc')
+  })
+
+  it('uses quick coaching mode by default', () => {
+    const source = readFileSync(
+      resolve(process.cwd(), 'src/components/CoachFloorMode.jsx'),
+      'utf8',
+    )
+
+    expect(source).toContain('coach-floor-shell--quick')
+    expect(source).toContain('Context')
+    expect(source).toContain('coach-floor-context-toggle')
+  })
+
   it('keeps Apple Pencil-friendly numeric and note inputs in floor mode', () => {
     const source = readFileSync(
       resolve(process.cwd(), 'src/components/CoachFloorMode.jsx'),
@@ -36,5 +59,16 @@ describe('Coach Floor Mode integration', () => {
     expect(source).toContain('Save + send recap')
     expect(source).toContain('privateNote')
     expect(source).toContain('athleteRecap')
+  })
+
+  it('supports ad-hoc pass selection without inventing an appointment', () => {
+    const source = readFileSync(
+      resolve(process.cwd(), 'src/components/CoachFloorMode.jsx'),
+      'utf8',
+    )
+
+    expect(source).toContain('completeAdHoc')
+    expect(source).toContain('passSelectionRequired')
+    expect(source).toContain('Which pass should this session use?')
   })
 })

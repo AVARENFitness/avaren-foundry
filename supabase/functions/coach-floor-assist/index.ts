@@ -102,32 +102,62 @@ Deno.serve(async (req: Request) => {
 
     const body = await req.json()
     const scheduledSessionId = trim(body?.scheduledSessionId, 100)
+    const floorSessionId = trim(body?.floorSessionId, 100)
     const mode = trim(body?.mode, 40)
 
-    if (!scheduledSessionId || !ALLOWED_MODES.has(mode)) {
+    if ((!scheduledSessionId && !floorSessionId) || !ALLOWED_MODES.has(mode)) {
       return json({ ok: false, reason: 'invalid-request' }, 400)
     }
 
-    const { data: session, error: sessionError } = await userClient
-      .from('coach_scheduled_sessions')
-      .select('id, coach_id, athlete_id, business_client_id, assignment_id, coach_note, session_date, start_time')
-      .eq('id', scheduledSessionId)
-      .eq('coach_id', user.id)
-      .maybeSingle()
+    let session: any = null
+    let floorSession: any = null
 
-    if (sessionError || !session) {
-      return json({ ok: false, reason: 'session-not-authorized' }, 403)
+    if (scheduledSessionId) {
+      const result = await userClient
+        .from('coach_scheduled_sessions')
+        .select('id, coach_id, athlete_id, business_client_id, assignment_id, coach_note, session_date, start_time')
+        .eq('id', scheduledSessionId)
+        .eq('coach_id', user.id)
+        .maybeSingle()
+
+      if (result.error || !result.data) {
+        return json({ ok: false, reason: 'session-not-authorized' }, 403)
+      }
+      session = result.data
+    } else {
+      const result = await userClient
+        .from('coach_floor_sessions')
+        .select('id, coach_id, athlete_id, business_client_id, started_at, workout_name')
+        .eq('id', floorSessionId)
+        .eq('coach_id', user.id)
+        .maybeSingle()
+
+      if (result.error || !result.data) {
+        return json({ ok: false, reason: 'floor-session-not-authorized' }, 403)
+      }
+      floorSession = result.data
     }
 
     const payload = {
       clientName: trim(body?.clientName, 160),
-      appointment: {
-        sessionDate: session.session_date,
-        startTime: session.start_time,
-        hasLinkedAthlete: Boolean(session.athlete_id),
-        hasAssignment: Boolean(session.assignment_id),
-        appointmentCoachNote: trim(session.coach_note, 800),
-      },
+      appointment: session
+        ? {
+            sessionDate: session.session_date,
+            startTime: session.start_time,
+            hasLinkedAthlete: Boolean(session.athlete_id),
+            hasAssignment: Boolean(session.assignment_id),
+            appointmentCoachNote: trim(session.coach_note, 800),
+          }
+        : {
+            sessionDate: floorSession?.started_at
+              ? String(floorSession.started_at).slice(0, 10)
+              : null,
+            startTime: floorSession?.started_at ?? null,
+            hasLinkedAthlete: Boolean(floorSession?.athlete_id),
+            hasAssignment: false,
+            appointmentCoachNote: '',
+            adHoc: true,
+          },
       workout: body?.workout ?? {},
       coachNote: trim(body?.coachNote, 3000),
       previousSession: body?.previousSession ?? null,

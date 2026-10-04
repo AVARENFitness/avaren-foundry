@@ -3,6 +3,7 @@ import {
   BarChart3,
   CalendarDays,
   ClipboardList,
+  Dumbbell,
   HeartPulse,
   Package,
   PenLine,
@@ -74,6 +75,7 @@ import CoachClientProfileShell from '../components/CoachClientProfileShell'
 import CoachSessionDetailHost from '../components/coach/CoachSessionDetailHost'
 import EmptyState from '../components/ui/EmptyState'
 import CoachMessageLauncher from '../components/CoachMessageLauncher'
+import CoachFloorMode from '../components/CoachFloorMode'
 import {
   ATHLETE_GOAL_LABELS,
   athleteGoalBackend,
@@ -164,6 +166,7 @@ export default function CoachClientProfile({
   const [clientFollowUps, setClientFollowUps] = useState([])
   const [followUpBusyId, setFollowUpBusyId] = useState(null)
   const [showEndCoaching, setShowEndCoaching] = useState(false)
+  const [showAdHocFloorMode, setShowAdHocFloorMode] = useState(false)
   const [lifecycleBusy, setLifecycleBusy] = useState(false)
 
   const linkedAthleteId = useMemo(
@@ -765,6 +768,16 @@ export default function CoachClientProfile({
               </section>
             ) : null}
             <div className="coach-client-overview-actions">
+              {!isArchivedBusinessClient(client) ? (
+                <button
+                  type="button"
+                  className="gold-button machined coach-primary-action coach-client-start-training"
+                  onClick={() => setShowAdHocFloorMode(true)}
+                >
+                  <Dumbbell {...ICON} />
+                  Start Training
+                </button>
+              ) : null}
               <button
                 type="button"
                 className="coach-secondary-button"
@@ -774,7 +787,7 @@ export default function CoachClientProfile({
               </button>
               <button
                 type="button"
-                className="gold-button machined coach-primary-action"
+                className="coach-secondary-button"
                 onClick={onAssignWorkout}
               >
                 Assign workout
@@ -1197,6 +1210,15 @@ export default function CoachClientProfile({
           </footer>
         </section>
       </AppUiBackdrop>
+      {showAdHocFloorMode ? (
+        <CoachFloorMode
+          adHoc
+          client={client}
+          assignments={assignments}
+          passSummary={null}
+          onClose={() => setShowAdHocFloorMode(false)}
+        />
+      ) : null}
     </CoachClientProfileShell>
       )}
     </CoachSessionDetailHost>

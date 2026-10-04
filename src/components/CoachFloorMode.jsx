@@ -39,6 +39,8 @@ import {
   listAthleteWorkoutSessions,
 } from '../lib/athleteWorkoutSessionsBackend'
 import { coachMessagingBackend } from '../lib/coachMessaging'
+import { coachBackend } from '../lib/coachBackend'
+import { normalizePassBalanceViewRow } from '../lib/coachPass'
 import {
   resolveAthleteDataId,
   resolveRecordBusinessClientId,
@@ -85,11 +87,15 @@ export default function CoachFloorMode({
   passSummary,
   onClose,
   onCompleteAppointment,
+  adHoc = false,
 }) {
   const clientName = getClientDisplayName(client ?? {})
   const athleteId = resolveAthleteDataId(client) ?? session?.athleteId ?? null
   const businessClientId =
     resolveRecordBusinessClientId(client) ?? session?.businessClientId ?? null
+  const isAdHoc = adHoc || !session?.id
+  const draftIdentity =
+    session?.id ?? (businessClientId ? `ad-hoc:${businessClientId}` : null)
 
   const assignment = useMemo(
     () => assignments.find((item) => item.id === session?.assignmentId) ?? null,
@@ -116,25 +122,42 @@ export default function CoachFloorMode({
   const [reviewMode, setReviewMode] = useState(false)
   const [recapLoading, setRecapLoading] = useState(false)
   const [completing, setCompleting] = useState(false)
+  const [floorSessionId, setFloorSessionId] = useState(null)
+  const [passCandidates, setPassCandidates] = useState([])
+  const [selectedPassId, setSelectedPassId] = useState(null)
+  const [showContext, setShowContext] = useState(false)
   const saveTimerRef = useRef(null)
 
   useEffect(() => {
     let active = true
 
     const load = async () => {
-      const local = readLocalFloorDraft(session?.id)
+      if (!businessClientId && isAdHoc) {
+        setLoaded(true)
+        return
+      }
+
+      const local = readLocalFloorDraft(draftIdentity)
 
       let cloud = null
       try {
-        cloud = await coachFloorBackend.getFloorSession(session?.id)
+        cloud = isAdHoc
+          ? await coachFloorBackend.startAdHoc({
+              businessClientId,
+              workoutName: local?.workout?.name ?? workout.name,
+            })
+          : await coachFloorBackend.getFloorSession(session?.id)
       } catch {
         cloud = null
       }
 
       if (!active) return
 
-      const source = local ?? (
-        cloud
+      if (cloud?.id) setFloorSessionId(cloud.id)
+
+      const source =
+        local ??
+        (cloud
           ? {
               workout: {
                 name: cloud.workoutName,
@@ -147,15 +170,35 @@ export default function CoachFloorMode({
               privateNote: cloud.privateCoachNote,
               athleteRecap: cloud.athleteRecap,
             }
-          : null
-      )
+          : null)
 
-      if (source?.workout) setWorkout(source.workout)
+      if (source?.workout?.exercises?.length || source?.workout?.name) {
+        setWorkout(source.workout)
+      }
       if (source?.startedAt) setStartedAt(source.startedAt)
       if (source?.privateNote) setPrivateNote(source.privateNote)
       if (source?.athleteRecap) setAthleteRecap(source.athleteRecap)
 
       try {
+        if (businessClientId) {
+          const rows = await coachBackend.listClientPassBalances(businessClientId)
+          if (active) {
+            const today = new Date().toISOString().slice(0, 10)
+            setPassCandidates(
+              (rows ?? [])
+                .map(normalizePassBalanceViewRow)
+                .filter(Boolean)
+                .filter(
+                  (item) =>
+                    item.status === 'active' &&
+                    item.balance > 0 &&
+                    (!item.startsAt || item.startsAt <= today) &&
+                    (!item.expiresAt || item.expiresAt >= today),
+                ),
+            )
+          }
+        }
+
         if (athleteId) {
           const rows = await listAthleteWorkoutSessions(athleteId, { limit: 40 })
           if (active) setHistory(sortRecentFirst(rows))
@@ -186,41 +229,63 @@ export default function CoachFloorMode({
       active = false
       if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current)
     }
-  }, [session?.id, athleteId, businessClientId])
+  }, [session?.id, athleteId, businessClientId, isAdHoc, draftIdentity])
 
   useEffect(() => {
-    if (!loaded || !session?.id) return
+    if (!loaded || !draftIdentity) return
+    if (isAdHoc && !floorSessionId) return
 
     const draft = {
       workout,
       startedAt,
       privateNote,
       athleteRecap,
+      floorSessionId,
       savedAt: new Date().toISOString(),
     }
-    saveLocalFloorDraft(session.id, draft)
+    saveLocalFloorDraft(draftIdentity, draft)
 
     if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current)
     setCloudState('saving')
     saveTimerRef.current = window.setTimeout(async () => {
       try {
-        await coachFloorBackend.saveDraft({
-          scheduledSessionId: session.id,
-          workout,
-          startedAt,
-          privateCoachNote: privateNote,
-          athleteRecap,
-        })
+        if (isAdHoc) {
+          await coachFloorBackend.saveAdHocDraft({
+            floorSessionId,
+            workout,
+            privateCoachNote: privateNote,
+            athleteRecap,
+          })
+        } else {
+          await coachFloorBackend.saveDraft({
+            scheduledSessionId: isAdHoc ? null : session?.id,
+        floorSessionId: isAdHoc ? floorSessionId : null,
+            workout,
+            startedAt,
+            privateCoachNote: privateNote,
+            athleteRecap,
+          })
+        }
         setCloudState('saved')
       } catch {
         setCloudState('local')
       }
-    }, 1100)
+    }, 900)
 
     return () => {
       if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current)
     }
-  }, [loaded, session?.id, workout, startedAt, privateNote, athleteRecap])
+  }, [
+    loaded,
+    draftIdentity,
+    isAdHoc,
+    floorSessionId,
+    session?.id,
+    workout,
+    startedAt,
+    privateNote,
+    athleteRecap,
+  ])
 
   const previousByExercise = useMemo(
     () => previousPerformanceByExercise(history),
@@ -321,10 +386,11 @@ export default function CoachFloorMode({
     setBriefLoading(true)
     try {
       const result = await requestCoachFloorAssist({
-        scheduledSessionId: session.id,
+        scheduledSessionId: isAdHoc ? null : session?.id,
+        floorSessionId: isAdHoc ? floorSessionId : null,
         mode: COACH_FLOOR_AI_MODE.PRE_SESSION,
         workout: flattenFloorWorkout(workout),
-        coachNote: session.coachNote ?? '',
+        coachNote: session?.coachNote ?? '',
         previousSession,
         clientName,
       })
@@ -341,7 +407,8 @@ export default function CoachFloorMode({
     setNoteAssistLoading(true)
     try {
       const result = await requestCoachFloorAssist({
-        scheduledSessionId: session.id,
+        scheduledSessionId: isAdHoc ? null : session?.id,
+        floorSessionId: isAdHoc ? floorSessionId : null,
         mode: COACH_FLOOR_AI_MODE.ORGANIZE_NOTE,
         workout: flattenFloorWorkout(workout),
         coachNote: privateNote,
@@ -369,7 +436,8 @@ export default function CoachFloorMode({
     setRecapLoading(true)
     try {
       const result = await requestCoachFloorAssist({
-        scheduledSessionId: session.id,
+        scheduledSessionId: isAdHoc ? null : session?.id,
+        floorSessionId: isAdHoc ? floorSessionId : null,
         mode: COACH_FLOOR_AI_MODE.RECAP,
         workout: flat,
         coachNote: privateNote,
@@ -389,13 +457,37 @@ export default function CoachFloorMode({
     setCompleting(true)
 
     try {
-      const result = await coachFloorBackend.complete({
-        scheduledSessionId: session.id,
-        workout,
-        startedAt,
-        privateCoachNote: privateNote,
-        athleteRecap,
-      })
+      let result
+
+      if (isAdHoc) {
+        result = await coachFloorBackend.completeAdHoc({
+          floorSessionId,
+          workout,
+          privateCoachNote: privateNote,
+          athleteRecap,
+          passId: selectedPassId,
+        })
+
+        if (result?.passSelectionRequired) {
+          setPassCandidates(
+            (result.candidates ?? []).map((item) => ({
+              ...item,
+              id: item.pass_id ?? item.id,
+              name: item.name ?? item.pass_name ?? 'Training pass',
+            })),
+          )
+          appUi.toast('Choose the pass for this session.', 'info')
+          return
+        }
+      } else {
+        result = await coachFloorBackend.complete({
+          scheduledSessionId: session.id,
+          workout,
+          startedAt,
+          privateCoachNote: privateNote,
+          athleteRecap,
+        })
+      }
 
       if (sendRecap && athleteId && athleteRecap.trim()) {
         try {
@@ -413,12 +505,17 @@ export default function CoachFloorMode({
         }
       }
 
-      const appointmentResult = await onCompleteAppointment?.(session)
-      if (appointmentResult?.ok === false) {
-        throw appointmentResult.error ?? new Error('Workout saved, but appointment completion needs attention.')
+      if (!isAdHoc) {
+        const appointmentResult = await onCompleteAppointment?.(session)
+        if (appointmentResult?.ok === false) {
+          throw (
+            appointmentResult.error ??
+            new Error('Workout saved, but appointment completion needs attention.')
+          )
+        }
       }
 
-      clearLocalFloorDraft(session.id)
+      clearLocalFloorDraft(draftIdentity)
 
       appUi.toast(
         result?.athleteHistoryWritten
@@ -445,7 +542,18 @@ export default function CoachFloorMode({
     ).slice(0, 80)
   }, [exerciseQuery])
 
-  if (!session) return null
+  if (!session && !isAdHoc) return null
+
+  if (!loaded || (isAdHoc && !floorSessionId)) {
+    return (
+      <section className="coach-floor-overlay">
+        <div className="coach-floor-loading">
+          <Sparkles size={22} />
+          <strong>Opening Floor Mode…</strong>
+        </div>
+      </section>
+    )
+  }
 
   if (reviewMode) {
     const flat = flattenFloorWorkout(workout)
@@ -517,21 +625,55 @@ export default function CoachFloorMode({
               <article>
                 <Check {...ICON} />
                 <div>
-                  <strong>Attendance + pass</strong>
+                  <strong>{isAdHoc ? 'Training record + pass' : 'Attendance + pass'}</strong>
                   <span>
-                    {passSummary?.totalBalance > 0
-                      ? 'Complete appointment and apply the eligible pass'
-                      : 'Complete appointment; no active pass required'}
+                    {isAdHoc
+                      ? passCandidates.length > 0
+                        ? 'Apply the eligible training pass with this workout'
+                        : 'No active pass required'
+                      : passSummary?.totalBalance > 0
+                        ? 'Complete appointment and apply the eligible pass'
+                        : 'Complete appointment; no active pass required'}
                   </span>
                 </div>
               </article>
             </section>
 
+            {isAdHoc && passCandidates.length > 1 ? (
+              <section className="coach-floor-pass-choice">
+                <span className="eyebrow">TRAINING PASS</span>
+                <strong>Which pass should this session use?</strong>
+                <div>
+                  {passCandidates.map((candidate) => (
+                    <button
+                      type="button"
+                      key={candidate.id ?? candidate.pass_id}
+                      className={
+                        selectedPassId === (candidate.id ?? candidate.pass_id)
+                          ? 'active'
+                          : ''
+                      }
+                      onClick={() =>
+                        setSelectedPassId(candidate.id ?? candidate.pass_id)
+                      }
+                    >
+                      <span>{candidate.name ?? candidate.pass_name}</span>
+                      <small>{candidate.balance} remaining</small>
+                    </button>
+                  ))}
+                </div>
+              </section>
+            ) : null}
+
             <div className="coach-floor-complete-actions">
               <button
                 type="button"
                 className="coach-secondary-button"
-                disabled={completing || recapLoading}
+                disabled={
+                  completing ||
+                  recapLoading ||
+                  (isAdHoc && passCandidates.length > 1 && !selectedPassId)
+                }
                 onClick={() => void completeSession({ sendRecap: false })}
               >
                 Save only
@@ -540,7 +682,11 @@ export default function CoachFloorMode({
                 <button
                   type="button"
                   className="gold-button machined"
-                  disabled={completing || recapLoading}
+                  disabled={
+                  completing ||
+                  recapLoading ||
+                  (isAdHoc && passCandidates.length > 1 && !selectedPassId)
+                }
                   onClick={() => void completeSession({ sendRecap: true })}
                 >
                   <MessageCircle {...ICON} />
@@ -550,7 +696,11 @@ export default function CoachFloorMode({
                 <button
                   type="button"
                   className="gold-button machined"
-                  disabled={completing || recapLoading}
+                  disabled={
+                  completing ||
+                  recapLoading ||
+                  (isAdHoc && passCandidates.length > 1 && !selectedPassId)
+                }
                   onClick={() => void completeSession({ sendRecap: false })}
                 >
                   {completing ? 'Completing…' : 'Complete session'}
@@ -565,7 +715,7 @@ export default function CoachFloorMode({
 
   return (
     <section className="coach-floor-overlay" data-testid="coach-floor-mode">
-      <div className="coach-floor-shell">
+      <div className="coach-floor-shell coach-floor-shell--quick">
         <header className="coach-floor-topbar">
           <button
             type="button"
@@ -591,10 +741,23 @@ export default function CoachFloorMode({
         <div className="coach-floor-status-strip">
           <span>{workout.name}</span>
           <span>
-            {passSummary?.totalBalance > 0
-              ? `${passSummary.totalBalance} passes left`
+            {(passSummary?.totalBalance ??
+              passCandidates.reduce((sum, item) => sum + Number(item.balance || 0), 0)) > 0
+              ? `${passSummary?.totalBalance ??
+                  passCandidates.reduce(
+                    (sum, item) => sum + Number(item.balance || 0),
+                    0,
+                  )} passes left`
               : 'No active pass'}
           </span>
+          <button
+            type="button"
+            className={`coach-floor-context-toggle${showContext ? ' active' : ''}`}
+            onClick={() => setShowContext((current) => !current)}
+          >
+            <Sparkles size={14} />
+            Context
+          </button>
           <span className="coach-floor-pencil-status">
             <PencilLine size={15} />
             Apple Pencil ready
@@ -602,7 +765,9 @@ export default function CoachFloorMode({
         </div>
 
         <main className="coach-floor-main">
-          <aside className="coach-floor-rail">
+          <aside
+            className={`coach-floor-rail${showContext ? ' context-open' : ''}`}
+          >
             <div className="coach-floor-rail-heading">
               <span className="eyebrow">SESSION</span>
               <button

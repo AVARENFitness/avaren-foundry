@@ -21912,3 +21912,195 @@ body > .nutrition-food-sheet-backdrop > .nutrition-food-sheet {
     grid-template-columns: 1fr;
   }
 }
+
+
+/* ===== COACH FLOOR MODE · QUICK COACHING + AD-HOC ENTRY ===== */
+.coach-client-start-training {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 48px;
+}
+
+.coach-floor-context-toggle {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 0 10px;
+  border: 1px solid rgba(216,184,109,.12);
+  border-radius: 999px;
+  background: rgba(216,184,109,.025);
+  color: #9f9581;
+  font-size: 10px;
+  font-weight: 850;
+}
+
+.coach-floor-context-toggle.active {
+  border-color: rgba(216,184,109,.28);
+  background: rgba(216,184,109,.08);
+  color: #e2cd88;
+}
+
+.coach-floor-shell--quick .coach-floor-main {
+  display: block;
+  overflow-y: auto;
+}
+
+.coach-floor-shell--quick .coach-floor-rail {
+  overflow: visible;
+  padding: 10px 16px;
+  border-right: 0;
+  border-bottom: 1px solid rgba(246,242,233,.06);
+  background: rgba(255,255,255,.008);
+}
+
+.coach-floor-shell--quick .coach-floor-rail-heading {
+  margin-bottom: 8px;
+}
+
+.coach-floor-shell--quick .coach-floor-rail-heading > .eyebrow {
+  display: none;
+}
+
+.coach-floor-shell--quick .coach-floor-workout-name,
+.coach-floor-shell--quick .coach-floor-ava-brief,
+.coach-floor-shell--quick .coach-floor-brief-card {
+  display: none;
+}
+
+.coach-floor-shell--quick .coach-floor-rail.context-open .coach-floor-workout-name {
+  display: grid;
+}
+
+.coach-floor-shell--quick .coach-floor-rail.context-open .coach-floor-ava-brief {
+  display: flex;
+}
+
+.coach-floor-shell--quick .coach-floor-rail.context-open .coach-floor-brief-card {
+  display: grid;
+}
+
+.coach-floor-shell--quick .coach-floor-exercise-list {
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(165px,220px);
+  overflow-x: auto;
+  padding-bottom: 3px;
+  scrollbar-width: none;
+}
+
+.coach-floor-shell--quick .coach-floor-exercise-list::-webkit-scrollbar {
+  display: none;
+}
+
+.coach-floor-shell--quick .coach-floor-exercise-list > button {
+  min-height: 52px;
+}
+
+.coach-floor-shell--quick .coach-floor-workspace {
+  width: min(1100px,100%);
+  margin: 0 auto;
+  padding: 18px 20px 28px;
+  overflow: visible;
+}
+
+.coach-floor-shell--quick .coach-floor-exercise-header {
+  margin-bottom: 12px;
+}
+
+.coach-floor-shell--quick .coach-floor-set-row {
+  min-height: 68px;
+}
+
+.coach-floor-shell--quick .coach-floor-number-field input {
+  min-height: 62px;
+  font-size: 28px !important;
+}
+
+.coach-floor-shell--quick .coach-floor-set-done {
+  min-width: 50px;
+  min-height: 50px;
+}
+
+.coach-floor-pass-choice {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+  padding: 14px;
+  border: 1px solid rgba(216,184,109,.14);
+  border-radius: 16px;
+  background: rgba(216,184,109,.025);
+}
+
+.coach-floor-pass-choice > strong {
+  font-size: 14px;
+}
+
+.coach-floor-pass-choice > div {
+  display: grid;
+  gap: 8px;
+}
+
+.coach-floor-pass-choice button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 48px;
+  padding: 10px 12px;
+  border: 1px solid rgba(246,242,233,.07);
+  border-radius: 13px;
+  background: rgba(255,255,255,.018);
+  color: #ddd4c7;
+  text-align: left;
+}
+
+.coach-floor-pass-choice button.active {
+  border-color: rgba(216,184,109,.34);
+  background: rgba(216,184,109,.085);
+  color: #f0d998;
+}
+
+.coach-floor-pass-choice button small {
+  color: #8f877e;
+}
+
+.coach-floor-loading {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 10px;
+  min-height: 100dvh;
+  color: #d7c17c;
+  text-align: center;
+}
+
+.coach-floor-loading strong {
+  color: #eee5d7;
+}
+
+@media (min-width: 721px) {
+  .coach-floor-shell--quick .coach-floor-note-card {
+    margin-top: 18px;
+  }
+
+  .coach-floor-shell--quick .coach-floor-set-list {
+    gap: 7px;
+  }
+}
+
+@media (max-width: 720px) {
+  .coach-floor-shell--quick .coach-floor-rail {
+    padding-inline: 10px;
+  }
+
+  .coach-floor-shell--quick .coach-floor-workspace {
+    padding: 14px 12px 24px;
+  }
+
+  .coach-floor-context-toggle {
+    min-height: 32px;
+  }
+}

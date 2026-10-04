@@ -25,6 +25,7 @@ describe('CoachClientProfile overview presentation', () => {
     expect(overviewCase).not.toContain('View usage')
     expect(overviewCase).not.toContain('All caught up')
     expect(overviewCase).not.toContain('Add note')
+    expect(overviewCase).toContain('Start Training')
     expect(overviewCase).toContain('Message athlete')
     expect(progressCase).toContain('ClientIntelligenceDashboard')
   })
