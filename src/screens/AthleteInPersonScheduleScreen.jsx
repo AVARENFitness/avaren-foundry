@@ -133,10 +133,14 @@ export default function AthleteInPersonScheduleScreen({
       ) : null}
 
       {historyReady && pastAppointments.length > 0 ? (
-        <section className="athlete-in-person-schedule-history">
-          <header>
-            <span className="eyebrow">PAST SESSIONS</span>
-          </header>
+        <details className="athlete-in-person-schedule-history">
+          <summary>
+            <span>
+              <span className="eyebrow">PAST SESSIONS</span>
+              <strong>Previous coaching sessions</strong>
+            </span>
+            <small>{pastAppointments.length}</small>
+          </summary>
           <ul className="athlete-in-person-schedule-list">
             {pastAppointments.map((appointment) => (
               <li key={appointment.id}>
@@ -155,7 +159,7 @@ export default function AthleteInPersonScheduleScreen({
               </li>
             ))}
           </ul>
-        </section>
+        </details>
       ) : null}
 
       <AthleteAppointmentDetailSheet

@@ -734,14 +734,7 @@ export default function CoachClientProfile({
       case 'today':
         return (
           <>
-            {clientFollowUps.length > 0 ? (
-              attentionPanel
-            ) : (
-              <section className="coach-client-overview-attention coach-client-overview-attention--clear">
-                <span className="eyebrow">ATTENTION</span>
-                <strong>All caught up</strong>
-              </section>
-            )}
+            {clientFollowUps.length > 0 ? attentionPanel : null}
             <CoachClientInPersonPanel
               client={client}
               onOpenSession={openSession}
@@ -792,13 +785,6 @@ export default function CoachClientProfile({
                 label="Message athlete"
                 className="coach-secondary-button"
               />
-              <button
-                type="button"
-                className="coach-secondary-button"
-                onClick={() => setActiveSection('notes')}
-              >
-                Add note
-              </button>
             </div>
           </>
         )

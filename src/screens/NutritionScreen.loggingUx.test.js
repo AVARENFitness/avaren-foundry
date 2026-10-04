@@ -8,6 +8,16 @@ describe('NutritionScreen logging UX regressions', () => {
     'utf8',
   )
 
+  it('does not duplicate the primary food logging action on Today', () => {
+    const start = source.indexOf('className="nutrition-quick-log-launcher"')
+    const end = source.indexOf('className="nutrition-hydration-card"')
+    const todayQuickArea = source.slice(start, end)
+
+    expect(todayQuickArea).toContain('Add food in seconds')
+    expect(todayQuickArea).toContain('Daily nutrition shortcuts')
+    expect(todayQuickArea).not.toContain('<strong>Log Food</strong>')
+  })
+
   it('prioritizes results while an active food search is being typed', () => {
     expect(source).toContain(
       "const activeFoodSearch = foodSearch.trim().length >= 2",

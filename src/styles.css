@@ -20929,3 +20929,88 @@ body > .nutrition-food-sheet-backdrop > .nutrition-food-sheet {
     min-height: 42px;
   }
 }
+
+
+/* ===== PRODUCT REFINEMENT P13 · REDUCE DUPLICATE SURFACES ===== */
+.nutrition-quick-grid--support {
+  grid-template-columns: repeat(3,minmax(0,1fr));
+}
+
+.nutrition-quick-grid--support button:first-child {
+  border-color: rgba(246,242,233,.07) !important;
+  background: rgba(255,255,255,.018) !important;
+}
+
+.athlete-in-person-schedule-history {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-control-lg, 16px);
+  overflow: hidden;
+  background: var(--surface-1);
+}
+
+.athlete-in-person-schedule-history > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  min-height: 58px;
+  padding: 12px 14px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.athlete-in-person-schedule-history > summary::-webkit-details-marker {
+  display: none;
+}
+
+.athlete-in-person-schedule-history > summary > span {
+  display: grid;
+  gap: 3px;
+}
+
+.athlete-in-person-schedule-history > summary strong {
+  color: var(--text-primary);
+  font-size: 14px;
+}
+
+.athlete-in-person-schedule-history > summary small {
+  display: grid;
+  place-items: center;
+  min-width: 28px;
+  height: 28px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: rgba(216,184,109,.07);
+  color: #d8bf78;
+  font-weight: 800;
+}
+
+.athlete-in-person-schedule-history[open] > summary {
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.athlete-in-person-schedule-history > .athlete-in-person-schedule-list {
+  padding: 10px;
+}
+
+@media (max-width: 700px) {
+  .nutrition-quick-grid--support {
+    grid-template-columns: repeat(3,minmax(0,1fr));
+  }
+
+  .nutrition-quick-grid--support button {
+    min-height: 88px;
+    padding: 12px;
+  }
+}
+
+@media (max-width: 420px) {
+  .nutrition-quick-grid--support {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .nutrition-quick-grid--support button:last-child {
+    grid-column: 1 / -1;
+    min-height: 72px;
+  }
+}

@@ -1206,8 +1206,10 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
           </div>
         </section>
 
-        <section className="nutrition-quick-grid">
-          <button onClick={() => setTab('Meals')}><Plus/><strong>Log Food</strong><span>Manual, saved, or recent</span></button>
+        <section
+          className="nutrition-quick-grid nutrition-quick-grid--support"
+          aria-label="Daily nutrition shortcuts"
+        >
           <button onClick={() => addWater(Number(goals.bottleOz || 33.8))}><Droplets/><strong>1 Bottle</strong><span>{goals.bottleOz} oz</span></button>
           <button onClick={() => addWater(Number(goals.bottleOz || 33.8) / 2)}><Droplets/><strong>½ Bottle</strong><span>{round(Number(goals.bottleOz || 33.8) / 2)} oz</span></button>
           <button onClick={() => setTab('Goals')}><Scale/><strong>Log Weight</strong><span>{day.weight || 'Add today’s weight'}</span></button>
