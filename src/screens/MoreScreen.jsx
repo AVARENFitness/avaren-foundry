@@ -27,6 +27,7 @@ import ImportBackupButton from '../components/ImportBackupButton'
 import { deactivatePushSubscriptionForDevice } from '../lib/pushNotifications'
 import AthleteCoachPanel from '../components/AthleteCoachPanel'
 import AthleteCoachConnectionCard from '../components/AthleteCoachConnectionCard'
+import AthleteCoachMessagingCard from '../components/AthleteCoachMessagingCard'
 import { useAthleteCoachInvitations } from '../hooks/useAthleteCoachInvitations'
 import AthleteSessionPackageCard from '../components/AthleteSessionPackageCard'
 import AthleteScheduledSessions from '../components/AthleteScheduledSessions'
@@ -308,6 +309,7 @@ export default function MoreScreen({
           </header>
 
           <AthleteCoachConnectionCard invitations={coachInvitations} />
+          <AthleteCoachMessagingCard />
 
           <AthleteCoachPanel onStartAssignment={onStartCoachAssignment} />
         </section>
