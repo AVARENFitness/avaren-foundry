@@ -264,7 +264,6 @@ export const coachFloorBackend = {
     workout,
     privateCoachNote = '',
     athleteRecap = '',
-    passId = null,
   }) {
     const payload = flattenFloorWorkout(workout)
     const { data, error } = await supabase.rpc(
@@ -278,7 +277,7 @@ export const coachFloorBackend = {
         },
         p_private_coach_note: privateCoachNote,
         p_athlete_recap: athleteRecap,
-        p_pass_id: passId,
+        p_pass_id: null,
       },
     )
     if (error) throw error
@@ -318,6 +317,17 @@ export const coachFloorBackend = {
     })
     if (error) throw error
     return normalizeFloorRow(data)
+  },
+
+  async completeScheduledAttendance(scheduledSessionId) {
+    const { data, error } = await supabase.rpc(
+      'complete_coach_floor_scheduled_attendance',
+      {
+        p_scheduled_session_id: scheduledSessionId,
+      },
+    )
+    if (error) throw error
+    return data
   },
 
   async complete({

@@ -22104,3 +22104,23 @@ body > .nutrition-food-sheet-backdrop > .nutrition-food-sheet {
     min-height: 32px;
   }
 }
+
+
+/* Floor Mode manual-pass + one-tap repeat refinement */
+.coach-floor-set-quick {
+  grid-template-columns: repeat(3, minmax(44px, auto));
+}
+
+.coach-floor-set-quick .coach-floor-repeat-last {
+  min-width: 88px;
+  padding-inline: 10px;
+  border-color: rgba(216,184,109,.22);
+  background: rgba(216,184,109,.07);
+  color: #e0cb88;
+}
+
+@media (max-width: 720px) {
+  .coach-floor-set-quick {
+    grid-template-columns: minmax(96px,1fr) 1fr 1fr;
+  }
+}

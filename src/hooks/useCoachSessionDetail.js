@@ -958,5 +958,6 @@ export function useCoachSessionDetail({
     handleMissedCharge,
     passSummaryFor,
     packageFor,
+    refreshAfterExternalCompletion: notifyMutated,
   }
 }

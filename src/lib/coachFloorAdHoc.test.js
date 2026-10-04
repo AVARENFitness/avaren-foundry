@@ -14,9 +14,9 @@ describe('Coach Floor ad-hoc backend contract', () => {
     expect(source).toContain('startAdHoc')
   })
 
-  it('uses separate ad-hoc save and completion RPCs', () => {
+  it('uses separate ad-hoc save and completion RPCs without pass debit behavior', () => {
     expect(source).toContain('save_ad_hoc_coach_floor_session')
     expect(source).toContain('complete_ad_hoc_coach_floor_session')
-    expect(source).toContain('p_pass_id')
+    expect(source).toContain('completeScheduledAttendance')
   })
 })

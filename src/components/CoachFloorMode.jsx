@@ -39,8 +39,6 @@ import {
   listAthleteWorkoutSessions,
 } from '../lib/athleteWorkoutSessionsBackend'
 import { coachMessagingBackend } from '../lib/coachMessaging'
-import { coachBackend } from '../lib/coachBackend'
-import { normalizePassBalanceViewRow } from '../lib/coachPass'
 import {
   resolveAthleteDataId,
   resolveRecordBusinessClientId,
@@ -86,7 +84,7 @@ export default function CoachFloorMode({
   assignments = [],
   passSummary,
   onClose,
-  onCompleteAppointment,
+  onSessionRecorded,
   adHoc = false,
 }) {
   const clientName = getClientDisplayName(client ?? {})
@@ -123,8 +121,6 @@ export default function CoachFloorMode({
   const [recapLoading, setRecapLoading] = useState(false)
   const [completing, setCompleting] = useState(false)
   const [floorSessionId, setFloorSessionId] = useState(null)
-  const [passCandidates, setPassCandidates] = useState([])
-  const [selectedPassId, setSelectedPassId] = useState(null)
   const [showContext, setShowContext] = useState(false)
   const saveTimerRef = useRef(null)
 
@@ -180,25 +176,6 @@ export default function CoachFloorMode({
       if (source?.athleteRecap) setAthleteRecap(source.athleteRecap)
 
       try {
-        if (businessClientId) {
-          const rows = await coachBackend.listClientPassBalances(businessClientId)
-          if (active) {
-            const today = new Date().toISOString().slice(0, 10)
-            setPassCandidates(
-              (rows ?? [])
-                .map(normalizePassBalanceViewRow)
-                .filter(Boolean)
-                .filter(
-                  (item) =>
-                    item.status === 'active' &&
-                    item.balance > 0 &&
-                    (!item.startsAt || item.startsAt <= today) &&
-                    (!item.expiresAt || item.expiresAt >= today),
-                ),
-            )
-          }
-        }
-
         if (athleteId) {
           const rows = await listAthleteWorkoutSessions(athleteId, { limit: 40 })
           if (active) setHistory(sortRecentFirst(rows))
@@ -465,20 +442,7 @@ export default function CoachFloorMode({
           workout,
           privateCoachNote: privateNote,
           athleteRecap,
-          passId: selectedPassId,
         })
-
-        if (result?.passSelectionRequired) {
-          setPassCandidates(
-            (result.candidates ?? []).map((item) => ({
-              ...item,
-              id: item.pass_id ?? item.id,
-              name: item.name ?? item.pass_name ?? 'Training pass',
-            })),
-          )
-          appUi.toast('Choose the pass for this session.', 'info')
-          return
-        }
       } else {
         result = await coachFloorBackend.complete({
           scheduledSessionId: session.id,
@@ -506,14 +470,14 @@ export default function CoachFloorMode({
       }
 
       if (!isAdHoc) {
-        const appointmentResult = await onCompleteAppointment?.(session)
-        if (appointmentResult?.ok === false) {
-          throw (
-            appointmentResult.error ??
-            new Error('Workout saved, but appointment completion needs attention.')
-          )
-        }
+        await coachFloorBackend.completeScheduledAttendance(session.id)
       }
+
+      await onSessionRecorded?.({
+        session,
+        adHoc: isAdHoc,
+        result,
+      })
 
       clearLocalFloorDraft(draftIdentity)
 
@@ -625,55 +589,19 @@ export default function CoachFloorMode({
               <article>
                 <Check {...ICON} />
                 <div>
-                  <strong>{isAdHoc ? 'Training record + pass' : 'Attendance + pass'}</strong>
+                  <strong>{isAdHoc ? 'Training record' : 'Attendance'}</strong>
                   <span>
-                    {isAdHoc
-                      ? passCandidates.length > 0
-                        ? 'Apply the eligible training pass with this workout'
-                        : 'No active pass required'
-                      : passSummary?.totalBalance > 0
-                        ? 'Complete appointment and apply the eligible pass'
-                        : 'Complete appointment; no active pass required'}
+                    Pass balance stays unchanged. Manage training passes manually.
                   </span>
                 </div>
               </article>
             </section>
 
-            {isAdHoc && passCandidates.length > 1 ? (
-              <section className="coach-floor-pass-choice">
-                <span className="eyebrow">TRAINING PASS</span>
-                <strong>Which pass should this session use?</strong>
-                <div>
-                  {passCandidates.map((candidate) => (
-                    <button
-                      type="button"
-                      key={candidate.id ?? candidate.pass_id}
-                      className={
-                        selectedPassId === (candidate.id ?? candidate.pass_id)
-                          ? 'active'
-                          : ''
-                      }
-                      onClick={() =>
-                        setSelectedPassId(candidate.id ?? candidate.pass_id)
-                      }
-                    >
-                      <span>{candidate.name ?? candidate.pass_name}</span>
-                      <small>{candidate.balance} remaining</small>
-                    </button>
-                  ))}
-                </div>
-              </section>
-            ) : null}
-
             <div className="coach-floor-complete-actions">
               <button
                 type="button"
                 className="coach-secondary-button"
-                disabled={
-                  completing ||
-                  recapLoading ||
-                  (isAdHoc && passCandidates.length > 1 && !selectedPassId)
-                }
+                disabled={completing || recapLoading}
                 onClick={() => void completeSession({ sendRecap: false })}
               >
                 Save only
@@ -682,11 +610,7 @@ export default function CoachFloorMode({
                 <button
                   type="button"
                   className="gold-button machined"
-                  disabled={
-                  completing ||
-                  recapLoading ||
-                  (isAdHoc && passCandidates.length > 1 && !selectedPassId)
-                }
+                  disabled={completing || recapLoading}
                   onClick={() => void completeSession({ sendRecap: true })}
                 >
                   <MessageCircle {...ICON} />
@@ -696,11 +620,7 @@ export default function CoachFloorMode({
                 <button
                   type="button"
                   className="gold-button machined"
-                  disabled={
-                  completing ||
-                  recapLoading ||
-                  (isAdHoc && passCandidates.length > 1 && !selectedPassId)
-                }
+                  disabled={completing || recapLoading}
                   onClick={() => void completeSession({ sendRecap: false })}
                 >
                   {completing ? 'Completing…' : 'Complete session'}
@@ -741,14 +661,9 @@ export default function CoachFloorMode({
         <div className="coach-floor-status-strip">
           <span>{workout.name}</span>
           <span>
-            {(passSummary?.totalBalance ??
-              passCandidates.reduce((sum, item) => sum + Number(item.balance || 0), 0)) > 0
-              ? `${passSummary?.totalBalance ??
-                  passCandidates.reduce(
-                    (sum, item) => sum + Number(item.balance || 0),
-                    0,
-                  )} passes left`
-              : 'No active pass'}
+            {passSummary?.totalBalance > 0
+              ? `${passSummary.totalBalance} passes · manual`
+              : 'Passes managed manually'}
           </span>
           <button
             type="button"
@@ -964,6 +879,21 @@ export default function CoachFloorMode({
                         </label>
 
                         <div className="coach-floor-set-quick">
+                          {setIndex > 0 ? (
+                            <button
+                              type="button"
+                              className="coach-floor-repeat-last"
+                              onClick={() => {
+                                const lastSet = currentExercise.sets[setIndex - 1]
+                                updateSet(currentExerciseIndex, setIndex, {
+                                  weight: lastSet?.weight ?? '',
+                                  reps: lastSet?.reps ?? '',
+                                })
+                              }}
+                            >
+                              Repeat last
+                            </button>
+                          ) : null}
                           <button
                             type="button"
                             onClick={() =>

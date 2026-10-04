@@ -61,14 +61,25 @@ describe('Coach Floor Mode integration', () => {
     expect(source).toContain('athleteRecap')
   })
 
-  it('supports ad-hoc pass selection without inventing an appointment', () => {
+  it('never changes a pass just because a workout is recorded', () => {
     const source = readFileSync(
       resolve(process.cwd(), 'src/components/CoachFloorMode.jsx'),
       'utf8',
     )
 
-    expect(source).toContain('completeAdHoc')
-    expect(source).toContain('passSelectionRequired')
-    expect(source).toContain('Which pass should this session use?')
+    expect(source).toContain('Pass balance stays unchanged')
+    expect(source).toContain('completeScheduledAttendance')
+    expect(source).not.toContain('passSelectionRequired')
+    expect(source).not.toContain('Which pass should this session use?')
+  })
+
+  it('supports one-tap repeat of the previous live set', () => {
+    const source = readFileSync(
+      resolve(process.cwd(), 'src/components/CoachFloorMode.jsx'),
+      'utf8',
+    )
+
+    expect(source).toContain('Repeat last')
+    expect(source).toContain('currentExercise.sets[setIndex - 1]')
   })
 })

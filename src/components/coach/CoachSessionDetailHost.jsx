@@ -89,11 +89,8 @@ export default function CoachSessionDetailHost({
           assignments={assignments}
           passSummary={detail.passSummaryFor(floorSession)}
           onClose={() => setFloorSession(null)}
-          onCompleteAppointment={async (session) => {
-            const result = await detail.handleComplete(session)
-            detail.closeDetail()
-            if (result?.ok) setFloorSession(null)
-            return result
+          onSessionRecorded={async () => {
+            await detail.refreshAfterExternalCompletion?.()
           }}
         />
       ) : null}

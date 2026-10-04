@@ -1217,6 +1217,7 @@ export default function CoachClientProfile({
           assignments={assignments}
           passSummary={null}
           onClose={() => setShowAdHocFloorMode(false)}
+          onSessionRecorded={() => onClientUpdated?.(client, { refreshRoster: true })}
         />
       ) : null}
     </CoachClientProfileShell>
