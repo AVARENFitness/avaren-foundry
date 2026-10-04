@@ -309,6 +309,38 @@ export default function CoachCommandCenter({
                 </article>
               </section>
 
+              <section
+                className="coach-command-tools coach-command-tools--priority"
+                aria-label="Coach quick actions"
+              >
+                <div className="coach-command-tools-grid">
+                  <button
+                    type="button"
+                    className="coach-secondary-button"
+                    onClick={onSchedule ?? (() => onNavigateCoachScreen?.('calendar'))}
+                  >
+                    <CalendarRange size={16} />
+                    Schedule
+                  </button>
+                  <button
+                    type="button"
+                    className="coach-secondary-button"
+                    onClick={onAddClient}
+                  >
+                    <UserPlus size={16} />
+                    Add client
+                  </button>
+                  <button
+                    type="button"
+                    className="coach-secondary-button"
+                    onClick={onOpenBuild}
+                  >
+                    <Hammer size={16} />
+                    Build
+                  </button>
+                </div>
+              </section>
+
               <CoachTodaySchedule
                 clients={clients}
                 passSummaryByBusinessClientId={passSummaryByBusinessClientId}
@@ -434,34 +466,6 @@ export default function CoachCommandCenter({
               </button>
             ) : null}
           </section>
-
-          {!rosterOnly ? (
-            <section className="coach-command-panel coach-command-tools">
-              <header className="coach-command-panel-header coach-command-panel-header--compact">
-                <div>
-                  <span className="eyebrow">QUICK ACTIONS</span>
-                </div>
-              </header>
-              <div className="coach-command-tools-grid">
-                <button
-                  type="button"
-                  className="coach-secondary-button"
-                  onClick={onSchedule ?? (() => onNavigateCoachScreen?.('calendar'))}
-                >
-                  <CalendarRange size={16} />
-                  Schedule
-                </button>
-                <button type="button" className="coach-secondary-button" onClick={onAddClient}>
-                  <UserPlus size={16} />
-                  Add client
-                </button>
-                <button type="button" className="coach-secondary-button" onClick={onOpenBuild}>
-                  <Hammer size={16} />
-                  Build
-                </button>
-              </div>
-            </section>
-          ) : null}
 
           {notice ? <p className="coach-hub-notice">{notice}</p> : null}
 

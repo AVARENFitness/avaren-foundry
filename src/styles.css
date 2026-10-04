@@ -20684,3 +20684,194 @@ body > .nutrition-food-sheet-backdrop > .nutrition-food-sheet {
   font-size:10px;
   font-weight:800;
 }
+
+
+/* ===== PRODUCT REFINEMENT P12 · NAVIGATION + INTERACTION POLISH ===== */
+:root {
+  --radius-control: 14px;
+  --radius-control-lg: 16px;
+}
+
+/* Athlete Profile: readable destinations without five compressed columns. */
+.profile-section-nav {
+  display: flex !important;
+  grid-template-columns: none !important;
+  gap: 8px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  padding: 7px;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+}
+
+.profile-section-nav::-webkit-scrollbar {
+  display: none;
+}
+
+.profile-section-nav button {
+  flex: 0 0 auto;
+  min-height: 44px;
+  padding: 0 14px !important;
+  border-radius: var(--radius-control) !important;
+  scroll-snap-align: start;
+  white-space: nowrap;
+}
+
+@media (max-width: 620px) {
+  .profile-section-nav {
+    grid-template-columns: none !important;
+    gap: 7px;
+    padding: 7px;
+  }
+
+  .profile-section-nav button {
+    min-height: 44px;
+    padding-inline: 13px !important;
+    font-size: 12px !important;
+  }
+}
+
+/* Profile destinations should feel like tappable controls, not dense table rows. */
+.more-destination-list {
+  gap: 8px;
+}
+
+.more-destination {
+  min-height: 64px;
+  border: 1px solid rgba(246,242,233,.055) !important;
+  border-radius: var(--radius-control) !important;
+  background: rgba(255,255,255,.012);
+  transition:
+    transform .16s ease,
+    border-color .18s ease,
+    background .18s ease;
+}
+
+.more-destination:last-child {
+  border-bottom: 1px solid rgba(246,242,233,.055) !important;
+}
+
+.more-destination:hover,
+.more-destination:focus-visible {
+  border-color: rgba(216,184,109,.14) !important;
+  background: rgba(216,184,109,.025);
+}
+
+.more-destination:active {
+  transform: scale(.992);
+}
+
+/* Coach Today: the three floor actions stay above schedule/attention/roster. */
+.coach-command-tools--priority {
+  margin-top: -2px;
+}
+
+.coach-command-tools--priority .coach-command-tools-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.coach-command-tools--priority .coach-secondary-button {
+  width: 100%;
+  min-height: 48px;
+  padding-inline: 10px;
+  border-radius: var(--radius-control) !important;
+}
+
+/* Client Profile: four high-frequency destinations, secondary work behind More. */
+.coach-client-profile-section-nav {
+  gap: 8px;
+  overflow-x: auto;
+  padding: 4px 0 6px;
+}
+
+.coach-client-profile-section-nav button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: var(--radius-control) !important;
+}
+
+.coach-client-profile-section-nav button svg {
+  transition: transform .18s ease;
+}
+
+.coach-client-profile-section-nav button svg.rotated {
+  transform: rotate(180deg);
+}
+
+.coach-client-profile-more-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.coach-client-profile-more-row button {
+  min-height: 44px;
+  border: 1px solid rgba(246,242,233,.06);
+  border-radius: var(--radius-control);
+  background: rgba(255,255,255,.012);
+  color: #9a9389;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.coach-client-profile-more-row button.active {
+  border-color: rgba(216,184,109,.22);
+  background: rgba(216,184,109,.06);
+  color: #ddc57f;
+}
+
+/* One tactile language for the actions people use most. */
+.gold-button,
+.ui-btn-secondary,
+.ui-btn-tertiary,
+.coach-secondary-button,
+.coach-primary-action,
+.home-nutrition-quicklog-action,
+.home-reminder-action,
+.coach-roster-view-all-button,
+.more-screen-back {
+  border-radius: var(--radius-control) !important;
+}
+
+.ui-btn-secondary,
+.ui-btn-tertiary,
+.coach-secondary-button,
+.coach-primary-action,
+.home-nutrition-quicklog-action,
+.home-reminder-action,
+.coach-roster-view-all-button,
+.more-screen-back {
+  min-height: 44px;
+}
+
+.gold-button:active:not(:disabled),
+.ui-btn-secondary:active:not(:disabled),
+.ui-btn-tertiary:active:not(:disabled),
+.coach-secondary-button:active:not(:disabled),
+.coach-primary-action:active:not(:disabled),
+.home-nutrition-quicklog-action:active:not(:disabled),
+.home-reminder-action:active:not(:disabled),
+.coach-roster-view-all-button:active:not(:disabled),
+.more-screen-back:active:not(:disabled) {
+  transform: translateY(1px) scale(.988);
+}
+
+@media (max-width: 390px) {
+  .coach-command-tools--priority .coach-secondary-button {
+    min-height: 46px;
+    gap: 5px;
+    font-size: 12px;
+  }
+
+  .coach-client-profile-section-nav button {
+    padding-inline: 12px;
+  }
+}

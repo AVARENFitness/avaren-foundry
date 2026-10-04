@@ -1,4 +1,5 @@
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, ChevronDown } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
 
 export const CLIENT_PROFILE_SECTIONS = [
   { id: 'overview', label: 'Overview' },
@@ -8,6 +9,13 @@ export const CLIENT_PROFILE_SECTIONS = [
   { id: 'progress', label: 'Progress' },
   { id: 'manage', label: 'Manage' },
 ]
+
+const PRIMARY_SECTION_IDS = new Set([
+  'overview',
+  'sessions',
+  'training',
+  'notes',
+])
 
 const ICON = { size: 18, strokeWidth: 1.75 }
 
@@ -23,7 +31,35 @@ export default function CoachClientProfileShell({
   coachingStatusPanel = null,
   children,
 }) {
+  const [moreOpen, setMoreOpen] = useState(false)
   const statusLine = profileStatusLine || connectedSince
+  const primarySections = useMemo(
+    () =>
+      CLIENT_PROFILE_SECTIONS.filter((section) =>
+        PRIMARY_SECTION_IDS.has(section.id),
+      ),
+    [],
+  )
+  const secondarySections = useMemo(
+    () =>
+      CLIENT_PROFILE_SECTIONS.filter(
+        (section) => !PRIMARY_SECTION_IDS.has(section.id),
+      ),
+    [],
+  )
+  const secondaryActive = secondarySections.some(
+    (section) => section.id === activeSection,
+  )
+  const showSecondary = moreOpen || secondaryActive
+
+  useEffect(() => {
+    if (!secondaryActive) setMoreOpen(false)
+  }, [activeSection, secondaryActive])
+
+  const selectSection = (id) => {
+    onSectionChange?.(id)
+    if (!PRIMARY_SECTION_IDS.has(id)) setMoreOpen(false)
+  }
 
   return (
     <div className="coach-client-profile-shell">
@@ -51,22 +87,51 @@ export default function CoachClientProfileShell({
           className="coach-client-profile-section-nav"
           aria-label="Client profile sections"
         >
-          {CLIENT_PROFILE_SECTIONS.map(({ id, label }) => (
+          {primarySections.map(({ id, label }) => (
             <button
               key={id}
               type="button"
-              className={
-                activeSection === id ? 'active' : ''
-              }
-              aria-current={
-                activeSection === id ? 'page' : undefined
-              }
-              onClick={() => onSectionChange?.(id)}
+              className={activeSection === id ? 'active' : ''}
+              aria-current={activeSection === id ? 'page' : undefined}
+              onClick={() => selectSection(id)}
             >
               {label}
             </button>
           ))}
+          <button
+            type="button"
+            className={secondaryActive ? 'active' : ''}
+            aria-expanded={showSecondary}
+            onClick={() => setMoreOpen((current) => !current)}
+          >
+            More
+            <ChevronDown
+              size={14}
+              aria-hidden="true"
+              className={showSecondary ? 'rotated' : ''}
+            />
+          </button>
         </nav>
+
+        {showSecondary ? (
+          <div
+            className="coach-client-profile-more-row"
+            role="group"
+            aria-label="More client profile sections"
+          >
+            {secondarySections.map(({ id, label }) => (
+              <button
+                key={id}
+                type="button"
+                className={activeSection === id ? 'active' : ''}
+                aria-current={activeSection === id ? 'page' : undefined}
+                onClick={() => selectSection(id)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        ) : null}
       </header>
 
       <div className="coach-client-profile-shell-body">
