@@ -1,4 +1,5 @@
 export const APPOINTMENT_DEEP_LINK_EVENT = 'avaren:open-appointment'
+export const MESSAGE_DEEP_LINK_EVENT = 'avaren:open-messages'
 
 export const PUSH_DEEP_LINK_TYPES = {
   APPOINTMENT_DETAIL: 'appointment-detail',
@@ -8,6 +9,7 @@ export const PUSH_DEEP_LINK_TYPES = {
   RSVP_ACTION: 'rsvp-action',
   ASSIGNMENT: 'assignment',
   NOTIFICATIONS: 'notifications',
+  MESSAGES: 'messages',
 }
 
 const DEFAULT_PUSH_ORIGIN = 'https://avaren.local'
@@ -30,6 +32,10 @@ export const buildPushDeepLinkDedupeKey = (request) => {
     return `${request.type}:${request.assignmentId}`
   }
 
+  if (request.otherUserId) {
+    return `${request.type}:${request.otherUserId}`
+  }
+
   return request.type
 }
 
@@ -42,6 +48,7 @@ export const parsePushDeepLinkUrl = (rawUrl) => {
     const sessionId = url.searchParams.get('session')
     const rsvp = url.searchParams.get('rsvp')
     const openTarget = url.searchParams.get('open')
+    const otherUserId = url.searchParams.get('with')
 
     if (sessionId && rsvp) {
       return {
@@ -88,6 +95,13 @@ export const parsePushDeepLinkUrl = (rawUrl) => {
         type: PUSH_DEEP_LINK_TYPES.ASSIGNMENT,
         assignmentId,
         role: 'athlete',
+      }
+    }
+
+    if (openTarget === PUSH_DEEP_LINK_TYPES.MESSAGES && otherUserId) {
+      return {
+        type: PUSH_DEEP_LINK_TYPES.MESSAGES,
+        otherUserId,
       }
     }
 
@@ -146,6 +160,11 @@ export const resolvePushDeepLinkNavigation = (request) => {
     case PUSH_DEEP_LINK_TYPES.NOTIFICATIONS:
       return {
         screen: 'notifications',
+      }
+    case PUSH_DEEP_LINK_TYPES.MESSAGES:
+      return {
+        screen: 'home',
+        messageUserId: request.otherUserId,
       }
     default:
       return null
@@ -268,4 +287,17 @@ export const subscribeAppointmentDeepLink = (handler) => {
   }
 
   return () => window.removeEventListener(APPOINTMENT_DEEP_LINK_EVENT, listener)
+}
+
+
+export const requestOpenMessageThread = (otherUserId) => {
+  if (!otherUserId || typeof window === 'undefined') return false
+
+  window.dispatchEvent(
+    new CustomEvent(MESSAGE_DEEP_LINK_EVENT, {
+      detail: { otherUserId },
+    }),
+  )
+
+  return true
 }

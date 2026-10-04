@@ -69,6 +69,26 @@ describe('AppShell navigation', () => {
     expect(screen.getByRole('button', { name: 'Progress' })).toBeInTheDocument()
   })
 
+  it('renders an injected one-tap messaging shortcut in the header', () => {
+    render(
+      <AppShell
+        screen="home"
+        setScreen={() => {}}
+        messageShortcut={
+          <button type="button" aria-label="Messages">
+            Messages
+          </button>
+        }
+      >
+        <div>Home</div>
+      </AppShell>,
+    )
+
+    expect(
+      screen.getByRole('button', { name: 'Messages' }),
+    ).toBeInTheDocument()
+  })
+
   it('13. Account is reachable from the profile button', () => {
     const onOpenAccount = vi.fn()
     render(

@@ -79,6 +79,12 @@ export default {
 
       if (error) throw error
       if (!subscriptions?.length) {
+        console.log('message_push_delivery', {
+          messageId,
+          recipientId,
+          delivered: 0,
+          skipped: 'no_active_push_subscription',
+        })
         return json({ delivered: 0, skipped: 'no_active_push_subscription' })
       }
 
@@ -92,7 +98,7 @@ export default {
         title: 'AVAREN message',
         body: 'You have a new coaching message.',
         tag: `avaren-message-${message.conversation_id}`,
-        url: '/',
+        url: `/?open=messages&with=${encodeURIComponent(user.id)}`,
       })
 
       let delivered = 0
@@ -127,6 +133,14 @@ export default {
           .update({ active: false })
           .in('id', invalidIds)
       }
+
+      console.log('message_push_delivery', {
+        messageId,
+        recipientId,
+        attempted: subscriptions.length,
+        delivered,
+        expiredSubscriptions: invalidIds.length,
+      })
 
       return json({ delivered })
     } catch (error) {

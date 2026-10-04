@@ -31,6 +31,7 @@ export default function AppShell({
   onOpenAccount,
   accountLabel = 'Account',
   accountInitial = 'A',
+  messageShortcut = null,
 }) {
   return (
     <div
@@ -52,6 +53,7 @@ export default function AppShell({
         </div>
 
         <div className="app-header-actions">
+          {messageShortcut}
           <button
             className="app-notification-button"
             onClick={onOpenNotifications}

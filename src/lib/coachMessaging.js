@@ -97,11 +97,20 @@ export const coachMessagingBackend = {
 
     const message = normalizeCoachMessage(data)
 
-    supabase.functions
-      .invoke('send-message-push', {
-        body: { messageId: message.id },
-      })
-      .catch(() => {})
+    try {
+      const { error: pushError } = await supabase.functions.invoke(
+        'send-message-push',
+        {
+          body: { messageId: message.id },
+        },
+      )
+
+      if (pushError) {
+        console.error('Message push delivery request failed:', pushError)
+      }
+    } catch (pushError) {
+      console.error('Message push delivery request failed:', pushError)
+    }
 
     return message
   },
