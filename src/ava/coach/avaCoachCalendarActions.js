@@ -12,6 +12,7 @@ import {
 } from '../../lib/coachBusinessClient'
 import { getClientDisplayName } from '../../lib/clientDisplayName'
 import { normalizeScheduledSession } from '../../lib/coachScheduledSessions'
+import { findOverlappingAppointment } from '../../lib/coachingAppointment'
 import { normalizeCoachCalendarEvent } from '../../lib/coachCalendarEvents'
 import {
   athleteCalendarBackend,
@@ -569,7 +570,10 @@ export const parseCoachCalendarCommand = (message = '', { now = new Date() } = {
     'i',
   )
   const moveClientMatch = original.match(moveClientPattern)
-  if (moveClientMatch) {
+  if (
+    moveClientMatch &&
+    !/^(?:please\s+)?(?:move|reschedule)\s+my\s+/i.test(original)
+  ) {
     const [, clientQuery, datePhrase, startValue] = moveClientMatch
     return {
       kind: AVA_COACH_CALENDAR_COMMAND_KIND.MOVE_PERSONAL_TRAINING,
@@ -1202,15 +1206,19 @@ export async function executeCoachCalendarCommand(
 
     try {
       if (event.isAthletePrivateEvent) {
-        const conflict = destinationItems.find(
-          (item) =>
-            item.id !== event.id &&
-            item.status === 'scheduled' &&
-            item.sessionDate === command.date,
+        const candidate = {
+          ...event,
+          sessionDate: command.date,
+          startTime: command.time.startTime,
+          durationMinutes: event.durationMinutes ?? 60,
+          status: 'scheduled',
+        }
+        const conflict = findOverlappingAppointment(
+          candidate,
+          destinationItems,
+          { excludeId: event.id },
         )
-        // Athlete-private events may intentionally overlap; preserve the same
-        // permissive behavior as manual athlete calendar editing.
-        void conflict
+        if (conflict) throw new Error('calendar_overlap')
         await athleteCalendarBackend.update(event.id, payload)
       } else {
         await coachBackend.updateCoachCalendarEvent(event.id, {
