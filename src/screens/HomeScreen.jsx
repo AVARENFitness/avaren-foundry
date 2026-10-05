@@ -499,50 +499,6 @@ export default function HomeScreen({
       ))}
  
 
-      {homeState.primaryAction?.id !== HOME_ACTION_IDS.NUTRITION ? (
-        <section className="home-nutrition-quicklog">
-          <div className="home-nutrition-quicklog-copy">
-            <span className="eyebrow">NUTRITION</span>
-            <strong>Log food</strong>
-            <span>
-              {nutritionSummary?.calories || 0} / {nutritionSummary?.goal || 2200} cal
-              {' · '}{nutritionSummary?.protein || 0}g protein
-            </span>
-          </div>
-          <button
-            type="button"
-            className="home-nutrition-quicklog-action"
-            onClick={() => onOpenNutritionLog?.()}
-          >
-            <Plus size={17} strokeWidth={1.8} />
-            Log Food
-          </button>
-        </section>
-      ) : null}
-
-      <AvaDailyBriefing
-        briefing={avaBriefing}
-        onAction={handleAvaAction}
-        onAskAva={openAva}
-      />
-
-      <AthleteNextAppointment
-        appointment={appointmentsReady ? nextAppointment : null}
-        onViewDetails={setDetailAppointment}
-      />
-
-      <AthletePassStatus variant="compact" />
-
-      <AthleteAppointmentDetailSheet
-        appointment={detailAppointment}
-        open={Boolean(detailAppointment)}
-        onClose={() => setDetailAppointment(null)}
-        onUpdated={(updated) => {
-          reloadAppointments()
-          setDetailAppointment(updated)
-        }}
-      />
-
       <section className="home-today-plan">
         <span className="eyebrow">
           {homeState.primaryAction?.eyebrow ?? 'TODAY'}
@@ -685,6 +641,53 @@ export default function HomeScreen({
           </button>
         )}
       </section>
+
+      {homeState.primaryAction?.id !== HOME_ACTION_IDS.NUTRITION ? (
+        <section className="home-nutrition-quicklog">
+          <div className="home-nutrition-quicklog-copy">
+            <span className="eyebrow">NUTRITION</span>
+            <strong>Log food</strong>
+            <span>
+              {nutritionSummary?.calories || 0} / {nutritionSummary?.goal || 2200} cal
+              {' · '}{nutritionSummary?.protein || 0}g protein
+            </span>
+          </div>
+          <button
+            type="button"
+            className="home-nutrition-quicklog-action"
+            onClick={() => onOpenNutritionLog?.()}
+          >
+            <Plus size={17} strokeWidth={1.8} />
+            Log Food
+          </button>
+        </section>
+      ) : null}
+
+      <AvaDailyBriefing
+        briefing={avaBriefing}
+        onAction={handleAvaAction}
+        onAskAva={openAva}
+        contextOnly
+      />
+
+      {homeState.primaryAction?.id !== HOME_ACTION_IDS.APPOINTMENT ? (
+        <AthleteNextAppointment
+          appointment={appointmentsReady ? nextAppointment : null}
+          onViewDetails={setDetailAppointment}
+        />
+      ) : null}
+
+      <AthletePassStatus variant="compact" />
+
+      <AthleteAppointmentDetailSheet
+        appointment={detailAppointment}
+        open={Boolean(detailAppointment)}
+        onClose={() => setDetailAppointment(null)}
+        onUpdated={(updated) => {
+          reloadAppointments()
+          setDetailAppointment(updated)
+        }}
+      />
 
       <AthleteAppointmentWeekStrip
         appointments={appointmentsReady ? upcomingAppointments : []}
