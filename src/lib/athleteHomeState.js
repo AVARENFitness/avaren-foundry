@@ -99,10 +99,8 @@ export const mobilityCompletedToday = (completions = [], flowId = null, now = ne
 
 export const resolveLastWorkoutCompletion = resolveLastWorkoutCompletionToday
 
-export const isMorningMovementWindow = (
-  now = new Date(),
-  endHour = MORNING_MOVEMENT_END_HOUR,
-) => now.getHours() < endHour
+/** @deprecated Warm-Up eligibility follows training state, not time of day. */
+export const isMorningMovementWindow = () => true
 
 export const isWithinPostWorkoutRecoveryWindow = (
   completedAtMs,
@@ -145,7 +143,6 @@ export const shouldShowMorningMovementOnHome = ({
   ) {
     return false
   }
-  if (!isMorningMovementWindow(now)) return false
   return resolveMorningMovementSuggested({ loadAdjusted, readinessFactors })
 }
 
