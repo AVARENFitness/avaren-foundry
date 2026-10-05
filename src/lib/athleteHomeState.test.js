@@ -77,9 +77,9 @@ describe('athleteHomeState', () => {
     expect(home.sections.morningMovementPrimary).toBe(true)
   })
 
-  it('removes morning movement from primary after 11 AM local time', () => {
+  it('keeps Warm-Up eligible after 11 AM when training is still ahead', () => {
     vi.setSystemTime(fridayLateMorning)
-    expect(isMorningMovementWindow(fridayLateMorning)).toBe(false)
+    expect(isMorningMovementWindow(fridayLateMorning)).toBe(true)
 
     const home = getAthleteHomeState({
       now: fridayLateMorning,
@@ -88,8 +88,8 @@ describe('athleteHomeState', () => {
       loadAdjusted: true,
     })
 
-    expect(home.primaryAction?.id).not.toBe(HOME_ACTION_IDS.MORNING_MOVEMENT)
-    expect(home.sections.morningMovementPrimary).toBe(false)
+    expect(home.primaryAction?.id).toBe(HOME_ACTION_IDS.MORNING_MOVEMENT)
+    expect(home.sections.morningMovementPrimary).toBe(true)
   })
 
   it('suppresses start workout after today is completed', () => {
@@ -524,7 +524,8 @@ describe('athleteHomeState', () => {
     ).toBe(true)
   })
 
-  it('keeps morning movement end hour at 11', () => {
+  it('keeps the legacy morning cutoff constant for compatibility only', () => {
     expect(MORNING_MOVEMENT_END_HOUR).toBe(11)
+    expect(isMorningMovementWindow(fridayLateMorning)).toBe(true)
   })
 })
