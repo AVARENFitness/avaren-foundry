@@ -66,6 +66,16 @@ import {
   analyzeNutritionAdaptation,
   applyAdaptiveNutritionAdjustment,
 } from '../lib/nutritionAdaptation'
+import {
+  FOOD_MEASURE_UNIT,
+  foodMeasureDisplay,
+  foodMeasureMultiplier,
+  resolveFoodServingBasis,
+} from '../lib/nutritionMeasurement'
+import {
+  detectNutritionBarcode,
+  normalizeBarcodeDigits,
+} from '../lib/nutritionBarcode'
 
 const tabs = [
   { label: 'Today', value: 'Today' },
@@ -147,6 +157,8 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
   const [showCustomFood, setShowCustomFood] = useState(false)
   const [selectedFood, setSelectedFood] = useState(null)
   const [selectedMultiplier, setSelectedMultiplier] = useState(1)
+  const [selectedMeasureUnit, setSelectedMeasureUnit] = useState(FOOD_MEASURE_UNIT.SERVING)
+  const [selectedMeasureAmount, setSelectedMeasureAmount] = useState('1')
   const [foodCategory, setFoodCategory] = useState('All')
   const [fatSecretFoods, setFatSecretFoods] = useState([])
   const [fatSecretSearchState, setFatSecretSearchState] = useState('idle')
@@ -156,6 +168,8 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
   const [fatSecretDetailError, setFatSecretDetailError] = useState('')
   const [selectedFatSecretServingId, setSelectedFatSecretServingId] = useState('')
   const [fatSecretQuantity, setFatSecretQuantity] = useState('1')
+  const [fatSecretMeasureUnit, setFatSecretMeasureUnit] = useState(FOOD_MEASURE_UNIT.SERVING)
+  const [fatSecretMeasureAmount, setFatSecretMeasureAmount] = useState('1')
   const [recipeDraft, setRecipeDraft] = useState({ name: '', servings: 4, ingredients: [] })
   const [recipeSearch, setRecipeSearch] = useState('')
   const [recipeLogTarget, setRecipeLogTarget] = useState(null)
@@ -171,7 +185,10 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
   const [scanResult, setScanResult] = useState(null)
   const [scanDraft, setScanDraft] = useState(null)
   const [scanQuantity, setScanQuantity] = useState(1)
+  const [scanMeasureUnit, setScanMeasureUnit] = useState(FOOD_MEASURE_UNIT.SERVING)
+  const [scanMeasureAmount, setScanMeasureAmount] = useState('1')
   const [scanMatches, setScanMatches] = useState([])
+  const [barcodeManualValue, setBarcodeManualValue] = useState('')
   const [showWorkoutActivityForm, setShowWorkoutActivityForm] = useState(false)
   const [workoutActivityDraft, setWorkoutActivityDraft] = useState({
     label: 'Strength Training',
