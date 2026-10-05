@@ -204,21 +204,32 @@ describe('CoachSessionCalendar usability', () => {
     )
   })
 
-  it('returns to current local day from Today action', async () => {
+  it('returns to today without changing the selected calendar zoom', async () => {
     render(<CoachSessionCalendar clients={[jake, sarah]} assignments={[]} />)
+
+    fireEvent.click(screen.getByTestId('coach-calendar-view-day'))
 
     await waitFor(() => {
       expect(screen.getByLabelText('Next day')).toBeInTheDocument()
     })
 
     fireEvent.click(screen.getByLabelText('Next day'))
-    expect(screen.getByTestId('coach-calendar-jump-today')).toBeInTheDocument()
-
     fireEvent.click(screen.getByTestId('coach-calendar-jump-today'))
+
     expect(screen.getByTestId('coach-calendar-view-day')).toHaveAttribute(
       'aria-selected',
       'true',
     )
+  })
+
+  it('renders the unified full-width calendar command bar', async () => {
+    render(<CoachSessionCalendar clients={[jake]} assignments={[]} />)
+
+    expect(document.querySelector('.coach-calendar-command-bar')).not.toBeNull()
+    expect(screen.getByTestId('coach-calendar-view-month')).toBeInTheDocument()
+    expect(screen.getByText(/October|November|December|January|February|March|April|May|June|July|August|September/i)).toBeInTheDocument()
+    expect(screen.getByTestId('coach-calendar-jump-today')).toBeInTheDocument()
+    expect(screen.getByTestId('coach-calendar-add-trigger')).toBeInTheDocument()
   })
 
   it('uses one Add menu for personal training and private events', async () => {
