@@ -51,10 +51,20 @@ export default {
 
       if (userError || !user) return json({ error: 'Unauthorized' }, 401)
 
+      const body = await req.json().catch(() => ({}))
+      const endpoint = typeof body?.endpoint === 'string'
+        ? body.endpoint.trim()
+        : ''
+
+      if (!endpoint) {
+        return json({ delivered: 0, error: 'endpoint_required' }, 400)
+      }
+
       const { data: subscriptions, error } = await admin
         .from('push_subscriptions')
         .select('id, endpoint, p256dh, auth')
         .eq('user_id', user.id)
+        .eq('endpoint', endpoint)
         .eq('active', true)
 
       if (error) throw error
@@ -78,7 +88,7 @@ export default {
       const payload = JSON.stringify({
         title: 'AVAREN phone alerts are working',
         body: 'You’ll receive important training and coaching updates here.',
-        tag: 'avaren-push-test',
+        tag: `avaren-push-test-${Date.now()}`,
         url: '/?open=notifications',
       })
 
@@ -130,7 +140,10 @@ export default {
         )
       }
 
-      return json({ delivered })
+      return json({
+        delivered,
+        deviceScoped: true,
+      })
     } catch (error) {
       console.error(error)
       return json(

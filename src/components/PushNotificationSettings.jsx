@@ -72,8 +72,8 @@ export default function PushNotificationSettings() {
     try {
       const result = await sendTestPushNotification()
       setMessage(
-        result.delivered > 1
-          ? `Test sent to ${result.delivered} registered devices.`
+        result.deviceScoped
+          ? 'Test sent to this device. Lock your phone and check Notification Center.'
           : 'Test sent. Check your lock screen or notification center.',
       )
     } catch (error) {
@@ -159,7 +159,7 @@ export default function PushNotificationSettings() {
               disabled={testing || loading}
             >
               <Bell size={16} />
-              {testing ? 'Sending test…' : 'Send test notification'}
+              {testing ? 'Sending test…' : 'Test this device'}
             </button>
           ) : null}
         </div>

@@ -45,7 +45,7 @@ describe('pushNotifications ownership RPC', () => {
     })
     mockRpc.mockResolvedValue({ error: null })
     mockInvoke.mockResolvedValue({
-      data: { delivered: 1 },
+      data: { delivered: 1, deviceScoped: true },
       error: null,
     })
     mockFrom.mockReturnValue({
@@ -101,7 +101,7 @@ describe('pushNotifications ownership RPC', () => {
     await syncPushSubscription()
 
     expect(mockRpc).toHaveBeenCalledWith(
-      'register_push_subscription',
+      'register_push_subscription_v2',
       expect.objectContaining({
         p_endpoint: subscription.endpoint,
         p_p256dh: 'p256',
@@ -132,7 +132,7 @@ describe('pushNotifications ownership RPC', () => {
     await enablePushNotifications()
 
     expect(mockRpc).toHaveBeenCalledWith(
-      'register_push_subscription',
+      'register_push_subscription_v2',
       registerPushSubscriptionRpcArgs(subscription),
     )
   })
@@ -141,14 +141,16 @@ describe('pushNotifications ownership RPC', () => {
     const result = await sendTestPushNotification()
 
     expect(mockRpc).toHaveBeenCalledWith(
-      'register_push_subscription',
+      'register_push_subscription_v2',
       expect.objectContaining({
         p_endpoint: subscription.endpoint,
       }),
     )
     expect(mockInvoke).toHaveBeenCalledWith('send-test-push', {
-      body: {},
+      body: {
+        endpoint: subscription.endpoint,
+      },
     })
-    expect(result).toEqual({ delivered: 1 })
+    expect(result).toEqual({ delivered: 1, deviceScoped: true })
   })
 })

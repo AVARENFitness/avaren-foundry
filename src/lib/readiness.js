@@ -1,3 +1,4 @@
+import { localCalendarDateKey } from './localCalendarDay'
 import { createRuntimeId } from './createRuntimeId'
 
 const SCORE_MIN = 1
@@ -7,7 +8,7 @@ const clamp = (value, minimum, maximum) =>
   Math.max(minimum, Math.min(maximum, value))
 
 const todayKey = (value = new Date()) =>
-  new Date(value).toISOString().slice(0, 10)
+  localCalendarDateKey(value)
 
 const normalizeRating = (value, fallback = 3) =>
   clamp(Number(value || fallback), SCORE_MIN, SCORE_MAX)

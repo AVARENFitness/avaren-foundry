@@ -27,6 +27,7 @@ import {
   shouldRestoreCoachMode,
 } from './lib/coachModePersistence'
 import { registerPushWorker, syncPushSubscription, deactivatePushSubscriptionForDevice } from './lib/pushNotifications'
+import { localCalendarDateKey } from './lib/localCalendarDay'
 import { supabase } from './lib/supabase'
 import {
   buildPushDeepLinkDedupeKey,
@@ -672,7 +673,7 @@ function App() {
     }
 
     const now = new Date()
-    const today = now.toISOString().slice(0, 10)
+    const today = localCalendarDateKey(now)
     const isMorning = now.getHours() < 12
     const alreadyPrompted =
       state.readiness?.lastPromptedDate === today
@@ -799,6 +800,30 @@ function App() {
     syncPushSubscription().catch((error) => {
       console.warn('Could not sync the push subscription:', error)
     })
+  }, [session?.user?.id, cloudReady])
+
+  useEffect(() => {
+    if (!session?.user?.id || !cloudReady) return undefined
+
+    const refreshPushOwnership = () => {
+      if (document.visibilityState && document.visibilityState !== 'visible') {
+        return
+      }
+
+      syncPushSubscription().catch((error) => {
+        console.warn('Could not refresh the push subscription:', error)
+      })
+    }
+
+    document.addEventListener('visibilitychange', refreshPushOwnership)
+    window.addEventListener('pageshow', refreshPushOwnership)
+    window.addEventListener('focus', refreshPushOwnership)
+
+    return () => {
+      document.removeEventListener('visibilitychange', refreshPushOwnership)
+      window.removeEventListener('pageshow', refreshPushOwnership)
+      window.removeEventListener('focus', refreshPushOwnership)
+    }
   }, [session?.user?.id, cloudReady])
 
   useEffect(() => {
