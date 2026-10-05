@@ -198,7 +198,9 @@ export const resolveDailyAthleteFlow = ({
       (!recommendation.todayContext?.isRestDay && recommendation.nextWorkout),
   )
 
-  const inMorningWindow = now.getHours() < morningMovementEndHour
+  // Warm-Up follows the workout, not a morning clock window. Keep the
+  // legacy morningMovement naming/argument for stored-state compatibility.
+  void morningMovementEndHour
   const concernCount = (readinessFactors ?? []).filter(
     (factor) => factor?.concern,
   ).length
@@ -211,7 +213,7 @@ export const resolveDailyAthleteFlow = ({
     morningStatus = DAILY_FLOW_STATUS.COMPLETED
   } else if (morningSkipped) {
     morningStatus = DAILY_FLOW_STATUS.SKIPPED_FOR_TODAY
-  } else if (inMorningWindow && morningSuggested) {
+  } else if (morningSuggested) {
     morningStatus = DAILY_FLOW_STATUS.DUE
   } else {
     morningStatus = DAILY_FLOW_STATUS.NOT_REQUIRED

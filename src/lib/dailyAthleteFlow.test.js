@@ -126,6 +126,23 @@ describe('dailyAthleteFlow', () => {
     expect(flow.morningMovement.due).toBe(true)
   })
 
+  it('keeps Warm-Up eligible after the old morning cutoff when training is still ahead', () => {
+    const lateEvening = atLocalTime('2026-08-07T12:00:00', 23, 0)
+    vi.setSystemTime(lateEvening)
+
+    const flow = resolveDailyAthleteFlow({
+      now: lateEvening,
+      state: baseState(),
+      readinessDue: false,
+      readiness: { completed: true },
+      loadAdjusted: true,
+      readinessFactors: [{ concern: true }],
+    })
+
+    expect(flow.morningMovement.due).toBe(true)
+    expect(flow.primaryStep).toBe(DAILY_FLOW_STEP.MORNING_MOVEMENT)
+  })
+
   it('marks morning movement skipped when workout starts and keeps it skipped that day', () => {
     vi.setSystemTime(fridayMorning)
     const started = withMorningMovementSkippedForToday(
