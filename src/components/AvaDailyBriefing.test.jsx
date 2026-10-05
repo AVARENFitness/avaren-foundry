@@ -106,9 +106,62 @@ describe('AvaDailyBriefing', () => {
     )
 
     expect(screen.queryByRole('button', { name: /Start Chest & Back/i })).not.toBeInTheDocument()
-    const support = screen.getByRole('button', { name: /^Warm-Up$/i })
+    const support = screen.getByRole('button', { name: /Warm-Up/i })
     await user.click(support)
     expect(onAction).toHaveBeenCalledWith(warmUp.secondaryAction)
+  })
+
+  it('uses a canonical Home support override for pre-workout Warm-Up', async () => {
+    const user = userEvent.setup()
+    const onAction = vi.fn()
+    const supportAction = {
+      type: AVA_ACTION_TYPES.MORNING_MOVEMENT,
+      eyebrow: 'PRE-WORKOUT',
+      label: 'Warm-Up',
+      detail: 'Prepare your body for today’s training',
+      meta: { flowId: 'daily-reset' },
+    }
+
+    render(
+      <AvaDailyBriefing
+        briefing={sampleBriefing}
+        onAction={onAction}
+        onAskAva={vi.fn()}
+        contextOnly
+        contextActionOverride={supportAction}
+      />,
+    )
+
+    expect(screen.getByText('PRE-WORKOUT')).toBeInTheDocument()
+    expect(screen.getByText('Prepare your body for today’s training')).toBeInTheDocument()
+    const button = screen.getByRole('button', { name: /Warm-Up/i })
+    await user.click(button)
+    expect(onAction).toHaveBeenCalledWith(supportAction)
+  })
+
+  it('uses a canonical Home support override for post-workout recovery', () => {
+    const supportAction = {
+      type: AVA_ACTION_TYPES.RECOVERY_FLOW,
+      eyebrow: 'POST-WORKOUT',
+      label: 'Cooldown + Recovery',
+      detail: 'Downshift and restore after today’s session',
+      meta: { flowId: 'recovery-flow' },
+    }
+
+    render(
+      <AvaDailyBriefing
+        briefing={sampleBriefing}
+        onAction={vi.fn()}
+        onAskAva={vi.fn()}
+        contextOnly
+        contextActionOverride={supportAction}
+      />,
+    )
+
+    expect(screen.getByText('POST-WORKOUT')).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: /Cooldown + Recovery/i }),
+    ).toBeInTheDocument()
   })
 
   it('persists the collapsed Home state for the athlete/device key', async () => {
