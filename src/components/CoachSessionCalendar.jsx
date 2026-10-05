@@ -60,11 +60,15 @@ import {
   isRsvpException,
 } from '../lib/sessionRsvp'
 import {
+  COACH_CALENDAR_EVENT_CATEGORY,
+  COACH_CALENDAR_EVENT_CATEGORY_LABEL,
   coachCalendarEventCategoryLabel,
   createCoachCalendarEventDraft,
   normalizeCoachCalendarEvent,
 } from '../lib/coachCalendarEvents'
 import {
+  ATHLETE_CALENDAR_EVENT_CATEGORY,
+  ATHLETE_CALENDAR_EVENT_CATEGORY_LABEL,
   athleteCalendarBackend,
   athleteCalendarEventCategoryLabel,
   normalizeAthleteCalendarEvent,
@@ -108,6 +112,7 @@ export default function CoachSessionCalendar({
   const [showAddMenu, setShowAddMenu] = useState(false)
   const [scheduling, setScheduling] = useState(false)
   const [eventSaving, setEventSaving] = useState(false)
+  const [editingPrivateEvent, setEditingPrivateEvent] = useState(null)
   const [eventDraft, setEventDraft] = useState(() =>
     createCoachCalendarEventDraft(dateKey(new Date())),
   )
@@ -157,7 +162,26 @@ export default function CoachSessionCalendar({
 
   const openPrivateEventComposer = () => {
     setShowAddMenu(false)
+    setEditingPrivateEvent(null)
     setEventDraft(createCoachCalendarEventDraft(selectedDayKey))
+    setShowEventComposer(true)
+  }
+
+  const openPrivateEventEditor = (event) => {
+    setEditingPrivateEvent(event)
+    setEventDraft({
+      title: event.title ?? '',
+      eventDate: event.eventDate ?? event.sessionDate ?? selectedDayKey,
+      startTime: String(event.startTime ?? '').slice(0, 5),
+      durationMinutes: String(event.durationMinutes ?? 60),
+      category:
+        event.category ??
+        (event.isAthletePrivateEvent
+          ? ATHLETE_CALENDAR_EVENT_CATEGORY.PERSONAL
+          : COACH_CALENDAR_EVENT_CATEGORY.PERSONAL),
+      locationName: event.locationName ?? '',
+      notes: event.notes ?? '',
+    })
     setShowEventComposer(true)
   }
 
@@ -249,6 +273,7 @@ export default function CoachSessionCalendar({
     sessions,
     setSessions,
     onLoadSessions: loadSessions,
+    calendarItems: calendarEvents,
   })
 
   useEffect(() => {
@@ -400,24 +425,7 @@ export default function CoachSessionCalendar({
               type="button"
               className="coach-calendar-private-event"
               data-testid="coach-private-calendar-event"
-              onClick={async () => {
-                const confirmed = await appUi.confirm({
-                  message: `Remove “${session.title}” from your calendar?`,
-                  confirmLabel: 'Remove event',
-                  tone: 'danger',
-                })
-                if (!confirmed) return
-                try {
-                  if (session.isAthletePrivateEvent) {
-                    await athleteCalendarBackend.remove(session.id)
-                  } else {
-                    await coachBackend.deleteCoachCalendarEvent(session.id)
-                  }
-                  await loadSessions()
-                } catch (error) {
-                  appUi.toast(error.message ?? 'Could not remove event.', 'error')
-                }
-              }}
+              onClick={() => openPrivateEventEditor(session)}
             >
               <div>
                 <strong>
@@ -586,7 +594,7 @@ export default function CoachSessionCalendar({
     }
   }
 
-  const handleCreatePrivateEvent = async () => {
+  const handleSavePrivateEvent = async () => {
     const title = eventDraft.title.trim()
     if (!title) {
       appUi.toast('Add a title for this event.', 'error')
@@ -606,7 +614,7 @@ export default function CoachSessionCalendar({
 
     setEventSaving(true)
     try {
-      await coachBackend.createCoachCalendarEvent({
+      const payload = {
         title,
         eventDate: eventDraft.eventDate,
         startTime: eventDraft.startTime,
@@ -614,13 +622,34 @@ export default function CoachSessionCalendar({
         category: eventDraft.category,
         notes: eventDraft.notes.trim(),
         locationName: eventDraft.locationName.trim(),
-        existingItems: scheduleItems,
-      })
+      }
+
+      if (editingPrivateEvent?.isAthletePrivateEvent) {
+        await athleteCalendarBackend.update(editingPrivateEvent.id, payload)
+      } else if (editingPrivateEvent?.isCoachPrivateEvent) {
+        await coachBackend.updateCoachCalendarEvent(
+          editingPrivateEvent.id,
+          {
+            ...payload,
+            existingItems: scheduleItems,
+          },
+        )
+      } else {
+        await coachBackend.createCoachCalendarEvent({
+          ...payload,
+          existingItems: scheduleItems,
+        })
+      }
+
       setShowEventComposer(false)
+      setEditingPrivateEvent(null)
       setSelectedDayKey(eventDraft.eventDate)
       setAnchor(new Date(`${eventDraft.eventDate}T12:00:00`))
       setEventDraft(createCoachCalendarEventDraft(eventDraft.eventDate))
-      appUi.toast('Private calendar event added.', 'success')
+      appUi.toast(
+        editingPrivateEvent ? 'Private event updated.' : 'Private calendar event added.',
+        'success',
+      )
       await loadSessions()
     } catch (error) {
       appUi.toast(
@@ -629,6 +658,34 @@ export default function CoachSessionCalendar({
           : error.message ?? 'Could not add calendar event.',
         'error',
       )
+    } finally {
+      setEventSaving(false)
+    }
+  }
+
+  const handleDeletePrivateEvent = async () => {
+    if (!editingPrivateEvent) return
+
+    const confirmed = await appUi.confirm({
+      message: `Delete “${editingPrivateEvent.title}” from your calendar?`,
+      confirmLabel: 'Delete event',
+      tone: 'danger',
+    })
+    if (!confirmed) return
+
+    setEventSaving(true)
+    try {
+      if (editingPrivateEvent.isAthletePrivateEvent) {
+        await athleteCalendarBackend.remove(editingPrivateEvent.id)
+      } else {
+        await coachBackend.deleteCoachCalendarEvent(editingPrivateEvent.id)
+      }
+      setShowEventComposer(false)
+      setEditingPrivateEvent(null)
+      appUi.toast('Private event deleted.', 'success')
+      await loadSessions()
+    } catch (error) {
+      appUi.toast(error.message ?? 'Could not delete event.', 'error')
     } finally {
       setEventSaving(false)
     }
@@ -963,8 +1020,29 @@ export default function CoachSessionCalendar({
         draft={eventDraft}
         submitting={eventSaving}
         onDraftChange={setEventDraft}
-        onClose={() => setShowEventComposer(false)}
-        onSubmit={handleCreatePrivateEvent}
+        onClose={() => {
+          setShowEventComposer(false)
+          setEditingPrivateEvent(null)
+        }}
+        onSubmit={handleSavePrivateEvent}
+        title={editingPrivateEvent ? 'Edit private event' : 'Add to your schedule'}
+        description={
+          editingPrivateEvent?.isAthletePrivateEvent
+            ? 'This is your private personal event. It stays private from your clients.'
+            : 'Only you can see this event. It blocks the time from client scheduling.'
+        }
+        categoryOptions={
+          editingPrivateEvent?.isAthletePrivateEvent
+            ? Object.values(ATHLETE_CALENDAR_EVENT_CATEGORY)
+            : Object.values(COACH_CALENDAR_EVENT_CATEGORY)
+        }
+        categoryLabels={
+          editingPrivateEvent?.isAthletePrivateEvent
+            ? ATHLETE_CALENDAR_EVENT_CATEGORY_LABEL
+            : COACH_CALENDAR_EVENT_CATEGORY_LABEL
+        }
+        submitLabel={editingPrivateEvent ? 'Save changes' : 'Add to calendar'}
+        onDelete={editingPrivateEvent ? handleDeletePrivateEvent : null}
       />
 
       <CoachScheduleSessionSheet
