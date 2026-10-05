@@ -89,7 +89,7 @@ export default function HomeScreen({
   onOpenMobility,
   onOpenReset,
   onOpenFullBodyStretch,
-  mobilityTitle = 'Morning Movement',
+  mobilityTitle = 'Warm-Up',
   mobilityMinutes = 7,
   onStartCoachAssignment,
   nutritionSummary,
@@ -104,6 +104,7 @@ export default function HomeScreen({
   navigateToBuilder,
   trainingRecommendation = null,
   onOpenNutritionLog,
+  avaCollapseStorageKey = null,
 }) {
   const { openAva } = useAvaUi()
   const localCalendarDay = useLocalCalendarDay()
@@ -668,6 +669,8 @@ export default function HomeScreen({
         onAction={handleAvaAction}
         onAskAva={openAva}
         contextOnly
+        collapsible
+        collapseStorageKey={avaCollapseStorageKey}
       />
 
       {homeState.primaryAction?.id !== HOME_ACTION_IDS.APPOINTMENT ? (
@@ -792,7 +795,7 @@ export default function HomeScreen({
           >
             {movementDone ? <Check size={18} /> : <Sun size={18} />}
             <div>
-              <strong>Movement</strong>
+              <strong>Warm-Up</strong>
               <span>
                 {movementDone
                   ? 'Complete'
@@ -808,9 +811,9 @@ export default function HomeScreen({
           >
             {resetDone ? <Check size={18} /> : <Moon size={18} />}
             <div>
-              <strong>Recovery</strong>
+              <strong>Cooldown + Recovery</strong>
               <span>
-                {resetDone ? 'Complete' : 'Mobility and stretching'}
+                {resetDone ? 'Complete' : 'Post-workout mobility and downshift'}
               </span>
             </div>
             <ChevronRight size={16} />

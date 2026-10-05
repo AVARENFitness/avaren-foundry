@@ -222,4 +222,25 @@ describe('deriveTodaysFocus', () => {
     expect(checkInFocus.action).toBe(FOCUS_ACTIONS.CHECK_IN)
     expect(checkInFocus.actionLabel).toBe('Check In')
   })
+  it('keeps planned training primary when weekly recovery habits are behind', () => {
+    const morning = new Date(now)
+    morning.setHours(9, 0, 0, 0)
+
+    const focus = deriveTodaysFocus(
+      {
+        ...baseState,
+        weeklySchedule: trainingDaySchedule,
+        history: [
+          workout({ id: 'recent-1', daysAgo: 1 }),
+          workout({ id: 'recent-2', daysAgo: 3 }),
+        ],
+        mobility: { completed: [] },
+      },
+      { now: morning },
+    )
+
+    expect(focus.type).toBe(FOCUS_TYPES.TRAIN)
+    expect(focus.action).toBe(FOCUS_ACTIONS.START_WORKOUT)
+  })
+
 })

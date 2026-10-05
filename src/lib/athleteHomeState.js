@@ -278,9 +278,9 @@ export const getAthleteHomeState = ({
   } else if (morningMovementEligible) {
     primary = buildHomeAction({
       id: HOME_ACTION_IDS.MORNING_MOVEMENT,
-      eyebrow: 'MORNING MOVEMENT',
-      label: 'Morning Movement',
-      detail: 'Prepare for today\'s training',
+      eyebrow: 'WARM-UP',
+      label: 'Warm-Up',
+      detail: 'Dynamic prep for today\'s training',
       priority: 75,
     })
   } else if (
@@ -304,7 +304,7 @@ export const getAthleteHomeState = ({
     primary = buildHomeAction({
       id: HOME_ACTION_IDS.RECOVERY_FLOW,
       eyebrow: 'POST-WORKOUT',
-      label: 'Start recovery flow',
+      label: 'Start Cooldown + Recovery',
       detail: completion?.workoutName
         ? `After ${completion.workoutName}`
         : 'Close out today\'s session',
@@ -365,7 +365,7 @@ export const getAthleteHomeState = ({
     secondary.push(
       buildHomeAction({
         id: HOME_ACTION_IDS.RECOVERY_FLOW,
-        label: 'Start recovery flow',
+        label: 'Start Cooldown + Recovery',
         priority: 50,
       }),
     )
@@ -399,7 +399,7 @@ export const getAthleteHomeState = ({
     secondary.push(
       buildHomeAction({
         id: HOME_ACTION_IDS.MORNING_MOVEMENT,
-        label: 'Morning Movement',
+        label: 'Warm-Up',
         priority: 35,
       }),
     )

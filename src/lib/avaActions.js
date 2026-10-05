@@ -66,18 +66,6 @@ const hasTrainingToday = (ctx, dailyState) => {
   )
 }
 
-export const shouldSuggestRecoveryFlowPrep = (ctx, dailyState) => {
-  const { recovery, recoveryFlowDone } = ctx
-
-  if (!hasTrainingToday(ctx, dailyState) || recoveryFlowDone) {
-    return false
-  }
-
-  return (
-    recovery.workoutsThisWeek >= 2 && recovery.recoveryFlowsThisWeek === 0
-  )
-}
-
 export const shouldSuggestMorningMovement = (ctx, dailyState) => {
   const { readiness, mobilityResetDone, now = new Date() } = ctx
 
@@ -189,23 +177,12 @@ export const selectPrimaryAvaAction = (ctx, dailyState) => {
     })
   }
 
-  if (shouldSuggestRecoveryFlowPrep(ctx, dailyState)) {
-    return buildAction({
-      type: AVA_ACTION_TYPES.RECOVERY_FLOW,
-      focusAction: FOCUS_ACTIONS.BEGIN_RECOVERY,
-      eyebrow: 'RECOVERY',
-      label: 'Start Recovery Flow',
-      detail: null,
-      meta: { flowId: 'recovery-flow' },
-    })
-  }
-
   if (shouldSuggestMorningMovement(ctx, dailyState)) {
     return buildAction({
       type: AVA_ACTION_TYPES.MORNING_MOVEMENT,
       focusAction: FOCUS_ACTIONS.BEGIN_RECOVERY,
-      eyebrow: 'MOVEMENT',
-      label: 'Start Morning Movement',
+      eyebrow: 'WARM-UP',
+      label: 'Start Warm-Up',
       detail: null,
       meta: { flowId: 'daily-reset' },
     })
@@ -312,7 +289,7 @@ export const selectSecondaryAvaAction = (ctx, dailyState, primaryAction) => {
       type: AVA_ACTION_TYPES.MORNING_MOVEMENT,
       focusAction: FOCUS_ACTIONS.BEGIN_RECOVERY,
       eyebrow: null,
-      label: 'Morning Movement',
+      label: 'Warm-Up',
       detail: null,
       meta: { flowId: 'daily-reset' },
     })

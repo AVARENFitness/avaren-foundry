@@ -6,6 +6,7 @@ import {
   isRecoveryFlowCompletion,
   mobilityKindCompletedToday,
   resolveDailyAthleteFlow,
+  resolveMobilityCompletionKind,
   withMorningMovementSkippedForToday,
 } from './dailyAthleteFlow'
 import { createNutritionState } from './nutrition'
@@ -77,6 +78,25 @@ describe('dailyAthleteFlow', () => {
         title: 'Morning Movement',
       }),
     ).toBe(true)
+    expect(
+      isMorningMovementFlowCompletion({
+        flowId: 'daily-reset-2026-08-07',
+        title: 'Warm-Up',
+        kind: 'warm_up',
+      }),
+    ).toBe(true)
+    expect(
+      isRecoveryFlowCompletion({
+        flowId: 'recovery-session-2',
+        title: 'Cooldown + Recovery',
+      }),
+    ).toBe(true)
+    expect(
+      resolveMobilityCompletionKind({
+        id: 'daily-reset-2026-08-07',
+        title: 'Warm-Up',
+      }),
+    ).toBe('warm_up')
   })
 
   it('prioritizes check-in when readiness is due', () => {

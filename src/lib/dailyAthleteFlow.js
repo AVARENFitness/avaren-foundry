@@ -35,9 +35,9 @@ const isSameLocalDay = (isoOrDate, now = new Date()) => {
 export const isMorningMovementFlowCompletion = (entry = {}) => {
   const flowId = String(entry?.flowId ?? entry?.id ?? '')
   const title = String(entry?.title ?? '')
-  if (entry?.kind === 'morning_movement') return true
+  if (entry?.kind === 'warm_up' || entry?.kind === 'morning_movement') return true
   if (flowId === 'daily-reset' || flowId.startsWith('daily-reset-')) return true
-  if (/morning movement/i.test(title)) return true
+  if (/warm-?up|morning movement/i.test(title)) return true
   return false
 }
 
@@ -46,7 +46,7 @@ export const isRecoveryFlowCompletion = (entry = {}) => {
   const title = String(entry?.title ?? '')
   if (entry?.kind === 'recovery') return true
   if (flowId === 'recovery-flow' || flowId.startsWith('recovery-')) return true
-  if (/^recovery flow$/i.test(title)) return true
+  if (/^(recovery flow|cooldown \+ recovery)$/i.test(title)) return true
   // Legacy writer title from buildRecoveryFlow before title normalization.
   if (/^daily reset$/i.test(title) && flowId.startsWith('recovery-')) return true
   return false
@@ -123,15 +123,18 @@ export const resolveMobilityCompletionKind = (flow = {}) => {
   ) {
     return 'full_body_stretch'
   }
-  if (flowId.startsWith('recovery') || /^recovery flow$/i.test(title)) {
+  if (
+    flowId.startsWith('recovery') ||
+    /^(recovery flow|cooldown \+ recovery)$/i.test(title)
+  ) {
     return 'recovery'
   }
   if (
     flowId === 'daily-reset' ||
     flowId.startsWith('daily-reset-') ||
-    /morning movement/i.test(title)
+    /warm-?up|morning movement/i.test(title)
   ) {
-    return 'morning_movement'
+    return 'warm_up'
   }
   return 'mobility'
 }

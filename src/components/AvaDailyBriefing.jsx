@@ -1,4 +1,4 @@
-import { ArrowRight, Dumbbell, Sparkles } from 'lucide-react'
+import { ArrowRight, ChevronDown, ChevronUp, Dumbbell, Sparkles } from 'lucide-react'
 import { useState } from 'react'
 import { AVA_ACTION_TYPES } from '../lib/avaActions'
 import AvaWhySheet from './AvaWhySheet'
@@ -19,8 +19,16 @@ export default function AvaDailyBriefing({
   onOpenWhy,
   onAskAva,
   contextOnly = false,
+  collapsible = false,
+  collapseStorageKey = null,
 }) {
   const [showWhy, setShowWhy] = useState(false)
+  const [collapsed, setCollapsed] = useState(() => {
+    if (!collapsible || !collapseStorageKey || typeof window === 'undefined') {
+      return false
+    }
+    return window.localStorage.getItem(collapseStorageKey) === '1'
+  })
 
   if (!briefing) return null
 
@@ -32,6 +40,45 @@ export default function AvaDailyBriefing({
   const primary = briefing.primaryAction
   const secondary = briefing.secondaryAction
   const watch = briefing.watchItem
+  const contextAction = contextOnly
+    ? [primary, secondary].find((action) =>
+        [
+          AVA_ACTION_TYPES.MORNING_MOVEMENT,
+          AVA_ACTION_TYPES.RECOVERY_FLOW,
+        ].includes(action?.type),
+      )
+    : null
+
+  const setCollapsedPersisted = (nextValue) => {
+    setCollapsed(nextValue)
+    if (collapseStorageKey && typeof window !== 'undefined') {
+      window.localStorage.setItem(collapseStorageKey, nextValue ? '1' : '0')
+    }
+  }
+
+  if (contextOnly && collapsible && collapsed) {
+    return (
+      <section className="ava-daily-briefing ava-daily-briefing--context ava-daily-briefing--collapsed">
+        <div className="ava-daily-briefing-collapsed-copy">
+          <span className="ava-daily-briefing-mark">
+            <Sparkles size={16} strokeWidth={1.75} />
+          </span>
+          <div className="ava-daily-briefing-heading-copy">
+            <span className="eyebrow">AVA</span>
+            <strong>Today&apos;s insight</strong>
+          </div>
+        </div>
+        <button
+          type="button"
+          className="ava-daily-briefing-collapse-toggle"
+          onClick={() => setCollapsedPersisted(false)}
+          aria-label="Expand AVA insight"
+        >
+          <ChevronDown size={17} strokeWidth={1.75} />
+        </button>
+      </section>
+    )
+  }
 
   return (
     <>
@@ -49,6 +96,16 @@ export default function AvaDailyBriefing({
             )}
             <h2>{briefing.headline}</h2>
           </div>
+          {contextOnly && collapsible ? (
+            <button
+              type="button"
+              className="ava-daily-briefing-collapse-toggle"
+              onClick={() => setCollapsedPersisted(true)}
+              aria-label="Collapse AVA insight"
+            >
+              <ChevronUp size={17} strokeWidth={1.75} />
+            </button>
+          ) : null}
         </header>
 
         {briefing.summary && (
@@ -87,6 +144,17 @@ export default function AvaDailyBriefing({
             <ArrowRight size={15} />
           </button>
         )}
+
+        {contextAction?.label ? (
+          <button
+            type="button"
+            className="ava-daily-briefing-context-action"
+            onClick={() => onAction?.(contextAction)}
+          >
+            {contextAction.label}
+            <ArrowRight size={15} />
+          </button>
+        ) : null}
 
         {watch && (
           <div className="ava-daily-briefing-watch">
