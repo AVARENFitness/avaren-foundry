@@ -199,7 +199,7 @@ export default function CoachScheduleSessionSheet({
       >
         <header className="coach-schedule-session-sheet-header">
           <div>
-            <h2 id={titleId}>Schedule appointment</h2>
+            <h2 id={titleId}>Personal training</h2>
           </div>
           <AppUiCloseButton onClick={onClose} />
         </header>
@@ -278,7 +278,7 @@ export default function CoachScheduleSessionSheet({
                 ref={dateInputRef}
                 type="date"
                 className="coach-schedule-date-input"
-                aria-label="Appointment date"
+                aria-label="Personal training date"
                 value={draft.sessionDate}
                 min={todayKey}
                 onChange={(event) =>
@@ -741,10 +741,10 @@ export default function CoachScheduleSessionSheet({
           <button
             type="button"
             className="gold-button machined coach-primary-action"
-            disabled={submitting || !draft.athleteId}
+            disabled={submitting || (!draft.businessClientId && !draft.athleteId)}
             onClick={handleSubmit}
           >
-            {submitting ? 'Saving…' : 'Save appointment'}
+            {submitting ? 'Saving…' : 'Save personal training'}
           </button>
         </footer>
       </section>
