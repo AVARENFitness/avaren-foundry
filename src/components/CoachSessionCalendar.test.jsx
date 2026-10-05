@@ -221,12 +221,24 @@ describe('CoachSessionCalendar usability', () => {
     )
   })
 
-  it('keeps schedule action available', async () => {
+  it('uses one Add menu for personal training and private events', async () => {
+    const user = userEvent.setup()
     render(<CoachSessionCalendar clients={[jake]} assignments={[]} />)
 
-    await waitFor(() => {
-      expect(screen.getByTestId('coach-schedule-session-button')).toBeInTheDocument()
-    })
+    const addButton = await screen.findByTestId('coach-calendar-add-trigger')
+    expect(screen.queryByText('Client appointment')).not.toBeInTheDocument()
+
+    await user.click(addButton)
+
+    expect(screen.getByTestId('coach-add-personal-training')).toBeInTheDocument()
+    expect(screen.getByTestId('coach-add-private-event-button')).toBeInTheDocument()
+
+    await user.click(screen.getByTestId('coach-add-personal-training'))
+
+    const sheet = await screen.findByTestId('coach-schedule-session-sheet')
+    expect(
+      within(sheet).getByRole('heading', { name: /personal training/i }),
+    ).toBeInTheDocument()
   })
 
   it('opens canonical detail when appointment row is tapped', async () => {
@@ -324,10 +336,8 @@ describe('CoachSessionCalendar usability', () => {
 
     render(<CoachSessionCalendar clients={[jake]} assignments={[]} />)
 
-    await waitFor(() => {
-      expect(screen.getByTestId('coach-add-private-event-button')).toBeInTheDocument()
-    })
-
+    const addButton = await screen.findByTestId('coach-calendar-add-trigger')
+    await user.click(addButton)
     await user.click(screen.getByTestId('coach-add-private-event-button'))
     const sheet = await screen.findByTestId('coach-calendar-event-sheet')
 
