@@ -1,11 +1,22 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { coachBackend } from '../../lib/coachBackend'
+import { athleteCalendarBackend } from '../../lib/athleteCalendarEvents'
 import {
   AVA_COACH_CALENDAR_COMMAND_KIND,
   executeCoachCalendarCommand,
   inferCoachTimeRange,
   parseCoachCalendarCommand,
 } from './avaCoachCalendarActions'
+
+vi.mock('../../lib/athleteCalendarEvents', async () => {
+  const actual = await vi.importActual('../../lib/athleteCalendarEvents')
+  return {
+    ...actual,
+    athleteCalendarBackend: {
+      list: vi.fn(),
+    },
+  }
+})
 
 vi.mock('../../lib/coachBackend', () => ({
   coachBackend: {
@@ -21,6 +32,7 @@ const now = new Date('2026-10-04T22:00:00-04:00')
 describe('AVA coach calendar actions', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    athleteCalendarBackend.list.mockResolvedValue([])
     coachBackend.listScheduledSessions.mockResolvedValue([])
     coachBackend.listCoachCalendarEvents.mockResolvedValue([])
     coachBackend.createCoachCalendarEvent.mockResolvedValue({ id: 'event-1' })
@@ -101,6 +113,10 @@ describe('AVA coach calendar actions', () => {
       endDate: '2026-10-07',
     })
     expect(coachBackend.listCoachCalendarEvents).toHaveBeenCalledWith({
+      startDate: '2026-10-07',
+      endDate: '2026-10-07',
+    })
+    expect(athleteCalendarBackend.list).toHaveBeenCalledWith({
       startDate: '2026-10-07',
       endDate: '2026-10-07',
     })
