@@ -622,6 +622,45 @@ export default function CoachSessionCalendar({
     setAnchor(next)
   }
 
+  const shiftCalendarPeriod = (delta) => {
+    if (viewMode === COACH_CALENDAR_VIEW.MONTH) {
+      shiftMonth(delta)
+      return
+    }
+    if (viewMode === COACH_CALENDAR_VIEW.WEEK) {
+      setAnchor(addDays(anchor, delta * 7))
+      return
+    }
+    shiftSelectedDay(delta)
+  }
+
+  const goToTodayInCurrentView = () => {
+    const current = new Date()
+    setAnchor(current)
+    setSelectedDayKey(dateKey(current))
+  }
+
+  const periodHeading =
+    viewMode === COACH_CALENDAR_VIEW.MONTH
+      ? monthHeading
+      : viewMode === COACH_CALENDAR_VIEW.WEEK
+        ? weekHeading
+        : dayHeading
+
+  const previousPeriodLabel =
+    viewMode === COACH_CALENDAR_VIEW.MONTH
+      ? 'Previous month'
+      : viewMode === COACH_CALENDAR_VIEW.WEEK
+        ? 'Previous week'
+        : 'Previous day'
+
+  const nextPeriodLabel =
+    viewMode === COACH_CALENDAR_VIEW.MONTH
+      ? 'Next month'
+      : viewMode === COACH_CALENDAR_VIEW.WEEK
+        ? 'Next week'
+        : 'Next day'
+
   const dayItemsByKey = useMemo(() => {
     const groups = {}
     scheduleItems.forEach((item) => {
@@ -636,184 +675,124 @@ export default function CoachSessionCalendar({
     <section className="coach-session-calendar-screen">
       <header className="coach-session-calendar-header">
         <div className="coach-session-calendar-title-row">
-          <h1>Calendar</h1>
-          <div className="coach-session-calendar-create-actions">
-            <div className="coach-calendar-add-menu-wrap">
-              <button
-                type="button"
-                className="gold-button machined coach-primary-action coach-calendar-add-trigger"
-                data-testid="coach-calendar-add-trigger"
-                aria-expanded={showAddMenu}
-                aria-haspopup="menu"
-                onClick={() => setShowAddMenu((current) => !current)}
-              >
-                <Plus {...ICON} />
-                Add
-                <ChevronDown size={15} strokeWidth={1.8} aria-hidden="true" />
-              </button>
+          <div>
+            <span className="eyebrow">SCHEDULE</span>
+            <h1>Calendar</h1>
+          </div>
 
-              {showAddMenu ? (
-                <div
-                  className="coach-calendar-add-menu"
-                  role="menu"
-                  data-testid="coach-calendar-add-menu"
+          <div className="coach-calendar-add-menu-wrap">
+            <button
+              type="button"
+              className="gold-button machined coach-primary-action coach-calendar-add-trigger"
+              data-testid="coach-calendar-add-trigger"
+              aria-expanded={showAddMenu}
+              aria-haspopup="menu"
+              onClick={() => setShowAddMenu((current) => !current)}
+            >
+              <Plus {...ICON} />
+              Add
+              <ChevronDown size={15} strokeWidth={1.8} aria-hidden="true" />
+            </button>
+
+            {showAddMenu ? (
+              <div
+                className="coach-calendar-add-menu"
+                role="menu"
+                data-testid="coach-calendar-add-menu"
+              >
+                <button
+                  type="button"
+                  role="menuitem"
+                  data-testid="coach-add-personal-training"
+                  onClick={openScheduleComposer}
                 >
-                  <button
-                    type="button"
-                    role="menuitem"
-                    data-testid="coach-add-personal-training"
-                    onClick={openScheduleComposer}
-                  >
-                    <span>
-                      <strong>Personal training</strong>
-                      <small>Choose client, date, time, and duration</small>
-                    </span>
-                  </button>
-                  <button
-                    type="button"
-                    role="menuitem"
-                    data-testid="coach-add-private-event-button"
-                    onClick={openPrivateEventComposer}
-                  >
-                    <span>
-                      <strong>Private event</strong>
-                      <small>Block off personal, admin, or meeting time</small>
-                    </span>
-                  </button>
-                </div>
-              ) : null}
-            </div>
+                  <span>
+                    <strong>Personal training</strong>
+                    <small>Client, date, time, and duration</small>
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  data-testid="coach-add-private-event-button"
+                  onClick={openPrivateEventComposer}
+                >
+                  <span>
+                    <strong>Private event</strong>
+                    <small>Personal, admin, meeting, or unavailable time</small>
+                  </span>
+                </button>
+              </div>
+            ) : null}
           </div>
         </div>
 
-        <div
-          className="coach-session-calendar-view-toggle"
-          role="tablist"
-          aria-label="Calendar view"
-        >
+        <div className="coach-calendar-command-bar">
+          <div
+            className="coach-session-calendar-view-toggle"
+            role="tablist"
+            aria-label="Calendar view"
+          >
+            <button
+              type="button"
+              role="tab"
+              aria-selected={viewMode === COACH_CALENDAR_VIEW.MONTH}
+              className={viewMode === COACH_CALENDAR_VIEW.MONTH ? 'active' : ''}
+              data-testid="coach-calendar-view-month"
+              onClick={() => setViewMode(COACH_CALENDAR_VIEW.MONTH)}
+            >
+              Month
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={viewMode === COACH_CALENDAR_VIEW.WEEK}
+              className={viewMode === COACH_CALENDAR_VIEW.WEEK ? 'active' : ''}
+              data-testid="coach-calendar-view-week"
+              onClick={() => setViewMode(COACH_CALENDAR_VIEW.WEEK)}
+            >
+              Week
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={viewMode === COACH_CALENDAR_VIEW.DAY}
+              className={viewMode === COACH_CALENDAR_VIEW.DAY ? 'active' : ''}
+              data-testid="coach-calendar-view-day"
+              onClick={() => setViewMode(COACH_CALENDAR_VIEW.DAY)}
+            >
+              Day
+            </button>
+          </div>
+
+          <div className="coach-calendar-period-control">
+            <button
+              type="button"
+              aria-label={previousPeriodLabel}
+              onClick={() => shiftCalendarPeriod(-1)}
+            >
+              <ChevronLeft {...ICON} />
+            </button>
+            <strong>{periodHeading}</strong>
+            <button
+              type="button"
+              aria-label={nextPeriodLabel}
+              onClick={() => shiftCalendarPeriod(1)}
+            >
+              <ChevronRight {...ICON} />
+            </button>
+          </div>
+
           <button
             type="button"
-            role="tab"
-            aria-selected={viewMode === COACH_CALENDAR_VIEW.MONTH}
-            className={viewMode === COACH_CALENDAR_VIEW.MONTH ? 'active' : ''}
-            data-testid="coach-calendar-view-month"
-            onClick={() => setViewMode(COACH_CALENDAR_VIEW.MONTH)}
+            className="coach-calendar-today-control"
+            data-testid="coach-calendar-jump-today"
+            onClick={goToTodayInCurrentView}
           >
-            Month
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={viewMode === COACH_CALENDAR_VIEW.WEEK}
-            className={viewMode === COACH_CALENDAR_VIEW.WEEK ? 'active' : ''}
-            data-testid="coach-calendar-view-week"
-            onClick={() => setViewMode(COACH_CALENDAR_VIEW.WEEK)}
-          >
-            Week
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={viewMode === COACH_CALENDAR_VIEW.DAY}
-            className={viewMode === COACH_CALENDAR_VIEW.DAY ? 'active' : ''}
-            data-testid="coach-calendar-view-day"
-            onClick={() => setViewMode(COACH_CALENDAR_VIEW.DAY)}
-          >
-            Day
+            Today
           </button>
         </div>
       </header>
-
-      {viewMode === COACH_CALENDAR_VIEW.MONTH ? (
-        <div className="coach-session-calendar-nav">
-          <div className="coach-session-calendar-toolbar coach-session-calendar-period-toolbar">
-            <button
-              type="button"
-              aria-label="Previous month"
-              onClick={() => shiftMonth(-1)}
-            >
-              <ChevronLeft {...ICON} />
-            </button>
-            <strong>{monthHeading}</strong>
-            <button
-              type="button"
-              aria-label="Next month"
-              onClick={() => shiftMonth(1)}
-            >
-              <ChevronRight {...ICON} />
-            </button>
-          </div>
-          <button
-            type="button"
-            className="coach-secondary-button coach-session-calendar-today"
-            onClick={() => {
-              const current = new Date()
-              setAnchor(current)
-              setSelectedDayKey(todayKey)
-            }}
-          >
-            Today
-          </button>
-        </div>
-      ) : viewMode === COACH_CALENDAR_VIEW.DAY ? (
-        <div className="coach-session-calendar-nav">
-          <div className="coach-session-calendar-toolbar">
-            <button
-              type="button"
-              aria-label="Previous day"
-              onClick={() => shiftSelectedDay(-1)}
-            >
-              <ChevronLeft {...ICON} />
-            </button>
-            <strong>{dayHeading}</strong>
-            <button
-              type="button"
-              aria-label="Next day"
-              onClick={() => shiftSelectedDay(1)}
-            >
-              <ChevronRight {...ICON} />
-            </button>
-          </div>
-          {selectedDayKey !== todayKey ? (
-            <button
-              type="button"
-              className="coach-secondary-button coach-session-calendar-today"
-              data-testid="coach-calendar-jump-today"
-              onClick={jumpToToday}
-            >
-              Today
-            </button>
-          ) : null}
-        </div>
-      ) : (
-        <div className="coach-session-calendar-nav">
-          <div className="coach-session-calendar-toolbar">
-            <button
-              type="button"
-              aria-label="Previous week"
-              onClick={() => setAnchor(addDays(anchor, -7))}
-            >
-              <ChevronLeft {...ICON} />
-            </button>
-            <strong>{weekHeading}</strong>
-            <button
-              type="button"
-              aria-label="Next week"
-              onClick={() => setAnchor(addDays(anchor, 7))}
-            >
-              <ChevronRight {...ICON} />
-            </button>
-          </div>
-          <button
-            type="button"
-            className="coach-secondary-button coach-session-calendar-today"
-            data-testid="coach-calendar-jump-today"
-            onClick={jumpToToday}
-          >
-            Today
-          </button>
-        </div>
-      )}
 
       {viewMode === COACH_CALENDAR_VIEW.MONTH ? (
         <section className="coach-calendar-month-view" data-testid="coach-calendar-month-grid">
