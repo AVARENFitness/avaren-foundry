@@ -22124,3 +22124,302 @@ body > .nutrition-food-sheet-backdrop > .nutrition-food-sheet {
     grid-template-columns: minmax(96px,1fr) 1fr 1fr;
   }
 }
+
+
+/* ===== AVA COACH INTELLIGENCE M1 · DAILY COACH BRIEF ===== */
+.coach-ava-daily-brief {
+  display: grid;
+  gap: 14px;
+  margin: 2px 0 18px;
+  padding: 17px;
+  border: 1px solid rgba(216,184,109,.12);
+  border-radius: 20px;
+  background:
+    radial-gradient(circle at 0% 0%, rgba(216,184,109,.07), transparent 34%),
+    rgba(255,255,255,.018);
+  box-shadow: 0 18px 55px rgba(0,0,0,.12);
+}
+
+.coach-ava-daily-brief-header,
+.coach-ava-daily-brief-title,
+.coach-ava-brief-section-label,
+.coach-ava-wins > summary,
+.coach-ava-brief-item,
+.coach-ava-prep-card small,
+.coach-ava-brief-loading {
+  display: flex;
+  align-items: center;
+}
+
+.coach-ava-daily-brief-header {
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.coach-ava-daily-brief-title {
+  gap: 10px;
+}
+
+.coach-ava-mark {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid rgba(216,184,109,.22);
+  border-radius: 12px;
+  background: rgba(216,184,109,.075);
+  color: #dec982;
+}
+
+.coach-ava-daily-brief-title h2 {
+  margin: 3px 0 0;
+  font-size: 18px;
+  letter-spacing: -.025em;
+}
+
+.coach-ava-refresh {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border: 1px solid rgba(246,242,233,.07);
+  border-radius: 13px;
+  background: rgba(255,255,255,.018);
+  color: #948c82;
+}
+
+.coach-ava-refresh:disabled {
+  opacity: .6;
+}
+
+.coach-ava-refresh .spinning {
+  animation: coach-ava-spin .9s linear infinite;
+}
+
+@keyframes coach-ava-spin {
+  to { transform: rotate(360deg); }
+}
+
+.coach-ava-daily-brief-lead {
+  display: grid;
+  gap: 5px;
+  padding: 2px 2px 0;
+}
+
+.coach-ava-daily-brief-lead > strong {
+  color: #eee5d8;
+  font-size: clamp(17px,2vw,21px);
+  letter-spacing: -.025em;
+}
+
+.coach-ava-daily-brief-lead p {
+  max-width: 760px;
+  margin: 0;
+  color: #9c948a;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.coach-ava-brief-section {
+  display: grid;
+  gap: 8px;
+}
+
+.coach-ava-brief-section-label {
+  justify-content: space-between;
+  min-height: 24px;
+}
+
+.coach-ava-brief-section-label > span {
+  color: #8d867d;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: .14em;
+}
+
+.coach-ava-brief-section-label > small,
+.coach-ava-wins > summary > small {
+  display: grid;
+  place-items: center;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: rgba(216,184,109,.06);
+  color: #bfae73;
+  font-size: 10px;
+  font-weight: 850;
+}
+
+.coach-ava-brief-list {
+  display: grid;
+  gap: 7px;
+}
+
+.coach-ava-brief-item {
+  justify-content: space-between;
+  gap: 14px;
+  min-height: 62px;
+  padding: 10px 11px 10px 13px;
+  border: 1px solid rgba(246,242,233,.06);
+  border-radius: 15px;
+  background: rgba(255,255,255,.014);
+}
+
+.coach-ava-brief-item--attention {
+  border-left: 2px solid rgba(216,184,109,.45);
+}
+
+.coach-ava-brief-item > div {
+  min-width: 0;
+}
+
+.coach-ava-brief-item strong,
+.coach-ava-prep-card strong {
+  display: block;
+  color: #e7ded1;
+  font-size: 13px;
+}
+
+.coach-ava-brief-item p {
+  margin: 4px 0 0;
+  color: #958d84;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.coach-ava-brief-item > button {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 40px;
+  padding: 0 10px;
+  border: 1px solid rgba(216,184,109,.13);
+  border-radius: 11px;
+  background: rgba(216,184,109,.035);
+  color: #d4bf7d;
+  font-size: 11px;
+  font-weight: 850;
+}
+
+.coach-ava-prep-strip {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(220px, 1fr);
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  scrollbar-width: none;
+}
+
+.coach-ava-prep-strip::-webkit-scrollbar {
+  display: none;
+}
+
+.coach-ava-prep-card {
+  display: grid;
+  gap: 7px;
+  min-height: 112px;
+  padding: 13px;
+  border: 1px solid rgba(246,242,233,.065);
+  border-radius: 15px;
+  background: rgba(255,255,255,.016);
+  color: inherit;
+  text-align: left;
+}
+
+.coach-ava-prep-card > span {
+  color: #978f85;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.coach-ava-prep-card small {
+  align-self: end;
+  gap: 5px;
+  color: #c7b578;
+  font-size: 10px;
+  font-weight: 850;
+}
+
+.coach-ava-wins {
+  overflow: hidden;
+  border-top: 1px solid rgba(246,242,233,.055);
+  padding-top: 4px;
+}
+
+.coach-ava-wins > summary {
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 40px;
+  cursor: pointer;
+  list-style: none;
+  color: #a39b91;
+}
+
+.coach-ava-wins > summary::-webkit-details-marker {
+  display: none;
+}
+
+.coach-ava-wins > summary > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.coach-ava-wins[open] > summary > span {
+  color: #d3bf7c;
+}
+
+.coach-ava-wins > div {
+  display: grid;
+  gap: 6px;
+  padding-top: 6px;
+}
+
+.coach-ava-wins article {
+  display: grid;
+  gap: 3px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: rgba(255,255,255,.012);
+}
+
+.coach-ava-wins article strong {
+  color: #d7cfc4;
+  font-size: 11px;
+}
+
+.coach-ava-wins article span {
+  color: #8f887f;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.coach-ava-brief-loading {
+  gap: 6px;
+  color: #8e856f;
+  font-size: 10px;
+}
+
+@media (max-width: 700px) {
+  .coach-ava-daily-brief {
+    padding: 14px;
+    border-radius: 18px;
+  }
+
+  .coach-ava-brief-item {
+    align-items: flex-start;
+  }
+
+  .coach-ava-brief-item > button {
+    min-height: 42px;
+  }
+
+  .coach-ava-prep-strip {
+    grid-auto-columns: minmax(205px, 82%);
+  }
+}

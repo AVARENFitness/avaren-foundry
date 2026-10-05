@@ -32,7 +32,8 @@ import {
   normalizeScheduledSession,
   sortScheduledSessions,
 } from '../../lib/coachScheduledSessions'
-import CoachAttentionQueue from './CoachAttentionQueue'
+import CoachAvaDailyBrief from './CoachAvaDailyBrief'
+import { buildCoachDailyBriefPacket } from '../../lib/coachDailyBrief'
 import CoachClientCard from './CoachClientCard'
 import CoachTodaySchedule from './CoachTodaySchedule'
 import CoachSessionDetailHost from './CoachSessionDetailHost'
@@ -87,6 +88,7 @@ export default function CoachCommandCenter({
   const [lastCompletedByBusinessClientId, setLastCompletedByBusinessClientId] =
     useState({})
   const [todaySessionCount, setTodaySessionCount] = useState(0)
+  const [todaySessions, setTodaySessions] = useState([])
 
   const hero = portfolio?.hero
   const passSummaryByBusinessClientId = useMemo(
@@ -123,6 +125,23 @@ export default function CoachCommandCenter({
   )
   const attentionItems = attentionResult.hubItems
   const attentionCount = attentionItems.length
+  const coachDailyBriefPacket = useMemo(
+    () =>
+      buildCoachDailyBriefPacket({
+        attentionItems: attentionResult.items,
+        wins: portfolio?.wins ?? [],
+        todaySessions,
+        clients,
+        rosterEntries: portfolio?.rosterEntries ?? [],
+      }),
+    [
+      attentionResult.items,
+      portfolio?.wins,
+      portfolio?.rosterEntries,
+      todaySessions,
+      clients,
+    ],
+  )
   const leadFollowUpCount = useMemo(
     () => leads.filter((lead) => isLeadFollowUpDue(lead)).length,
     [leads],
@@ -182,15 +201,16 @@ export default function CoachCommandCenter({
       setLastCompletedByBusinessClientId(
         buildLastCompletedByBusinessClientId(normalizedCadence),
       )
-      setTodaySessionCount(
-        sortScheduledSessions(
-          (todayRows ?? []).map(normalizeScheduledSession).filter(Boolean),
-        ).length,
+      const normalizedToday = sortScheduledSessions(
+        (todayRows ?? []).map(normalizeScheduledSession).filter(Boolean),
       )
+      setTodaySessions(normalizedToday)
+      setTodaySessionCount(normalizedToday.length)
     } catch {
       setUpcomingByBusinessClientId({})
       setRecentMissedByBusinessClientId({})
       setLastCompletedByBusinessClientId({})
+      setTodaySessions([])
       setTodaySessionCount(0)
     }
   }, [])
@@ -341,6 +361,12 @@ export default function CoachCommandCenter({
                 </div>
               </section>
 
+              <CoachAvaDailyBrief
+                packet={coachDailyBriefPacket}
+                clients={clients}
+                onOpenClient={onSelectClient}
+              />
+
               <CoachTodaySchedule
                 clients={clients}
                 passSummaryByBusinessClientId={passSummaryByBusinessClientId}
@@ -354,19 +380,6 @@ export default function CoachCommandCenter({
                 refreshSignal={hubScheduleRefresh}
               />
 
-              <CoachAttentionQueue
-                items={attentionItems}
-                totalCount={attentionResult.meta.totalCandidates}
-                onViewClient={onSelectClient}
-                onViewAll={() => {
-                  onNavigateCoachScreen?.('clients')
-                  setRosterFilter(ROSTER_HUB_FILTER.ATTENTION)
-                }}
-                onLeadFollowUp={
-                  leadFollowUpCount > 0 ? onOpenLead : null
-                }
-                leadFollowUpCount={leadFollowUpCount}
-              />
             </>
           ) : null}
 
