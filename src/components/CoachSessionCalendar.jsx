@@ -209,6 +209,17 @@ export default function CoachSessionCalendar({
   }, [loadSessions])
 
   useEffect(() => {
+    const refreshFromAva = () => {
+      void loadSessions()
+    }
+
+    window.addEventListener('avaren:coach-calendar-updated', refreshFromAva)
+    return () => {
+      window.removeEventListener('avaren:coach-calendar-updated', refreshFromAva)
+    }
+  }, [loadSessions])
+
+  useEffect(() => {
     const refetchOnFocus = () => {
       if (document.visibilityState === 'visible') {
         loadSessions()
