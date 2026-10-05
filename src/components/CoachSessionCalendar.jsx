@@ -64,6 +64,11 @@ import {
   createCoachCalendarEventDraft,
   normalizeCoachCalendarEvent,
 } from '../lib/coachCalendarEvents'
+import {
+  athleteCalendarBackend,
+  athleteCalendarEventCategoryLabel,
+  normalizeAthleteCalendarEvent,
+} from '../lib/athleteCalendarEvents'
 
 const ICON = { size: 18, strokeWidth: 1.75 }
 const DAY_MS = 86400000
@@ -174,14 +179,16 @@ export default function CoachSessionCalendar({
     const startDate = dateKey(addDays(anchor, -42))
     const endDate = addDaysKey(startDate, 168)
     try {
-      const [sessionRows, eventRows] = await Promise.all([
+      const [sessionRows, eventRows, personalRows] = await Promise.all([
         coachBackend.listScheduledSessions({ startDate, endDate }),
         coachBackend.listCoachCalendarEvents({ startDate, endDate }),
+        athleteCalendarBackend.list({ startDate, endDate }),
       ])
       setSessions(sessionRows.map(normalizeScheduledSession).filter(Boolean))
-      setCalendarEvents(
-        eventRows.map(normalizeCoachCalendarEvent).filter(Boolean),
-      )
+      setCalendarEvents([
+        ...eventRows.map(normalizeCoachCalendarEvent).filter(Boolean),
+        ...personalRows.map(normalizeAthleteCalendarEvent).filter(Boolean),
+      ])
     } catch (error) {
       if (
         !/coach_scheduled_sessions|coach_calendar_events|migration|does not exist/i.test(
@@ -387,7 +394,7 @@ export default function CoachSessionCalendar({
     return (
       <div className="coach-session-calendar-list">
         {items.map((session) =>
-          session.isCoachPrivateEvent ? (
+          session.isCoachPrivateEvent || session.isAthletePrivateEvent ? (
             <button
               key={session.id}
               type="button"
@@ -401,7 +408,11 @@ export default function CoachSessionCalendar({
                 })
                 if (!confirmed) return
                 try {
-                  await coachBackend.deleteCoachCalendarEvent(session.id)
+                  if (session.isAthletePrivateEvent) {
+                    await athleteCalendarBackend.remove(session.id)
+                  } else {
+                    await coachBackend.deleteCoachCalendarEvent(session.id)
+                  }
                   await loadSessions()
                 } catch (error) {
                   appUi.toast(error.message ?? 'Could not remove event.', 'error')
@@ -413,7 +424,9 @@ export default function CoachSessionCalendar({
                   {formatTime12Hour(session.startTime)} · {session.title}
                 </strong>
                 <span>
-                  {coachCalendarEventCategoryLabel(session)}
+                  {session.isAthletePrivateEvent
+                    ? athleteCalendarEventCategoryLabel(session)
+                    : coachCalendarEventCategoryLabel(session)}
                   {session.locationName ? ` · ${session.locationName}` : ''}
                 </span>
               </div>
@@ -816,7 +829,9 @@ export default function CoachSessionCalendar({
             {monthDays.map(({ date, key, inCurrentMonth }) => {
               const items = dayItemsByKey[key] ?? []
               const isToday = key === todayKey
-              const clientCount = items.filter((item) => !item.isCoachPrivateEvent).length
+              const clientCount = items.filter(
+                (item) => !item.isCoachPrivateEvent && !item.isAthletePrivateEvent,
+              ).length
               const privateCount = items.length - clientCount
               return (
                 <button
@@ -835,7 +850,7 @@ export default function CoachSessionCalendar({
                     {items.slice(0, 3).map((item) => (
                       <span
                         key={item.id}
-                        className={item.isCoachPrivateEvent ? 'is-private' : 'is-client'}
+                        className={item.isCoachPrivateEvent || item.isAthletePrivateEvent ? 'is-private' : 'is-client'}
                       >
                         {item.startTime ? formatTime12Hour(item.startTime).replace(':00', '') : ''}
                         {' '}
@@ -888,7 +903,7 @@ export default function CoachSessionCalendar({
                     <button
                       key={item.id}
                       type="button"
-                      className={`coach-calendar-week-item ${item.isCoachPrivateEvent ? 'is-private' : 'is-client'}`}
+                      className={`coach-calendar-week-item ${item.isCoachPrivateEvent || item.isAthletePrivateEvent ? 'is-private' : 'is-client'}`}
                       onClick={() => {
                         if (item.isCoachPrivateEvent) {
                           setSelectedDayKey(key)
