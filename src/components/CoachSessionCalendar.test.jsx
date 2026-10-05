@@ -7,6 +7,7 @@ import { appUi } from '../lib/appUi'
 import { COACH_CALENDAR_VIEW } from '../lib/coachCalendarUi'
 import { addDaysKey, dateKey } from '../lib/appointmentScheduling'
 import { DEFAULT_COACH_SCHEDULE_TIMEZONE } from '../lib/sessionTimezone'
+import { athleteCalendarBackend } from '../lib/athleteCalendarEvents'
 
 vi.mock('../lib/appUi', () => ({
   appUi: {
@@ -14,6 +15,17 @@ vi.mock('../lib/appUi', () => ({
     confirm: vi.fn(),
   },
 }))
+
+vi.mock('../lib/athleteCalendarEvents', async () => {
+  const actual = await vi.importActual('../lib/athleteCalendarEvents')
+  return {
+    ...actual,
+    athleteCalendarBackend: {
+      list: vi.fn(),
+      remove: vi.fn(),
+    },
+  }
+})
 
 vi.mock('../lib/coachBackend', () => ({
   coachBackend: {
@@ -115,6 +127,8 @@ describe('CoachSessionCalendar usability', () => {
     vi.useFakeTimers({ toFake: ['Date'] })
     vi.setSystemTime(new Date('2026-09-02T16:00:00.000Z')) // Wed in America/New_York
     vi.clearAllMocks()
+    athleteCalendarBackend.list.mockResolvedValue([])
+    athleteCalendarBackend.remove.mockResolvedValue({})
     coachBackend.listScheduledSessions.mockResolvedValue(buildSessionsFixture())
     coachBackend.listCoachCalendarEvents.mockResolvedValue([])
     coachBackend.createCoachCalendarEvent.mockResolvedValue({
