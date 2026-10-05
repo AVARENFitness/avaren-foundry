@@ -145,14 +145,14 @@ describe('CoachSessionCalendar usability', () => {
     vi.useRealTimers()
   })
 
-  it('defaults to Today view with today agenda visible immediately', async () => {
+  it('defaults to Month view for a broad schedule picture', async () => {
     render(<CoachSessionCalendar clients={[jake, sarah]} assignments={[]} />)
 
     await waitFor(() => {
-      expect(screen.getAllByTestId('coach-appointment-card')).toHaveLength(2)
+      expect(screen.getByTestId('coach-calendar-month-grid')).toBeInTheDocument()
     })
 
-    expect(screen.getByTestId('coach-calendar-view-today')).toHaveAttribute(
+    expect(screen.getByTestId('coach-calendar-view-month')).toHaveAttribute(
       'aria-selected',
       'true',
     )
@@ -160,7 +160,7 @@ describe('CoachSessionCalendar usability', () => {
     expect(screen.getByText('Sarah')).toBeInTheDocument()
   })
 
-  it('opens week view in one tap and shows seven day chips with counts', async () => {
+  it('opens week view in one tap and shows a seven-day schedule board', async () => {
     render(<CoachSessionCalendar clients={[jake, sarah]} assignments={[]} />)
 
     await waitFor(() => {
@@ -173,8 +173,35 @@ describe('CoachSessionCalendar usability', () => {
       'aria-selected',
       'true',
     )
-    expect(screen.getAllByRole('tab', { name: /Open|item/i })).toHaveLength(7)
-    expect(screen.getByText('2 items')).toBeInTheDocument()
+    expect(screen.getByTestId('coach-calendar-week-grid')).toBeInTheDocument()
+    expect(screen.getAllByText(/Open|item/i).length).toBeGreaterThanOrEqual(7)
+  })
+
+  it('drills from a month date into the Day view', async () => {
+    render(<CoachSessionCalendar clients={[jake, sarah]} assignments={[]} />)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('coach-calendar-month-grid')).toBeInTheDocument()
+    })
+
+    const todayKey = dateKey(new Date(), DEFAULT_COACH_SCHEDULE_TIMEZONE)
+    const todayDate = new Date(`${todayKey}T12:00:00`)
+    const label = todayDate.toLocaleDateString([], {
+      weekday: 'long',
+      month: 'short',
+      day: 'numeric',
+    })
+
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: new RegExp(label, 'i'),
+      }),
+    )
+
+    expect(screen.getByTestId('coach-calendar-view-day')).toHaveAttribute(
+      'aria-selected',
+      'true',
+    )
   })
 
   it('returns to current local day from Today action', async () => {
@@ -188,7 +215,7 @@ describe('CoachSessionCalendar usability', () => {
     expect(screen.getByTestId('coach-calendar-jump-today')).toBeInTheDocument()
 
     fireEvent.click(screen.getByTestId('coach-calendar-jump-today'))
-    expect(screen.getByTestId('coach-calendar-view-today')).toHaveAttribute(
+    expect(screen.getByTestId('coach-calendar-view-day')).toHaveAttribute(
       'aria-selected',
       'true',
     )
@@ -386,9 +413,10 @@ describe('CoachSessionCalendar usability', () => {
     expect(screen.getByText('Offline Client')).toBeInTheDocument()
   })
 
-  it('exports stable calendar view constants', () => {
-    expect(COACH_CALENDAR_VIEW.TODAY).toBe('today')
+  it('exports stable calendar zoom levels', () => {
+    expect(COACH_CALENDAR_VIEW.MONTH).toBe('month')
     expect(COACH_CALENDAR_VIEW.WEEK).toBe('week')
+    expect(COACH_CALENDAR_VIEW.DAY).toBe('day')
   })
 
   it('creates recurring series through backend RPC when repeat is enabled', async () => {
