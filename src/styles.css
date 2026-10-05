@@ -23289,3 +23289,59 @@ body > .nutrition-food-sheet-backdrop > .nutrition-food-sheet {
     padding-right: 10px !important;
   }
 }
+
+
+/* ===== COACH CALENDAR ADD MENU BOUNDS FIX ===== */
+.coach-session-calendar-title-row,
+.coach-session-calendar-header,
+.coach-session-calendar-screen {
+  min-width: 0;
+}
+
+.coach-session-calendar-create-actions {
+  min-width: 0;
+}
+
+.coach-calendar-add-menu-wrap {
+  position: relative;
+  min-width: 0;
+}
+
+.coach-calendar-add-menu {
+  left: auto;
+  right: 0;
+  max-width: min(320px, calc(100% - 8px));
+  transform: none;
+}
+
+@media (max-width: 900px) {
+  .coach-session-calendar-header {
+    position: relative;
+  }
+
+  .coach-calendar-add-menu-wrap {
+    position: static;
+  }
+
+  .coach-calendar-add-menu {
+    top: calc(100% + 8px);
+    left: 0;
+    right: 0;
+    width: 100%;
+    max-width: none;
+  }
+}
+
+@media (max-width: 560px) {
+  .coach-session-calendar-title-row {
+    gap: 10px;
+  }
+
+  .coach-calendar-add-trigger {
+    flex: 0 0 auto;
+  }
+
+  .coach-calendar-add-menu {
+    border-radius: 12px;
+  }
+}
