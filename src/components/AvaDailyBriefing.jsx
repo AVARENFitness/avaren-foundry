@@ -21,6 +21,7 @@ export default function AvaDailyBriefing({
   contextOnly = false,
   collapsible = false,
   collapseStorageKey = null,
+  contextActionOverride = null,
 }) {
   const [showWhy, setShowWhy] = useState(false)
   const [collapsed, setCollapsed] = useState(() => {
@@ -41,7 +42,8 @@ export default function AvaDailyBriefing({
   const secondary = briefing.secondaryAction
   const watch = briefing.watchItem
   const contextAction = contextOnly
-    ? [primary, secondary].find((action) =>
+    ? contextActionOverride ??
+      [primary, secondary].find((action) =>
         [
           AVA_ACTION_TYPES.MORNING_MOVEMENT,
           AVA_ACTION_TYPES.RECOVERY_FLOW,
@@ -151,8 +153,17 @@ export default function AvaDailyBriefing({
             className="ava-daily-briefing-context-action"
             onClick={() => onAction?.(contextAction)}
           >
-            {contextAction.label}
-            <ArrowRight size={15} />
+            <span className="ava-daily-briefing-context-action-copy">
+              {contextAction.eyebrow ? (
+                <span className="eyebrow">{contextAction.eyebrow}</span>
+              ) : null}
+              <strong>{contextAction.label}</strong>
+              {contextAction.detail ? <small>{contextAction.detail}</small> : null}
+            </span>
+            <span className="ava-daily-briefing-context-action-open">
+              Start
+              <ArrowRight size={15} />
+            </span>
           </button>
         ) : null}
 
