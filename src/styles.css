@@ -22495,3 +22495,92 @@ body > .nutrition-food-sheet-backdrop > .nutrition-food-sheet {
 .ava-daily-briefing-collapsed-copy { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .ava-daily-briefing-collapsed-copy > div { display: grid; gap: 2px; }
 .ava-daily-briefing-collapsed-copy strong { font-size: 0.95rem; line-height: 1.2; }
+
+
+/* ===== COACH UNIFIED CALENDAR ===== */
+.coach-session-calendar-create-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.coach-session-calendar-create-actions > button {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.coach-calendar-private-event {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--text-supporting, #948d84) 24%, transparent);
+  background: color-mix(in srgb, var(--surface-elevated) 92%, var(--gold) 2%);
+  color: var(--text);
+  text-align: left;
+}
+
+.coach-calendar-private-event > div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.coach-calendar-private-event strong {
+  font-size: 0.98rem;
+  color: var(--cream);
+}
+
+.coach-calendar-private-event span {
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+
+.coach-calendar-private-event em {
+  flex-shrink: 0;
+  padding: 4px 8px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--gold) 16%, transparent);
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-style: normal;
+}
+
+.coach-calendar-event-sheet header p {
+  margin: 6px 0 0;
+  max-width: 420px;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.coach-calendar-event-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.coach-calendar-event-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
+  gap: 10px;
+}
+
+@media (max-width: 560px) {
+  .coach-session-calendar-create-actions {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .coach-calendar-event-grid,
+  .coach-calendar-event-actions {
+    grid-template-columns: 1fr;
+  }
+}

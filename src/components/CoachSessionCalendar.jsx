@@ -38,6 +38,7 @@ import RecurrenceScopeDialog from './coach/RecurrenceScopeDialog'
 import CoachSessionDetailSheet from './coach/CoachSessionDetailSheet'
 import CoachAppointmentCard from './coach/CoachAppointmentCard'
 import CoachScheduleSessionSheet from './CoachScheduleSessionSheet'
+import CoachCalendarEventSheet from './CoachCalendarEventSheet'
 import { getClientDisplayName } from '../lib/clientDisplayName'
 import {
   resolveAthleteDataId,
@@ -55,10 +56,15 @@ import {
   buildCoachRsvpAlert,
   isRsvpException,
 } from '../lib/sessionRsvp'
+import {
+  coachCalendarEventCategoryLabel,
+  createCoachCalendarEventDraft,
+  normalizeCoachCalendarEvent,
+} from '../lib/coachCalendarEvents'
 
 const ICON = { size: 18, strokeWidth: 1.75 }
 const DAY_MS = 86400000
-const UPCOMING_HORIZON_DAYS = 56
+const UPCOMING_HORIZON_DAYS = 84
 
 const dateKey = (date) => scheduleDateKey(date, DEFAULT_COACH_SCHEDULE_TIMEZONE)
 const mondayOf = (input) => {
@@ -87,9 +93,15 @@ export default function CoachSessionCalendar({
   const [anchor, setAnchor] = useState(new Date())
   const [selectedDayKey, setSelectedDayKey] = useState(() => dateKey(new Date()))
   const [sessions, setSessions] = useState([])
+  const [calendarEvents, setCalendarEvents] = useState([])
   const [loading, setLoading] = useState(true)
   const [showComposer, setShowComposer] = useState(initialOpenComposer)
+  const [showEventComposer, setShowEventComposer] = useState(false)
   const [scheduling, setScheduling] = useState(false)
+  const [eventSaving, setEventSaving] = useState(false)
+  const [eventDraft, setEventDraft] = useState(() =>
+    createCoachCalendarEventDraft(dateKey(new Date())),
+  )
   const [draft, setDraft] = useState({
     athleteId: '',
     businessClientId: '',
@@ -147,17 +159,27 @@ export default function CoachSessionCalendar({
 
   const loadSessions = useCallback(async () => {
     setLoading(true)
+    const startDate = dateKey(weekDays[0])
+    const endDate = addDaysKey(startDate, UPCOMING_HORIZON_DAYS)
     try {
-      const rows = await coachBackend.listScheduledSessions({
-        startDate: dateKey(weekDays[0]),
-        endDate: addDaysKey(dateKey(weekDays[0]), UPCOMING_HORIZON_DAYS),
-      })
-      setSessions(rows.map(normalizeScheduledSession).filter(Boolean))
+      const [sessionRows, eventRows] = await Promise.all([
+        coachBackend.listScheduledSessions({ startDate, endDate }),
+        coachBackend.listCoachCalendarEvents({ startDate, endDate }),
+      ])
+      setSessions(sessionRows.map(normalizeScheduledSession).filter(Boolean))
+      setCalendarEvents(
+        eventRows.map(normalizeCoachCalendarEvent).filter(Boolean),
+      )
     } catch (error) {
-      if (!/coach_scheduled_sessions|migration|does not exist/i.test(error.message ?? '')) {
-        appUi.toast(error.message ?? 'Could not load sessions.', 'error')
+      if (
+        !/coach_scheduled_sessions|coach_calendar_events|migration|does not exist/i.test(
+          error.message ?? '',
+        )
+      ) {
+        appUi.toast(error.message ?? 'Could not load calendar.', 'error')
       }
       setSessions([])
+      setCalendarEvents([])
     } finally {
       setLoading(false)
     }
@@ -263,16 +285,21 @@ export default function CoachSessionCalendar({
     [sessions],
   )
 
+  const scheduleItems = useMemo(
+    () => sortScheduledSessions([...sessions, ...calendarEvents]),
+    [sessions, calendarEvents],
+  )
+
   const dayCounts = useMemo(
-    () => countActiveAppointmentsByDay(sortedSessions, weekDayKeys),
-    [sortedSessions, weekDayKeys],
+    () => countActiveAppointmentsByDay(scheduleItems, weekDayKeys),
+    [scheduleItems, weekDayKeys],
   )
 
   const agendaDayKey = selectedDayKey
 
   const agendaSessions = useMemo(
-    () => appointmentsForCoachDayAgenda(sortedSessions, agendaDayKey),
-    [sortedSessions, agendaDayKey],
+    () => appointmentsForCoachDayAgenda(scheduleItems, agendaDayKey),
+    [scheduleItems, agendaDayKey],
   )
 
   const nextAppointment = useMemo(
@@ -335,16 +362,50 @@ export default function CoachSessionCalendar({
 
     return (
       <div className="coach-session-calendar-list">
-        {items.map((session) => (
-          <CoachAppointmentCard
-            key={session.id}
-            session={session}
-            client={resolveClientForSession(session)}
-            onClick={sessionDetail.openSession}
-            isPast={isPastCoachAppointment(session, now)}
-            isNext={nextAppointment?.id === session.id}
-          />
-        ))}
+        {items.map((session) =>
+          session.isCoachPrivateEvent ? (
+            <button
+              key={session.id}
+              type="button"
+              className="coach-calendar-private-event"
+              data-testid="coach-private-calendar-event"
+              onClick={async () => {
+                const confirmed = await appUi.confirm({
+                  message: `Remove “${session.title}” from your calendar?`,
+                  confirmLabel: 'Remove event',
+                  tone: 'danger',
+                })
+                if (!confirmed) return
+                try {
+                  await coachBackend.deleteCoachCalendarEvent(session.id)
+                  await loadSessions()
+                } catch (error) {
+                  appUi.toast(error.message ?? 'Could not remove event.', 'error')
+                }
+              }}
+            >
+              <div>
+                <strong>
+                  {formatTime12Hour(session.startTime)} · {session.title}
+                </strong>
+                <span>
+                  {coachCalendarEventCategoryLabel(session)}
+                  {session.locationName ? ` · ${session.locationName}` : ''}
+                </span>
+              </div>
+              <em>Private</em>
+            </button>
+          ) : (
+            <CoachAppointmentCard
+              key={session.id}
+              session={session}
+              client={resolveClientForSession(session)}
+              onClick={sessionDetail.openSession}
+              isPast={isPastCoachAppointment(session, now)}
+              isNext={nextAppointment?.id === session.id}
+            />
+          ),
+        )}
       </div>
     )
   }
@@ -417,6 +478,7 @@ export default function CoachSessionCalendar({
           assignmentId: draft.assignmentId ?? null,
           locationType: draft.locationType ?? 'default',
           locationName: draft.locationName ?? '',
+          existingItems: scheduleItems,
         })
       } else {
         const created = await coachBackend.createScheduledSession({
@@ -434,7 +496,7 @@ export default function CoachSessionCalendar({
           assignmentId: draft.assignmentId ?? null,
           locationType: draft.locationType ?? 'default',
           locationName: draft.locationName ?? '',
-          existingSessions: sessions,
+          existingSessions: scheduleItems,
         })
         logAppointmentCreate({
           success: true,
@@ -487,6 +549,54 @@ export default function CoachSessionCalendar({
     }
   }
 
+  const handleCreatePrivateEvent = async () => {
+    const title = eventDraft.title.trim()
+    if (!title) {
+      appUi.toast('Add a title for this event.', 'error')
+      return
+    }
+
+    if (
+      isScheduleTimeInPast({
+        sessionDate: eventDraft.eventDate,
+        startTime: eventDraft.startTime,
+        scheduleTimezone: DEFAULT_COACH_SCHEDULE_TIMEZONE,
+      })
+    ) {
+      appUi.toast('That time has already passed.', 'error')
+      return
+    }
+
+    setEventSaving(true)
+    try {
+      await coachBackend.createCoachCalendarEvent({
+        title,
+        eventDate: eventDraft.eventDate,
+        startTime: eventDraft.startTime,
+        durationMinutes: Number(eventDraft.durationMinutes) || 60,
+        category: eventDraft.category,
+        notes: eventDraft.notes.trim(),
+        locationName: eventDraft.locationName.trim(),
+        existingItems: scheduleItems,
+      })
+      setShowEventComposer(false)
+      setSelectedDayKey(eventDraft.eventDate)
+      setAnchor(new Date(`${eventDraft.eventDate}T12:00:00`))
+      setEventDraft(createCoachCalendarEventDraft(eventDraft.eventDate))
+      appUi.toast('Private calendar event added.', 'success')
+      await loadSessions()
+    } catch (error) {
+      appUi.toast(
+        error.message === 'calendar_overlap'
+          ? 'That time overlaps something already on your calendar.'
+          : error.message ?? 'Could not add calendar event.',
+        'error',
+      )
+    } finally {
+      setEventSaving(false)
+    }
+  }
+
   const dayHeading = formatCoachCalendarDayHeading(agendaDayKey)
   const weekHeading = formatCoachCalendarWeekHeading(dateKey(weekDays[0]))
 
@@ -495,15 +605,29 @@ export default function CoachSessionCalendar({
       <header className="coach-session-calendar-header">
         <div className="coach-session-calendar-title-row">
           <h1>Calendar</h1>
-          <button
-            type="button"
-            className="gold-button machined coach-primary-action coach-session-calendar-schedule"
-            data-testid="coach-schedule-session-button"
-            onClick={openScheduleComposer}
-          >
-            <Plus {...ICON} />
-            Schedule
-          </button>
+          <div className="coach-session-calendar-create-actions">
+            <button
+              type="button"
+              className="coach-secondary-button"
+              data-testid="coach-add-private-event-button"
+              onClick={() => {
+                setEventDraft(createCoachCalendarEventDraft(selectedDayKey))
+                setShowEventComposer(true)
+              }}
+            >
+              <Plus {...ICON} />
+              Add event
+            </button>
+            <button
+              type="button"
+              className="gold-button machined coach-primary-action coach-session-calendar-schedule"
+              data-testid="coach-schedule-session-button"
+              onClick={openScheduleComposer}
+            >
+              <Plus {...ICON} />
+              Client appointment
+            </button>
+          </div>
         </div>
 
         <div
@@ -621,7 +745,7 @@ export default function CoachSessionCalendar({
               >
                 <span>{day.toLocaleDateString([], { weekday: 'short' })}</span>
                 <strong>{day.getDate()}</strong>
-                <em>{count ? `${count} session${count === 1 ? '' : 's'}` : 'Open'}</em>
+                <em>{count ? `${count} item${count === 1 ? '' : 's'}` : 'Open'}</em>
               </button>
             )
           })}
@@ -655,6 +779,15 @@ export default function CoachSessionCalendar({
           ) : null}
         </section>
       )}
+
+      <CoachCalendarEventSheet
+        open={showEventComposer}
+        draft={eventDraft}
+        submitting={eventSaving}
+        onDraftChange={setEventDraft}
+        onClose={() => setShowEventComposer(false)}
+        onSubmit={handleCreatePrivateEvent}
+      />
 
       <CoachScheduleSessionSheet
         open={showComposer}
