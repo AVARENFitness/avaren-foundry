@@ -1,4 +1,5 @@
 import {
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Plus,
@@ -99,6 +100,7 @@ export default function CoachSessionCalendar({
   const [loading, setLoading] = useState(true)
   const [showComposer, setShowComposer] = useState(initialOpenComposer)
   const [showEventComposer, setShowEventComposer] = useState(false)
+  const [showAddMenu, setShowAddMenu] = useState(false)
   const [scheduling, setScheduling] = useState(false)
   const [eventSaving, setEventSaving] = useState(false)
   const [eventDraft, setEventDraft] = useState(() =>
@@ -144,7 +146,14 @@ export default function CoachSessionCalendar({
   }, [initialOpenComposer, onComposerOpened])
 
   const openScheduleComposer = () => {
+    setShowAddMenu(false)
     setShowComposer(true)
+  }
+
+  const openPrivateEventComposer = () => {
+    setShowAddMenu(false)
+    setEventDraft(createCoachCalendarEventDraft(selectedDayKey))
+    setShowEventComposer(true)
   }
 
   const weekStart = useMemo(() => mondayOf(anchor), [anchor])
@@ -629,27 +638,51 @@ export default function CoachSessionCalendar({
         <div className="coach-session-calendar-title-row">
           <h1>Calendar</h1>
           <div className="coach-session-calendar-create-actions">
-            <button
-              type="button"
-              className="coach-secondary-button"
-              data-testid="coach-add-private-event-button"
-              onClick={() => {
-                setEventDraft(createCoachCalendarEventDraft(selectedDayKey))
-                setShowEventComposer(true)
-              }}
-            >
-              <Plus {...ICON} />
-              Add event
-            </button>
-            <button
-              type="button"
-              className="gold-button machined coach-primary-action coach-session-calendar-schedule"
-              data-testid="coach-schedule-session-button"
-              onClick={openScheduleComposer}
-            >
-              <Plus {...ICON} />
-              Client appointment
-            </button>
+            <div className="coach-calendar-add-menu-wrap">
+              <button
+                type="button"
+                className="gold-button machined coach-primary-action coach-calendar-add-trigger"
+                data-testid="coach-calendar-add-trigger"
+                aria-expanded={showAddMenu}
+                aria-haspopup="menu"
+                onClick={() => setShowAddMenu((current) => !current)}
+              >
+                <Plus {...ICON} />
+                Add
+                <ChevronDown size={15} strokeWidth={1.8} aria-hidden="true" />
+              </button>
+
+              {showAddMenu ? (
+                <div
+                  className="coach-calendar-add-menu"
+                  role="menu"
+                  data-testid="coach-calendar-add-menu"
+                >
+                  <button
+                    type="button"
+                    role="menuitem"
+                    data-testid="coach-add-personal-training"
+                    onClick={openScheduleComposer}
+                  >
+                    <span>
+                      <strong>Personal training</strong>
+                      <small>Choose client, date, time, and duration</small>
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    data-testid="coach-add-private-event-button"
+                    onClick={openPrivateEventComposer}
+                  >
+                    <span>
+                      <strong>Private event</strong>
+                      <small>Block off personal, admin, or meeting time</small>
+                    </span>
+                  </button>
+                </div>
+              ) : null}
+            </div>
           </div>
         </div>
 
