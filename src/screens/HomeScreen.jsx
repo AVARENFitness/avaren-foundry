@@ -346,6 +346,43 @@ export default function HomeScreen({
     localCalendarDay,
   ])
 
+  const avaHomeSupportAction = useMemo(() => {
+    const flow = homeState.dailyFlow
+    if (!readiness?.completed || !flow) return null
+
+    if (
+      flow.recovery?.due &&
+      !homeState.activeWorkout &&
+      homeState.todayTrained
+    ) {
+      return {
+        type: AVA_ACTION_TYPES.RECOVERY_FLOW,
+        eyebrow: 'POST-WORKOUT',
+        label: 'Cooldown + Recovery',
+        detail: 'Downshift and restore after today’s session',
+        meta: { flowId: 'recovery-flow' },
+      }
+    }
+
+    if (
+      flow.hasTrainingToday &&
+      !homeState.todayTrained &&
+      !homeState.activeWorkout &&
+      !flow.morningMovement?.completed &&
+      !flow.morningMovement?.skippedForToday
+    ) {
+      return {
+        type: AVA_ACTION_TYPES.MORNING_MOVEMENT,
+        eyebrow: 'PRE-WORKOUT',
+        label: 'Warm-Up',
+        detail: 'Prepare your body for today’s training',
+        meta: { flowId: 'daily-reset' },
+      }
+    }
+
+    return null
+  }, [homeState, readiness?.completed])
+
   const handlePrimaryHomeAction = () => {
     const action = homeState.primaryAction
     if (!action?.id) return
@@ -420,7 +457,11 @@ export default function HomeScreen({
     readiness?.completed
       ? `${readinessScore} readiness`
       : 'Readiness pending',
-    `${nutritionSummary?.calories || 0} cal logged`,
+    avaHomeSupportAction?.type === AVA_ACTION_TYPES.MORNING_MOVEMENT
+      ? 'Warm-Up ready'
+      : avaHomeSupportAction?.type === AVA_ACTION_TYPES.RECOVERY_FLOW
+        ? 'Cooldown due'
+        : `${nutritionSummary?.calories || 0} cal logged`,
   ].join(' · ')
 
   const handleAvaAction = (action) => {
@@ -671,6 +712,7 @@ export default function HomeScreen({
         contextOnly
         collapsible
         collapseStorageKey={avaCollapseStorageKey}
+        contextActionOverride={avaHomeSupportAction}
       />
 
       {homeState.primaryAction?.id !== HOME_ACTION_IDS.APPOINTMENT ? (
