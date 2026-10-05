@@ -23181,3 +23181,111 @@ body > .nutrition-food-sheet-backdrop > .nutrition-food-sheet {
     padding-right: 10px;
   }
 }
+
+
+/* ===== COACH CALENDAR SINGLE ADD CONTROL ===== */
+.coach-calendar-add-menu-wrap {
+  position: relative;
+}
+
+.coach-calendar-add-trigger {
+  width: auto !important;
+  min-width: 104px !important;
+  min-height: 42px !important;
+  margin-top: 0 !important;
+  padding: 10px 13px !important;
+  border-radius: 12px !important;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+}
+
+.coach-calendar-add-trigger svg:last-child {
+  margin-left: 1px;
+  opacity: .78;
+}
+
+.coach-calendar-add-menu {
+  position: absolute;
+  z-index: 40;
+  top: calc(100% + 8px);
+  right: 0;
+  width: min(320px, calc(100vw - 32px));
+  overflow: hidden;
+  padding: 6px;
+  border: 1px solid rgba(248,243,230,.1);
+  border-radius: 14px;
+  background: #0d1014;
+  box-shadow:
+    0 24px 60px rgba(0,0,0,.48),
+    inset 0 1px 0 rgba(255,255,255,.025);
+}
+
+.coach-calendar-add-menu button {
+  width: 100%;
+  padding: 12px 13px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--cream);
+  text-align: left;
+}
+
+.coach-calendar-add-menu button + button {
+  margin-top: 2px;
+}
+
+.coach-calendar-add-menu button span {
+  display: grid;
+  gap: 3px;
+}
+
+.coach-calendar-add-menu button strong {
+  font-size: .9rem;
+  letter-spacing: -.01em;
+}
+
+.coach-calendar-add-menu button small {
+  color: var(--muted);
+  font-size: .75rem;
+  line-height: 1.35;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .coach-calendar-add-menu button:hover {
+    background: rgba(255,255,255,.035);
+  }
+}
+
+@media (max-width: 720px) {
+  .coach-session-calendar-title-row {
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .coach-session-calendar-create-actions {
+    width: auto;
+    display: block;
+  }
+
+  .coach-calendar-add-trigger {
+    min-width: 96px !important;
+  }
+
+  .coach-calendar-add-menu {
+    right: 0;
+  }
+}
+
+@media (max-width: 420px) {
+  .coach-session-calendar-title-row h1 {
+    font-size: 1.75rem;
+  }
+
+  .coach-calendar-add-trigger {
+    min-width: 88px !important;
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+  }
+}
