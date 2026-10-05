@@ -108,6 +108,52 @@ export async function runCoachPipelineStep({
   )
   if (!coachAccess) return null
 
+  const availabilityQuery = parseCoachAvailabilityQuery(message)
+  if (availabilityQuery) {
+    let availabilityCoachContext = coachContext
+
+    if (
+      availabilityQuery.clientQuery &&
+      !(availabilityCoachContext?.clients?.length ?? 0)
+    ) {
+      const ensurePortfolio =
+        availabilityCoachContext?.ensureCoachPortfolio ??
+        ((options = {}) => ensureCoachPortfolio(options))
+      const bundle = await ensurePortfolio({
+        requiredDomains: [COACH_PORTFOLIO_DOMAINS.ROSTER],
+      })
+
+      if (!bundle?.loadFailed && bundle?.status !== COACH_PORTFOLIO_STATUS.ERROR) {
+        availabilityCoachContext = mergeCoachPortfolioBundle(
+          availabilityCoachContext,
+          bundle,
+        )
+        ;(
+          coachContext?.onCoachContextHydrated ??
+          availabilityCoachContext?.onCoachContextHydrated
+        )?.(availabilityCoachContext)
+      }
+    }
+
+    const result = await executeCoachAvailabilityQuery(availabilityQuery, {
+      clients:
+        availabilityCoachContext?.clients?.length
+          ? availabilityCoachContext.clients
+          : availabilityCoachContext?.rosterEntries ?? [],
+    })
+
+    return createPipelineOutcome({
+      kind: AVA_PIPELINE_KIND.RESPONSE,
+      message: result?.message ?? "I couldn't read your availability safely.",
+      readOnly: true,
+      raw: {
+        calendarAvailability: true,
+        query: availabilityQuery,
+        result,
+      },
+    })
+  }
+
   const calendarCommand = parseCoachCalendarCommand(message)
   if (calendarCommand) {
     let calendarCoachContext = coachContext
