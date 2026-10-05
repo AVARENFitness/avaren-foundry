@@ -219,7 +219,7 @@ describe('avaActions', () => {
     ).toBe(false)
   })
 
-  it('prioritizes recovery flow prep when recent training supports it', () => {
+  it('does not use missed post-workout recovery as a pre-workout action', () => {
     const ctx = buildAvaContext(
       {
         ...baseState,
@@ -229,7 +229,7 @@ describe('avaActions', () => {
     )
     const action = selectPrimaryAvaAction(ctx, AVA_DAILY_STATES.READY)
 
-    expect(action.type).toBe(AVA_ACTION_TYPES.RECOVERY_FLOW)
+    expect(action.type).toBe(AVA_ACTION_TYPES.START_WORKOUT)
   })
 
   it('CASE 4: no workout today does not fabricate training action', () => {

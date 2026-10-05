@@ -167,7 +167,7 @@ describe('athleteHomeState', () => {
       ),
     ).toBe(true)
     expect(home.primaryAction?.id).toBe(HOME_ACTION_IDS.RECOVERY_FLOW)
-    expect(home.primaryAction?.label).toBe('Start recovery flow')
+    expect(home.primaryAction?.label).toBe('Start Cooldown + Recovery')
     expect(home.sections.recoveryPrimary).toBe(true)
   })
 

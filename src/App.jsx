@@ -1194,7 +1194,7 @@ function App() {
       return
     }
 
-    openDailyReset()
+    openRecoveryFlow(null)
   }
 
   const openFullBodyStretch = () => {
@@ -2392,6 +2392,7 @@ function App() {
             setNutritionInitialTab('Meals')
             setScreen('nutrition')
           }}
+          avaCollapseStorageKey={`avaren:home:ava-collapsed:${session?.user?.id ?? 'device'}`}
         />
       </>
     )

@@ -22473,3 +22473,25 @@ body > .nutrition-food-sheet-backdrop > .nutrition-food-sheet {
     padding: 13px 14px;
   }
 }
+
+
+/* Athlete Home AVA context collapse + support action */
+.ava-daily-briefing-header { align-items: flex-start; }
+.ava-daily-briefing-heading-copy { min-width: 0; flex: 1; }
+.ava-daily-briefing-collapse-toggle {
+  width: 36px; height: 36px; flex: 0 0 36px; border: 0; border-radius: 999px;
+  background: rgba(255, 255, 255, 0.05); color: inherit; display: inline-flex;
+  align-items: center; justify-content: center; cursor: pointer;
+}
+.ava-daily-briefing-context-action {
+  width: 100%; border: 0; background: transparent; color: inherit; padding: 10px 0 0;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  font: inherit; font-weight: 650; text-align: left; cursor: pointer;
+}
+.ava-daily-briefing--collapsed {
+  display: flex; align-items: center; justify-content: space-between; gap: 14px;
+  min-height: 64px; padding-top: 12px; padding-bottom: 12px;
+}
+.ava-daily-briefing-collapsed-copy { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.ava-daily-briefing-collapsed-copy > div { display: grid; gap: 2px; }
+.ava-daily-briefing-collapsed-copy strong { font-size: 0.95rem; line-height: 1.2; }

@@ -251,6 +251,7 @@ export const deriveTodaysFocus = (
   }
 
   if (
+    (workoutContext.completedToday || !plannedWorkout) &&
     recovery.workoutsThisWeek >= 2 &&
     recovery.recoveryFlowsThisWeek === 0
   ) {
@@ -261,7 +262,7 @@ export const deriveTodaysFocus = (
       action: FOCUS_ACTIONS.BEGIN_RECOVERY,
       reasons: [
         `${recovery.workoutsThisWeek} workouts logged this week`,
-        'No Recovery Flow completed this week',
+        'No post-workout recovery completed this week',
         `Recovery score ${recovery.score}`,
       ],
     })

@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import AvaDailyBriefing from './AvaDailyBriefing'
@@ -22,6 +22,10 @@ const sampleBriefing = {
 }
 
 describe('AvaDailyBriefing', () => {
+  beforeEach(() => {
+    window.localStorage.clear()
+  })
+
   it('renders primary, Why, and Ask AVA without overlapping entry points', async () => {
     const user = userEvent.setup()
     const onAction = vi.fn()
@@ -79,6 +83,65 @@ describe('AvaDailyBriefing', () => {
     expect(screen.getByRole('button', { name: 'Why?' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Ask AVA' })).toBeInTheDocument()
     expect(screen.queryByText(sampleBriefing.greeting)).not.toBeInTheDocument()
+  })
+
+  it('shows a mobility support action in context-only mode without duplicating workout CTA', async () => {
+    const user = userEvent.setup()
+    const onAction = vi.fn()
+    const warmUp = {
+      ...sampleBriefing,
+      secondaryAction: {
+        type: AVA_ACTION_TYPES.MORNING_MOVEMENT,
+        label: 'Warm-Up',
+      },
+    }
+
+    render(
+      <AvaDailyBriefing
+        briefing={warmUp}
+        onAction={onAction}
+        onAskAva={vi.fn()}
+        contextOnly
+      />,
+    )
+
+    expect(screen.queryByRole('button', { name: /Start Chest & Back/i })).not.toBeInTheDocument()
+    const support = screen.getByRole('button', { name: /^Warm-Up$/i })
+    await user.click(support)
+    expect(onAction).toHaveBeenCalledWith(warmUp.secondaryAction)
+  })
+
+  it('persists the collapsed Home state for the athlete/device key', async () => {
+    const user = userEvent.setup()
+    const key = 'avaren:test:ava-collapse'
+    const { unmount } = render(
+      <AvaDailyBriefing
+        briefing={sampleBriefing}
+        onAction={vi.fn()}
+        onAskAva={vi.fn()}
+        contextOnly
+        collapsible
+        collapseStorageKey={key}
+      />,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Collapse AVA insight' }))
+    expect(window.localStorage.getItem(key)).toBe('1')
+    expect(screen.getByRole('button', { name: 'Expand AVA insight' })).toBeInTheDocument()
+
+    unmount()
+    render(
+      <AvaDailyBriefing
+        briefing={sampleBriefing}
+        onAction={vi.fn()}
+        onAskAva={vi.fn()}
+        contextOnly
+        collapsible
+        collapseStorageKey={key}
+      />,
+    )
+
+    expect(screen.getByRole('button', { name: 'Expand AVA insight' })).toBeInTheDocument()
   })
 
 })

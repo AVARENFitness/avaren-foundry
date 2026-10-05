@@ -2051,9 +2051,9 @@ const addMovementIds = (
 
 export const DAILY_RESET = {
   id: 'daily-reset',
-  title: 'Daily Reset',
-  subtitle: 'Wake up the body',
-  reason: 'A balanced, equipment-free sequence that wakes up the joints, raises body awareness, and prepares you for the day.',
+  title: 'Warm-Up',
+  subtitle: 'Prepare to train',
+  reason: 'A balanced, equipment-free sequence that prepares the joints and movement patterns for training.',
   focusAreas: ['Spine', 'Hips', 'Shoulders'],
   movements: [
     cloneMovement('neck-cars'),
@@ -2177,10 +2177,10 @@ export function buildAdaptiveDailyReset({
 
   return {
     id: `daily-reset-${new Date().toISOString().slice(0, 10)}`,
-    title: 'Morning Movement',
+    title: 'Warm-Up',
     subtitle: goal,
     reason: reasonParts.join(' '),
-    kind: 'morning_movement',
+    kind: 'warm_up',
     focusAreas,
     movements: movementIds
       .slice(0, limit)
@@ -2270,7 +2270,7 @@ export function calculateRecoveryIntelligence(state = {}) {
 
   const recentRecovery = mobility.filter(
     (entry) =>
-      (entry.title === 'Recovery Flow' ||
+      (['Recovery Flow', 'Cooldown + Recovery'].includes(entry.title) ||
         entry.kind === 'recovery' ||
         String(entry.flowId ?? '').startsWith('recovery-')) &&
       withinDays(entry.completedAt, 7),
@@ -2315,8 +2315,8 @@ export function calculateRecoveryIntelligence(state = {}) {
       : recentRecovery.length === 0
       ? `You trained ${recentWorkouts.length} time${
           recentWorkouts.length === 1 ? '' : 's'
-        } this week without completing a Recovery Flow.`
-      : `You completed ${recentRecovery.length} Recovery Flow${
+        } this week without completing post-workout recovery.`
+      : `You completed ${recentRecovery.length} recovery flow${
           recentRecovery.length === 1 ? '' : 's'
         } after ${recentWorkouts.length} workout${
           recentWorkouts.length === 1 ? '' : 's'

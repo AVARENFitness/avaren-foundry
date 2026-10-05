@@ -101,6 +101,8 @@ describe('buildAdaptiveDailyReset completed-today athlete state', () => {
       preferences: state.mobility.preferences,
     })
 
+    expect(reset.title).toBe('Warm-Up')
+    expect(reset.kind).toBe('warm_up')
     expect(reset.reason).toContain('Arms')
     expect(reset.reason).toMatch(/prepare for tomorrow/i)
     expect(reset.reason).not.toMatch(/Chest/i)
