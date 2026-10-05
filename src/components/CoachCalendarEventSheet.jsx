@@ -19,6 +19,12 @@ export default function CoachCalendarEventSheet({
   onDraftChange,
   onClose,
   onSubmit,
+  eyebrow = 'PRIVATE CALENDAR',
+  title = 'Add to your schedule',
+  description = 'Only you can see this event. It blocks the time from client scheduling.',
+  categoryOptions = CATEGORY_OPTIONS,
+  categoryLabels = COACH_CALENDAR_EVENT_CATEGORY_LABEL,
+  testId = 'coach-calendar-event-sheet',
 }) {
   if (!open) return null
 
@@ -36,14 +42,14 @@ export default function CoachCalendarEventSheet({
         role="dialog"
         aria-modal="true"
         aria-labelledby="coach-calendar-event-title"
-        data-testid="coach-calendar-event-sheet"
+        data-testid={testId}
         onClick={(event) => event.stopPropagation()}
       >
         <header>
           <div>
-            <span className="eyebrow">PRIVATE CALENDAR</span>
-            <h2 id="coach-calendar-event-title">Add to your schedule</h2>
-            <p>Only you can see this event. It blocks the time from client scheduling.</p>
+            <span className="eyebrow">{eyebrow}</span>
+            <h2 id="coach-calendar-event-title">{title}</h2>
+            <p>{description}</p>
           </div>
           <AppUiCloseButton onClick={onClose} disabled={submitting} />
         </header>
@@ -109,9 +115,9 @@ export default function CoachCalendarEventSheet({
               value={draft.category}
               onChange={(event) => set({ category: event.target.value })}
             >
-              {CATEGORY_OPTIONS.map((value) => (
+              {categoryOptions.map((value) => (
                 <option key={value} value={value}>
-                  {COACH_CALENDAR_EVENT_CATEGORY_LABEL[value]}
+                  {categoryLabels[value] ?? value}
                 </option>
               ))}
             </select>
