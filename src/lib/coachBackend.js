@@ -72,6 +72,7 @@ import {
   listAthleteWorkoutSessionsForAthletes,
 } from './athleteWorkoutSessionsBackend'
 import { mergeWorkoutHistory } from './athleteWorkoutHistory'
+import { preflightRecurrenceConflicts } from './recurringAppointments'
 
 const normalizeEmail = (value = '') => String(value).trim().toLowerCase()
 
@@ -1169,6 +1170,95 @@ export const coachBackend = {
     return rows[0] ?? null
   },
 
+  async listCoachCalendarEvents({ startDate, endDate } = {}) {
+    const user = await currentUser()
+    return unwrap(
+      supabase
+        .from('coach_calendar_events')
+        .select('*')
+        .eq('coach_id', user.id)
+        .gte('event_date', startDate)
+        .lte('event_date', endDate)
+        .eq('status', 'scheduled')
+        .order('event_date', { ascending: true })
+        .order('start_time', { ascending: true }),
+    )
+  },
+
+  async createCoachCalendarEvent({
+    title,
+    eventDate,
+    startTime,
+    durationMinutes = 60,
+    category = 'personal',
+    notes = '',
+    locationName = '',
+    scheduleTimezone = DEFAULT_COACH_SCHEDULE_TIMEZONE,
+    existingItems = null,
+  }) {
+    const user = await currentUser()
+    const instant = buildScheduleInstant({
+      sessionDate: eventDate,
+      startTime,
+      scheduleTimezone,
+    })
+    const resolvedDuration = Number(durationMinutes) || 60
+    const startsAt = instant.startsAt
+    const endsAt = startsAt
+      ? new Date(new Date(startsAt).getTime() + resolvedDuration * 60000).toISOString()
+      : null
+
+    const candidate = {
+      coachId: user.id,
+      sessionDate: eventDate,
+      startTime,
+      startsAt,
+      endsAt,
+      durationMinutes: resolvedDuration,
+      status: 'scheduled',
+    }
+
+    if (Array.isArray(existingItems)) {
+      const overlap = findOverlappingAppointment(candidate, existingItems)
+      if (overlap) throw new Error('calendar_overlap')
+    }
+
+    return unwrap(
+      supabase
+        .from('coach_calendar_events')
+        .insert({
+          coach_id: user.id,
+          title: String(title ?? '').trim(),
+          event_date: eventDate,
+          start_time: startTime,
+          duration_minutes: resolvedDuration,
+          starts_at: startsAt,
+          ends_at: endsAt,
+          schedule_timezone: instant.scheduleTimezone,
+          category,
+          notes,
+          location_name: locationName,
+          status: 'scheduled',
+          updated_at: new Date().toISOString(),
+        })
+        .select()
+        .single(),
+    )
+  },
+
+  async deleteCoachCalendarEvent(id) {
+    const user = await currentUser()
+    return unwrap(
+      supabase
+        .from('coach_calendar_events')
+        .delete()
+        .eq('id', id)
+        .eq('coach_id', user.id)
+        .select()
+        .single(),
+    )
+  },
+
   async listScheduledSessions({
     startDate,
     endDate,
@@ -1292,7 +1382,31 @@ export const coachBackend = {
     locationType = 'default',
     locationName = '',
     appointmentType = 'IN_PERSON_TRAINING',
+    existingItems = null,
   }) {
+    if (Array.isArray(existingItems)) {
+      const user = await currentUser()
+      const preflight = preflightRecurrenceConflicts({
+        coachId: user.id,
+        startsOn,
+        startTime,
+        durationMinutes: Number(durationMinutes) || 60,
+        weekdays,
+        scheduleTimezone,
+        endsOn,
+        occurrenceLimit,
+        existingSessions: existingItems,
+      })
+      if (preflight.hasConflicts) {
+        const error = new Error(
+          'This recurring schedule overlaps something already on your calendar.',
+        )
+        error.code = 'calendar_overlap_recurring'
+        error.conflicts = preflight.conflicts
+        throw error
+      }
+    }
+
     try {
       return await unwrap(
         supabase.rpc('create_recurring_appointment_series', {

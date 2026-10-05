@@ -18,6 +18,9 @@ vi.mock('../lib/appUi', () => ({
 vi.mock('../lib/coachBackend', () => ({
   coachBackend: {
     listScheduledSessions: vi.fn(),
+    listCoachCalendarEvents: vi.fn(),
+    createCoachCalendarEvent: vi.fn(),
+    deleteCoachCalendarEvent: vi.fn(),
     listClientPassBalances: vi.fn(),
     getSessionPackage: vi.fn(),
     createScheduledSession: vi.fn(),
@@ -113,6 +116,18 @@ describe('CoachSessionCalendar usability', () => {
     vi.setSystemTime(new Date('2026-09-02T16:00:00.000Z')) // Wed in America/New_York
     vi.clearAllMocks()
     coachBackend.listScheduledSessions.mockResolvedValue(buildSessionsFixture())
+    coachBackend.listCoachCalendarEvents.mockResolvedValue([])
+    coachBackend.createCoachCalendarEvent.mockResolvedValue({
+      id: 'private-1',
+      coach_id: 'coach-1',
+      title: 'Admin block',
+      event_date: dateKey(new Date(), DEFAULT_COACH_SCHEDULE_TIMEZONE),
+      start_time: '11:00',
+      duration_minutes: 60,
+      category: 'admin',
+      status: 'scheduled',
+    })
+    coachBackend.deleteCoachCalendarEvent.mockResolvedValue({})
     coachBackend.listClientPassBalances.mockResolvedValue([])
     coachBackend.getSessionPackage.mockResolvedValue(null)
     coachBackend.createScheduledSession.mockResolvedValue({
@@ -130,14 +145,14 @@ describe('CoachSessionCalendar usability', () => {
     vi.useRealTimers()
   })
 
-  it('defaults to Today view with today agenda visible immediately', async () => {
+  it('defaults to Month view for a broad schedule picture', async () => {
     render(<CoachSessionCalendar clients={[jake, sarah]} assignments={[]} />)
 
     await waitFor(() => {
-      expect(screen.getAllByTestId('coach-appointment-card')).toHaveLength(2)
+      expect(screen.getByTestId('coach-calendar-month-grid')).toBeInTheDocument()
     })
 
-    expect(screen.getByTestId('coach-calendar-view-today')).toHaveAttribute(
+    expect(screen.getByTestId('coach-calendar-view-month')).toHaveAttribute(
       'aria-selected',
       'true',
     )
@@ -145,7 +160,7 @@ describe('CoachSessionCalendar usability', () => {
     expect(screen.getByText('Sarah')).toBeInTheDocument()
   })
 
-  it('opens week view in one tap and shows seven day chips with counts', async () => {
+  it('opens week view in one tap and shows a seven-day schedule board', async () => {
     render(<CoachSessionCalendar clients={[jake, sarah]} assignments={[]} />)
 
     await waitFor(() => {
@@ -158,33 +173,83 @@ describe('CoachSessionCalendar usability', () => {
       'aria-selected',
       'true',
     )
-    expect(screen.getAllByRole('tab', { name: /Open|session/i })).toHaveLength(7)
-    expect(screen.getByText('2 sessions')).toBeInTheDocument()
+    expect(screen.getByTestId('coach-calendar-week-grid')).toBeInTheDocument()
+    expect(screen.getAllByText(/Open|item/i).length).toBeGreaterThanOrEqual(7)
   })
 
-  it('returns to current local day from Today action', async () => {
+  it('drills from a month date into the Day view', async () => {
     render(<CoachSessionCalendar clients={[jake, sarah]} assignments={[]} />)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('coach-calendar-month-grid')).toBeInTheDocument()
+    })
+
+    const todayKey = dateKey(new Date(), DEFAULT_COACH_SCHEDULE_TIMEZONE)
+    const todayDate = new Date(`${todayKey}T12:00:00`)
+    const label = todayDate.toLocaleDateString([], {
+      weekday: 'long',
+      month: 'short',
+      day: 'numeric',
+    })
+
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: new RegExp(label, 'i'),
+      }),
+    )
+
+    expect(screen.getByTestId('coach-calendar-view-day')).toHaveAttribute(
+      'aria-selected',
+      'true',
+    )
+  })
+
+  it('returns to today without changing the selected calendar zoom', async () => {
+    render(<CoachSessionCalendar clients={[jake, sarah]} assignments={[]} />)
+
+    fireEvent.click(screen.getByTestId('coach-calendar-view-day'))
 
     await waitFor(() => {
       expect(screen.getByLabelText('Next day')).toBeInTheDocument()
     })
 
     fireEvent.click(screen.getByLabelText('Next day'))
-    expect(screen.getByTestId('coach-calendar-jump-today')).toBeInTheDocument()
-
     fireEvent.click(screen.getByTestId('coach-calendar-jump-today'))
-    expect(screen.getByTestId('coach-calendar-view-today')).toHaveAttribute(
+
+    expect(screen.getByTestId('coach-calendar-view-day')).toHaveAttribute(
       'aria-selected',
       'true',
     )
   })
 
-  it('keeps schedule action available', async () => {
+  it('renders the unified full-width calendar command bar', async () => {
     render(<CoachSessionCalendar clients={[jake]} assignments={[]} />)
 
-    await waitFor(() => {
-      expect(screen.getByTestId('coach-schedule-session-button')).toBeInTheDocument()
-    })
+    expect(document.querySelector('.coach-calendar-command-bar')).not.toBeNull()
+    expect(screen.getByTestId('coach-calendar-view-month')).toBeInTheDocument()
+    expect(screen.getByText(/October|November|December|January|February|March|April|May|June|July|August|September/i)).toBeInTheDocument()
+    expect(screen.getByTestId('coach-calendar-jump-today')).toBeInTheDocument()
+    expect(screen.getByTestId('coach-calendar-add-trigger')).toBeInTheDocument()
+  })
+
+  it('uses one Add menu for personal training and private events', async () => {
+    const user = userEvent.setup()
+    render(<CoachSessionCalendar clients={[jake]} assignments={[]} />)
+
+    const addButton = await screen.findByTestId('coach-calendar-add-trigger')
+    expect(screen.queryByText('Client appointment')).not.toBeInTheDocument()
+
+    await user.click(addButton)
+
+    expect(screen.getByTestId('coach-add-personal-training')).toBeInTheDocument()
+    expect(screen.getByTestId('coach-add-private-event-button')).toBeInTheDocument()
+
+    await user.click(screen.getByTestId('coach-add-personal-training'))
+
+    const sheet = await screen.findByTestId('coach-schedule-session-sheet')
+    expect(
+      within(sheet).getByRole('heading', { name: /personal training/i }),
+    ).toBeInTheDocument()
   })
 
   it('opens canonical detail when appointment row is tapped', async () => {
@@ -251,6 +316,66 @@ describe('CoachSessionCalendar usability', () => {
     })
   })
 
+  it('shows private coach events alongside client appointments', async () => {
+    const todayKey = dateKey(new Date(), DEFAULT_COACH_SCHEDULE_TIMEZONE)
+    coachBackend.listCoachCalendarEvents.mockResolvedValue([
+      {
+        id: 'private-admin',
+        coach_id: 'coach-1',
+        title: 'Admin block',
+        event_date: todayKey,
+        start_time: '11:00',
+        duration_minutes: 60,
+        category: 'admin',
+        status: 'scheduled',
+      },
+    ])
+
+    render(<CoachSessionCalendar clients={[jake, sarah]} assignments={[]} />)
+
+    await waitFor(() => {
+      expect(screen.getByText(/Admin block/i)).toBeInTheDocument()
+    })
+
+    expect(screen.getByText('Private')).toBeInTheDocument()
+    expect(screen.getAllByTestId('coach-appointment-card')).toHaveLength(2)
+    expect(screen.getByTestId('coach-private-calendar-event')).toBeInTheDocument()
+  })
+
+  it('creates a private event without creating an athlete appointment', async () => {
+    const user = userEvent.setup()
+
+    render(<CoachSessionCalendar clients={[jake]} assignments={[]} />)
+
+    const addButton = await screen.findByTestId('coach-calendar-add-trigger')
+    await user.click(addButton)
+    await user.click(screen.getByTestId('coach-add-private-event-button'))
+    const sheet = await screen.findByTestId('coach-calendar-event-sheet')
+
+    await user.type(
+      within(sheet).getByPlaceholderText(/Admin work, appointment, lunch/i),
+      'Doctor appointment',
+    )
+    await user.click(
+      within(sheet).getByRole('button', { name: /add to calendar/i }),
+    )
+
+    await waitFor(() => {
+      expect(coachBackend.createCoachCalendarEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: 'Doctor appointment',
+          category: 'personal',
+        }),
+      )
+    })
+
+    expect(coachBackend.createScheduledSession).not.toHaveBeenCalled()
+    expect(appUi.toast).toHaveBeenCalledWith(
+      'Private calendar event added.',
+      'success',
+    )
+  })
+
   it('successful schedule submit closes sheet and refreshes calendar', async () => {
     const user = userEvent.setup()
     const onScheduleComplete = vi.fn()
@@ -309,9 +434,10 @@ describe('CoachSessionCalendar usability', () => {
     expect(screen.getByText('Offline Client')).toBeInTheDocument()
   })
 
-  it('exports stable calendar view constants', () => {
-    expect(COACH_CALENDAR_VIEW.TODAY).toBe('today')
+  it('exports stable calendar zoom levels', () => {
+    expect(COACH_CALENDAR_VIEW.MONTH).toBe('month')
     expect(COACH_CALENDAR_VIEW.WEEK).toBe('week')
+    expect(COACH_CALENDAR_VIEW.DAY).toBe('day')
   })
 
   it('creates recurring series through backend RPC when repeat is enabled', async () => {

@@ -9,8 +9,9 @@ import {
 } from './coachingAppointment'
 
 export const COACH_CALENDAR_VIEW = {
-  TODAY: 'today',
+  MONTH: 'month',
   WEEK: 'week',
+  DAY: 'day',
 }
 
 export const appointmentsForCoachDayAgenda = (appointments = [], dayKey = '') =>
@@ -107,4 +108,36 @@ export const coachAppointmentRowStatus = (appointment = {}) => {
   }
 
   return null
+}
+
+
+export const formatCoachCalendarMonthHeading = (date = new Date()) =>
+  new Date(date).toLocaleDateString([], {
+    month: 'long',
+    year: 'numeric',
+  })
+
+export const buildCoachMonthDays = (anchor = new Date()) => {
+  const monthStart = new Date(anchor)
+  monthStart.setHours(12, 0, 0, 0)
+  monthStart.setDate(1)
+
+  const gridStart = new Date(monthStart)
+  const sundayIndex = gridStart.getDay()
+  gridStart.setDate(gridStart.getDate() - sundayIndex)
+
+  return Array.from({ length: 42 }, (_, index) => {
+    const date = new Date(gridStart)
+    date.setDate(gridStart.getDate() + index)
+
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+
+    return {
+      date,
+      key: `${year}-${month}-${day}`,
+      inCurrentMonth: date.getMonth() === monthStart.getMonth(),
+    }
+  })
 }

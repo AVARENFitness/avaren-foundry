@@ -1,4 +1,5 @@
 import {
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Plus,
@@ -9,7 +10,9 @@ import {
   COACH_CALENDAR_VIEW,
   appointmentsForCoachDayAgenda,
   countActiveAppointmentsByDay,
+  buildCoachMonthDays,
   formatCoachCalendarDayHeading,
+  formatCoachCalendarMonthHeading,
   formatCoachCalendarWeekHeading,
   identifyNextCoachAppointment,
   isPastCoachAppointment,
@@ -38,6 +41,7 @@ import RecurrenceScopeDialog from './coach/RecurrenceScopeDialog'
 import CoachSessionDetailSheet from './coach/CoachSessionDetailSheet'
 import CoachAppointmentCard from './coach/CoachAppointmentCard'
 import CoachScheduleSessionSheet from './CoachScheduleSessionSheet'
+import CoachCalendarEventSheet from './CoachCalendarEventSheet'
 import { getClientDisplayName } from '../lib/clientDisplayName'
 import {
   resolveAthleteDataId,
@@ -55,10 +59,15 @@ import {
   buildCoachRsvpAlert,
   isRsvpException,
 } from '../lib/sessionRsvp'
+import {
+  coachCalendarEventCategoryLabel,
+  createCoachCalendarEventDraft,
+  normalizeCoachCalendarEvent,
+} from '../lib/coachCalendarEvents'
 
 const ICON = { size: 18, strokeWidth: 1.75 }
 const DAY_MS = 86400000
-const UPCOMING_HORIZON_DAYS = 56
+const UPCOMING_HORIZON_DAYS = 84
 
 const dateKey = (date) => scheduleDateKey(date, DEFAULT_COACH_SCHEDULE_TIMEZONE)
 const mondayOf = (input) => {
@@ -83,13 +92,20 @@ export default function CoachSessionCalendar({
   initialFocusedSessionId = null,
   onFocusedSessionOpened,
 }) {
-  const [viewMode, setViewMode] = useState(COACH_CALENDAR_VIEW.TODAY)
+  const [viewMode, setViewMode] = useState(COACH_CALENDAR_VIEW.MONTH)
   const [anchor, setAnchor] = useState(new Date())
   const [selectedDayKey, setSelectedDayKey] = useState(() => dateKey(new Date()))
   const [sessions, setSessions] = useState([])
+  const [calendarEvents, setCalendarEvents] = useState([])
   const [loading, setLoading] = useState(true)
   const [showComposer, setShowComposer] = useState(initialOpenComposer)
+  const [showEventComposer, setShowEventComposer] = useState(false)
+  const [showAddMenu, setShowAddMenu] = useState(false)
   const [scheduling, setScheduling] = useState(false)
+  const [eventSaving, setEventSaving] = useState(false)
+  const [eventDraft, setEventDraft] = useState(() =>
+    createCoachCalendarEventDraft(dateKey(new Date())),
+  )
   const [draft, setDraft] = useState({
     athleteId: '',
     businessClientId: '',
@@ -130,10 +146,18 @@ export default function CoachSessionCalendar({
   }, [initialOpenComposer, onComposerOpened])
 
   const openScheduleComposer = () => {
+    setShowAddMenu(false)
     setShowComposer(true)
   }
 
+  const openPrivateEventComposer = () => {
+    setShowAddMenu(false)
+    setEventDraft(createCoachCalendarEventDraft(selectedDayKey))
+    setShowEventComposer(true)
+  }
+
   const weekStart = useMemo(() => mondayOf(anchor), [anchor])
+  const monthDays = useMemo(() => buildCoachMonthDays(anchor), [anchor])
   const weekDays = useMemo(
     () => Array.from({ length: 7 }, (_, index) => addDays(weekStart, index)),
     [weekStart],
@@ -147,27 +171,38 @@ export default function CoachSessionCalendar({
 
   const loadSessions = useCallback(async () => {
     setLoading(true)
+    const startDate = dateKey(addDays(anchor, -42))
+    const endDate = addDaysKey(startDate, 168)
     try {
-      const rows = await coachBackend.listScheduledSessions({
-        startDate: dateKey(weekDays[0]),
-        endDate: addDaysKey(dateKey(weekDays[0]), UPCOMING_HORIZON_DAYS),
-      })
-      setSessions(rows.map(normalizeScheduledSession).filter(Boolean))
+      const [sessionRows, eventRows] = await Promise.all([
+        coachBackend.listScheduledSessions({ startDate, endDate }),
+        coachBackend.listCoachCalendarEvents({ startDate, endDate }),
+      ])
+      setSessions(sessionRows.map(normalizeScheduledSession).filter(Boolean))
+      setCalendarEvents(
+        eventRows.map(normalizeCoachCalendarEvent).filter(Boolean),
+      )
     } catch (error) {
-      if (!/coach_scheduled_sessions|migration|does not exist/i.test(error.message ?? '')) {
-        appUi.toast(error.message ?? 'Could not load sessions.', 'error')
+      if (
+        !/coach_scheduled_sessions|coach_calendar_events|migration|does not exist/i.test(
+          error.message ?? '',
+        )
+      ) {
+        appUi.toast(error.message ?? 'Could not load calendar.', 'error')
       }
       setSessions([])
+      setCalendarEvents([])
     } finally {
       setLoading(false)
     }
-  }, [weekDays])
+  }, [anchor])
 
   useEffect(() => {
+    if (viewMode !== COACH_CALENDAR_VIEW.WEEK) return
     setSelectedDayKey((current) =>
-      weekDayKeys.includes(current) ? current : todayKey,
+      weekDayKeys.includes(current) ? current : dateKey(anchor),
     )
-  }, [weekDayKeys, todayKey])
+  }, [anchor, viewMode, weekDayKeys])
 
   useEffect(() => {
     loadSessions()
@@ -263,16 +298,21 @@ export default function CoachSessionCalendar({
     [sessions],
   )
 
+  const scheduleItems = useMemo(
+    () => sortScheduledSessions([...sessions, ...calendarEvents]),
+    [sessions, calendarEvents],
+  )
+
   const dayCounts = useMemo(
-    () => countActiveAppointmentsByDay(sortedSessions, weekDayKeys),
-    [sortedSessions, weekDayKeys],
+    () => countActiveAppointmentsByDay(scheduleItems, weekDayKeys),
+    [scheduleItems, weekDayKeys],
   )
 
   const agendaDayKey = selectedDayKey
 
   const agendaSessions = useMemo(
-    () => appointmentsForCoachDayAgenda(sortedSessions, agendaDayKey),
-    [sortedSessions, agendaDayKey],
+    () => appointmentsForCoachDayAgenda(scheduleItems, agendaDayKey),
+    [scheduleItems, agendaDayKey],
   )
 
   const nextAppointment = useMemo(
@@ -308,7 +348,7 @@ export default function CoachSessionCalendar({
     const current = new Date()
     setAnchor(current)
     setSelectedDayKey(dateKey(current))
-    setViewMode(COACH_CALENDAR_VIEW.TODAY)
+    setViewMode(COACH_CALENDAR_VIEW.DAY)
   }
 
   const shiftSelectedDay = (delta) => {
@@ -335,16 +375,50 @@ export default function CoachSessionCalendar({
 
     return (
       <div className="coach-session-calendar-list">
-        {items.map((session) => (
-          <CoachAppointmentCard
-            key={session.id}
-            session={session}
-            client={resolveClientForSession(session)}
-            onClick={sessionDetail.openSession}
-            isPast={isPastCoachAppointment(session, now)}
-            isNext={nextAppointment?.id === session.id}
-          />
-        ))}
+        {items.map((session) =>
+          session.isCoachPrivateEvent ? (
+            <button
+              key={session.id}
+              type="button"
+              className="coach-calendar-private-event"
+              data-testid="coach-private-calendar-event"
+              onClick={async () => {
+                const confirmed = await appUi.confirm({
+                  message: `Remove “${session.title}” from your calendar?`,
+                  confirmLabel: 'Remove event',
+                  tone: 'danger',
+                })
+                if (!confirmed) return
+                try {
+                  await coachBackend.deleteCoachCalendarEvent(session.id)
+                  await loadSessions()
+                } catch (error) {
+                  appUi.toast(error.message ?? 'Could not remove event.', 'error')
+                }
+              }}
+            >
+              <div>
+                <strong>
+                  {formatTime12Hour(session.startTime)} · {session.title}
+                </strong>
+                <span>
+                  {coachCalendarEventCategoryLabel(session)}
+                  {session.locationName ? ` · ${session.locationName}` : ''}
+                </span>
+              </div>
+              <em>Private</em>
+            </button>
+          ) : (
+            <CoachAppointmentCard
+              key={session.id}
+              session={session}
+              client={resolveClientForSession(session)}
+              onClick={sessionDetail.openSession}
+              isPast={isPastCoachAppointment(session, now)}
+              isNext={nextAppointment?.id === session.id}
+            />
+          ),
+        )}
       </div>
     )
   }
@@ -417,6 +491,7 @@ export default function CoachSessionCalendar({
           assignmentId: draft.assignmentId ?? null,
           locationType: draft.locationType ?? 'default',
           locationName: draft.locationName ?? '',
+          existingItems: scheduleItems,
         })
       } else {
         const created = await coachBackend.createScheduledSession({
@@ -434,7 +509,7 @@ export default function CoachSessionCalendar({
           assignmentId: draft.assignmentId ?? null,
           locationType: draft.locationType ?? 'default',
           locationName: draft.locationName ?? '',
-          existingSessions: sessions,
+          existingSessions: scheduleItems,
         })
         logAppointmentCreate({
           success: true,
@@ -487,156 +562,357 @@ export default function CoachSessionCalendar({
     }
   }
 
+  const handleCreatePrivateEvent = async () => {
+    const title = eventDraft.title.trim()
+    if (!title) {
+      appUi.toast('Add a title for this event.', 'error')
+      return
+    }
+
+    if (
+      isScheduleTimeInPast({
+        sessionDate: eventDraft.eventDate,
+        startTime: eventDraft.startTime,
+        scheduleTimezone: DEFAULT_COACH_SCHEDULE_TIMEZONE,
+      })
+    ) {
+      appUi.toast('That time has already passed.', 'error')
+      return
+    }
+
+    setEventSaving(true)
+    try {
+      await coachBackend.createCoachCalendarEvent({
+        title,
+        eventDate: eventDraft.eventDate,
+        startTime: eventDraft.startTime,
+        durationMinutes: Number(eventDraft.durationMinutes) || 60,
+        category: eventDraft.category,
+        notes: eventDraft.notes.trim(),
+        locationName: eventDraft.locationName.trim(),
+        existingItems: scheduleItems,
+      })
+      setShowEventComposer(false)
+      setSelectedDayKey(eventDraft.eventDate)
+      setAnchor(new Date(`${eventDraft.eventDate}T12:00:00`))
+      setEventDraft(createCoachCalendarEventDraft(eventDraft.eventDate))
+      appUi.toast('Private calendar event added.', 'success')
+      await loadSessions()
+    } catch (error) {
+      appUi.toast(
+        error.message === 'calendar_overlap'
+          ? 'That time overlaps something already on your calendar.'
+          : error.message ?? 'Could not add calendar event.',
+        'error',
+      )
+    } finally {
+      setEventSaving(false)
+    }
+  }
+
   const dayHeading = formatCoachCalendarDayHeading(agendaDayKey)
   const weekHeading = formatCoachCalendarWeekHeading(dateKey(weekDays[0]))
+  const monthHeading = formatCoachCalendarMonthHeading(anchor)
+
+  const shiftMonth = (delta) => {
+    const next = new Date(anchor)
+    next.setHours(12, 0, 0, 0)
+    next.setDate(1)
+    next.setMonth(next.getMonth() + delta)
+    setAnchor(next)
+  }
+
+  const shiftCalendarPeriod = (delta) => {
+    if (viewMode === COACH_CALENDAR_VIEW.MONTH) {
+      shiftMonth(delta)
+      return
+    }
+    if (viewMode === COACH_CALENDAR_VIEW.WEEK) {
+      setAnchor(addDays(anchor, delta * 7))
+      return
+    }
+    shiftSelectedDay(delta)
+  }
+
+  const goToTodayInCurrentView = () => {
+    const current = new Date()
+    setAnchor(current)
+    setSelectedDayKey(dateKey(current))
+  }
+
+  const periodHeading =
+    viewMode === COACH_CALENDAR_VIEW.MONTH
+      ? monthHeading
+      : viewMode === COACH_CALENDAR_VIEW.WEEK
+        ? weekHeading
+        : dayHeading
+
+  const previousPeriodLabel =
+    viewMode === COACH_CALENDAR_VIEW.MONTH
+      ? 'Previous month'
+      : viewMode === COACH_CALENDAR_VIEW.WEEK
+        ? 'Previous week'
+        : 'Previous day'
+
+  const nextPeriodLabel =
+    viewMode === COACH_CALENDAR_VIEW.MONTH
+      ? 'Next month'
+      : viewMode === COACH_CALENDAR_VIEW.WEEK
+        ? 'Next week'
+        : 'Next day'
+
+  const dayItemsByKey = useMemo(() => {
+    const groups = {}
+    scheduleItems.forEach((item) => {
+      const key = String(item.sessionDate ?? '')
+      if (!groups[key]) groups[key] = []
+      groups[key].push(item)
+    })
+    return groups
+  }, [scheduleItems])
 
   return (
     <section className="coach-session-calendar-screen">
       <header className="coach-session-calendar-header">
         <div className="coach-session-calendar-title-row">
-          <h1>Calendar</h1>
-          <button
-            type="button"
-            className="gold-button machined coach-primary-action coach-session-calendar-schedule"
-            data-testid="coach-schedule-session-button"
-            onClick={openScheduleComposer}
-          >
-            <Plus {...ICON} />
-            Schedule
-          </button>
+          <div>
+            <span className="eyebrow">SCHEDULE</span>
+            <h1>Calendar</h1>
+          </div>
+
+          <div className="coach-calendar-add-menu-wrap">
+            <button
+              type="button"
+              className="gold-button machined coach-primary-action coach-calendar-add-trigger"
+              data-testid="coach-calendar-add-trigger"
+              aria-expanded={showAddMenu}
+              aria-haspopup="menu"
+              onClick={() => setShowAddMenu((current) => !current)}
+            >
+              <Plus {...ICON} />
+              Add
+              <ChevronDown size={15} strokeWidth={1.8} aria-hidden="true" />
+            </button>
+
+            {showAddMenu ? (
+              <div
+                className="coach-calendar-add-menu"
+                role="menu"
+                data-testid="coach-calendar-add-menu"
+              >
+                <button
+                  type="button"
+                  role="menuitem"
+                  data-testid="coach-add-personal-training"
+                  onClick={openScheduleComposer}
+                >
+                  <span>
+                    <strong>Personal training</strong>
+                    <small>Client, date, time, and duration</small>
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  data-testid="coach-add-private-event-button"
+                  onClick={openPrivateEventComposer}
+                >
+                  <span>
+                    <strong>Private event</strong>
+                    <small>Personal, admin, meeting, or unavailable time</small>
+                  </span>
+                </button>
+              </div>
+            ) : null}
+          </div>
         </div>
 
-        <div
-          className="coach-session-calendar-view-toggle"
-          role="tablist"
-          aria-label="Calendar view"
-        >
+        <div className="coach-calendar-command-bar">
+          <div
+            className="coach-session-calendar-view-toggle"
+            role="tablist"
+            aria-label="Calendar view"
+          >
+            <button
+              type="button"
+              role="tab"
+              aria-selected={viewMode === COACH_CALENDAR_VIEW.MONTH}
+              className={viewMode === COACH_CALENDAR_VIEW.MONTH ? 'active' : ''}
+              data-testid="coach-calendar-view-month"
+              onClick={() => setViewMode(COACH_CALENDAR_VIEW.MONTH)}
+            >
+              Month
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={viewMode === COACH_CALENDAR_VIEW.WEEK}
+              className={viewMode === COACH_CALENDAR_VIEW.WEEK ? 'active' : ''}
+              data-testid="coach-calendar-view-week"
+              onClick={() => setViewMode(COACH_CALENDAR_VIEW.WEEK)}
+            >
+              Week
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={viewMode === COACH_CALENDAR_VIEW.DAY}
+              className={viewMode === COACH_CALENDAR_VIEW.DAY ? 'active' : ''}
+              data-testid="coach-calendar-view-day"
+              onClick={() => setViewMode(COACH_CALENDAR_VIEW.DAY)}
+            >
+              Day
+            </button>
+          </div>
+
+          <div className="coach-calendar-period-control">
+            <button
+              type="button"
+              aria-label={previousPeriodLabel}
+              onClick={() => shiftCalendarPeriod(-1)}
+            >
+              <ChevronLeft {...ICON} />
+            </button>
+            <strong>{periodHeading}</strong>
+            <button
+              type="button"
+              aria-label={nextPeriodLabel}
+              onClick={() => shiftCalendarPeriod(1)}
+            >
+              <ChevronRight {...ICON} />
+            </button>
+          </div>
+
           <button
             type="button"
-            role="tab"
-            aria-selected={viewMode === COACH_CALENDAR_VIEW.TODAY}
-            className={viewMode === COACH_CALENDAR_VIEW.TODAY ? 'active' : ''}
-            data-testid="coach-calendar-view-today"
-            onClick={() => {
-              setViewMode(COACH_CALENDAR_VIEW.TODAY)
-              setSelectedDayKey(todayKey)
-              setAnchor(new Date())
-            }}
+            className="coach-calendar-today-control"
+            data-testid="coach-calendar-jump-today"
+            onClick={goToTodayInCurrentView}
           >
             Today
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={viewMode === COACH_CALENDAR_VIEW.WEEK}
-            className={viewMode === COACH_CALENDAR_VIEW.WEEK ? 'active' : ''}
-            data-testid="coach-calendar-view-week"
-            onClick={() => setViewMode(COACH_CALENDAR_VIEW.WEEK)}
-          >
-            Week
           </button>
         </div>
       </header>
 
-      {viewMode === COACH_CALENDAR_VIEW.TODAY ? (
-        <div className="coach-session-calendar-nav">
-          <div className="coach-session-calendar-toolbar">
-            <button
-              type="button"
-              aria-label="Previous day"
-              onClick={() => shiftSelectedDay(-1)}
-            >
-              <ChevronLeft {...ICON} />
-            </button>
-            <strong>{dayHeading}</strong>
-            <button
-              type="button"
-              aria-label="Next day"
-              onClick={() => shiftSelectedDay(1)}
-            >
-              <ChevronRight {...ICON} />
-            </button>
+      {viewMode === COACH_CALENDAR_VIEW.MONTH ? (
+        <section className="coach-calendar-month-view" data-testid="coach-calendar-month-grid">
+          <div className="coach-calendar-month-weekdays" aria-hidden="true">
+            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((label) => (
+              <span key={label}>{label}</span>
+            ))}
           </div>
-          {selectedDayKey !== todayKey ? (
-            <button
-              type="button"
-              className="coach-secondary-button coach-session-calendar-today"
-              data-testid="coach-calendar-jump-today"
-              onClick={jumpToToday}
-            >
-              Today
-            </button>
-          ) : null}
-        </div>
-      ) : (
-        <div className="coach-session-calendar-nav">
-          <div className="coach-session-calendar-toolbar">
-            <button
-              type="button"
-              aria-label="Previous week"
-              onClick={() => setAnchor(addDays(anchor, -7))}
-            >
-              <ChevronLeft {...ICON} />
-            </button>
-            <strong>{weekHeading}</strong>
-            <button
-              type="button"
-              aria-label="Next week"
-              onClick={() => setAnchor(addDays(anchor, 7))}
-            >
-              <ChevronRight {...ICON} />
-            </button>
+          <div className="coach-calendar-month-grid">
+            {monthDays.map(({ date, key, inCurrentMonth }) => {
+              const items = dayItemsByKey[key] ?? []
+              const isToday = key === todayKey
+              const clientCount = items.filter((item) => !item.isCoachPrivateEvent).length
+              const privateCount = items.length - clientCount
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  className={`coach-calendar-month-day${inCurrentMonth ? '' : ' is-outside'}${isToday ? ' is-today' : ''}${items.length ? ' has-items' : ''}`}
+                  onClick={() => {
+                    setSelectedDayKey(key)
+                    setAnchor(date)
+                    setViewMode(COACH_CALENDAR_VIEW.DAY)
+                  }}
+                  aria-label={`${formatCoachCalendarDayHeading(key)}, ${items.length} calendar item${items.length === 1 ? '' : 's'}`}
+                >
+                  <span className="coach-calendar-month-date">{date.getDate()}</span>
+                  <div className="coach-calendar-month-events">
+                    {items.slice(0, 3).map((item) => (
+                      <span
+                        key={item.id}
+                        className={item.isCoachPrivateEvent ? 'is-private' : 'is-client'}
+                      >
+                        {item.startTime ? formatTime12Hour(item.startTime).replace(':00', '') : ''}
+                        {' '}
+                        {item.isCoachPrivateEvent
+                          ? item.title
+                          : getClientDisplayName(resolveClientForSession(item) ?? {})}
+                      </span>
+                    ))}
+                    {items.length > 3 ? (
+                      <em>+{items.length - 3} more</em>
+                    ) : null}
+                  </div>
+                  {items.length > 0 ? (
+                    <small>
+                      {clientCount ? `${clientCount} client${clientCount === 1 ? '' : 's'}` : ''}
+                      {clientCount && privateCount ? ' · ' : ''}
+                      {privateCount ? `${privateCount} private` : ''}
+                    </small>
+                  ) : null}
+                </button>
+              )
+            })}
           </div>
-          <button
-            type="button"
-            className="coach-secondary-button coach-session-calendar-today"
-            data-testid="coach-calendar-jump-today"
-            onClick={jumpToToday}
-          >
-            Today
-          </button>
-        </div>
-      )}
+        </section>
+      ) : null}
 
       {viewMode === COACH_CALENDAR_VIEW.WEEK ? (
-        <div
-          className="coach-session-calendar-week-strip"
-          role="tablist"
-          aria-label="Week days"
-        >
+        <section className="coach-calendar-week-board" data-testid="coach-calendar-week-grid">
           {weekDays.map((day) => {
             const key = dateKey(day)
-            const isSelected = key === selectedDayKey
+            const items = dayItemsByKey[key] ?? []
             const isToday = key === todayKey
-            const count = dayCounts[key] ?? 0
-
             return (
-              <button
-                key={key}
-                type="button"
-                role="tab"
-                aria-selected={isSelected}
-                className={`coach-session-calendar-day-chip${isSelected ? ' is-selected' : ''}${isToday ? ' is-today' : ''}`}
-                onClick={() => setSelectedDayKey(key)}
-              >
-                <span>{day.toLocaleDateString([], { weekday: 'short' })}</span>
-                <strong>{day.getDate()}</strong>
-                <em>{count ? `${count} session${count === 1 ? '' : 's'}` : 'Open'}</em>
-              </button>
+              <article key={key} className={`coach-calendar-week-column${isToday ? ' is-today' : ''}`}>
+                <button
+                  type="button"
+                  className="coach-calendar-week-heading"
+                  onClick={() => {
+                    setSelectedDayKey(key)
+                    setAnchor(day)
+                    setViewMode(COACH_CALENDAR_VIEW.DAY)
+                  }}
+                >
+                  <span>{day.toLocaleDateString([], { weekday: 'short' })}</span>
+                  <strong>{day.getDate()}</strong>
+                  <em>{items.length ? `${items.length} item${items.length === 1 ? '' : 's'}` : 'Open'}</em>
+                </button>
+                <div className="coach-calendar-week-items">
+                  {items.length ? items.map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      className={`coach-calendar-week-item ${item.isCoachPrivateEvent ? 'is-private' : 'is-client'}`}
+                      onClick={() => {
+                        if (item.isCoachPrivateEvent) {
+                          setSelectedDayKey(key)
+                          setViewMode(COACH_CALENDAR_VIEW.DAY)
+                        } else {
+                          sessionDetail.openSession(item)
+                        }
+                      }}
+                    >
+                      <span>{formatTime12Hour(item.startTime)}</span>
+                      <strong>
+                        {item.isCoachPrivateEvent
+                          ? item.title
+                          : getClientDisplayName(resolveClientForSession(item) ?? {})}
+                      </strong>
+                    </button>
+                  )) : (
+                    <span className="coach-calendar-week-open">Open</span>
+                  )}
+                </div>
+              </article>
             )
           })}
-        </div>
+        </section>
       ) : null}
 
       {loading ? (
         <p className="coach-session-calendar-loading">Loading sessions…</p>
-      ) : (
+      ) : viewMode === COACH_CALENDAR_VIEW.DAY ? (
         <section className="coach-session-calendar-day-block">
           <header className="coach-session-calendar-day-heading">
             <h2>{dayHeading}</h2>
           </header>
 
-          {viewMode === COACH_CALENDAR_VIEW.TODAY &&
+          {viewMode === COACH_CALENDAR_VIEW.DAY &&
           agendaDayKey === todayKey &&
           todayRsvpAlerts.length > 0 ? (
             <div className="coach-session-rsvp-alerts" role="status">
@@ -648,13 +924,22 @@ export default function CoachSessionCalendar({
 
           {renderAgendaList(agendaSessions, { dayKey: agendaDayKey })}
 
-          {viewMode === COACH_CALENDAR_VIEW.TODAY &&
+          {viewMode === COACH_CALENDAR_VIEW.DAY &&
           !agendaSessions.length &&
           emptyHint ? (
             <p className="coach-session-calendar-hint">{emptyHint}</p>
           ) : null}
         </section>
-      )}
+      ) : null}
+
+      <CoachCalendarEventSheet
+        open={showEventComposer}
+        draft={eventDraft}
+        submitting={eventSaving}
+        onDraftChange={setEventDraft}
+        onClose={() => setShowEventComposer(false)}
+        onSubmit={handleCreatePrivateEvent}
+      />
 
       <CoachScheduleSessionSheet
         open={showComposer}

@@ -45,12 +45,12 @@ describe('CoachScheduleSessionSheet', () => {
     expect(document.querySelector('[data-app-ui-backdrop="open"]')).not.toBeNull()
     expect(screen.getByText('Jake')).toBeInTheDocument()
     expect(screen.getAllByText('Jake')).toHaveLength(1)
-    expect(screen.getByText('Schedule appointment')).toBeInTheDocument()
+    expect(screen.getByText('Personal training')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /^today$/i })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /^tomorrow$/i })).not.toBeInTheDocument()
     expect(screen.queryByText('Today')).not.toBeInTheDocument()
     expect(screen.queryByText('Tomorrow')).not.toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /^save appointment$/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /^save personal training$/i })).toBeInTheDocument()
     expect(document.getElementById('root').style.position).toBe('fixed')
     expect(document.documentElement.style.overflow).toBe('hidden')
   })
@@ -66,7 +66,7 @@ describe('CoachScheduleSessionSheet', () => {
       />,
     )
 
-    const dateInput = screen.getByLabelText('Appointment date')
+    const dateInput = screen.getByLabelText('Personal training date')
     expect(dateInput).toHaveAttribute('type', 'date')
     expect(dateInput).toHaveValue('2026-08-07')
     expect(dateInput).toHaveClass('coach-schedule-date-input')
@@ -123,7 +123,7 @@ describe('CoachScheduleSessionSheet', () => {
       />,
     )
 
-    fireEvent.change(screen.getByLabelText('Appointment date'), {
+    fireEvent.change(screen.getByLabelText('Personal training date'), {
       target: { value: '2026-09-20' },
     })
 
@@ -144,12 +144,12 @@ describe('CoachScheduleSessionSheet', () => {
       />,
     )
 
-    expect(screen.getByLabelText('Appointment date')).toHaveValue('2026-09-20')
+    expect(screen.getByLabelText('Personal training date')).toHaveValue('2026-09-20')
     expect(
       screen.getByText(formatScheduleDateLong('2026-09-20')),
     ).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: /^save appointment$/i }))
+    fireEvent.click(screen.getByRole('button', { name: /^save personal training$/i }))
     expect(onSubmit).toHaveBeenCalledTimes(1)
   })
 
@@ -167,8 +167,8 @@ describe('CoachScheduleSessionSheet', () => {
       />,
     )
 
-    expect(screen.getByLabelText('Appointment date')).toHaveValue('2026-09-01')
-    fireEvent.change(screen.getByLabelText('Appointment date'), {
+    expect(screen.getByLabelText('Personal training date')).toHaveValue('2026-09-01')
+    fireEvent.change(screen.getByLabelText('Personal training date'), {
       target: { value: '2026-09-12' },
     })
     expect(onDraftChange).toHaveBeenCalledWith(
@@ -224,4 +224,32 @@ describe('CoachScheduleSessionSheet', () => {
     expect(scheduleCss).toContain('.coach-schedule-date-input')
     expect(scheduleCss).not.toContain('.coach-schedule-hidden-date')
   })
+  it('allows a business client without an athlete account to be scheduled', () => {
+    const offlineClient = {
+      id: 'business-1',
+      business_client_id: 'business-1',
+      display_name: 'Offline Client',
+      athlete_id: null,
+    }
+    const offlineDraft = {
+      ...baseDraft,
+      athleteId: '',
+      businessClientId: 'business-1',
+    }
+
+    render(
+      <CoachScheduleSessionSheet
+        open
+        clients={[offlineClient]}
+        draft={offlineDraft}
+        onClose={vi.fn()}
+        onSubmit={vi.fn()}
+      />,
+    )
+
+    expect(
+      screen.getByRole('button', { name: /^save personal training$/i }),
+    ).not.toBeDisabled()
+  })
+
 })
