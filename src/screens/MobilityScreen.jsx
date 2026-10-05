@@ -206,9 +206,13 @@ export default function MobilityScreen({
     )
   }
 
+  const isWarmUp =
+    flow.kind === 'warm_up' ||
+    flow.title === 'Pre-Workout Warm-Up'
   const isMorning =
-    flow.title === 'Morning Movement' ||
-    String(flow.id ?? '').startsWith('daily-reset-')
+    !isWarmUp &&
+    (flow.title === 'Morning Movement' ||
+      String(flow.id ?? '').startsWith('daily-reset-'))
 
   if (!movement && !flowComplete) return null
 
@@ -237,9 +241,11 @@ export default function MobilityScreen({
         <span className="eyebrow">{flow.title?.toUpperCase()}</span>
         <h1>Complete.</h1>
         <p>
-          {isMorning
-            ? 'Your body is prepared for the day.'
-            : 'Your recovery work is complete.'}
+          {isWarmUp
+            ? 'Your body is prepared for the workout.'
+            : isMorning
+              ? 'Your body is prepared for the day.'
+              : 'Your cooldown and recovery work is complete.'}
         </p>
         <div className="movement-flow-complete-stats">
           <article><strong>{flow.movements.length}</strong><span>movements</span></article>

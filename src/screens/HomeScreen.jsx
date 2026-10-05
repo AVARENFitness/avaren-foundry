@@ -436,6 +436,7 @@ export default function HomeScreen({
         onStart()
         return
       }
+      case AVA_ACTION_TYPES.PRE_WORKOUT_WARMUP:
       case AVA_ACTION_TYPES.MORNING_MOVEMENT:
         onOpenMobility()
         return

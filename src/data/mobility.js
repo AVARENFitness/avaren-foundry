@@ -2126,23 +2126,23 @@ export function buildAdaptiveDailyReset({
 
   if (lastWorkout?.name) {
     reasonParts.push(
-      `Your last workout was ${lastWorkout.name}, so recovery work is included.`,
+      `Your last workout was ${lastWorkout.name}, so the warm-up gives those areas a little extra mobility.`,
     )
   }
 
   if (readiness?.completed && readiness.score < 50) {
     reasonParts.push(
-      'Today’s readiness is low, so the reset uses a gentler recovery emphasis.',
+      'Today’s readiness is low, so the warm-up stays gentler and more controlled.',
     )
   }
 
   if (plannedWorkout && plannedWorkout !== 'Rest') {
     reasonParts.push(
-      `Today’s reset also prepares you for ${plannedWorkout}.`,
+      `This warm-up prepares the joints and muscle groups you will use in ${plannedWorkout}.`,
     )
   } else if (lastWorkout?.name) {
     reasonParts.push(
-      'A short recovery flow can help you prepare for tomorrow.',
+      'A short mobility reset can help you move better tomorrow.',
     )
   } else {
     reasonParts.push(
@@ -2177,10 +2177,16 @@ export function buildAdaptiveDailyReset({
 
   return {
     id: `daily-reset-${new Date().toISOString().slice(0, 10)}`,
-    title: 'Morning Movement',
+    title:
+      plannedWorkout && plannedWorkout !== 'Rest'
+        ? 'Pre-Workout Warm-Up'
+        : 'Mobility Reset',
     subtitle: goal,
     reason: reasonParts.join(' '),
-    kind: 'morning_movement',
+    kind:
+      plannedWorkout && plannedWorkout !== 'Rest'
+        ? 'warm_up'
+        : 'morning_movement',
     focusAreas,
     movements: movementIds
       .slice(0, limit)
@@ -2233,11 +2239,11 @@ export function buildRecoveryFlow(
 
   return {
     id: `recovery-${session?.id ?? 'current'}`,
-    title: 'Recovery Flow',
+    title: 'Cooldown & Recovery',
     subtitle: goal,
     reason: session?.name
-      ? `Built from the muscles you trained during ${session.name}.`
-      : 'A balanced equipment-free recovery flow.',
+      ? `A post-workout cooldown built from the muscles you trained during ${session.name}.`
+      : 'A balanced post-workout cooldown and recovery flow.',
     kind: 'recovery',
     focusAreas: selected.map((value) =>
       value

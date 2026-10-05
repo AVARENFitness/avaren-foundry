@@ -5,6 +5,7 @@ import {
   selectPrimaryAvaAction,
   selectAvaWatchItem,
   shouldSuggestMorningMovement,
+  shouldSuggestPreWorkoutWarmUp,
 } from './avaActions'
 import {
   buildAvaContext,
@@ -176,10 +177,10 @@ describe('avaActions', () => {
     ).toBe(true)
 
     const action = selectPrimaryAvaAction(ctx, AVA_DAILY_STATES.MANAGE_LOAD)
-    expect(action.type).toBe(AVA_ACTION_TYPES.MORNING_MOVEMENT)
+    expect(action.type).toBe(AVA_ACTION_TYPES.PRE_WORKOUT_WARMUP)
   })
 
-  it('does not trigger morning movement from time alone', () => {
+  it('keeps the pre-workout warm-up available even when morning movement is not specifically indicated', () => {
     const ctx = buildAvaContext(
       {
         ...baseState,
@@ -198,7 +199,8 @@ describe('avaActions', () => {
     )
 
     const action = selectPrimaryAvaAction(ctx, AVA_DAILY_STATES.READY)
-    expect(action.type).toBe(AVA_ACTION_TYPES.START_WORKOUT)
+    expect(shouldSuggestPreWorkoutWarmUp(ctx, AVA_DAILY_STATES.READY)).toBe(true)
+    expect(action.type).toBe(AVA_ACTION_TYPES.PRE_WORKOUT_WARMUP)
   })
 
   it('does not suggest morning movement after 11 AM local time', () => {
@@ -219,7 +221,7 @@ describe('avaActions', () => {
     ).toBe(false)
   })
 
-  it('prioritizes recovery flow prep when recent training supports it', () => {
+  it('uses warm-up, not Recovery Flow, before training', () => {
     const ctx = buildAvaContext(
       {
         ...baseState,
@@ -229,7 +231,8 @@ describe('avaActions', () => {
     )
     const action = selectPrimaryAvaAction(ctx, AVA_DAILY_STATES.READY)
 
-    expect(action.type).toBe(AVA_ACTION_TYPES.RECOVERY_FLOW)
+    expect(action.type).toBe(AVA_ACTION_TYPES.PRE_WORKOUT_WARMUP)
+    expect(action.label).toBe('Start Warm-Up')
   })
 
   it('CASE 4: no workout today does not fabricate training action', () => {

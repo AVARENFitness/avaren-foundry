@@ -81,4 +81,55 @@ describe('AvaDailyBriefing', () => {
     expect(screen.queryByText(sampleBriefing.greeting)).not.toBeInTheDocument()
   })
 
+  it('persists a collapsed Home AVA preference', async () => {
+    window.localStorage.removeItem('avaren:home:ava-collapsed')
+    const user = userEvent.setup()
+
+    render(
+      <AvaDailyBriefing
+        briefing={sampleBriefing}
+        onAction={vi.fn()}
+        onAskAva={vi.fn()}
+        contextOnly
+      />,
+    )
+
+    await user.click(
+      screen.getByRole('button', { name: 'Collapse AVA guidance' }),
+    )
+
+    expect(
+      window.localStorage.getItem('avaren:home:ava-collapsed'),
+    ).toBe('1')
+    expect(screen.queryByText(sampleBriefing.summary)).not.toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: 'Expand AVA guidance' }),
+    ).toBeInTheDocument()
+  })
+
+  it('shows a direct warm-up action when AVA recommends pre-workout prep', async () => {
+    window.localStorage.removeItem('avaren:home:ava-collapsed')
+    const user = userEvent.setup()
+    const onAction = vi.fn()
+    const warmup = {
+      ...sampleBriefing,
+      primaryAction: {
+        type: AVA_ACTION_TYPES.PRE_WORKOUT_WARMUP,
+        label: 'Start Warm-Up',
+        detail: 'Prepare for today’s workout.',
+      },
+    }
+
+    render(
+      <AvaDailyBriefing
+        briefing={warmup}
+        onAction={onAction}
+        contextOnly
+      />,
+    )
+
+    await user.click(screen.getByRole('button', { name: /Start Warm-Up/i }))
+    expect(onAction).toHaveBeenCalledWith(warmup.primaryAction)
+  })
+
 })
