@@ -21,7 +21,7 @@ const schema = {
     type: 'object',
     additionalProperties: false,
     required: [
-      'kind','title','brand','servingDescription','calories','protein','carbs','fat','fiber',
+      'kind','title','brand','servingDescription','servingAmount','servingUnit','calories','protein','carbs','fat','fiber',
       'confidence','sourceType','searchQuery','barcode','components','followUpQuestion','notes'
     ],
     properties: {
@@ -29,6 +29,8 @@ const schema = {
       title: { type: 'string' },
       brand: { type: 'string' },
       servingDescription: { type: 'string' },
+      servingAmount: { type: 'number' },
+      servingUnit: { type: 'string', enum: ['g','oz','ml','serving','unknown'] },
       calories: { type: 'number' },
       protein: { type: 'number' },
       carbs: { type: 'number' },
@@ -80,6 +82,7 @@ BARCODE MODE
 
 CLASSIFICATION
 - nutrition_label: a readable Nutrition Facts panel is visible. Read the printed serving and macros directly. Do not invent missing numbers.
+- For nutrition labels, split the measurable serving basis into servingAmount + servingUnit whenever possible. Example: "2/3 cup (150g)" => servingAmount 150 and servingUnit "g". If the only usable basis is "1 container", use servingAmount 1 and servingUnit "serving". If no numeric basis is readable, use 0 + "unknown".
 - packaged_product: a branded food/package is recognizable but no readable Nutrition Facts panel is available. Identify the most likely exact product/variant and create a concise searchQuery for a nutrition database. Macros may be a provisional estimate, but searchQuery is important.
 - meal: prepared food/plate. Estimate components and portions.
 
@@ -97,6 +100,7 @@ CONFIDENCE
 
 For meals, totals must approximately equal the sum of components.
 For labels, servingDescription must reflect the serving shown.
+For meals or packaged products without a readable measurement basis, set servingAmount to 0 and servingUnit to "unknown".
 Return JSON only.`
 
 export default {
