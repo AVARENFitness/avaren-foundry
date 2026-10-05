@@ -25,7 +25,7 @@ describe('CoachClientProfileShell', () => {
     expect(screen.getByText('Connected since Jan 4, 2026')).toBeInTheDocument()
     expect(screen.getByText('Section content')).toBeInTheDocument()
 
-    for (const label of ['Overview', 'Sessions', 'Training', 'Notes', 'More']) {
+    for (const label of ['Coaching', 'Sessions', 'Training', 'Notes', 'More']) {
       expect(screen.getByRole('button', { name: label })).toBeInTheDocument()
     }
 
@@ -79,7 +79,7 @@ describe('CoachClientProfileShell', () => {
       'page',
     )
     expect(screen.getByRole('button', { name: 'More' })).toHaveClass('active')
-    expect(screen.getByRole('button', { name: 'Overview' })).not.toHaveAttribute(
+    expect(screen.getByRole('button', { name: 'Coaching' })).not.toHaveAttribute(
       'aria-current',
     )
   })
