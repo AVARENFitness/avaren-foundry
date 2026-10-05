@@ -22,6 +22,7 @@ vi.mock('../lib/athleteCalendarEvents', async () => {
     ...actual,
     athleteCalendarBackend: {
       list: vi.fn(),
+      update: vi.fn(),
       remove: vi.fn(),
     },
   }
@@ -32,6 +33,7 @@ vi.mock('../lib/coachBackend', () => ({
     listScheduledSessions: vi.fn(),
     listCoachCalendarEvents: vi.fn(),
     createCoachCalendarEvent: vi.fn(),
+    updateCoachCalendarEvent: vi.fn(),
     deleteCoachCalendarEvent: vi.fn(),
     listClientPassBalances: vi.fn(),
     getSessionPackage: vi.fn(),
@@ -128,6 +130,7 @@ describe('CoachSessionCalendar usability', () => {
     vi.setSystemTime(new Date('2026-09-02T16:00:00.000Z')) // Wed in America/New_York
     vi.clearAllMocks()
     athleteCalendarBackend.list.mockResolvedValue([])
+    athleteCalendarBackend.update.mockResolvedValue({})
     athleteCalendarBackend.remove.mockResolvedValue({})
     coachBackend.listScheduledSessions.mockResolvedValue(buildSessionsFixture())
     coachBackend.listCoachCalendarEvents.mockResolvedValue([])
@@ -141,6 +144,7 @@ describe('CoachSessionCalendar usability', () => {
       category: 'admin',
       status: 'scheduled',
     })
+    coachBackend.updateCoachCalendarEvent.mockResolvedValue({})
     coachBackend.deleteCoachCalendarEvent.mockResolvedValue({})
     coachBackend.listClientPassBalances.mockResolvedValue([])
     coachBackend.getSessionPackage.mockResolvedValue(null)
@@ -354,6 +358,42 @@ describe('CoachSessionCalendar usability', () => {
     expect(screen.getByText('Private')).toBeInTheDocument()
     expect(screen.getAllByTestId('coach-appointment-card')).toHaveLength(2)
     expect(screen.getByTestId('coach-private-calendar-event')).toBeInTheDocument()
+  })
+
+  it('opens a private event in edit mode instead of deleting on tap', async () => {
+    const user = userEvent.setup()
+    const todayKey = dateKey(new Date(), DEFAULT_COACH_SCHEDULE_TIMEZONE)
+    coachBackend.listCoachCalendarEvents.mockResolvedValue([
+      {
+        id: 'private-admin',
+        coach_id: 'coach-1',
+        title: 'Admin block',
+        event_date: todayKey,
+        start_time: '11:00',
+        duration_minutes: 60,
+        category: 'admin',
+        status: 'scheduled',
+      },
+    ])
+
+    render(<CoachSessionCalendar clients={[jake]} assignments={[]} />)
+
+    fireEvent.click(screen.getByTestId('coach-calendar-view-day'))
+
+    const privateEvent = await screen.findByTestId('coach-private-calendar-event')
+    await user.click(privateEvent)
+
+    const sheet = await screen.findByTestId('coach-calendar-event-sheet')
+    expect(
+      within(sheet).getByRole('heading', { name: /edit private event/i }),
+    ).toBeInTheDocument()
+    expect(
+      within(sheet).getByRole('button', { name: /save changes/i }),
+    ).toBeInTheDocument()
+    expect(
+      within(sheet).getByRole('button', { name: /delete event/i }),
+    ).toBeInTheDocument()
+    expect(appUi.confirm).not.toHaveBeenCalled()
   })
 
   it('creates a private event without creating an athlete appointment', async () => {

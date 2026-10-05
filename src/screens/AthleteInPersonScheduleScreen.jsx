@@ -111,6 +111,7 @@ export default function AthleteInPersonScheduleScreen({
   const [calendarLoading, setCalendarLoading] = useState(true)
   const [showEventComposer, setShowEventComposer] = useState(false)
   const [eventSaving, setEventSaving] = useState(false)
+  const [editingPrivateEvent, setEditingPrivateEvent] = useState(null)
   const [eventDraft, setEventDraft] = useState(() =>
     createAthleteCalendarEventDraft(dateKey(new Date())),
   )
@@ -312,11 +313,30 @@ export default function AthleteInPersonScheduleScreen({
   }
 
   const openAddEvent = () => {
+    setEditingPrivateEvent(null)
     setEventDraft(createAthleteCalendarEventDraft(selectedDayKey))
     setShowEventComposer(true)
   }
 
-  const handleCreateEvent = async () => {
+  const openPrivateEventEditor = (item) => {
+    setEditingPrivateEvent(item)
+    setEventDraft({
+      title: item.title ?? '',
+      eventDate: item.eventDate ?? item.sessionDate ?? selectedDayKey,
+      startTime: String(item.startTime ?? '').slice(0, 5),
+      durationMinutes: String(item.durationMinutes ?? 60),
+      category:
+        item.category ??
+        (item.isAthletePrivateEvent
+          ? ATHLETE_CALENDAR_EVENT_CATEGORY.PERSONAL
+          : 'personal'),
+      locationName: item.locationName ?? '',
+      notes: item.notes ?? '',
+    })
+    setShowEventComposer(true)
+  }
+
+  const handleSaveEvent = async () => {
     const title = eventDraft.title.trim()
     if (!title) return
 
@@ -338,7 +358,11 @@ export default function AthleteInPersonScheduleScreen({
       status: 'scheduled',
     }
 
-    if (findOverlappingAppointment(candidate, scheduleItems)) {
+    if (
+      findOverlappingAppointment(candidate, scheduleItems, {
+        excludeId: editingPrivateEvent?.id ?? null,
+      })
+    ) {
       const confirmed = await appUi.confirm({
         message: 'That time overlaps something already on your calendar. Add it anyway?',
         confirmLabel: 'Add anyway',
@@ -348,7 +372,7 @@ export default function AthleteInPersonScheduleScreen({
 
     setEventSaving(true)
     try {
-      await athleteCalendarBackend.create({
+      const payload = {
         title,
         eventDate: eventDraft.eventDate,
         startTime: eventDraft.startTime,
@@ -356,11 +380,30 @@ export default function AthleteInPersonScheduleScreen({
         category: eventDraft.category,
         notes: eventDraft.notes.trim(),
         locationName: eventDraft.locationName.trim(),
-      })
+      }
+
+      if (editingPrivateEvent?.isAthletePrivateEvent) {
+        await athleteCalendarBackend.update(editingPrivateEvent.id, payload)
+      } else if (editingPrivateEvent?.isCoachPrivateEvent && includeCoachCalendar) {
+        await coachBackend.updateCoachCalendarEvent(
+          editingPrivateEvent.id,
+          {
+            ...payload,
+            existingItems: scheduleItems,
+          },
+        )
+      } else {
+        await athleteCalendarBackend.create(payload)
+      }
+
       setShowEventComposer(false)
+      setEditingPrivateEvent(null)
       setSelectedDayKey(eventDraft.eventDate)
       setAnchor(new Date(`${eventDraft.eventDate}T12:00:00`))
-      appUi.toast('Added to your private calendar.', 'success')
+      appUi.toast(
+        editingPrivateEvent ? 'Calendar event updated.' : 'Added to your private calendar.',
+        'success',
+      )
       await loadCalendar()
     } catch (error) {
       appUi.toast(error.message ?? 'Could not add calendar event.', 'error')
@@ -369,23 +412,31 @@ export default function AthleteInPersonScheduleScreen({
     }
   }
 
-  const handlePrivateEventClick = async (item) => {
+  const handleDeletePrivateEvent = async () => {
+    if (!editingPrivateEvent) return
+
     const confirmed = await appUi.confirm({
-      message: `Remove “${item.title}” from your calendar?`,
-      confirmLabel: 'Remove event',
+      message: `Delete “${editingPrivateEvent.title}” from your calendar?`,
+      confirmLabel: 'Delete event',
       tone: 'danger',
     })
     if (!confirmed) return
 
+    setEventSaving(true)
     try {
-      if (item.isAthletePrivateEvent) {
-        await athleteCalendarBackend.remove(item.id)
-      } else if (item.isCoachPrivateEvent && includeCoachCalendar) {
-        await coachBackend.deleteCoachCalendarEvent(item.id)
+      if (editingPrivateEvent.isAthletePrivateEvent) {
+        await athleteCalendarBackend.remove(editingPrivateEvent.id)
+      } else if (editingPrivateEvent.isCoachPrivateEvent && includeCoachCalendar) {
+        await coachBackend.deleteCoachCalendarEvent(editingPrivateEvent.id)
       }
+      setShowEventComposer(false)
+      setEditingPrivateEvent(null)
+      appUi.toast('Calendar event deleted.', 'success')
       await loadCalendar()
     } catch (error) {
-      appUi.toast(error.message ?? 'Could not remove event.', 'error')
+      appUi.toast(error.message ?? 'Could not delete event.', 'error')
+    } finally {
+      setEventSaving(false)
     }
   }
 
@@ -399,7 +450,7 @@ export default function AthleteInPersonScheduleScreen({
           key={`${sourceLabel(item)}:${item.id}`}
           type="button"
           className="athlete-calendar-agenda-item athlete-calendar-agenda-item--private"
-          onClick={() => void handlePrivateEventClick(item)}
+          onClick={() => openPrivateEventEditor(item)}
         >
           <div>
             <span className="eyebrow">{sourceLabel(item).toUpperCase()}</span>
@@ -657,13 +708,36 @@ export default function AthleteInPersonScheduleScreen({
         draft={eventDraft}
         submitting={eventSaving}
         onDraftChange={setEventDraft}
-        onClose={() => setShowEventComposer(false)}
-        onSubmit={handleCreateEvent}
-        title="Add private event"
-        description="Only you can see this event. Your coach cannot see your private calendar."
-        categoryOptions={Object.values(ATHLETE_CALENDAR_EVENT_CATEGORY)}
-        categoryLabels={ATHLETE_CALENDAR_EVENT_CATEGORY_LABEL}
+        onClose={() => {
+          setShowEventComposer(false)
+          setEditingPrivateEvent(null)
+        }}
+        onSubmit={handleSaveEvent}
+        title={editingPrivateEvent ? 'Edit private event' : 'Add private event'}
+        description={
+          editingPrivateEvent?.isCoachPrivateEvent
+            ? 'This is your coach-side private event. Only you can see it.'
+            : 'Only you can see this event. Your coach cannot see your private calendar.'
+        }
+        categoryOptions={
+          editingPrivateEvent?.isCoachPrivateEvent
+            ? ['personal', 'admin', 'meeting', 'unavailable', 'other']
+            : Object.values(ATHLETE_CALENDAR_EVENT_CATEGORY)
+        }
+        categoryLabels={
+          editingPrivateEvent?.isCoachPrivateEvent
+            ? {
+                personal: 'Personal',
+                admin: 'Admin',
+                meeting: 'Meeting',
+                unavailable: 'Unavailable',
+                other: 'Other',
+              }
+            : ATHLETE_CALENDAR_EVENT_CATEGORY_LABEL
+        }
         testId="athlete-calendar-event-sheet"
+        submitLabel={editingPrivateEvent ? 'Save changes' : 'Add to calendar'}
+        onDelete={editingPrivateEvent ? handleDeletePrivateEvent : null}
       />
 
       <AthleteAppointmentDetailSheet

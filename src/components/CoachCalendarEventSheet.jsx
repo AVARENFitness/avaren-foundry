@@ -25,6 +25,9 @@ export default function CoachCalendarEventSheet({
   categoryOptions = CATEGORY_OPTIONS,
   categoryLabels = COACH_CALENDAR_EVENT_CATEGORY_LABEL,
   testId = 'coach-calendar-event-sheet',
+  submitLabel = 'Add to calendar',
+  onDelete = null,
+  deleteLabel = 'Delete event',
 }) {
   if (!open) return null
 
@@ -146,21 +149,32 @@ export default function CoachCalendarEventSheet({
         </label>
 
         <footer className="coach-calendar-event-actions">
-          <button
-            type="button"
-            className="coach-secondary-button"
-            onClick={onClose}
-            disabled={submitting}
-          >
-            Cancel
-          </button>
+          {onDelete ? (
+            <button
+              type="button"
+              className="coach-secondary-button coach-calendar-event-delete"
+              onClick={onDelete}
+              disabled={submitting}
+            >
+              {deleteLabel}
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="coach-secondary-button"
+              onClick={onClose}
+              disabled={submitting}
+            >
+              Cancel
+            </button>
+          )}
           <button
             type="button"
             className="gold-button machined coach-primary-action"
             onClick={onSubmit}
             disabled={submitting || !draft.title.trim()}
           >
-            {submitting ? 'Saving…' : 'Add to calendar'}
+            {submitting ? 'Saving…' : submitLabel}
           </button>
         </footer>
       </section>

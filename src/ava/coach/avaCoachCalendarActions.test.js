@@ -14,6 +14,7 @@ vi.mock('../../lib/athleteCalendarEvents', async () => {
     ...actual,
     athleteCalendarBackend: {
       list: vi.fn(),
+      update: vi.fn(),
     },
   }
 })
@@ -23,7 +24,9 @@ vi.mock('../../lib/coachBackend', () => ({
     listScheduledSessions: vi.fn(),
     listCoachCalendarEvents: vi.fn(),
     createCoachCalendarEvent: vi.fn(),
+    updateCoachCalendarEvent: vi.fn(),
     createScheduledSession: vi.fn(),
+    updateScheduledSession: vi.fn(),
   },
 }))
 
@@ -33,10 +36,13 @@ describe('AVA coach calendar actions', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     athleteCalendarBackend.list.mockResolvedValue([])
+    athleteCalendarBackend.update.mockResolvedValue({ id: 'athlete-event-1' })
     coachBackend.listScheduledSessions.mockResolvedValue([])
     coachBackend.listCoachCalendarEvents.mockResolvedValue([])
     coachBackend.createCoachCalendarEvent.mockResolvedValue({ id: 'event-1' })
     coachBackend.createScheduledSession.mockResolvedValue({ id: 'session-1' })
+    coachBackend.updateScheduledSession.mockResolvedValue({ id: 'session-1' })
+    coachBackend.updateCoachCalendarEvent.mockResolvedValue({ id: 'event-1' })
   })
 
   it('infers 10-2 as 10 AM to 2 PM', () => {
@@ -98,6 +104,110 @@ describe('AVA coach calendar actions', () => {
         endTime: '16:30',
       },
     })
+  })
+
+  it('parses a natural client move command and infers 5 PM', () => {
+    expect(
+      parseCoachCalendarCommand('Move Jake to Thursday at 5', { now }),
+    ).toMatchObject({
+      kind: AVA_COACH_CALENDAR_COMMAND_KIND.MOVE_PERSONAL_TRAINING,
+      clientQuery: 'Jake',
+      date: '2026-10-08',
+      time: {
+        status: 'resolved',
+        startTime: '17:00',
+      },
+    })
+  })
+
+  it('treats “my dentist appointment” as a private event move', () => {
+    expect(
+      parseCoachCalendarCommand('Move my dentist appointment to Friday at 2', {
+        now,
+      }),
+    ).toMatchObject({
+      kind: AVA_COACH_CALENDAR_COMMAND_KIND.MOVE_PRIVATE_EVENT,
+      titleQuery: 'dentist',
+      date: '2026-10-09',
+      time: {
+        status: 'resolved',
+        startTime: '14:00',
+      },
+    })
+  })
+
+  it('moves one clear upcoming client appointment and preserves duration', async () => {
+    const clients = [
+      {
+        id: 'business-jake',
+        business_client_id: 'business-jake',
+        athlete_id: 'athlete-jake',
+        coach_label: 'Jake',
+      },
+    ]
+    coachBackend.listScheduledSessions
+      .mockResolvedValueOnce([
+        {
+          id: 'session-jake',
+          athlete_id: 'athlete-jake',
+          business_client_id: 'business-jake',
+          session_date: '2026-10-07',
+          start_time: '16:00',
+          duration_minutes: 30,
+          status: 'scheduled',
+        },
+      ])
+      .mockResolvedValueOnce([])
+
+    const command = parseCoachCalendarCommand('Move Jake to Thursday at 5', {
+      now,
+    })
+    const result = await executeCoachCalendarCommand(command, { clients })
+
+    expect(coachBackend.updateScheduledSession).toHaveBeenCalledWith(
+      'session-jake',
+      expect.objectContaining({
+        sessionDate: '2026-10-08',
+        startTime: '17:00',
+        durationMinutes: 30,
+      }),
+      expect.any(Object),
+    )
+    expect(result.kind).toBe('success')
+  })
+
+  it('moves one clear private event without changing its duration', async () => {
+    coachBackend.listCoachCalendarEvents
+      .mockResolvedValueOnce([
+        {
+          id: 'dentist-1',
+          coach_id: 'coach-1',
+          title: 'Dentist appointment',
+          event_date: '2026-10-06',
+          start_time: '10:00',
+          duration_minutes: 60,
+          category: 'personal',
+          status: 'scheduled',
+        },
+      ])
+      .mockResolvedValueOnce([])
+    athleteCalendarBackend.list.mockResolvedValue([])
+
+    const command = parseCoachCalendarCommand(
+      'Move my dentist appointment to Friday at 2',
+      { now },
+    )
+    const result = await executeCoachCalendarCommand(command, { clients: [] })
+
+    expect(coachBackend.updateCoachCalendarEvent).toHaveBeenCalledWith(
+      'dentist-1',
+      expect.objectContaining({
+        eventDate: '2026-10-09',
+        startTime: '14:00',
+        durationMinutes: 60,
+      }),
+    )
+    expect(result.kind).toBe('success')
   })
 
   it('writes a private event and checks the unified calendar first', async () => {

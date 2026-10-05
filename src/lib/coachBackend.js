@@ -1246,6 +1246,73 @@ export const coachBackend = {
     )
   },
 
+  async updateCoachCalendarEvent(
+    id,
+    {
+      title,
+      eventDate,
+      startTime,
+      durationMinutes = 60,
+      category = 'personal',
+      notes = '',
+      locationName = '',
+      scheduleTimezone = DEFAULT_COACH_SCHEDULE_TIMEZONE,
+      existingItems = null,
+    },
+  ) {
+    const user = await currentUser()
+    const duration = Number(durationMinutes) || 60
+    const instant = buildScheduleInstant({
+      sessionDate: eventDate,
+      startTime,
+      scheduleTimezone,
+    })
+    const startsAt = instant.startsAt
+    const endsAt = startsAt
+      ? new Date(new Date(startsAt).getTime() + duration * 60000).toISOString()
+      : null
+
+    const candidate = {
+      id,
+      coachId: user.id,
+      sessionDate: eventDate,
+      startTime,
+      startsAt,
+      endsAt,
+      durationMinutes: duration,
+      status: 'scheduled',
+    }
+
+    if (Array.isArray(existingItems)) {
+      const overlap = findOverlappingAppointment(candidate, existingItems, {
+        excludeId: id,
+      })
+      if (overlap) throw new Error('calendar_overlap')
+    }
+
+    return unwrap(
+      supabase
+        .from('coach_calendar_events')
+        .update({
+          title: String(title ?? '').trim(),
+          event_date: eventDate,
+          start_time: startTime,
+          duration_minutes: duration,
+          starts_at: startsAt,
+          ends_at: endsAt,
+          schedule_timezone: instant.scheduleTimezone,
+          category,
+          notes,
+          location_name: locationName,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', id)
+        .eq('coach_id', user.id)
+        .select()
+        .single(),
+    )
+  },
+
   async deleteCoachCalendarEvent(id) {
     const user = await currentUser()
     return unwrap(

@@ -23763,3 +23763,17 @@ body > .nutrition-food-sheet-backdrop > .nutrition-food-sheet {
     white-space: normal;
   }
 }
+
+
+/* ===== CALENDAR EVENT EDITING ===== */
+.coach-calendar-event-delete {
+  border-color: rgba(210, 99, 99, .16);
+  color: #c99696;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .coach-calendar-event-delete:hover {
+    border-color: rgba(210, 99, 99, .26);
+    background: rgba(210, 99, 99, .055);
+  }
+}

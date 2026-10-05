@@ -1,5 +1,6 @@
 import { coachBackend } from '../../lib/coachBackend'
 import {
+  addDaysKey,
   dateKey,
   formatScheduleDateLong,
   formatTime12Hour,
@@ -11,6 +12,7 @@ import {
 } from '../../lib/coachBusinessClient'
 import { getClientDisplayName } from '../../lib/clientDisplayName'
 import { normalizeScheduledSession } from '../../lib/coachScheduledSessions'
+import { findOverlappingAppointment } from '../../lib/coachingAppointment'
 import { normalizeCoachCalendarEvent } from '../../lib/coachCalendarEvents'
 import {
   athleteCalendarBackend,
@@ -20,6 +22,8 @@ import {
 export const AVA_COACH_CALENDAR_COMMAND_KIND = {
   PRIVATE_EVENT: 'private_event',
   PERSONAL_TRAINING: 'personal_training',
+  MOVE_PERSONAL_TRAINING: 'move_personal_training',
+  MOVE_PRIVATE_EVENT: 'move_private_event',
 }
 
 const normalizeText = (value = '') =>
@@ -113,6 +117,53 @@ const scoreRangeCandidate = ({ start, end, kind }) => {
   if (end > 23 * 60) score -= 3
 
   return score
+}
+
+
+export const inferSingleCoachTime = (
+  value,
+  { kind = AVA_COACH_CALENDAR_COMMAND_KIND.PRIVATE_EVENT } = {},
+) => {
+  const token = normalizeTimeToken(value)
+  if (!token) return { status: 'invalid', reason: 'time' }
+
+  const candidates = candidateMinutes(token)
+    .map((minutes) => {
+      let score = 0
+      if (minutes >= 6 * 60 && minutes <= 20 * 60) score += 5
+      if (minutes >= 7 * 60 && minutes <= 18 * 60) score += 2
+      if (
+        kind === AVA_COACH_CALENDAR_COMMAND_KIND.MOVE_PERSONAL_TRAINING &&
+        minutes >= 7 * 60 &&
+        minutes <= 20 * 60
+      ) {
+        score += 4
+      }
+      if (minutes < 5 * 60) score -= 8
+      if (minutes > 22 * 60) score -= 4
+      return { minutes, score }
+    })
+    .sort((a, b) => b.score - a.score || a.minutes - b.minutes)
+
+  const best = candidates[0]
+  if (!best) return { status: 'invalid', reason: 'time' }
+
+  const ties = candidates.filter((item) => item.score === best.score)
+  if (
+    ties.length > 1 &&
+    ties.some((item) => Math.abs(item.minutes - best.minutes) >= 6 * 60)
+  ) {
+    return { status: 'ambiguous', reason: 'meridiem', candidates: ties }
+  }
+
+  const hour = Math.floor(best.minutes / 60)
+  const minute = best.minutes % 60
+  return {
+    status: 'resolved',
+    startMinutes: best.minutes,
+    startTime:
+      String(hour).padStart(2, '0') + ':' + String(minute).padStart(2, '0'),
+  }
 }
 
 export const inferCoachTimeRange = (
@@ -232,6 +283,43 @@ export const parseCoachCalendarCommand = (message = '', { now = new Date() } = {
   const original = normalizeText(message)
   const text = lower(original)
   if (!text) return null
+
+
+  const movePrivatePattern =
+    /^(?:please\s+)?(?:move|reschedule)\s+my\s+(.+?)(?:\s+appointment)?\s+(?:to|for)\s+(today|tomorrow|sunday|sun|monday|mon|tuesday|tue|tues|wednesday|wed|thursday|thu|thurs|friday|fri|saturday|sat|\d{1,2}\/\d{1,2}(?:\/\d{2,4})?)\s+(?:at|from)\s+(\d{1,2}(?::?\d{2})?\s*(?:a\.?m\.?|p\.?m\.?)?)(?:\s+.*)?$/i
+  const movePrivateMatch = original.match(movePrivatePattern)
+  if (movePrivateMatch) {
+    const [, titleQuery, datePhrase, startValue] = movePrivateMatch
+    return {
+      kind: AVA_COACH_CALENDAR_COMMAND_KIND.MOVE_PRIVATE_EVENT,
+      original,
+      titleQuery: normalizeText(titleQuery),
+      datePhrase,
+      date: resolveCoachCalendarDate(datePhrase, now),
+      startValue,
+      time: inferSingleCoachTime(startValue, {
+        kind: AVA_COACH_CALENDAR_COMMAND_KIND.MOVE_PRIVATE_EVENT,
+      }),
+    }
+  }
+
+  const moveClientPattern =
+    /^(?:please\s+)?(?:move|reschedule)\s+(.+?)\s+(?:to|for)\s+(today|tomorrow|sunday|sun|monday|mon|tuesday|tue|tues|wednesday|wed|thursday|thu|thurs|friday|fri|saturday|sat|\d{1,2}\/\d{1,2}(?:\/\d{2,4})?)\s+(?:at|from)\s+(\d{1,2}(?::?\d{2})?\s*(?:a\.?m\.?|p\.?m\.?)?)(?:\s+.*)?$/i
+  const moveClientMatch = original.match(moveClientPattern)
+  if (moveClientMatch) {
+    const [, clientQuery, datePhrase, startValue] = moveClientMatch
+    return {
+      kind: AVA_COACH_CALENDAR_COMMAND_KIND.MOVE_PERSONAL_TRAINING,
+      original,
+      clientQuery: normalizeText(clientQuery).replace(/['’]s\s+appointment$/i, ''),
+      datePhrase,
+      date: resolveCoachCalendarDate(datePhrase, now),
+      startValue,
+      time: inferSingleCoachTime(startValue, {
+        kind: AVA_COACH_CALENDAR_COMMAND_KIND.MOVE_PERSONAL_TRAINING,
+      }),
+    }
+  }
 
   const clientPattern = new RegExp(
     `^(?:please\\s+)?(?:schedule|book|put)\\s+(.+?)\\s+(?:for|on)\\s+${DATE_PATTERN}\\s+(?:at|from)\\s+${TIME_RANGE_PATTERN}(?:\\s+.*)?$`,
@@ -363,6 +451,47 @@ const calendarItemsForDate = async (date) => {
   ]
 }
 
+
+const normalizeEventTitle = (value = '') =>
+  lower(value)
+    .replace(/\bappointment\b/g, '')
+    .replace(/[^a-z0-9\s'-]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+
+const findUpcomingClientAppointments = async (client, now = new Date()) => {
+  const startDate = dateKey(now, DEFAULT_COACH_SCHEDULE_TIMEZONE)
+  const endDate = addDaysKey(startDate, 84)
+  const rows = await coachBackend.listScheduledSessions({
+    startDate,
+    endDate,
+    businessClientId: resolveRecordBusinessClientId(client) ?? null,
+    athleteId: resolveAthleteDataId(client) ?? null,
+  })
+
+  return (rows ?? [])
+    .map(normalizeScheduledSession)
+    .filter((item) => item?.status === 'scheduled')
+}
+
+const findUpcomingPrivateEvents = async (query, now = new Date()) => {
+  const startDate = dateKey(now, DEFAULT_COACH_SCHEDULE_TIMEZONE)
+  const endDate = addDaysKey(startDate, 120)
+  const [coachRows, athleteRows] = await Promise.all([
+    coachBackend.listCoachCalendarEvents({ startDate, endDate }),
+    athleteCalendarBackend.list({ startDate, endDate }),
+  ])
+  const target = normalizeEventTitle(query)
+  const all = [
+    ...(coachRows ?? []).map(normalizeCoachCalendarEvent).filter(Boolean),
+    ...(athleteRows ?? []).map(normalizeAthleteCalendarEvent).filter(Boolean),
+  ]
+
+  const exact = all.filter((item) => normalizeEventTitle(item.title) === target)
+  if (exact.length) return exact
+  return all.filter((item) => normalizeEventTitle(item.title).includes(target))
+}
+
 const notifyCalendarUpdated = () => {
   if (typeof window === 'undefined') return
   window.dispatchEvent(new CustomEvent('avaren:coach-calendar-updated'))
@@ -376,6 +505,198 @@ export async function executeCoachCalendarCommand(
     return {
       kind: 'clarification',
       message: 'What day should I put that on your calendar?',
+    }
+  }
+
+
+  if (
+    command.kind === AVA_COACH_CALENDAR_COMMAND_KIND.MOVE_PERSONAL_TRAINING ||
+    command.kind === AVA_COACH_CALENDAR_COMMAND_KIND.MOVE_PRIVATE_EVENT
+  ) {
+    if (command.time?.status === 'ambiguous') {
+      return {
+        kind: 'clarification',
+        message: 'What AM/PM time did you mean?',
+      }
+    }
+    if (command.time?.status !== 'resolved') {
+      return {
+        kind: 'clarification',
+        message: 'What time should I move it to?',
+      }
+    }
+  }
+
+  if (command.kind === AVA_COACH_CALENDAR_COMMAND_KIND.MOVE_PERSONAL_TRAINING) {
+    const resolution = resolveCalendarClient(command.clientQuery, clients)
+
+    if (resolution.status === 'none') {
+      return {
+        kind: 'clarification',
+        message:
+          "I couldn't find " +
+          command.clientQuery +
+          ' in your client roster. Which client did you mean?',
+      }
+    }
+    if (resolution.status === 'ambiguous') {
+      return {
+        kind: 'clarification',
+        message:
+          'I found more than one match for ' +
+          command.clientQuery +
+          '. Which client did you mean?',
+      }
+    }
+
+    const matches = await findUpcomingClientAppointments(resolution.client)
+    if (!matches.length) {
+      return {
+        kind: 'clarification',
+        message:
+          "I couldn't find an upcoming appointment for " +
+          getClientDisplayName(resolution.client) +
+          '.',
+      }
+    }
+    if (matches.length > 1) {
+      return {
+        kind: 'clarification',
+        message:
+          'I found more than one upcoming appointment for ' +
+          getClientDisplayName(resolution.client) +
+          '. Tell me which current day you want to move.',
+      }
+    }
+
+    const currentAppointment = matches[0]
+    const destinationItems = await calendarItemsForDate(command.date)
+    try {
+      await coachBackend.updateScheduledSession(
+        currentAppointment.id,
+        {
+          sessionDate: command.date,
+          startTime: command.time.startTime,
+          durationMinutes: currentAppointment.durationMinutes ?? 60,
+          scheduleTimezone:
+            currentAppointment.scheduleTimezone ??
+            DEFAULT_COACH_SCHEDULE_TIMEZONE,
+        },
+        { existingSessions: destinationItems },
+      )
+    } catch (error) {
+      if (
+        error?.message === 'appointment_overlap' ||
+        /overlap/i.test(error?.message ?? '')
+      ) {
+        return {
+          kind: 'conflict',
+          message:
+            "That time overlaps something already on your calendar, so I didn't move " +
+            getClientDisplayName(resolution.client) +
+            '.',
+        }
+      }
+      throw error
+    }
+
+    notifyCalendarUpdated()
+    return {
+      kind: 'success',
+      message:
+        'Done — ' +
+        getClientDisplayName(resolution.client) +
+        ' is moved to ' +
+        formatScheduleDateLong(command.date) +
+        ' at ' +
+        formatTime12Hour(command.time.startTime) +
+        '.',
+    }
+  }
+
+  if (command.kind === AVA_COACH_CALENDAR_COMMAND_KIND.MOVE_PRIVATE_EVENT) {
+    const matches = await findUpcomingPrivateEvents(command.titleQuery)
+
+    if (!matches.length) {
+      return {
+        kind: 'clarification',
+        message:
+          "I couldn't find an upcoming “" +
+          command.titleQuery +
+          '” event on your private calendars.',
+      }
+    }
+    if (matches.length > 1) {
+      return {
+        kind: 'clarification',
+        message:
+          'I found more than one “' +
+          command.titleQuery +
+          '” event. Tell me which current day you mean.',
+      }
+    }
+
+    const event = matches[0]
+    const destinationItems = await calendarItemsForDate(command.date)
+    const payload = {
+      title: event.title,
+      eventDate: command.date,
+      startTime: command.time.startTime,
+      durationMinutes: event.durationMinutes ?? 60,
+      category: event.category,
+      notes: event.notes ?? '',
+      locationName: event.locationName ?? '',
+    }
+
+    try {
+      if (event.isAthletePrivateEvent) {
+        const candidate = {
+          ...event,
+          sessionDate: command.date,
+          startTime: command.time.startTime,
+          durationMinutes: event.durationMinutes ?? 60,
+          status: 'scheduled',
+        }
+        const conflict = findOverlappingAppointment(
+          candidate,
+          destinationItems,
+          { excludeId: event.id },
+        )
+        if (conflict) throw new Error('calendar_overlap')
+        await athleteCalendarBackend.update(event.id, payload)
+      } else {
+        await coachBackend.updateCoachCalendarEvent(event.id, {
+          ...payload,
+          existingItems: destinationItems,
+        })
+      }
+    } catch (error) {
+      if (
+        error?.message === 'calendar_overlap' ||
+        /overlap/i.test(error?.message ?? '')
+      ) {
+        return {
+          kind: 'conflict',
+          message:
+            "That time overlaps something already on your calendar, so I didn't move " +
+            event.title +
+            '.',
+        }
+      }
+      throw error
+    }
+
+    notifyCalendarUpdated()
+    return {
+      kind: 'success',
+      message:
+        'Done — ' +
+        event.title +
+        ' is moved to ' +
+        formatScheduleDateLong(command.date) +
+        ' at ' +
+        formatTime12Hour(command.time.startTime) +
+        '.',
     }
   }
 

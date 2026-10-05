@@ -34,6 +34,7 @@ import {
   resolveRecordBusinessClientId,
 } from '../lib/coachBusinessClient'
 import {
+  findOverlappingAppointment,
   mapAppointmentOverlapError,
   mapRecurrenceConflictError,
 } from '../lib/coachingAppointment'
@@ -63,11 +64,16 @@ export function useCoachSessionDetail({
   sessions: controlledSessions,
   setSessions: controlledSetSessions,
   onLoadSessions,
+  calendarItems = [],
 } = {}) {
   const [internalSessions, setInternalSessions] = useState([])
   const isControlled = typeof controlledSetSessions === 'function'
   const sessions = isControlled ? (controlledSessions ?? []) : internalSessions
   const setSessions = isControlled ? controlledSetSessions : setInternalSessions
+  const unifiedScheduleItems = useMemo(
+    () => [...(sessions ?? []), ...(calendarItems ?? [])],
+    [sessions, calendarItems],
+  )
 
   const [activeSession, setActiveSession] = useState(null)
   const [passSelection, setPassSelection] = useState(null)
@@ -754,6 +760,63 @@ export function useCoachSessionDetail({
         }
 
         if (prompt.action === 'reschedule' && prompt.patch) {
+          const proposedStartTime = String(prompt.patch.startTime ?? '').slice(0, 5)
+          const proposedDuration = Number(prompt.patch.durationMinutes) || 60
+
+          if (scope === RECURRENCE_SCOPE.THIS_ONLY) {
+            const candidate = {
+              ...prompt.session,
+              sessionDate: prompt.patch.sessionDate,
+              startTime: proposedStartTime,
+              durationMinutes: proposedDuration,
+              status: 'scheduled',
+            }
+            const overlap = findOverlappingAppointment(
+              candidate,
+              unifiedScheduleItems,
+              { excludeId: prompt.session.id },
+            )
+            if (overlap) throw new Error('appointment_overlap')
+          }
+
+          if (scope === RECURRENCE_SCOPE.THIS_AND_FUTURE) {
+            const seriesId =
+              prompt.session.recurrenceSeriesId ??
+              prompt.session.recurrence_series_id ??
+              null
+            const privateCalendarItems = (calendarItems ?? []).filter(
+              (item) => item?.isCoachPrivateEvent || item?.isAthletePrivateEvent,
+            )
+            const futureSeriesSessions = (sessions ?? []).filter((item) => {
+              const itemSeriesId =
+                item.recurrenceSeriesId ?? item.recurrence_series_id ?? null
+              return (
+                seriesId &&
+                String(itemSeriesId ?? '') === String(seriesId) &&
+                String(item.sessionDate ?? '') >= String(prompt.session.sessionDate ?? '')
+              )
+            })
+
+            const privateConflict = futureSeriesSessions.some((item) =>
+              Boolean(
+                findOverlappingAppointment(
+                  {
+                    ...item,
+                    startTime: proposedStartTime,
+                    durationMinutes: proposedDuration,
+                    status: 'scheduled',
+                  },
+                  privateCalendarItems,
+                ),
+              ),
+            )
+
+            if (privateConflict) {
+              throw new Error(
+                'This recurring change overlaps private time already on your calendar.',
+              )
+            }
+          }
           if (
             scope === RECURRENCE_SCOPE.THIS_AND_FUTURE &&
             !canApplyThisAndFutureScheduleChange({
@@ -823,6 +886,9 @@ export function useCoachSessionDetail({
       closeDetail,
       notifyMutated,
       onLoadSessions,
+      calendarItems,
+      sessions,
+      unifiedScheduleItems,
     ],
   )
 
@@ -836,7 +902,7 @@ export function useCoachSessionDetail({
               ...patch,
               scheduleTimezone: session.scheduleTimezone,
             },
-            { existingSessions: sessions },
+            { existingSessions: unifiedScheduleItems },
           ),
         )
         setSessions((current) =>
@@ -854,7 +920,7 @@ export function useCoachSessionDetail({
         )
       }
     },
-    [sessions, setSessions, notifyMutated],
+    [unifiedScheduleItems, setSessions, notifyMutated],
   )
 
   const beginReschedule = useCallback((session) => {

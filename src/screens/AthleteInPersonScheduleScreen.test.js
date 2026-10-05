@@ -23,6 +23,14 @@ describe('Athlete unified schedule presentation', () => {
     expect(source).toContain('you can’t delete this appointment')
   })
 
+  it('edits owner-private events without unlocking coach appointments', () => {
+    expect(source).toContain('openPrivateEventEditor')
+    expect(source).toContain('athleteCalendarBackend.update')
+    expect(source).toContain('updateCoachCalendarEvent')
+    expect(source).toContain("title={editingPrivateEvent ? 'Edit private event' : 'Add private event'}")
+    expect(source).toContain('Managed by your coach · you can’t delete this appointment')
+  })
+
   it('merges coach-owned calendar items only for dual-role accounts', () => {
     expect(source).toContain('includeCoachCalendar')
     expect(source).toContain('listCoachCalendarEvents')
