@@ -2053,6 +2053,7 @@ function App() {
         <AthleteInPersonScheduleScreen
           embedded={screen === 'schedule'}
           onBack={() => navigate('home')}
+          includeCoachCalendar={canAccessCoachHub(session, coachAuthorized)}
         />
       )
     }

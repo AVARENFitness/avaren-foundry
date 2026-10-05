@@ -12,6 +12,10 @@ import {
 import { getClientDisplayName } from '../../lib/clientDisplayName'
 import { normalizeScheduledSession } from '../../lib/coachScheduledSessions'
 import { normalizeCoachCalendarEvent } from '../../lib/coachCalendarEvents'
+import {
+  athleteCalendarBackend,
+  normalizeAthleteCalendarEvent,
+} from '../../lib/athleteCalendarEvents'
 
 export const AVA_COACH_CALENDAR_COMMAND_KIND = {
   PRIVATE_EVENT: 'private_event',
@@ -344,14 +348,18 @@ const formatRange = (startTime, endTime) =>
   `${formatTime12Hour(startTime)}–${formatTime12Hour(endTime)}`
 
 const calendarItemsForDate = async (date) => {
-  const [appointments, events] = await Promise.all([
+  const [appointments, events, athletePrivateEvents] = await Promise.all([
     coachBackend.listScheduledSessions({ startDate: date, endDate: date }),
     coachBackend.listCoachCalendarEvents({ startDate: date, endDate: date }),
+    athleteCalendarBackend.list({ startDate: date, endDate: date }),
   ])
 
   return [
     ...(appointments ?? []).map(normalizeScheduledSession).filter(Boolean),
     ...(events ?? []).map(normalizeCoachCalendarEvent).filter(Boolean),
+    ...(athletePrivateEvents ?? [])
+      .map(normalizeAthleteCalendarEvent)
+      .filter(Boolean),
   ]
 }
 

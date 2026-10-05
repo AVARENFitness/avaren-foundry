@@ -23620,3 +23620,146 @@ body > .nutrition-food-sheet-backdrop > .nutrition-food-sheet {
     white-space: normal;
   }
 }
+
+
+/* ===== ATHLETE UNIFIED CALENDAR ===== */
+.athlete-calendar-screen {
+  display: grid;
+  gap: 18px;
+}
+
+.athlete-calendar-header {
+  width: 100%;
+}
+
+.athlete-calendar-merged-note {
+  margin: 7px 0 0;
+  color: var(--muted);
+  font-size: .8rem;
+  line-height: 1.4;
+}
+
+.athlete-calendar-day {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid rgba(248,243,230,.075);
+  border-radius: 16px;
+  background: rgba(255,255,255,.008);
+}
+
+.athlete-calendar-day-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.athlete-calendar-day-heading h2 {
+  margin: 3px 0 0;
+  font-size: 1.2rem;
+  letter-spacing: -.025em;
+}
+
+.athlete-calendar-day-heading small {
+  color: var(--muted);
+  font-size: .75rem;
+}
+
+.athlete-calendar-agenda {
+  display: grid;
+  gap: 8px;
+}
+
+.athlete-calendar-agenda-item {
+  width: 100%;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 12px 13px;
+  border: 1px solid rgba(248,243,230,.075);
+  border-radius: 12px;
+  background: rgba(255,255,255,.012);
+  color: var(--cream);
+  text-align: left;
+}
+
+.athlete-calendar-agenda-item > div {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.athlete-calendar-agenda-item .eyebrow {
+  font-size: .61rem;
+  letter-spacing: .12em;
+}
+
+.athlete-calendar-agenda-item strong {
+  overflow: hidden;
+  font-size: .92rem;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.athlete-calendar-agenda-item small {
+  color: var(--muted);
+  font-size: .74rem;
+  line-height: 1.35;
+}
+
+.athlete-calendar-agenda-item--appointment {
+  border-color: rgba(223,195,125,.16);
+  background: rgba(223,195,125,.035);
+}
+
+.athlete-calendar-agenda-item--coach-work {
+  border-color: rgba(223,195,125,.1);
+}
+
+.athlete-calendar-agenda-item--private {
+  border-color: rgba(248,243,230,.08);
+}
+
+.athlete-calendar-agenda-item > svg {
+  flex: 0 0 auto;
+  color: var(--muted);
+}
+
+.athlete-calendar-month .coach-calendar-month-day.has-items {
+  background: rgba(255,255,255,.012);
+}
+
+.athlete-calendar-week .coach-calendar-week-column.is-today {
+  background: rgba(184,149,78,.025);
+}
+
+@media (max-width: 560px) {
+  .athlete-calendar-screen {
+    gap: 14px;
+  }
+
+  .athlete-calendar-header .coach-session-calendar-title-row {
+    align-items: center;
+  }
+
+  .athlete-calendar-header .coach-calendar-add-trigger {
+    min-width: 108px !important;
+  }
+
+  .athlete-calendar-day {
+    padding: 11px;
+    border-radius: 13px;
+  }
+
+  .athlete-calendar-agenda-item {
+    padding: 11px;
+  }
+
+  .athlete-calendar-agenda-item strong {
+    white-space: normal;
+  }
+}
