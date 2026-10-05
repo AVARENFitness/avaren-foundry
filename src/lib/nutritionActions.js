@@ -16,6 +16,17 @@ export function buildFoodEntry(food, source = 'manual', entryId = null) {
     source,
     name: food.name.trim(),
     servings,
+    measurement: food.measurement
+      ? {
+          amount: Number(food.measurement.amount || 0),
+          unit: String(food.measurement.unit || ''),
+          servingAmount:
+            food.measurement.servingAmount == null
+              ? null
+              : Number(food.measurement.servingAmount),
+          servingUnit: String(food.measurement.servingUnit || ''),
+        }
+      : null,
     calories: nutritionRound(Number(food.calories || 0) * servings),
     protein: nutritionRound(Number(food.protein || 0) * servings),
     carbs: nutritionRound(Number(food.carbs || 0) * servings),
@@ -275,6 +286,7 @@ export function appendFatSecretFoodReference(
     servingId,
     quantity = 1,
     servingSnapshot = null,
+    measurement = null,
   } = {},
 ) {
   const resolvedFoodId = String(foodId ?? '').trim()
@@ -318,6 +330,17 @@ export function appendFatSecretFoodReference(
       servingId: resolvedServingId,
     },
     quantity: resolvedQuantity,
+    measurement: measurement
+      ? {
+          amount: Number(measurement.amount || 0),
+          unit: String(measurement.unit || ''),
+          servingAmount:
+            measurement.servingAmount == null
+              ? null
+              : Number(measurement.servingAmount),
+          servingUnit: String(measurement.servingUnit || ''),
+        }
+      : null,
     ...snapshot,
     loggedAt: new Date().toISOString(),
   }
