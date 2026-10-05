@@ -8,6 +8,7 @@ import {
   summarizePushResults,
 } from '../_shared/appointmentPush.ts'
 import { authorizeCronWorkerRequest } from '../_shared/cronWorkerAuth.ts'
+import { dispatchDailyReadinessReminders } from '../_shared/smartReminderPush.ts'
 
 type DeliveryRow = {
   id: string
@@ -217,7 +218,18 @@ export default {
         if (outcome.status === 'failed') failed += 1
       }
 
-      return json({ processed, delivered, skipped, failed })
+      const smartReminders = await dispatchDailyReadinessReminders({
+        admin,
+        sendPushToSubscriptions,
+      })
+
+      return json({
+        processed,
+        delivered,
+        skipped,
+        failed,
+        smartReminders,
+      })
     } catch (error) {
       console.error(error)
       return json(

@@ -3,7 +3,7 @@ import { supabase } from './supabase'
 const VAPID_PUBLIC_KEY =
   import.meta.env.VITE_VAPID_PUBLIC_KEY ?? ''
 
-const RPC_REGISTER = 'register_push_subscription'
+const RPC_REGISTER = 'register_push_subscription_v2'
 const RPC_DEACTIVATE = 'deactivate_push_subscription'
 
 const urlBase64ToUint8Array = (value) => {
@@ -42,6 +42,9 @@ export const registerPushSubscriptionRpcArgs = (subscription) => ({
     navigator.userAgentData?.platform ??
     navigator.platform ??
     'Unknown',
+  p_timezone:
+    Intl.DateTimeFormat().resolvedOptions().timeZone ??
+    '',
 })
 
 const registerSubscriptionWithOwnership = async (subscription) => {
@@ -207,7 +210,11 @@ export const sendTestPushNotification = async () => {
 
   const { data, error } = await supabase.functions.invoke(
     'send-test-push',
-    { body: {} },
+    {
+      body: {
+        endpoint: subscription.endpoint,
+      },
+    },
   )
 
   if (error) {
@@ -226,5 +233,6 @@ export const sendTestPushNotification = async () => {
 
   return {
     delivered: Number(data.delivered) || 0,
+    deviceScoped: Boolean(data.deviceScoped),
   }
 }
