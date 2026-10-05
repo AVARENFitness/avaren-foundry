@@ -41,6 +41,7 @@ import {
   portfolioQueryLoadErrorMessage,
 } from './avaCoachQueryPatterns'
 import {
+  COACH_PORTFOLIO_DOMAINS,
   COACH_PORTFOLIO_STATUS,
   ensureCoachPortfolio,
   mergeCoachPortfolioBundle,
@@ -106,6 +107,65 @@ export async function runCoachPipelineStep({
     coachContext?.coachAccess ?? coachContext?.authorized,
   )
   if (!coachAccess) return null
+
+  const calendarCommand = parseCoachCalendarCommand(message)
+  if (calendarCommand) {
+    let calendarCoachContext = coachContext
+
+    if (
+      calendarCommand.kind === 'personal_training' &&
+      !(calendarCoachContext?.clients?.length ?? 0)
+    ) {
+      const ensurePortfolio =
+        calendarCoachContext?.ensureCoachPortfolio ??
+        ((options = {}) => ensureCoachPortfolio(options))
+      const bundle = await ensurePortfolio({
+        requiredDomains: [COACH_PORTFOLIO_DOMAINS.ROSTER],
+      })
+
+      if (!bundle?.loadFailed && bundle?.status !== COACH_PORTFOLIO_STATUS.ERROR) {
+        calendarCoachContext = mergeCoachPortfolioBundle(
+          calendarCoachContext,
+          bundle,
+        )
+        ;(
+          coachContext?.onCoachContextHydrated ??
+          calendarCoachContext?.onCoachContextHydrated
+        )?.(calendarCoachContext)
+      }
+    }
+
+    const calendarResult = await executeCoachCalendarCommand(calendarCommand, {
+      clients:
+        calendarCoachContext?.clients?.length
+          ? calendarCoachContext.clients
+          : calendarCoachContext?.rosterEntries ?? [],
+    })
+
+    if (calendarResult?.kind === 'success') {
+      return createPipelineOutcome({
+        kind: AVA_PIPELINE_KIND.ACTION_SUCCESS,
+        message: calendarResult.message,
+        raw: {
+          calendarAction: true,
+          calendarCommandKind: calendarCommand.kind,
+        },
+      })
+    }
+
+    return createPipelineOutcome({
+      kind: AVA_PIPELINE_KIND.RESPONSE,
+      message:
+        calendarResult?.message ??
+        "I couldn't finish that calendar action safely.",
+      readOnly: calendarResult?.kind !== 'success',
+      raw: {
+        calendarAction: true,
+        calendarCommandKind: calendarCommand.kind,
+        resultKind: calendarResult?.kind ?? 'unknown',
+      },
+    })
+  }
 
   const operationalQuery = matchCoachOperationalQuery(message)
   let activeCoachContext = coachContext
