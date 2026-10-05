@@ -93,10 +93,10 @@ const dayRange = (startDate, endDate) => {
 }
 
 const parseDuration = (text = '') => {
-  const hourMatch = text.match(/\b(\d+(?:\.\d+)?)\s*(?:hour|hr)s?\b/i)
+  const hourMatch = text.match(/\b(\d+(?:\.\d+)?)[-\s]*(?:hour|hr)s?\b/i)
   if (hourMatch) return Math.max(15, Math.round(Number(hourMatch[1]) * 60))
 
-  const minuteMatch = text.match(/\b(\d+)\s*(?:minute|min)s?\b/i)
+  const minuteMatch = text.match(/\b(\d+)[-\s]*(?:minute|min)s?\b/i)
   if (minuteMatch) return Math.max(15, Number(minuteMatch[1]))
 
   return null
@@ -124,7 +124,7 @@ export const parseCoachAvailabilityQuery = (
   const beforeMinutes = beforeMatch ? parseClockMinutes(beforeMatch[1]) : null
 
   const clientSlotMatch = text.match(
-    /\b(?:find|show|give)\s+(?:me\s+)?(?:an?\s+)?(?:open|available)?\s*(?:(\d+)\s*(?:minute|min)\s+)?slot\s+for\s+(.+?)\s+(this week|today|tomorrow|sunday|sun|monday|mon|tuesday|tue|tues|wednesday|wed|thursday|thu|thurs|friday|fri|saturday|sat)(?:\b|$)/i,
+    /\b(?:find|show|give)\s+(?:me\s+)?(?:an?\s+)?(?:open|available)?\s*(?:(\d+)[-\s]*(?:minute|min)\s+)?slot\s+for\s+(.+?)\s+(this week|today|tomorrow|sunday|sun|monday|mon|tuesday|tue|tues|wednesday|wed|thursday|thu|thurs|friday|fri|saturday|sat)(?:\b|$)/i,
   )
 
   if (clientSlotMatch) {
