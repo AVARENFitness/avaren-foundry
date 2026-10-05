@@ -358,7 +358,11 @@ export default function AthleteInPersonScheduleScreen({
       status: 'scheduled',
     }
 
-    if (findOverlappingAppointment(candidate, scheduleItems)) {
+    if (
+      findOverlappingAppointment(candidate, scheduleItems, {
+        excludeId: editingPrivateEvent?.id ?? null,
+      })
+    ) {
       const confirmed = await appUi.confirm({
         message: 'That time overlaps something already on your calendar. Add it anyway?',
         confirmLabel: 'Add anyway',
