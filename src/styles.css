@@ -22423,3 +22423,53 @@ body > .nutrition-food-sheet-backdrop > .nutrition-food-sheet {
     grid-auto-columns: minmax(205px, 82%);
   }
 }
+
+
+/* ===== ATHLETE HOME · SINGLE ACTION AUTHORITY ===== */
+.ava-daily-briefing--context {
+  gap: 10px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: rgba(255,255,255,.012);
+}
+
+.ava-daily-briefing--context .ava-daily-briefing-header {
+  align-items: center;
+  gap: 10px;
+}
+
+.ava-daily-briefing--context .ava-daily-briefing-mark {
+  width: 34px;
+  height: 34px;
+}
+
+.ava-daily-briefing--context .ava-daily-briefing-header h2 {
+  margin-top: 3px;
+  font-size: clamp(17px, 4vw, 20px);
+  letter-spacing: -.02em;
+}
+
+.ava-daily-briefing--context .ava-daily-briefing-summary {
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.ava-daily-briefing--context .ava-daily-briefing-watch {
+  padding-top: 0;
+}
+
+.ava-daily-briefing--context .ava-daily-briefing-footer {
+  min-height: 38px;
+  padding-top: 0;
+}
+
+.ava-daily-briefing--context .ava-daily-briefing-why,
+.ava-daily-briefing--context .ava-daily-briefing-ask {
+  min-height: 38px;
+}
+
+@media (max-width: 520px) {
+  .ava-daily-briefing--context {
+    padding: 13px 14px;
+  }
+}

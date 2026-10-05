@@ -18,6 +18,7 @@ export default function AvaDailyBriefing({
   onAction,
   onOpenWhy,
   onAskAva,
+  contextOnly = false,
 }) {
   const [showWhy, setShowWhy] = useState(false)
 
@@ -35,7 +36,7 @@ export default function AvaDailyBriefing({
   return (
     <>
       <section
-        className={`ava-daily-briefing ava-daily-briefing--${briefing.dailyState}`}
+        className={`ava-daily-briefing ava-daily-briefing--${briefing.dailyState}${contextOnly ? ' ava-daily-briefing--context' : ''}`}
       >
         <header className="ava-daily-briefing-header">
           <span className="ava-daily-briefing-mark">
@@ -43,7 +44,7 @@ export default function AvaDailyBriefing({
           </span>
           <div>
             <span className="eyebrow">AVA</span>
-            {briefing.greeting && (
+            {!contextOnly && briefing.greeting && (
               <p className="ava-daily-briefing-greeting">{briefing.greeting}</p>
             )}
             <h2>{briefing.headline}</h2>
@@ -54,7 +55,7 @@ export default function AvaDailyBriefing({
           <p className="ava-daily-briefing-summary">{briefing.summary}</p>
         )}
 
-        {primary && (
+        {!contextOnly && primary && (
           <div className="ava-daily-briefing-action">
             {primary.eyebrow && (
               <span className="eyebrow">{primary.eyebrow}</span>
@@ -76,7 +77,7 @@ export default function AvaDailyBriefing({
           </div>
         )}
 
-        {secondary?.label && (
+        {!contextOnly && secondary?.label && (
           <button
             type="button"
             className="ava-daily-briefing-secondary"

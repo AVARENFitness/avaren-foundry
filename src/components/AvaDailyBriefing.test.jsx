@@ -61,4 +61,24 @@ describe('AvaDailyBriefing', () => {
       screen.queryByRole('button', { name: 'Ask AVA' }),
     ).not.toBeInTheDocument()
   })
+  it('acts as context only on athlete Home and does not duplicate the primary CTA', () => {
+    render(
+      <AvaDailyBriefing
+        briefing={sampleBriefing}
+        onAction={vi.fn()}
+        onAskAva={vi.fn()}
+        contextOnly
+      />,
+    )
+
+    expect(
+      screen.queryByRole('button', { name: /Start Chest & Back/i }),
+    ).not.toBeInTheDocument()
+    expect(screen.getByText(sampleBriefing.headline)).toBeInTheDocument()
+    expect(screen.getByText(sampleBriefing.summary)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Why?' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Ask AVA' })).toBeInTheDocument()
+    expect(screen.queryByText(sampleBriefing.greeting)).not.toBeInTheDocument()
+  })
+
 })
