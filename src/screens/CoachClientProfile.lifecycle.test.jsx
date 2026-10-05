@@ -5,6 +5,7 @@ import CoachClientProfile from './CoachClientProfile'
 import { coachBackend } from '../lib/coachBackend'
 import { weeklyCheckInBackend } from '../lib/weeklyCheckInBackend'
 import { appUi } from '../lib/appUi'
+import { coachFloorBackend } from '../lib/coachFloorSession'
 
 vi.mock('../lib/coachBackend', () => ({
   coachBackend: {
@@ -22,6 +23,12 @@ vi.mock('../lib/coachBackend', () => ({
 vi.mock('../lib/weeklyCheckInBackend', () => ({
   weeklyCheckInBackend: {
     getClientWeeklyCheckIn: vi.fn(),
+  },
+}))
+
+vi.mock('../lib/coachFloorSession', () => ({
+  coachFloorBackend: {
+    listFloorSessions: vi.fn(),
   },
 }))
 
@@ -69,6 +76,7 @@ describe('CoachClientProfile offline lifecycle', () => {
     })
     coachBackend.getClientWeeklyReview.mockResolvedValue(null)
     weeklyCheckInBackend.getClientWeeklyCheckIn.mockResolvedValue(null)
+    coachFloorBackend.listFloorSessions.mockResolvedValue([])
   })
 
   it('shows active client · not connected for offline clients', async () => {
@@ -334,4 +342,58 @@ describe('CoachClientProfile offline lifecycle', () => {
 
     expect(onClientUpdated).not.toHaveBeenCalled()
   })
+  it('keeps Training useful for offline clients with coaching-record history', async () => {
+    const user = userEvent.setup()
+
+    coachFloorBackend.listFloorSessions.mockResolvedValue([
+      {
+        id: 'floor-1',
+        businessClientId: 'bc-test',
+        athleteId: null,
+        status: 'completed',
+        workoutName: 'Lower Body Strength',
+        workoutPayload: {
+          exercisesPerformed: ['Goblet Squat', 'Romanian Deadlift'],
+          sets: [
+            { exercise: 'Goblet Squat', weight: 50, reps: 10 },
+            { exercise: 'Goblet Squat', weight: 50, reps: 10 },
+            { exercise: 'Romanian Deadlift', weight: 80, reps: 8 },
+          ],
+        },
+        completedAt: '2026-10-01T18:00:00.000Z',
+      },
+    ])
+
+    render(
+      <CoachClientProfile
+        client={offlineClient}
+        assignments={[]}
+        clientNotes=""
+        onBack={vi.fn()}
+        onScheduleAppointment={vi.fn()}
+      />,
+    )
+
+    await user.click(screen.getByRole('button', { name: /^training$/i }))
+
+    await waitFor(() => {
+      expect(coachFloorBackend.listFloorSessions).toHaveBeenCalledWith({
+        businessClientId: 'bc-test',
+        limit: 20,
+      })
+    })
+
+    expect(
+      screen.getByRole('heading', { name: /in-person training/i }),
+    ).toBeInTheDocument()
+    expect(screen.getByText('Lower Body Strength')).toBeInTheDocument()
+    expect(screen.getByText(/2 exercises · 3 sets/i)).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: /start in-person session/i }),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByText(/no athlete training data yet/i),
+    ).not.toBeInTheDocument()
+  })
+
 })

@@ -76,6 +76,7 @@ import CoachSessionDetailHost from '../components/coach/CoachSessionDetailHost'
 import EmptyState from '../components/ui/EmptyState'
 import CoachMessageLauncher from '../components/CoachMessageLauncher'
 import CoachFloorMode from '../components/CoachFloorMode'
+import { coachFloorBackend } from '../lib/coachFloorSession'
 import {
   ATHLETE_GOAL_LABELS,
   athleteGoalBackend,
@@ -168,6 +169,8 @@ export default function CoachClientProfile({
   const [showEndCoaching, setShowEndCoaching] = useState(false)
   const [showAdHocFloorMode, setShowAdHocFloorMode] = useState(false)
   const [lifecycleBusy, setLifecycleBusy] = useState(false)
+  const [offlineTrainingHistory, setOfflineTrainingHistory] = useState([])
+  const [offlineTrainingLoading, setOfflineTrainingLoading] = useState(false)
 
   const linkedAthleteId = useMemo(
     () => resolveAthleteDataId(client),
@@ -436,6 +439,42 @@ export default function CoachClientProfile({
     if (!passAvaContext || !import.meta.env?.DEV) return
     console.debug('[ava-coach-pass-context]', passAvaContext)
   }, [passAvaContext])
+
+  useEffect(() => {
+    let active = true
+
+    if (
+      activeSection !== 'training' ||
+      athleteIntelligenceEnabled ||
+      !businessClientId
+    ) {
+      setOfflineTrainingHistory([])
+      setOfflineTrainingLoading(false)
+      return undefined
+    }
+
+    setOfflineTrainingLoading(true)
+    coachFloorBackend
+      .listFloorSessions({ businessClientId, limit: 20 })
+      .then((rows) => {
+        if (!active) return
+        setOfflineTrainingHistory(
+          (rows ?? [])
+            .filter((row) => row.status === 'completed')
+            .slice(0, 12),
+        )
+      })
+      .catch(() => {
+        if (active) setOfflineTrainingHistory([])
+      })
+      .finally(() => {
+        if (active) setOfflineTrainingLoading(false)
+      })
+
+    return () => {
+      active = false
+    }
+  }, [activeSection, athleteIntelligenceEnabled, businessClientId])
 
   const handleSectionAction = (action) => {
     if (!action) return
@@ -744,29 +783,6 @@ export default function CoachClientProfile({
               onPassContextChange={setPassAvaContext}
               showHistory={false}
             />
-            {intelligence?.training?.recentSessions?.[0] ? (
-              <section className="coach-client-overview-recent">
-                <span className="eyebrow">RECENT TRAINING</span>
-                <div className="coach-client-overview-recent-row">
-                  <div>
-                    <strong>Last workout</strong>
-                    <span>
-                      {intelligence.training.recentSessions[0].name}
-                      {intelligence.training.recentSessions[0].relativeLabel
-                        ? ` · ${intelligence.training.recentSessions[0].relativeLabel}`
-                        : ''}
-                    </span>
-                  </div>
-                  <button
-                    type="button"
-                    className="coach-secondary-button"
-                    onClick={() => setActiveSection('training')}
-                  >
-                    View training
-                  </button>
-                </div>
-              </section>
-            ) : null}
             <div className="coach-client-overview-actions">
               {!isArchivedBusinessClient(client) ? (
                 <button
@@ -815,11 +831,88 @@ export default function CoachClientProfile({
       case 'training':
         if (!athleteIntelligenceEnabled) {
           return (
-            <EmptyState
-              icon={Activity}
-              title="No athlete training data yet"
-              description="Connect an AVAREN account to view athlete-submitted workouts and assignment delivery."
-            />
+            <ProfileSection
+              eyebrow="TRAINING"
+              title="In-person training"
+              description="This coaching record works without an AVAREN athlete account."
+              primaryAction={
+                !isArchivedBusinessClient(client) ? (
+                  <div className="coach-client-training-actions">
+                    <button
+                      type="button"
+                      className="gold-button machined coach-primary-action coach-client-profile-section-action"
+                      onClick={() => setShowAdHocFloorMode(true)}
+                    >
+                      <Dumbbell {...ICON} />
+                      Start In-Person Session
+                    </button>
+                    <button
+                      type="button"
+                      className="coach-secondary-button coach-client-profile-section-action"
+                      onClick={onScheduleAppointment}
+                    >
+                      Schedule appointment
+                    </button>
+                  </div>
+                ) : null
+              }
+            >
+              {offlineTrainingLoading ? (
+                <p className="coach-client-in-person-loading">
+                  Loading training history…
+                </p>
+              ) : offlineTrainingHistory.length > 0 ? (
+                <div className="coach-client-profile-activity">
+                  {offlineTrainingHistory.map((session) => {
+                    const payload = session.workoutPayload ?? {}
+                    const sets = Array.isArray(payload.sets) ? payload.sets : []
+                    const exerciseCount = Array.isArray(payload.exercisesPerformed)
+                      ? payload.exercisesPerformed.length
+                      : new Set(
+                          sets
+                            .map((set) => String(set?.exercise ?? '').trim())
+                            .filter(Boolean),
+                        ).size
+
+                    return (
+                      <article
+                        key={session.id}
+                        className="coach-profile-activity-row"
+                      >
+                        <strong>{session.workoutName || 'In-person workout'}</strong>
+                        <span>
+                          {session.completedAt
+                            ? new Date(session.completedAt).toLocaleDateString([], {
+                                month: 'short',
+                                day: 'numeric',
+                                year: 'numeric',
+                              })
+                            : 'Completed session'}
+                          {exerciseCount > 0
+                            ? ` · ${exerciseCount} exercise${exerciseCount === 1 ? '' : 's'}`
+                            : ''}
+                          {sets.length > 0
+                            ? ` · ${sets.length} set${sets.length === 1 ? '' : 's'}`
+                            : ''}
+                        </span>
+                      </article>
+                    )
+                  })}
+                </div>
+              ) : (
+                <EmptyState
+                  icon={Activity}
+                  title="No coached workouts recorded yet"
+                  description="Start an in-person session to build this client’s training history. App connection is optional."
+                  actionLabel="Start In-Person Session"
+                  onAction={
+                    isArchivedBusinessClient(client)
+                      ? undefined
+                      : () => setShowAdHocFloorMode(true)
+                  }
+                />
+              )}
+            </ProfileSection>
           )
         }
 

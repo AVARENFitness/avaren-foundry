@@ -2,7 +2,7 @@ import { ArrowLeft, ChevronDown } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 
 export const CLIENT_PROFILE_SECTIONS = [
-  { id: 'overview', label: 'Overview' },
+  { id: 'overview', label: 'Coaching' },
   { id: 'sessions', label: 'Sessions' },
   { id: 'training', label: 'Training' },
   { id: 'notes', label: 'Notes' },

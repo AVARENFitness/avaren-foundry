@@ -20,7 +20,7 @@ describe('CoachClientProfile overview presentation', () => {
 
     expect(overviewCase).not.toContain('ClientIntelligenceDashboard')
     expect(overviewCase).toContain('CoachClientInPersonPanel')
-    expect(overviewCase).toContain('RECENT TRAINING')
+    expect(overviewCase).not.toContain('RECENT TRAINING')
     expect(overviewCase).not.toContain('clientManagementPanel')
     expect(overviewCase).not.toContain('View usage')
     expect(overviewCase).not.toContain('All caught up')
