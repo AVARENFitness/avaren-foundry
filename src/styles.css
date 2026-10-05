@@ -22845,3 +22845,339 @@ body > .nutrition-food-sheet-backdrop > .nutrition-food-sheet {
     grid-template-columns: repeat(7, minmax(150px, 1fr));
   }
 }
+
+
+/* ===== COACH CALENDAR VISUAL COHESION PASS ===== */
+.coach-session-calendar-screen {
+  gap: 16px;
+}
+
+.coach-session-calendar-header {
+  width: 100%;
+  display: grid;
+  gap: 14px;
+  align-items: stretch;
+}
+
+.coach-session-calendar-title-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.coach-session-calendar-title-row h1 {
+  margin: 0;
+  font-size: clamp(1.9rem, 4vw, 2.45rem);
+  letter-spacing: -0.045em;
+}
+
+.coach-session-calendar-create-actions {
+  flex-wrap: nowrap;
+  align-items: center;
+}
+
+.coach-session-calendar-create-actions > button,
+.coach-session-calendar-create-actions .gold-button {
+  width: auto;
+  min-height: 42px;
+  margin-top: 0;
+  padding: 10px 14px;
+  border-radius: 12px;
+  white-space: nowrap;
+  font-size: 0.88rem;
+}
+
+.coach-session-calendar-create-actions .coach-session-calendar-schedule {
+  min-width: 156px;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.24),
+    inset 0 -1px 0 rgba(84,57,12,.18),
+    0 8px 20px rgba(184,149,78,.11);
+}
+
+.coach-session-calendar-view-toggle {
+  width: min(100%, 430px);
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  padding: 4px;
+  border: 1px solid rgba(248,243,230,.075);
+  border-radius: 13px;
+  background: rgba(255,255,255,.012);
+}
+
+.coach-session-calendar-view-toggle button {
+  width: 100%;
+  min-width: 0;
+  min-height: 38px;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: #77736d;
+  font-weight: 700;
+  font-size: 0.86rem;
+}
+
+.coach-session-calendar-view-toggle button.active {
+  background: rgba(223,195,125,.09);
+  color: var(--cream);
+  box-shadow: inset 0 0 0 1px rgba(223,195,125,.09);
+}
+
+.coach-session-calendar-nav {
+  width: 100%;
+  flex-wrap: nowrap;
+  justify-content: flex-start;
+  gap: 9px;
+}
+
+.coach-session-calendar-toolbar {
+  flex: 1 1 auto;
+  max-width: 430px;
+  min-height: 46px;
+  padding: 4px;
+  gap: 6px;
+  border-radius: 12px;
+  background: rgba(255,255,255,.012);
+  border-color: rgba(248,243,230,.075);
+}
+
+.coach-session-calendar-toolbar strong {
+  flex: 1;
+  text-align: center;
+  font-size: 0.94rem;
+  letter-spacing: -0.015em;
+}
+
+.coach-session-calendar-toolbar button {
+  min-width: 38px;
+  min-height: 38px;
+  border: 0;
+  border-radius: 9px;
+  color: var(--muted);
+}
+
+.coach-session-calendar-toolbar button:active {
+  background: rgba(255,255,255,.035);
+}
+
+.coach-session-calendar-today {
+  min-height: 42px;
+  padding: 9px 13px;
+  border-radius: 11px;
+  font-size: 0.82rem;
+}
+
+.coach-calendar-month-view {
+  gap: 0;
+  overflow: hidden;
+  border: 1px solid rgba(248,243,230,.075);
+  border-radius: 16px;
+  background: rgba(255,255,255,.008);
+}
+
+.coach-calendar-month-weekdays {
+  gap: 0;
+  padding: 0;
+  border-bottom: 1px solid rgba(248,243,230,.075);
+  background: rgba(255,255,255,.012);
+}
+
+.coach-calendar-month-weekdays span {
+  padding: 10px 4px 9px;
+  font-size: 0.68rem;
+}
+
+.coach-calendar-month-grid {
+  gap: 0;
+}
+
+.coach-calendar-month-day {
+  min-height: 94px;
+  padding: 8px 9px;
+  border: 0;
+  border-right: 1px solid rgba(248,243,230,.055);
+  border-bottom: 1px solid rgba(248,243,230,.055);
+  border-radius: 0;
+  background: transparent;
+  transition: background .16s ease;
+}
+
+.coach-calendar-month-day:nth-child(7n) {
+  border-right: 0;
+}
+
+.coach-calendar-month-day:nth-last-child(-n + 7) {
+  border-bottom: 0;
+}
+
+.coach-calendar-month-day.has-items {
+  background: rgba(255,255,255,.008);
+}
+
+.coach-calendar-month-day.is-outside {
+  opacity: 0.26;
+  background: rgba(0,0,0,.08);
+}
+
+.coach-calendar-month-day.is-today {
+  border-color: rgba(248,243,230,.055);
+  box-shadow: inset 0 0 0 1px rgba(223,195,125,.44);
+  background: rgba(184,149,78,.025);
+}
+
+.coach-calendar-month-date {
+  width: 25px;
+  height: 25px;
+  font-size: 0.82rem;
+}
+
+.coach-calendar-month-day.is-today .coach-calendar-month-date {
+  background: var(--gold-bright);
+  color: #100e09;
+  box-shadow: none;
+}
+
+.coach-calendar-month-events {
+  gap: 2px;
+}
+
+.coach-calendar-month-events > span,
+.coach-calendar-month-events > em {
+  padding: 3px 5px;
+  border-radius: 4px;
+  font-size: 0.65rem;
+}
+
+.coach-calendar-month-day small {
+  font-size: 0.61rem;
+}
+
+.coach-calendar-week-board {
+  gap: 0;
+  overflow-x: auto;
+  padding-bottom: 0;
+  border: 1px solid rgba(248,243,230,.075);
+  border-radius: 16px;
+  background: rgba(255,255,255,.008);
+}
+
+.coach-calendar-week-column {
+  min-height: 330px;
+  border: 0;
+  border-right: 1px solid rgba(248,243,230,.06);
+  border-radius: 0;
+  background: transparent;
+}
+
+.coach-calendar-week-column:last-child {
+  border-right: 0;
+}
+
+.coach-calendar-week-column.is-today {
+  border-color: rgba(248,243,230,.06);
+  background: rgba(184,149,78,.025);
+  box-shadow: inset 0 2px 0 rgba(223,195,125,.55);
+}
+
+.coach-calendar-week-heading {
+  min-height: 74px;
+  background: rgba(255,255,255,.008);
+}
+
+.coach-calendar-week-items {
+  padding: 7px;
+  gap: 5px;
+}
+
+.coach-calendar-week-item {
+  border-radius: 7px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .coach-calendar-month-day:hover {
+    background: rgba(255,255,255,.022);
+  }
+}
+
+@media (max-width: 720px) {
+  .coach-session-calendar-screen {
+    gap: 13px;
+  }
+
+  .coach-session-calendar-title-row {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .coach-session-calendar-create-actions {
+    width: 100%;
+    display: grid;
+    grid-template-columns: minmax(0, .85fr) minmax(0, 1.15fr);
+    gap: 8px;
+  }
+
+  .coach-session-calendar-create-actions > button,
+  .coach-session-calendar-create-actions .gold-button {
+    width: 100%;
+    min-width: 0;
+    padding-left: 9px;
+    padding-right: 9px;
+    font-size: 0.8rem;
+  }
+
+  .coach-session-calendar-view-toggle {
+    width: 100%;
+  }
+
+  .coach-session-calendar-nav {
+    gap: 7px;
+  }
+
+  .coach-session-calendar-toolbar {
+    max-width: none;
+  }
+
+  .coach-session-calendar-today {
+    flex: 0 0 auto;
+  }
+
+  .coach-calendar-month-view {
+    border-radius: 13px;
+  }
+
+  .coach-calendar-month-day {
+    min-height: 66px;
+    padding: 5px;
+    border-radius: 0;
+  }
+
+  .coach-calendar-month-date {
+    width: 22px;
+    height: 22px;
+    font-size: 0.76rem;
+  }
+}
+
+@media (max-width: 420px) {
+  .coach-session-calendar-create-actions {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .coach-session-calendar-create-actions > button,
+  .coach-session-calendar-create-actions .gold-button {
+    font-size: 0.75rem;
+  }
+
+  .coach-session-calendar-toolbar strong {
+    font-size: 0.85rem;
+  }
+
+  .coach-session-calendar-today {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+}
