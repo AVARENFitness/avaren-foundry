@@ -22473,3 +22473,58 @@ body > .nutrition-food-sheet-backdrop > .nutrition-food-sheet {
     padding: 13px 14px;
   }
 }
+
+
+/* ===== ATHLETE HOME · COLLAPSIBLE AVA + DISTINCT WARM-UP ===== */
+.ava-daily-briefing--context .ava-daily-briefing-header {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+}
+
+.ava-daily-briefing-heading-copy {
+  min-width: 0;
+}
+
+.ava-daily-briefing-collapse {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: #8f887f;
+}
+
+.ava-daily-briefing-collapse svg {
+  transition: transform .18s ease;
+}
+
+.ava-daily-briefing--context:not(.is-collapsed)
+  .ava-daily-briefing-collapse svg {
+  transform: rotate(180deg);
+}
+
+.ava-daily-briefing--context.is-collapsed {
+  gap: 0;
+  padding-block: 11px;
+}
+
+.ava-daily-briefing--context.is-collapsed
+  .ava-daily-briefing-header h2 {
+  color: #bdb5aa;
+  font-size: 15px;
+}
+
+.ava-daily-briefing-context-action {
+  width: 100%;
+  min-height: 46px;
+  justify-content: center;
+  gap: 7px;
+}
+
+@media (max-width: 520px) {
+  .ava-daily-briefing-collapse {
+    width: 38px;
+    height: 38px;
+  }
+}

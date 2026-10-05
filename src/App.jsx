@@ -1980,9 +1980,9 @@ function App() {
           />
           <MobilityPrompt
             type="recovery"
-            subtitle="ADAPTIVE RECOVERY"
-            title="Recovery Flow"
-            detail="Equipment-free · Start when ready"
+            subtitle="POST-WORKOUT"
+            title="Cooldown & Recovery"
+            detail="Equipment-free · Downshift after training"
             reason={
               buildRecoveryFlow(
                 completedSession?.session,

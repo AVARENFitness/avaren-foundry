@@ -398,13 +398,14 @@ export const buildAvaWatchItems = (ctx, dailyState) => {
   }
 
   if (
-    recovery.workoutsThisWeek >= 2 &&
+    ctx.workoutRecommendation?.completedToday &&
+    recovery.workoutsThisWeek >= 1 &&
     recovery.recoveryFlowsThisWeek === 0
   ) {
     items.push({
       kind: 'recovery-flow',
-      title: 'Recovery flow incomplete',
-      detail: `${recovery.workoutsThisWeek} workouts this week without a Recovery Flow`,
+      title: 'Cooldown & recovery still open',
+      detail: 'Finish today with a short post-workout recovery flow.',
     })
   }
 
