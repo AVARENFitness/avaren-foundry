@@ -1533,37 +1533,102 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
 
                 <section className="nutrition-scan-portions">
                   <div>
-                    <span className="eyebrow">PORTIONS</span>
+                    <span className="eyebrow">
+                      {scanResult.sourceType === 'label_read' ? 'MEASURED AMOUNT' : 'PORTIONS'}
+                    </span>
                     <strong>How much did you have?</strong>
                     <small>
-                      {scanResult.sourceType === 'label_read'
-                        ? 'Label values are per serving. AVAREN will scale the totals before logging.'
-                        : 'Choose the amount you actually ate. AVAREN will scale the estimate once.'}
+                      {scanResult.sourceType === 'label_read' && scanServingBasis
+                        ? `Label nutrition is based on ${foodMeasureDisplay({ amount: scanServingBasis.amount, unit: scanServingBasis.unit })}. Enter what your scale actually showed.`
+                        : scanResult.sourceType === 'label_read'
+                          ? 'Label values are per serving. AVAREN will scale the totals before logging.'
+                          : 'Choose the amount you actually ate. AVAREN will scale the estimate once.'}
                     </small>
                   </div>
-                  <div className="nutrition-scan-portion-options" role="group" aria-label="Portion amount">
-                    {[0.5, 1, 1.5, 2].map((quantity) => (
-                      <button
-                        type="button"
-                        key={quantity}
-                        className={scanQuantityValue === quantity ? 'active' : ''}
-                        onClick={() => setScanQuantity(quantity)}
-                      >
-                        {quantity}×
-                      </button>
-                    ))}
-                    <label>
-                      <span>Custom</span>
-                      <input
-                        type="number"
-                        min="0.25"
-                        step="0.25"
-                        value={scanQuantity}
-                        onChange={(event) => setScanQuantity(event.target.value)}
-                        inputMode="decimal"
-                      />
+
+                  {scanServingBasis && (
+                    scanServingBasis.unit === FOOD_MEASURE_UNIT.GRAM ||
+                    scanServingBasis.unit === FOOD_MEASURE_UNIT.OUNCE
+                  ) ? <div className="nutrition-measure-tabs" role="group" aria-label="Scanned food amount unit">
+                    <button type="button" className={scanMeasureUnit === FOOD_MEASURE_UNIT.SERVING ? 'active' : ''} onClick={() => {
+                      setScanMeasureUnit(FOOD_MEASURE_UNIT.SERVING)
+                      setScanMeasureAmount('1')
+                      setScanQuantity(1)
+                    }}>Serving</button>
+                    <button type="button" className={scanMeasureUnit === FOOD_MEASURE_UNIT.GRAM ? 'active' : ''} onClick={() => {
+                      setScanMeasureUnit(FOOD_MEASURE_UNIT.GRAM)
+                      setScanMeasureAmount(
+                        String(
+                          Math.round(
+                            Number(scanServingBasis.amount) *
+                              (scanServingBasis.unit === FOOD_MEASURE_UNIT.GRAM
+                                ? 1
+                                : 28.3495),
+                          ),
+                        ),
+                      )
+                    }}>g</button>
+                    <button type="button" className={scanMeasureUnit === FOOD_MEASURE_UNIT.OUNCE ? 'active' : ''} onClick={() => {
+                      setScanMeasureUnit(FOOD_MEASURE_UNIT.OUNCE)
+                      setScanMeasureAmount(
+                        String(
+                          round(
+                            Number(scanServingBasis.amount) *
+                              (scanServingBasis.unit === FOOD_MEASURE_UNIT.OUNCE
+                                ? 1
+                                : 1 / 28.3495),
+                          ),
+                        ),
+                      )
+                    }}>oz</button>
+                  </div> : null}
+
+                  {scanMeasureUnit === FOOD_MEASURE_UNIT.SERVING ? (
+                    <div className="nutrition-scan-portion-options" role="group" aria-label="Portion amount">
+                      {[0.5, 1, 1.5, 2].map((quantity) => (
+                        <button
+                          type="button"
+                          key={quantity}
+                          className={Number(scanMeasureAmount) === quantity ? 'active' : ''}
+                          onClick={() => {
+                            setScanQuantity(quantity)
+                            setScanMeasureAmount(String(quantity))
+                          }}
+                        >
+                          {quantity}×
+                        </button>
+                      ))}
+                      <label>
+                        <span>Custom</span>
+                        <input
+                          type="number"
+                          min="0.01"
+                          step="0.25"
+                          value={scanMeasureAmount}
+                          onChange={(event) => {
+                            setScanMeasureAmount(event.target.value)
+                            setScanQuantity(event.target.value)
+                          }}
+                          inputMode="decimal"
+                        />
+                      </label>
+                    </div>
+                  ) : (
+                    <label className="nutrition-scan-weight-input">
+                      <span>Amount eaten</span>
+                      <div className="nutrition-measure-input">
+                        <input
+                          type="number"
+                          min="0.1"
+                          step="0.1"
+                          value={scanMeasureAmount}
+                          onChange={(event) => setScanMeasureAmount(event.target.value)}
+                          inputMode="decimal"
+                        />
+                        <strong>{scanMeasureUnit}</strong>
+                      </div>
                     </label>
-                  </div>
+                  )}
                 </section>
 
                 <div className="nutrition-sheet-macros">
@@ -1574,7 +1639,7 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
                 </div>
 
                 <div className="nutrition-scan-edit-grid">
-                  <p className="nutrition-scan-edit-hint">Nutrition below is per 1 portion. Edit the label values here if needed.</p>
+                  <p className="nutrition-scan-edit-hint">Nutrition below is the label/base amount before scaling. Edit it only if AVA read the label incorrectly.</p>
                   <label><span>Name</span><input value={scanDraft.name} onChange={(event) => setScanDraft((current) => ({...current, name:event.target.value}))}/></label>
                   {['calories','protein','carbs','fat','fiber'].map((field) => <label key={field}><span>{field}</span><input type="number" min="0" step="0.1" value={scanDraft[field]} onChange={(event) => setScanDraft((current) => ({...current, [field]:event.target.value}))}/></label>)}
                 </div>
