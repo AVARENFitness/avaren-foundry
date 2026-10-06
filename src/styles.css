@@ -23900,3 +23900,97 @@ body > .nutrition-food-sheet-backdrop > .nutrition-food-sheet {
     min-height: 34px;
   }
 }
+
+
+/* ===== NUTRITION PHOTO PRE-ANALYSIS CONTEXT ===== */
+.nutrition-scan-preanalysis {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid rgba(223,195,125,.11);
+  border-radius: 14px;
+  background: rgba(223,195,125,.025);
+}
+
+.nutrition-scan-preanalysis-copy {
+  display: grid;
+  gap: 4px;
+}
+
+.nutrition-scan-preanalysis-copy strong {
+  color: var(--cream);
+  font-size: .98rem;
+}
+
+.nutrition-scan-preanalysis-copy small,
+.nutrition-scan-preanalysis-examples small {
+  color: var(--muted);
+  font-size: .75rem;
+  line-height: 1.45;
+}
+
+.nutrition-scan-preanalysis > label {
+  display: grid;
+  gap: 7px;
+}
+
+.nutrition-scan-preanalysis > label > span {
+  color: var(--muted);
+  font-size: .72rem;
+  font-weight: 650;
+}
+
+.nutrition-scan-preanalysis textarea {
+  width: 100%;
+  min-height: 104px;
+  resize: vertical;
+  padding: 11px 12px;
+  border: 1px solid rgba(248,243,230,.09);
+  border-radius: 11px;
+  background: rgba(0,0,0,.17);
+  color: var(--cream);
+  font: inherit;
+  font-size: .88rem;
+  line-height: 1.45;
+}
+
+.nutrition-scan-preanalysis textarea::placeholder {
+  color: rgba(248,243,230,.34);
+}
+
+.nutrition-scan-preanalysis-examples {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.nutrition-scan-preanalysis-examples > span {
+  color: var(--gold-bright);
+  font-size: .7rem;
+  font-weight: 720;
+}
+
+.nutrition-scan-preanalysis-actions {
+  display: grid;
+  grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr);
+  gap: 8px;
+}
+
+.nutrition-scan-preanalysis-actions .gold-button {
+  justify-content: center;
+}
+
+@media (max-width: 520px) {
+  .nutrition-scan-preanalysis {
+    padding: 11px;
+  }
+
+  .nutrition-scan-preanalysis-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .nutrition-scan-preanalysis-actions .nutrition-secondary-button {
+    order: 2;
+  }
+}
