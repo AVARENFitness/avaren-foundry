@@ -5,11 +5,9 @@ import {
   CalendarDays,
   Check,
   Dumbbell,
-  Gauge,
   Home,
   RefreshCcw,
   Sparkles,
-  Target,
   UtensilsCrossed,
 } from 'lucide-react'
 import { useMemo, useState } from 'react'
