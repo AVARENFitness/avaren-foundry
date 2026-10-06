@@ -507,16 +507,70 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
     setScanResult(null)
     setScanDraft(null)
     setScanQuantity(1)
+    setScanMeasureUnit(FOOD_MEASURE_UNIT.SERVING)
+    setScanMeasureAmount('1')
     setScanMatches([])
+    setBarcodeManualValue('')
     if (cameraInputRef.current) cameraInputRef.current.value = ''
     if (uploadInputRef.current) uploadInputRef.current.value = ''
     if (barcodeInputRef.current) barcodeInputRef.current.value = ''
+  }
+
+  const openBarcodeMatch = async (barcode) => {
+    const digits = normalizeBarcodeDigits(barcode)
+    if (!digits) {
+      throw new Error('Enter or scan a valid 8, 12, or 13 digit barcode.')
+    }
+
+    const matched = await getFatSecretFoodByBarcode(digits)
+    const food = {
+      id: `fatsecret:${matched.foodId}`,
+      foodId: matched.foodId,
+      provider: 'fatsecret',
+      sourceLabel: 'FatSecret',
+      name: matched.name,
+      brand: matched.brand || 'FatSecret',
+      serving: matched.servings?.[0]?.description || 'Serving details',
+      category: matched.foodType || 'Food',
+      calories: Number(matched.servings?.[0]?.calories || 0),
+      protein: Number(matched.servings?.[0]?.protein || 0),
+      carbs: Number(matched.servings?.[0]?.carbs || 0),
+      fat: Number(matched.servings?.[0]?.fat || 0),
+      fiber: Number(matched.servings?.[0]?.fiber || 0),
+    }
+
+    setFatSecretDetailCache((current) => ({
+      ...current,
+      [matched.foodId]: matched,
+    }))
+    resetFoodScan()
+    await openFood(food)
+  }
+
+  const lookupManualBarcode = async () => {
+    try {
+      setScanState('loading')
+      setScanError('')
+      await openBarcodeMatch(barcodeManualValue)
+    } catch (error) {
+      setScanState('error')
+      setScanError(error?.message ?? 'Barcode lookup failed.')
+    }
   }
 
   const runFoodScan = async (file, contextOverride = null, mode = 'food') => {
     try {
       setScanState('loading')
       setScanError('')
+
+      if (mode === 'barcode' && file) {
+        const detectedBarcode = await detectNutritionBarcode(file)
+        if (detectedBarcode) {
+          await openBarcodeMatch(detectedBarcode)
+          return
+        }
+      }
+
       const prepared = file
         ? await prepareNutritionScanImage(file)
         : scanPreview
@@ -530,34 +584,13 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
       })
 
       if (mode === 'barcode') {
-        const barcode = String(result.barcode || '').replace(/\D/g, '')
-        if (![8, 12, 13].includes(barcode.length)) {
-          throw new Error('AVA could not read that barcode clearly. Try moving closer and keeping it in focus.')
+        const barcode = normalizeBarcodeDigits(result.barcode)
+        if (!barcode) {
+          throw new Error(
+            'The barcode was not readable. Try a closer photo or enter the digits below.',
+          )
         }
-
-        const matched = await getFatSecretFoodByBarcode(barcode)
-        const food = {
-          id: `fatsecret:${matched.foodId}`,
-          foodId: matched.foodId,
-          provider: 'fatsecret',
-          sourceLabel: 'FatSecret',
-          name: matched.name,
-          brand: matched.brand || 'FatSecret',
-          serving: matched.servings?.[0]?.description || 'Serving details',
-          category: matched.foodType || 'Food',
-          calories: Number(matched.servings?.[0]?.calories || 0),
-          protein: Number(matched.servings?.[0]?.protein || 0),
-          carbs: Number(matched.servings?.[0]?.carbs || 0),
-          fat: Number(matched.servings?.[0]?.fat || 0),
-          fiber: Number(matched.servings?.[0]?.fiber || 0),
-        }
-
-        setFatSecretDetailCache((current) => ({
-          ...current,
-          [matched.foodId]: matched,
-        }))
-        resetFoodScan()
-        await openFood(food)
+        await openBarcodeMatch(barcode)
         return
       }
 
@@ -574,6 +607,8 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
       setScanResult(result)
       setScanDraft(draft)
       setScanQuantity(1)
+      setScanMeasureUnit(FOOD_MEASURE_UNIT.SERVING)
+      setScanMeasureAmount('1')
       setScanMatches([])
 
       if (result.kind === 'packaged_product' && result.searchQuery?.trim()) {
@@ -615,7 +650,29 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
     }
   }
 
-  const scanQuantityValue = Math.max(0.25, Number(scanQuantity || 1))
+  const scanServingBasis = scanResult
+    ? resolveFoodServingBasis({
+        servingAmount: scanResult.servingAmount,
+        servingUnit: scanResult.servingUnit,
+        servingDescription: scanResult.servingDescription,
+      })
+    : null
+  const scanMeasureValue = Math.max(
+    0.01,
+    Number(scanMeasureAmount || scanQuantity || 1),
+  )
+  const scanQuantityValue =
+    foodMeasureMultiplier({
+      amount: scanMeasureValue,
+      unit: scanMeasureUnit,
+      servingBasis: scanServingBasis,
+    }) ?? Math.max(0.01, Number(scanQuantity || 1))
+  const scanMeasurement = {
+    amount: scanMeasureValue,
+    unit: scanMeasureUnit,
+    servingAmount: scanServingBasis?.amount ?? 1,
+    servingUnit: scanServingBasis?.unit ?? FOOD_MEASURE_UNIT.SERVING,
+  }
   const scaledScanDraft = scanDraft
     ? {
         ...scanDraft,
@@ -633,6 +690,7 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
     const foodToLog = {
       ...scanDraft,
       servings: scanQuantityValue,
+      measurement: scanMeasurement,
     }
 
     patch((current) =>
@@ -647,9 +705,10 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
     )
 
     const quantityLabel =
-      scanQuantityValue === 1
-        ? '1 portion'
-        : `${scanQuantityValue} portions`
+      foodMeasureDisplay(scanMeasurement) ||
+      (scanQuantityValue === 1
+        ? '1 serving'
+        : `${round(scanQuantityValue)} servings`)
 
     setNotice(
       scanResult?.sourceType === 'label_read'
