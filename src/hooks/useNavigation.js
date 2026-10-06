@@ -31,14 +31,16 @@ export function useNavigation({ session, setCoachWorkspace, coachAuthorized = fa
   const lastAthleteScreenRef = useRef(DEFAULT_ATHLETE_SCREEN)
 
   const navigate = useCallback((nextScreen, callback) => {
+    if (nextScreen === screen) return
+
     setTransitioning(true)
     window.setTimeout(() => {
       callback?.()
       setScreen(nextScreen)
-      window.scrollTo({ top: 0, behavior: 'smooth' })
-      window.setTimeout(() => setTransitioning(false), 260)
-    }, 180)
-  }, [])
+      window.scrollTo({ top: 0, behavior: 'auto' })
+      setTransitioning(false)
+    }, 110)
+  }, [screen])
 
   const enterCoachMode = useCallback(() => {
     if (!canAccessCoachHub(session, coachAuthorized)) {
