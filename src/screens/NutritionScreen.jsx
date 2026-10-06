@@ -66,6 +66,16 @@ import {
   analyzeNutritionAdaptation,
   applyAdaptiveNutritionAdjustment,
 } from '../lib/nutritionAdaptation'
+import {
+  FOOD_MEASURE_UNIT,
+  foodMeasureDisplay,
+  foodMeasureMultiplier,
+  resolveFoodServingBasis,
+} from '../lib/nutritionMeasurement'
+import {
+  detectNutritionBarcode,
+  normalizeBarcodeDigits,
+} from '../lib/nutritionBarcode'
 
 const tabs = [
   { label: 'Today', value: 'Today' },
@@ -147,6 +157,8 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
   const [showCustomFood, setShowCustomFood] = useState(false)
   const [selectedFood, setSelectedFood] = useState(null)
   const [selectedMultiplier, setSelectedMultiplier] = useState(1)
+  const [selectedMeasureUnit, setSelectedMeasureUnit] = useState(FOOD_MEASURE_UNIT.SERVING)
+  const [selectedMeasureAmount, setSelectedMeasureAmount] = useState('1')
   const [foodCategory, setFoodCategory] = useState('All')
   const [fatSecretFoods, setFatSecretFoods] = useState([])
   const [fatSecretSearchState, setFatSecretSearchState] = useState('idle')
@@ -156,6 +168,8 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
   const [fatSecretDetailError, setFatSecretDetailError] = useState('')
   const [selectedFatSecretServingId, setSelectedFatSecretServingId] = useState('')
   const [fatSecretQuantity, setFatSecretQuantity] = useState('1')
+  const [fatSecretMeasureUnit, setFatSecretMeasureUnit] = useState(FOOD_MEASURE_UNIT.SERVING)
+  const [fatSecretMeasureAmount, setFatSecretMeasureAmount] = useState('1')
   const [recipeDraft, setRecipeDraft] = useState({ name: '', servings: 4, ingredients: [] })
   const [recipeSearch, setRecipeSearch] = useState('')
   const [recipeLogTarget, setRecipeLogTarget] = useState(null)
@@ -171,7 +185,10 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
   const [scanResult, setScanResult] = useState(null)
   const [scanDraft, setScanDraft] = useState(null)
   const [scanQuantity, setScanQuantity] = useState(1)
+  const [scanMeasureUnit, setScanMeasureUnit] = useState(FOOD_MEASURE_UNIT.SERVING)
+  const [scanMeasureAmount, setScanMeasureAmount] = useState('1')
   const [scanMatches, setScanMatches] = useState([])
+  const [barcodeManualValue, setBarcodeManualValue] = useState('')
   const [showWorkoutActivityForm, setShowWorkoutActivityForm] = useState(false)
   const [workoutActivityDraft, setWorkoutActivityDraft] = useState({
     label: 'Strength Training',
@@ -490,16 +507,72 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
     setScanResult(null)
     setScanDraft(null)
     setScanQuantity(1)
+    setScanMeasureUnit(FOOD_MEASURE_UNIT.SERVING)
+    setScanMeasureAmount('1')
     setScanMatches([])
+    setBarcodeManualValue('')
     if (cameraInputRef.current) cameraInputRef.current.value = ''
     if (uploadInputRef.current) uploadInputRef.current.value = ''
     if (barcodeInputRef.current) barcodeInputRef.current.value = ''
+  }
+
+  const openBarcodeMatch = async (barcode) => {
+    const digits = normalizeBarcodeDigits(barcode)
+    if (!digits) {
+      throw new Error('Enter or scan a valid 8, 12, or 13 digit barcode.')
+    }
+
+    const matched = await getFatSecretFoodByBarcode(digits)
+    const food = {
+      id: `fatsecret:${matched.foodId}`,
+      foodId: matched.foodId,
+      provider: 'fatsecret',
+      sourceLabel: 'FatSecret',
+      name: matched.name,
+      brand: matched.brand || 'FatSecret',
+      serving: matched.servings?.[0]?.description || 'Serving details',
+      category: matched.foodType || 'Food',
+      calories: Number(matched.servings?.[0]?.calories || 0),
+      protein: Number(matched.servings?.[0]?.protein || 0),
+      carbs: Number(matched.servings?.[0]?.carbs || 0),
+      fat: Number(matched.servings?.[0]?.fat || 0),
+      fiber: Number(matched.servings?.[0]?.fiber || 0),
+    }
+
+    setFatSecretDetailCache((current) => ({
+      ...current,
+      [matched.foodId]: matched,
+    }))
+    resetFoodScan()
+    await openFood(food)
+  }
+
+  const lookupManualBarcode = async () => {
+    try {
+      setScanState('loading')
+      setScanError('')
+      await openBarcodeMatch(barcodeManualValue)
+    } catch (error) {
+      setScanState('idle')
+      const message = error?.message ?? 'Barcode lookup failed.'
+      setScanError(message)
+      setNotice(message)
+    }
   }
 
   const runFoodScan = async (file, contextOverride = null, mode = 'food') => {
     try {
       setScanState('loading')
       setScanError('')
+
+      if (mode === 'barcode' && file) {
+        const detectedBarcode = await detectNutritionBarcode(file)
+        if (detectedBarcode) {
+          await openBarcodeMatch(detectedBarcode)
+          return
+        }
+      }
+
       const prepared = file
         ? await prepareNutritionScanImage(file)
         : scanPreview
@@ -513,34 +586,13 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
       })
 
       if (mode === 'barcode') {
-        const barcode = String(result.barcode || '').replace(/\D/g, '')
-        if (![8, 12, 13].includes(barcode.length)) {
-          throw new Error('AVA could not read that barcode clearly. Try moving closer and keeping it in focus.')
+        const barcode = normalizeBarcodeDigits(result.barcode)
+        if (!barcode) {
+          throw new Error(
+            'The barcode was not readable. Try a closer photo or enter the digits below.',
+          )
         }
-
-        const matched = await getFatSecretFoodByBarcode(barcode)
-        const food = {
-          id: `fatsecret:${matched.foodId}`,
-          foodId: matched.foodId,
-          provider: 'fatsecret',
-          sourceLabel: 'FatSecret',
-          name: matched.name,
-          brand: matched.brand || 'FatSecret',
-          serving: matched.servings?.[0]?.description || 'Serving details',
-          category: matched.foodType || 'Food',
-          calories: Number(matched.servings?.[0]?.calories || 0),
-          protein: Number(matched.servings?.[0]?.protein || 0),
-          carbs: Number(matched.servings?.[0]?.carbs || 0),
-          fat: Number(matched.servings?.[0]?.fat || 0),
-          fiber: Number(matched.servings?.[0]?.fiber || 0),
-        }
-
-        setFatSecretDetailCache((current) => ({
-          ...current,
-          [matched.foodId]: matched,
-        }))
-        resetFoodScan()
-        await openFood(food)
+        await openBarcodeMatch(barcode)
         return
       }
 
@@ -557,6 +609,8 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
       setScanResult(result)
       setScanDraft(draft)
       setScanQuantity(1)
+      setScanMeasureUnit(FOOD_MEASURE_UNIT.SERVING)
+      setScanMeasureAmount('1')
       setScanMatches([])
 
       if (result.kind === 'packaged_product' && result.searchQuery?.trim()) {
@@ -598,7 +652,29 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
     }
   }
 
-  const scanQuantityValue = Math.max(0.25, Number(scanQuantity || 1))
+  const scanServingBasis = scanResult
+    ? resolveFoodServingBasis({
+        servingAmount: scanResult.servingAmount,
+        servingUnit: scanResult.servingUnit,
+        servingDescription: scanResult.servingDescription,
+      })
+    : null
+  const scanMeasureValue = Math.max(
+    0.01,
+    Number(scanMeasureAmount || scanQuantity || 1),
+  )
+  const scanQuantityValue =
+    foodMeasureMultiplier({
+      amount: scanMeasureValue,
+      unit: scanMeasureUnit,
+      servingBasis: scanServingBasis,
+    }) ?? Math.max(0.01, Number(scanQuantity || 1))
+  const scanMeasurement = {
+    amount: scanMeasureValue,
+    unit: scanMeasureUnit,
+    servingAmount: scanServingBasis?.amount ?? 1,
+    servingUnit: scanServingBasis?.unit ?? FOOD_MEASURE_UNIT.SERVING,
+  }
   const scaledScanDraft = scanDraft
     ? {
         ...scanDraft,
@@ -616,6 +692,7 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
     const foodToLog = {
       ...scanDraft,
       servings: scanQuantityValue,
+      measurement: scanMeasurement,
     }
 
     patch((current) =>
@@ -630,9 +707,10 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
     )
 
     const quantityLabel =
-      scanQuantityValue === 1
-        ? '1 portion'
-        : `${scanQuantityValue} portions`
+      foodMeasureDisplay(scanMeasurement) ||
+      (scanQuantityValue === 1
+        ? '1 serving'
+        : `${round(scanQuantityValue)} servings`)
 
     setNotice(
       scanResult?.sourceType === 'label_read'
@@ -784,12 +862,16 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
   const openFood = async (food) => {
     setSelectedFood(food)
     setSelectedMultiplier(1)
+    setSelectedMeasureUnit(FOOD_MEASURE_UNIT.SERVING)
+    setSelectedMeasureAmount('1')
 
     if (food.provider !== 'fatsecret') {
       setFatSecretDetailState('idle')
       setFatSecretDetailError('')
       setSelectedFatSecretServingId('')
       setFatSecretQuantity('1')
+      setFatSecretMeasureUnit(FOOD_MEASURE_UNIT.SERVING)
+      setFatSecretMeasureAmount('1')
       return
     }
 
@@ -797,6 +879,8 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
     setFatSecretDetailError('')
     setSelectedFatSecretServingId('')
     setFatSecretQuantity('1')
+    setFatSecretMeasureUnit(FOOD_MEASURE_UNIT.SERVING)
+    setFatSecretMeasureAmount('1')
 
     try {
       const cached = fatSecretDetailCache[food.foodId]
@@ -822,23 +906,38 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
     if (selectedFood?.provider !== 'fatsecret') return
     if (!selectedFatSecretServingId) return
 
-    const quantity = Number(fatSecretQuantity)
-    if (!Number.isFinite(quantity) || quantity <= 0) {
-      setNotice('Enter a serving quantity greater than 0.')
-      return
-    }
-
     const detail = fatSecretDetailCache[selectedFood.foodId]
     const serving = detail?.servings?.find(
       (item) =>
         String(item.servingId) === String(selectedFatSecretServingId),
     )
+    const servingBasis = resolveFoodServingBasis(serving ?? {})
+    const measureAmount = Number(fatSecretMeasureAmount || fatSecretQuantity)
+    const quantity =
+      foodMeasureMultiplier({
+        amount: measureAmount,
+        unit: fatSecretMeasureUnit,
+        servingBasis,
+      }) ?? Number(fatSecretQuantity)
+
+    if (!Number.isFinite(quantity) || quantity <= 0) {
+      setNotice('Enter an amount greater than 0.')
+      return
+    }
+
+    const measurement = {
+      amount: measureAmount,
+      unit: fatSecretMeasureUnit,
+      servingAmount: servingBasis?.amount ?? 1,
+      servingUnit: servingBasis?.unit ?? FOOD_MEASURE_UNIT.SERVING,
+    }
 
     patch((current) =>
       appendFatSecretFoodReference(current, date, {
         foodId: selectedFood.foodId,
         servingId: selectedFatSecretServingId,
         quantity,
+        measurement,
         servingSnapshot: serving
           ? {
               name: detail?.name ?? selectedFood.name,
@@ -854,14 +953,17 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
       }).nutrition,
     )
 
-
-    setNotice(`${detail?.name ?? selectedFood.name} added to today.`)
+    setNotice(
+      `${detail?.name ?? selectedFood.name} · ${foodMeasureDisplay(measurement) || `${round(quantity)} servings`} added.`,
+    )
     setSelectedFood(null)
     setFoodSearch('')
     setFatSecretFoods([])
     setFatSecretDetailState('idle')
     setSelectedFatSecretServingId('')
     setFatSecretQuantity('1')
+    setFatSecretMeasureUnit(FOOD_MEASURE_UNIT.SERVING)
+    setFatSecretMeasureAmount('1')
     setTab('Today')
   }
 
@@ -1277,7 +1379,7 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
 
         <section className="nutrition-food-log">
           <header><div><span className="eyebrow">FOOD LOG</span><h2>{resolvedDayFoods.length ? `${resolvedDayFoods.length} items` : 'Nothing logged yet'}</h2></div><button onClick={() => setTab('Meals')}><Plus/>Add</button></header>
-          {resolvedDayFoods.length ? resolvedDayFoods.map((food) => <article key={food.id}><div><strong>{food.name}</strong><span>{food.source === 'fatsecret' && (food.name === 'Loading food…' || food.name === 'Food unavailable') ? (food.name === 'Loading food…' ? 'Refreshing nutrition…' : 'Nutrition unavailable') : `${food.calories} cal · P ${food.protein} · C ${food.carbs} · F ${food.fat}`}</span></div><button onClick={() => patchDay((current) => ({ ...current, foods: current.foods.filter((item) => item.id !== food.id) }))}><Trash2 size={16}/></button></article>) : <div className="nutrition-empty"><Utensils/><p>Log your first meal to start today’s dashboard.</p></div>}
+          {resolvedDayFoods.length ? resolvedDayFoods.map((food) => <article key={food.id}><div><strong>{food.name}</strong><span>{food.source === 'fatsecret' && (food.name === 'Loading food…' || food.name === 'Food unavailable') ? (food.name === 'Loading food…' ? 'Refreshing nutrition…' : 'Nutrition unavailable') : `${food.measurement ? `${foodMeasureDisplay(food.measurement)} · ` : ''}${food.calories} cal · P ${food.protein} · C ${food.carbs} · F ${food.fat}`}</span></div><button onClick={() => patchDay((current) => ({ ...current, foods: current.foods.filter((item) => item.id !== food.id) }))}><Trash2 size={16}/></button></article>) : <div className="nutrition-empty"><Utensils/><p>Log your first meal to start today’s dashboard.</p></div>}
         </section>
           </>
         )}
@@ -1347,8 +1449,28 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
             </button>
             <button onClick={() => barcodeInputRef.current?.click()}>
               <ScanLine size={19}/>
-              <span><strong>Barcode</strong><small>UPC or EAN product lookup</small></span>
+              <span><strong>Barcode</strong><small>Native scan first · AVA fallback</small></span>
             </button>
+          </div>
+          <div className="nutrition-barcode-manual">
+            <span>Barcode not scanning?</span>
+            <div>
+              <input
+                value={barcodeManualValue}
+                onChange={(event) =>
+                  setBarcodeManualValue(event.target.value.replace(/\D/g, '').slice(0, 13))
+                }
+                inputMode="numeric"
+                placeholder="Enter 8, 12, or 13 digits"
+              />
+              <button
+                type="button"
+                onClick={lookupManualBarcode}
+                disabled={!normalizeBarcodeDigits(barcodeManualValue)}
+              >
+                Look up
+              </button>
+            </div>
           </div>
           <label>
             <span>Optional meal details</span>
@@ -1395,7 +1517,7 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
                 </button>
                 <button className={`nutrition-save-result ${favoriteIds.includes(food.id) ? 'active' : ''}`} title="Favorite food" onClick={() => toggleFavorite(food)}>{favoriteIds.includes(food.id) ? <BookmarkCheck size={16}/> : <Bookmark size={16}/>}</button>
               </article>
-            )) : <div className="nutrition-no-results"><Utensils/><strong>No match yet</strong><span>Create a custom food for this item. Later, barcode and AI search will make this even faster.</span><button onClick={() => { setFoodDraft({...blankFood,name:foodSearch}); setShowCustomFood(true) }}>Create “{foodSearch}”</button></div>}
+            )) : <div className="nutrition-no-results"><Utensils/><strong>No match yet</strong><span>Try the barcode, scan the nutrition label, or create a custom food.</span><button onClick={() => { setFoodDraft({...blankFood,name:foodSearch}); setShowCustomFood(true) }}>Create “{foodSearch}”</button></div>}
           </div>
         </>}
 
@@ -1433,37 +1555,102 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
 
                 <section className="nutrition-scan-portions">
                   <div>
-                    <span className="eyebrow">PORTIONS</span>
+                    <span className="eyebrow">
+                      {scanResult.sourceType === 'label_read' ? 'MEASURED AMOUNT' : 'PORTIONS'}
+                    </span>
                     <strong>How much did you have?</strong>
                     <small>
-                      {scanResult.sourceType === 'label_read'
-                        ? 'Label values are per serving. AVAREN will scale the totals before logging.'
-                        : 'Choose the amount you actually ate. AVAREN will scale the estimate once.'}
+                      {scanResult.sourceType === 'label_read' && scanServingBasis
+                        ? `Label nutrition is based on ${foodMeasureDisplay({ amount: scanServingBasis.amount, unit: scanServingBasis.unit })}. Enter what your scale actually showed.`
+                        : scanResult.sourceType === 'label_read'
+                          ? 'Label values are per serving. AVAREN will scale the totals before logging.'
+                          : 'Choose the amount you actually ate. AVAREN will scale the estimate once.'}
                     </small>
                   </div>
-                  <div className="nutrition-scan-portion-options" role="group" aria-label="Portion amount">
-                    {[0.5, 1, 1.5, 2].map((quantity) => (
-                      <button
-                        type="button"
-                        key={quantity}
-                        className={scanQuantityValue === quantity ? 'active' : ''}
-                        onClick={() => setScanQuantity(quantity)}
-                      >
-                        {quantity}×
-                      </button>
-                    ))}
-                    <label>
-                      <span>Custom</span>
-                      <input
-                        type="number"
-                        min="0.25"
-                        step="0.25"
-                        value={scanQuantity}
-                        onChange={(event) => setScanQuantity(event.target.value)}
-                        inputMode="decimal"
-                      />
+
+                  {scanServingBasis && (
+                    scanServingBasis.unit === FOOD_MEASURE_UNIT.GRAM ||
+                    scanServingBasis.unit === FOOD_MEASURE_UNIT.OUNCE
+                  ) ? <div className="nutrition-measure-tabs" role="group" aria-label="Scanned food amount unit">
+                    <button type="button" className={scanMeasureUnit === FOOD_MEASURE_UNIT.SERVING ? 'active' : ''} onClick={() => {
+                      setScanMeasureUnit(FOOD_MEASURE_UNIT.SERVING)
+                      setScanMeasureAmount('1')
+                      setScanQuantity(1)
+                    }}>Serving</button>
+                    <button type="button" className={scanMeasureUnit === FOOD_MEASURE_UNIT.GRAM ? 'active' : ''} onClick={() => {
+                      setScanMeasureUnit(FOOD_MEASURE_UNIT.GRAM)
+                      setScanMeasureAmount(
+                        String(
+                          Math.round(
+                            Number(scanServingBasis.amount) *
+                              (scanServingBasis.unit === FOOD_MEASURE_UNIT.GRAM
+                                ? 1
+                                : 28.3495),
+                          ),
+                        ),
+                      )
+                    }}>g</button>
+                    <button type="button" className={scanMeasureUnit === FOOD_MEASURE_UNIT.OUNCE ? 'active' : ''} onClick={() => {
+                      setScanMeasureUnit(FOOD_MEASURE_UNIT.OUNCE)
+                      setScanMeasureAmount(
+                        String(
+                          round(
+                            Number(scanServingBasis.amount) *
+                              (scanServingBasis.unit === FOOD_MEASURE_UNIT.OUNCE
+                                ? 1
+                                : 1 / 28.3495),
+                          ),
+                        ),
+                      )
+                    }}>oz</button>
+                  </div> : null}
+
+                  {scanMeasureUnit === FOOD_MEASURE_UNIT.SERVING ? (
+                    <div className="nutrition-scan-portion-options" role="group" aria-label="Portion amount">
+                      {[0.5, 1, 1.5, 2].map((quantity) => (
+                        <button
+                          type="button"
+                          key={quantity}
+                          className={Number(scanMeasureAmount) === quantity ? 'active' : ''}
+                          onClick={() => {
+                            setScanQuantity(quantity)
+                            setScanMeasureAmount(String(quantity))
+                          }}
+                        >
+                          {quantity}×
+                        </button>
+                      ))}
+                      <label>
+                        <span>Custom</span>
+                        <input
+                          type="number"
+                          min="0.01"
+                          step="0.25"
+                          value={scanMeasureAmount}
+                          onChange={(event) => {
+                            setScanMeasureAmount(event.target.value)
+                            setScanQuantity(event.target.value)
+                          }}
+                          inputMode="decimal"
+                        />
+                      </label>
+                    </div>
+                  ) : (
+                    <label className="nutrition-scan-weight-input">
+                      <span>Amount eaten</span>
+                      <div className="nutrition-measure-input">
+                        <input
+                          type="number"
+                          min="0.1"
+                          step="0.1"
+                          value={scanMeasureAmount}
+                          onChange={(event) => setScanMeasureAmount(event.target.value)}
+                          inputMode="decimal"
+                        />
+                        <strong>{scanMeasureUnit}</strong>
+                      </div>
                     </label>
-                  </div>
+                  )}
                 </section>
 
                 <div className="nutrition-sheet-macros">
@@ -1474,7 +1661,7 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
                 </div>
 
                 <div className="nutrition-scan-edit-grid">
-                  <p className="nutrition-scan-edit-hint">Nutrition below is per 1 portion. Edit the label values here if needed.</p>
+                  <p className="nutrition-scan-edit-hint">Nutrition below is the label/base amount before scaling. Edit it only if AVA read the label incorrectly.</p>
                   <label><span>Name</span><input value={scanDraft.name} onChange={(event) => setScanDraft((current) => ({...current, name:event.target.value}))}/></label>
                   {['calories','protein','carbs','fat','fiber'].map((field) => <label key={field}><span>{field}</span><input type="number" min="0" step="0.1" value={scanDraft[field]} onChange={(event) => setScanDraft((current) => ({...current, [field]:event.target.value}))}/></label>)}
                 </div>
@@ -1517,11 +1704,23 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
 
             {selectedFood.provider === 'fatsecret' ? (() => {
               const detail = fatSecretDetailCache[selectedFood.foodId]
-              const serving = detail?.servings?.find((item) => String(item.servingId) === String(selectedFatSecretServingId))
-              const parsedQuantity = Number(fatSecretQuantity)
+              const serving = detail?.servings?.find(
+                (item) =>
+                  String(item.servingId) ===
+                  String(selectedFatSecretServingId),
+              )
+              const servingBasis = resolveFoodServingBasis(serving ?? {})
+              const supportsWeight =
+                servingBasis?.unit === FOOD_MEASURE_UNIT.GRAM ||
+                servingBasis?.unit === FOOD_MEASURE_UNIT.OUNCE
+              const measuredQuantity = foodMeasureMultiplier({
+                amount: Number(fatSecretMeasureAmount),
+                unit: fatSecretMeasureUnit,
+                servingBasis,
+              })
               const quantity =
-                Number.isFinite(parsedQuantity) && parsedQuantity > 0
-                  ? parsedQuantity
+                Number.isFinite(measuredQuantity) && measuredQuantity > 0
+                  ? measuredQuantity
                   : 0
 
               if (fatSecretDetailState === 'loading') {
@@ -1541,27 +1740,55 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
                 </div>}
 
                 <div className="nutrition-serving-picker">
-                  <span>Serving</span>
-                  <div>{(detail?.servings ?? []).map((option) => <button key={option.servingId} className={String(selectedFatSecretServingId) === String(option.servingId) ? 'active' : ''} onClick={() => setSelectedFatSecretServingId(option.servingId)}>{option.description}</button>)}</div>
+                  <span>Nutrition basis</span>
+                  <div>{(detail?.servings ?? []).map((option) => <button key={option.servingId} className={String(selectedFatSecretServingId) === String(option.servingId) ? 'active' : ''} onClick={() => {
+                    setSelectedFatSecretServingId(option.servingId)
+                    setFatSecretMeasureUnit(FOOD_MEASURE_UNIT.SERVING)
+                    setFatSecretMeasureAmount('1')
+                    setFatSecretQuantity('1')
+                  }}>{option.description}</button>)}</div>
                 </div>
 
-                <label className="nutrition-fatsecret-quantity">
-                  <span>Quantity</span>
-                  <input
-                    type="number"
-                    min="0.01"
-                    step="0.25"
-                    value={fatSecretQuantity}
-                    onChange={(event) => setFatSecretQuantity(event.target.value)}
-                    onBlur={() => {
-                      const value = Number(fatSecretQuantity)
-                      if (!Number.isFinite(value) || value <= 0) {
-                        setFatSecretQuantity('1')
-                      }
-                    }}
-                    inputMode="decimal"
-                  />
-                </label>
+                <section className="nutrition-measure-control">
+                  <div className="nutrition-measure-tabs" role="group" aria-label="Amount unit">
+                    <button type="button" className={fatSecretMeasureUnit === FOOD_MEASURE_UNIT.SERVING ? 'active' : ''} onClick={() => {
+                      setFatSecretMeasureUnit(FOOD_MEASURE_UNIT.SERVING)
+                      setFatSecretMeasureAmount('1')
+                    }}>Serving</button>
+                    {supportsWeight ? <>
+                      <button type="button" className={fatSecretMeasureUnit === FOOD_MEASURE_UNIT.GRAM ? 'active' : ''} onClick={() => {
+                        setFatSecretMeasureUnit(FOOD_MEASURE_UNIT.GRAM)
+                        setFatSecretMeasureAmount(String(Math.round(Number(servingBasis.amount) * (servingBasis.unit === FOOD_MEASURE_UNIT.GRAM ? 1 : 28.3495))))
+                      }}>g</button>
+                      <button type="button" className={fatSecretMeasureUnit === FOOD_MEASURE_UNIT.OUNCE ? 'active' : ''} onClick={() => {
+                        setFatSecretMeasureUnit(FOOD_MEASURE_UNIT.OUNCE)
+                        setFatSecretMeasureAmount(String(round(Number(servingBasis.amount) * (servingBasis.unit === FOOD_MEASURE_UNIT.OUNCE ? 1 : 1 / 28.3495))))
+                      }}>oz</button>
+                    </> : null}
+                  </div>
+                  <label>
+                    <span>{fatSecretMeasureUnit === FOOD_MEASURE_UNIT.SERVING ? 'Servings eaten' : 'Weight eaten'}</span>
+                    <div className="nutrition-measure-input">
+                      <input
+                        type="number"
+                        min="0.01"
+                        step={fatSecretMeasureUnit === FOOD_MEASURE_UNIT.SERVING ? '0.25' : '0.1'}
+                        value={fatSecretMeasureAmount}
+                        onChange={(event) => {
+                          setFatSecretMeasureAmount(event.target.value)
+                          if (fatSecretMeasureUnit === FOOD_MEASURE_UNIT.SERVING) {
+                            setFatSecretQuantity(event.target.value)
+                          }
+                        }}
+                        inputMode="decimal"
+                      />
+                      <strong>{fatSecretMeasureUnit === FOOD_MEASURE_UNIT.SERVING ? 'serving' : fatSecretMeasureUnit}</strong>
+                    </div>
+                  </label>
+                  {servingBasis ? <small>
+                    1 serving = {foodMeasureDisplay({ amount: servingBasis.amount, unit: servingBasis.unit })}. Macros scale to the exact amount you enter.
+                  </small> : <small>This food only has serving-based nutrition from the database.</small>}
+                </section>
 
                 <div className="nutrition-sheet-actions">
                   <button className="nutrition-secondary-button" onClick={() => toggleFavorite(selectedFood)}>{favoriteIds.includes(selectedFood.id) ? <BookmarkCheck/> : <BookmarkPlus/>}{favoriteIds.includes(selectedFood.id) ? 'Favorited' : 'Favorite'}</button>
@@ -1569,32 +1796,101 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
                     className="gold-button machined"
                     disabled={
                       !selectedFatSecretServingId ||
-                      !Number.isFinite(Number(fatSecretQuantity)) ||
-                      Number(fatSecretQuantity) <= 0
+                      !Number.isFinite(quantity) ||
+                      quantity <= 0
                     }
                     onClick={addFatSecretFood}
                   >
                     <Plus/>Add to Today
                   </button>
                 </div>
-                <p className="nutrition-fatsecret-detail-note">AVAREN keeps the verified nutrition with the FatSecret food/serving IDs so your totals update immediately and can refresh later.</p>
+                <p className="nutrition-fatsecret-detail-note">Verified serving nutrition stays linked to FatSecret while AVAREN records the exact amount you weighed.</p>
               </>
-            })() : <>
-              <div className="nutrition-sheet-macros">
-                <article><span>Calories</span><strong>{Math.round(Number(selectedFood.calories || 0) * selectedMultiplier)}</strong></article>
-                <article><span>Protein</span><strong>{round(Number(selectedFood.protein || 0) * selectedMultiplier)}g</strong></article>
-                <article><span>Carbs</span><strong>{round(Number(selectedFood.carbs || 0) * selectedMultiplier)}g</strong></article>
-                <article><span>Fat</span><strong>{round(Number(selectedFood.fat || 0) * selectedMultiplier)}g</strong></article>
-              </div>
-              <div className="nutrition-serving-picker">
-                <span>Serving</span>
-                <div>{(selectedFood.servingOptions ?? [{label:selectedFood.serving ?? '1 serving',multiplier:1}]).map((option) => <button key={`${option.label}-${option.multiplier}`} className={selectedMultiplier === option.multiplier ? 'active' : ''} onClick={() => setSelectedMultiplier(option.multiplier)}>{option.label}</button>)}</div>
-              </div>
-              <div className="nutrition-sheet-actions">
-                <button className="nutrition-secondary-button" onClick={() => toggleFavorite(selectedFood)}>{favoriteIds.includes(selectedFood.id) ? <BookmarkCheck/> : <BookmarkPlus/>}{favoriteIds.includes(selectedFood.id) ? 'Favorited' : 'Favorite'}</button>
-                <button className="gold-button machined" onClick={() => addFood({ ...selectedFood, servings: selectedMultiplier }, selectedFood.sourceLabel === 'Saved' ? 'saved' : 'catalog')}><Plus/>Add to Today</button>
-              </div>
-            </>}
+            })() : (() => {
+              const servingBasis = resolveFoodServingBasis(selectedFood)
+              const supportsWeight =
+                servingBasis?.unit === FOOD_MEASURE_UNIT.GRAM ||
+                servingBasis?.unit === FOOD_MEASURE_UNIT.OUNCE
+              const measuredMultiplier =
+                selectedMeasureUnit === FOOD_MEASURE_UNIT.SERVING
+                  ? selectedMultiplier
+                  : foodMeasureMultiplier({
+                      amount: Number(selectedMeasureAmount),
+                      unit: selectedMeasureUnit,
+                      servingBasis,
+                    })
+              const multiplier =
+                Number.isFinite(measuredMultiplier) && measuredMultiplier > 0
+                  ? measuredMultiplier
+                  : 0
+              const measurement = {
+                amount:
+                  selectedMeasureUnit === FOOD_MEASURE_UNIT.SERVING
+                    ? selectedMultiplier
+                    : Number(selectedMeasureAmount),
+                unit: selectedMeasureUnit,
+                servingAmount: servingBasis?.amount ?? 1,
+                servingUnit:
+                  servingBasis?.unit ?? FOOD_MEASURE_UNIT.SERVING,
+              }
+
+              return <>
+                <div className="nutrition-sheet-macros">
+                  <article><span>Calories</span><strong>{Math.round(Number(selectedFood.calories || 0) * multiplier)}</strong></article>
+                  <article><span>Protein</span><strong>{round(Number(selectedFood.protein || 0) * multiplier)}g</strong></article>
+                  <article><span>Carbs</span><strong>{round(Number(selectedFood.carbs || 0) * multiplier)}g</strong></article>
+                  <article><span>Fat</span><strong>{round(Number(selectedFood.fat || 0) * multiplier)}g</strong></article>
+                </div>
+                <div className="nutrition-serving-picker">
+                  <span>Nutrition basis</span>
+                  <div>{(selectedFood.servingOptions ?? [{label:selectedFood.serving ?? '1 serving',multiplier:1}]).map((option) => <button key={`${option.label}-${option.multiplier}`} className={selectedMeasureUnit === FOOD_MEASURE_UNIT.SERVING && selectedMultiplier === option.multiplier ? 'active' : ''} onClick={() => {
+                    setSelectedMultiplier(option.multiplier)
+                    setSelectedMeasureUnit(FOOD_MEASURE_UNIT.SERVING)
+                    setSelectedMeasureAmount(String(option.multiplier))
+                  }}>{option.label}</button>)}</div>
+                </div>
+
+                {supportsWeight ? <section className="nutrition-measure-control">
+                  <div className="nutrition-measure-tabs" role="group" aria-label="Amount unit">
+                    <button type="button" className={selectedMeasureUnit === FOOD_MEASURE_UNIT.SERVING ? 'active' : ''} onClick={() => setSelectedMeasureUnit(FOOD_MEASURE_UNIT.SERVING)}>Serving</button>
+                    <button type="button" className={selectedMeasureUnit === FOOD_MEASURE_UNIT.GRAM ? 'active' : ''} onClick={() => {
+                      setSelectedMeasureUnit(FOOD_MEASURE_UNIT.GRAM)
+                      setSelectedMeasureAmount(String(Math.round(Number(servingBasis.amount) * (servingBasis.unit === FOOD_MEASURE_UNIT.GRAM ? 1 : 28.3495))))
+                    }}>g</button>
+                    <button type="button" className={selectedMeasureUnit === FOOD_MEASURE_UNIT.OUNCE ? 'active' : ''} onClick={() => {
+                      setSelectedMeasureUnit(FOOD_MEASURE_UNIT.OUNCE)
+                      setSelectedMeasureAmount(String(round(Number(servingBasis.amount) * (servingBasis.unit === FOOD_MEASURE_UNIT.OUNCE ? 1 : 1 / 28.3495))))
+                    }}>oz</button>
+                  </div>
+                  {selectedMeasureUnit !== FOOD_MEASURE_UNIT.SERVING ? <label>
+                    <span>Weight eaten</span>
+                    <div className="nutrition-measure-input">
+                      <input type="number" min="0.1" step="0.1" value={selectedMeasureAmount} onChange={(event) => setSelectedMeasureAmount(event.target.value)} inputMode="decimal"/>
+                      <strong>{selectedMeasureUnit}</strong>
+                    </div>
+                  </label> : null}
+                  <small>1 serving = {foodMeasureDisplay({ amount: servingBasis.amount, unit: servingBasis.unit })}.</small>
+                </section> : null}
+
+                <div className="nutrition-sheet-actions">
+                  <button className="nutrition-secondary-button" onClick={() => toggleFavorite(selectedFood)}>{favoriteIds.includes(selectedFood.id) ? <BookmarkCheck/> : <BookmarkPlus/>}{favoriteIds.includes(selectedFood.id) ? 'Favorited' : 'Favorite'}</button>
+                  <button
+                    className="gold-button machined"
+                    disabled={!Number.isFinite(multiplier) || multiplier <= 0}
+                    onClick={() =>
+                      addFood(
+                        {
+                          ...selectedFood,
+                          servings: multiplier,
+                          measurement,
+                        },
+                        selectedFood.sourceLabel === 'Saved' ? 'saved' : 'catalog',
+                      )
+                    }
+                  ><Plus/>Add to Today</button>
+                </div>
+              </>
+            })()}
           </section>
         </div>,
           document.body,

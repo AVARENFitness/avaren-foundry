@@ -42,6 +42,25 @@ describe('NutritionScreen logging UX regressions', () => {
     )
   })
 
+  it('supports food-scale measurements in grams and ounces', () => {
+    expect(source).toContain('FOOD_MEASURE_UNIT.GRAM')
+    expect(source).toContain('FOOD_MEASURE_UNIT.OUNCE')
+    expect(source).toContain('foodMeasureMultiplier')
+    expect(source).toContain('Macros scale to the exact amount you enter.')
+    expect(source).toContain('Enter what your scale actually showed.')
+  })
+
+  it('uses native barcode detection first and keeps a manual fallback', () => {
+    expect(source).toContain('detectNutritionBarcode(file)')
+    expect(source).toContain('Native scan first · AVA fallback')
+    expect(source).toContain('Barcode not scanning?')
+    expect(source).toContain('Enter 8, 12, or 13 digits')
+  })
+
+  it('shows measured quantities in the food log', () => {
+    expect(source).toContain('foodMeasureDisplay(food.measurement)')
+  })
+
   it('logs a verified serving snapshot for immediate shared totals', () => {
     expect(source).toContain('servingSnapshot: serving')
     expect(source).toContain('calories: serving.calories')
