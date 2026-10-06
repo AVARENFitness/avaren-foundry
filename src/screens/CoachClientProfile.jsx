@@ -783,7 +783,7 @@ export default function CoachClientProfile({
               onPassContextChange={setPassAvaContext}
               showHistory={false}
             />
-            <div className="coach-client-overview-actions">
+            <div className="coach-client-overview-actions coach-client-overview-actions--calm">
               {!isArchivedBusinessClient(client) ? (
                 <button
                   type="button"
@@ -796,24 +796,29 @@ export default function CoachClientProfile({
               ) : null}
               <button
                 type="button"
-                className="coach-secondary-button"
+                className="coach-secondary-button coach-client-schedule-primary"
                 onClick={onScheduleAppointment}
               >
                 Schedule appointment
               </button>
-              <button
-                type="button"
-                className="coach-secondary-button"
-                onClick={onAssignWorkout}
-              >
-                Assign workout
-              </button>
-              <CoachMessageLauncher
-                otherUserId={messagingAthleteId}
-                otherName={athleteDisplayName}
-                label="Message athlete"
-                className="coach-secondary-button"
-              />
+              <details className="coach-client-more-actions">
+                <summary>More actions</summary>
+                <div>
+                  <button
+                    type="button"
+                    className="coach-secondary-button"
+                    onClick={onAssignWorkout}
+                  >
+                    Assign workout
+                  </button>
+                  <CoachMessageLauncher
+                    otherUserId={messagingAthleteId}
+                    otherName={athleteDisplayName}
+                    label="Message athlete"
+                    className="coach-secondary-button"
+                  />
+                </div>
+              </details>
             </div>
           </>
         )
