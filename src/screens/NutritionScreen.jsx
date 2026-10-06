@@ -195,6 +195,7 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
   const [scanMeasureUnit, setScanMeasureUnit] = useState(FOOD_MEASURE_UNIT.SERVING)
   const [scanMeasureAmount, setScanMeasureAmount] = useState('1')
   const [scanMatches, setScanMatches] = useState([])
+  const [scanSavedAsReusable, setScanSavedAsReusable] = useState(false)
   const [barcodeManualValue, setBarcodeManualValue] = useState('')
   const [showWorkoutActivityForm, setShowWorkoutActivityForm] = useState(false)
   const [workoutActivityDraft, setWorkoutActivityDraft] = useState({
@@ -523,6 +524,7 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
     setScanMeasureUnit(FOOD_MEASURE_UNIT.SERVING)
     setScanMeasureAmount('1')
     setScanMatches([])
+    setScanSavedAsReusable(false)
     setBarcodeManualValue('')
     if (cameraInputRef.current) cameraInputRef.current.value = ''
     if (uploadInputRef.current) uploadInputRef.current.value = ''
@@ -637,6 +639,7 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
       setScanMeasureUnit(FOOD_MEASURE_UNIT.SERVING)
       setScanMeasureAmount('1')
       setScanMatches([])
+      setScanSavedAsReusable(false)
 
       if (result.kind === 'packaged_product' && result.searchQuery?.trim()) {
         try {
@@ -733,6 +736,7 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
       recipes: [recipe, ...(current.recipes ?? [])],
     }))
 
+    setScanSavedAsReusable(true)
     setNotice(`${recipe.name} saved to Library for one-tap logging.`)
   }
 
@@ -1099,7 +1103,8 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
         ...recipe,
         id: createRuntimeId(),
         name: `${recipe.name} Copy`,
-        remainingServings: recipe.servings,
+        remainingServings:
+          recipe.trackInventory === false ? null : recipe.servings,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       },
@@ -1854,9 +1859,10 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
                     type="button"
                     className="nutrition-secondary-button"
                     onClick={saveScannedMealAsReusable}
+                    disabled={scanSavedAsReusable}
                   >
-                    <BookmarkPlus/>
-                    Save reusable meal
+                    {scanSavedAsReusable ? <BookmarkCheck/> : <BookmarkPlus/>}
+                    {scanSavedAsReusable ? 'Saved to Library' : 'Save reusable meal'}
                   </button>
                   <button className="gold-button machined" onClick={logScannedFood}><Plus/>Add to Today</button>
                 </div>
