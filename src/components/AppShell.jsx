@@ -82,8 +82,13 @@ export default function AppShell({
         </div>
       </header>
 
-      <div className="screen-stage">
-        <main className="screen">{children}</main>
+      <div
+        className="screen-stage"
+        aria-busy={transitioning ? 'true' : 'false'}
+      >
+        <main key={screen} className="screen" data-screen={screen}>
+          {children}
+        </main>
       </div>
 
       {!immersive && (
@@ -92,6 +97,7 @@ export default function AppShell({
             <button
               key={id}
               className={isTabActive(screen, id) ? 'active' : ''}
+              aria-current={isTabActive(screen, id) ? 'page' : undefined}
               onClick={() => setScreen(id)}
             >
               <Icon size={21} strokeWidth={1.65} />
