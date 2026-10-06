@@ -1,6 +1,6 @@
 import { createNutritionState } from './nutrition'
 
-export const STATE_SCHEMA_VERSION = 5
+export const STATE_SCHEMA_VERSION = 6
 
 const emptyMobility = () => ({
   durationPreferences: {},
@@ -37,9 +37,12 @@ const emptyCoachWorkspace = () => ({
   assignments: [],
 })
 
+const emptyLiftGoals = () => ({})
+
 export function detectStoredSchemaVersion(raw = {}) {
   const explicit = Number(raw.schemaVersion)
   if (Number.isFinite(explicit) && explicit > 0) return explicit
+  if (raw.liftGoals) return 6
   if (Number(raw?.nutrition?.schemaVersion) >= 4) return 5
   if (Number(raw?.nutrition?.schemaVersion) >= 3) return 4
   if (raw.nutrition) return 3
@@ -170,8 +173,16 @@ export function migrateStoredState(raw = {}, fallback = {}) {
     }
   }
 
+  if (fromVersion < 6) {
+    state = {
+      ...state,
+      liftGoals: state.liftGoals ?? fallback.liftGoals ?? emptyLiftGoals(),
+    }
+  }
+
   return {
     ...state,
+    liftGoals: state.liftGoals ?? fallback.liftGoals ?? emptyLiftGoals(),
     schemaVersion: STATE_SCHEMA_VERSION,
   }
 }

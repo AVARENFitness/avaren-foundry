@@ -18,6 +18,7 @@ const fallback = {
     invitations: [],
     assignments: [],
   },
+  liftGoals: {},
   nutrition: {
     schemaVersion: 2,
     goals: {},
@@ -31,7 +32,7 @@ const fallback = {
 
 describe('state schema migration', () => {
   it('uses a single current schema version', () => {
-    expect(STATE_SCHEMA_VERSION).toBe(3)
+    expect(STATE_SCHEMA_VERSION).toBe(6)
   })
 
   it('detects legacy states without an explicit version', () => {
@@ -65,6 +66,7 @@ describe('state schema migration', () => {
     expect(migrated.ownerUserId).toBe('user-1')
     expect(migrated.mobility).toEqual(fallback.mobility)
     expect(migrated.nutrition).toEqual(fallback.nutrition)
+    expect(migrated.liftGoals).toEqual({})
   })
 
   it('migrates v2 state to include nutrition while preserving data', () => {
@@ -93,6 +95,7 @@ describe('state schema migration', () => {
       nutrition: {
         days: { '2026-08-01': { foods: [] } },
       },
+      liftGoals: {},
     }
 
     const migrated = migrateStoredState(current, fallback)

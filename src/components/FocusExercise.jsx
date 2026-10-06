@@ -89,8 +89,6 @@ export default function FocusExercise({
   navigationDirection,
   executionRole = 'standard',
 }) {
-  const [showPrevious, setShowPrevious] =
-    useState(false)
   const [rpePromptConsumed, setRpePromptConsumed] =
     useState(false)
   const [rpePromptSetIndex, setRpePromptSetIndex] =
@@ -227,27 +225,6 @@ export default function FocusExercise({
           <p className="focus-prescription-label">{prescriptionLabel}</p>
         ) : null}
 
-        <label className="focus-load-type">
-          <span>Load type</span>
-          <select
-            value={loadType}
-            aria-label="Load type"
-            onChange={(event) =>
-              onLoadTypeChange?.(event.target.value)
-            }
-          >
-            {LOAD_TYPE_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        {!showWeightInput ? (
-          <p className="focus-load-type-hint">{loadTypeLabel(loadType)}</p>
-        ) : null}
-
         {executionRole === 'priority' ? (
           <span className="execution-role-badge execution-role-badge--priority">
             Priority
@@ -267,57 +244,58 @@ export default function FocusExercise({
           aria-label={`History for ${exercise.name}`}
         />
 
-        {hasHistory ? (
-          <button
-            className={`previous-session-toggle lift-reference ${
-              showPrevious ? 'open' : ''
-            }`}
-            onClick={() =>
-              setShowPrevious(
-                (value) => !value,
-              )
-            }
-          >
+        <details className="focus-exercise-details">
+          <summary>
             <span>
-              <small>LAST SESSION</small>
-              <strong>
+              <strong>Setup & history</strong>
+              <small>
+                {loadTypeLabel(loadType)}
                 {lastSessionBest
-                  ? formatLegacyCompletedSetDisplay(lastSessionBest)
-                  : emptyLabel}
-              </strong>
+                  ? ` · Last ${formatLegacyCompletedSetDisplay(lastSessionBest)}`
+                  : ''}
+              </small>
             </span>
+            <ChevronDown size={17}/>
+          </summary>
 
-            <ChevronDown size={18} />
-          </button>
-        ) : null}
+          <div className="focus-exercise-details-body">
+            <label className="focus-load-type">
+              <span>Load type</span>
+              <select
+                value={loadType}
+                aria-label="Load type"
+                onChange={(event) =>
+                  onLoadTypeChange?.(event.target.value)
+                }
+              >
+                {LOAD_TYPE_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
 
-        {showPrevious && (
-          <div className="previous-session-panel">
-            {resolvedPreviousSets.length ? (
-              resolvedPreviousSets.map(
-                (set, index) => (
-                  <div
-                    key={`${set.weight}-${set.reps}-${index}`}
-                  >
-                    <span>
-                      {set.type ||
-                        `Set ${index + 1}`}
-                    </span>
-                    <strong>
-                      {formatLegacyCompletedSetDisplay(set)}
-                    </strong>
-                  </div>
-                ),
-              )
-            ) : (
-              <p>
-                Your first session with this
-                exercise will become the
-                reference.
-              </p>
-            )}
+            {!showWeightInput ? (
+              <p className="focus-load-type-hint">{loadTypeLabel(loadType)}</p>
+            ) : null}
+
+            {hasHistory ? (
+              <div className="previous-session-panel focus-previous-session-compact">
+                {resolvedPreviousSets.length ? (
+                  resolvedPreviousSets.map((set, index) => (
+                    <div key={`${set.weight}-${set.reps}-${index}`}>
+                      <span>{set.type || `Set ${index + 1}`}</span>
+                      <strong>{formatLegacyCompletedSetDisplay(set)}</strong>
+                    </div>
+                  ))
+                ) : (
+                  <p>Your first session with this exercise will become the reference.</p>
+                )}
+              </div>
+            ) : null}
           </div>
-        )}
+        </details>
       </header>
 
       <div className="focus-set-list">

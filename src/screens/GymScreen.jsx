@@ -82,12 +82,7 @@ export default function GymScreen({
   const [showWorkoutPicker, setShowWorkoutPicker] = useState(false)
   const [showWorkoutMenu, setShowWorkoutMenu] = useState(false)
   const [removeExerciseIndex, setRemoveExerciseIndex] = useState(null)
-  const [showSessionNotes, setShowSessionNotes] = useState(
-    Boolean(
-      state.activeWorkout?.intent ||
-      state.activeWorkout?.notes,
-    ),
-  )
+  const [showSessionNotes, setShowSessionNotes] = useState(false)
   const [now, setNow] = useState(() => Date.now())
   const persistedRestTimer = workout?.restTimer ?? null
   const restDuration = persistedRestTimer?.duration ?? 90
@@ -530,28 +525,16 @@ export default function GymScreen({
         <ProgressRing value={progress} />
       </section>
 
-      {sessionModeBanner ? (
-        <section className="gym-coach-session-banner" aria-label="Session type">
-          <span className="eyebrow">{sessionModeBanner}</span>
-          {workout.coachNotes ? (
-            <p>{workout.coachNotes}</p>
-          ) : null}
-        </section>
-      ) : null}
-
-      {executionPlan?.maxMinutes ? (
-        <section className="gym-execution-focus-banner" aria-label="Session execution focus">
-          <span className="eyebrow">{executionPlan.maxMinutes}-MINUTE FOCUS</span>
-          {executionPlan.priorityExerciseNames?.length ? (
-            <p>
-              Priority: {executionPlan.priorityExerciseNames.join(' · ')}
-            </p>
-          ) : null}
-          {executionPlan.accessoryExerciseNames?.length ? (
-            <small>Accessory work if time allows</small>
-          ) : null}
-          {executionPlan.coachAssigned ? (
-            <small className="gym-coach-protected">Coach program stays unchanged</small>
+      {(sessionModeBanner || executionPlan?.maxMinutes || workout.coachNotes) ? (
+        <section className="gym-session-context" aria-label="Session context">
+          <div className="gym-session-context-chips">
+            {sessionModeBanner ? <span>{sessionModeBanner}</span> : null}
+            {executionPlan?.maxMinutes ? <span>{executionPlan.maxMinutes}-min focus</span> : null}
+            {currentExerciseRole === 'priority' ? <span>Priority lift</span> : null}
+          </div>
+          {workout.coachNotes ? <p>{workout.coachNotes}</p> : null}
+          {executionPlan?.priorityExerciseNames?.length ? (
+            <small>Priority: {executionPlan.priorityExerciseNames.join(' · ')}</small>
           ) : null}
         </section>
       ) : null}
@@ -568,9 +551,9 @@ export default function GymScreen({
           <span>
             <StickyNote size={16} />
             <span>
-              <strong>Session Intent & Notes</strong>
+              <strong>Session details</strong>
               <small>
-                Keep the purpose of today’s work clear.
+                Intent, notes, and technique cues when you need them.
               </small>
             </span>
           </span>
