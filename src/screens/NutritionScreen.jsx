@@ -1549,31 +1549,6 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
           <ProgressBar value={totals.calories} goal={Number(goals.calories) + workoutActivityTotal} />
         </section>
 
-        <section className="nutrition-target-summary">
-          <div>
-            <span className="eyebrow">YOUR TARGETS</span>
-            <strong>{Math.round(Number(goals.calories || 0)).toLocaleString()} base calories</strong>
-            <small>
-              {Math.round(Number(goals.protein || 0))}g protein · {Math.round(Number(goals.carbs || 0))}g carbs · {Math.round(Number(goals.fat || 0))}g fat
-            </small>
-            {goals.macroStrategy ? <small className="nutrition-target-rationale">
-              {goals.macroStrategy.goalLabel} strategy · {Number(goals.macroStrategy.proteinGPerKg || 0).toFixed(1)} g/kg protein · training demand shapes carb/fat split
-            </small> : null}
-          </div>
-          <button
-            type="button"
-            className="nutrition-secondary-button"
-            onClick={() => {
-              setEditingTargets(true)
-              setSetupError('')
-              setTab('Today')
-            }}
-          >
-            <Sparkles size={16} />
-            Recalculate Targets
-          </button>
-        </section>
-
         <section className="nutrition-macro-grid">
           {[['Protein', totals.protein, goals.protein, 'g'], ['Carbs', totals.carbs, goals.carbs, 'g'], ['Fat', totals.fat, goals.fat, 'g'], ['Fiber', totals.fiber, goals.fiber, 'g']].map(([label,value,goal,unit]) => <article key={label}><span>{label}</span><strong>{round(value)}<small> / {goal}{unit}</small></strong><ProgressBar value={value} goal={goal}/></article>)}
         </section>
@@ -1586,7 +1561,6 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
           <div className="nutrition-quick-log-actions">
             <button onClick={() => setTab('Meals')}><Search size={17}/><span>Search</span></button>
             <button onClick={() => cameraInputRef.current?.click()}><Camera size={17}/><span>Camera</span></button>
-            <button onClick={() => uploadInputRef.current?.click()}><Upload size={17}/><span>Upload</span></button>
             <button onClick={() => barcodeInputRef.current?.click()}><ScanLine size={17}/><span>Barcode</span></button>
           </div>
         </section>
@@ -2302,10 +2276,14 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
       </section>}
 
       {tab === 'Library' && <section className="nutrition-panel nutrition-recipes-panel">
-        <header><div><span className="eyebrow">LIBRARY</span><h2>Your reusable nutrition.</h2><p>Add ingredients from the food catalog, choose the batch yield, and AVAREN calculates every serving.</p></div></header>
+        <header><div><span className="eyebrow">LIBRARY</span><h2>Your saved meals.</h2><p>Reusable meals and recipes first. Build something new only when you need to.</p></div></header>
 
-        <section className="nutrition-recipe-builder">
-          <header><div><ChefHat size={20}/><span><strong>Create recipe</strong><small>Macros calculate automatically from ingredients.</small></span></div></header>
+        <details className="nutrition-recipe-builder nutrition-recipe-builder--collapsed">
+          <summary>
+            <div><ChefHat size={19}/><span><strong>Create a recipe</strong><small>Open the builder only when you need it.</small></span></div>
+            <Plus size={17}/>
+          </summary>
+          <div className="nutrition-recipe-builder-body">
           <div className="nutrition-recipe-basics">
             <label><span>Recipe name</span><input value={recipeDraft.name} onChange={(event) => setRecipeDraft({ ...recipeDraft, name: event.target.value })} placeholder="Chicken and rice bowls"/></label>
             <label><span>Batch servings</span><input type="number" min="1" step="1" value={recipeDraft.servings} onChange={(event) => setRecipeDraft({ ...recipeDraft, servings: event.target.value })}/></label>
@@ -2336,7 +2314,8 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
           </section>}
           <button className="gold-button machined nutrition-save-recipe" onClick={saveRecipe} disabled={!canSaveRecipe}><Save/>Save Recipe & Batch</button>
           {!canSaveRecipe && <p className="nutrition-recipe-requirements">Add a recipe name and at least one ingredient to save.</p>}
-        </section>
+          </div>
+        </details>
 
         <section className="nutrition-saved-recipes">
           <header><div><span className="eyebrow">YOUR RECIPES</span><h2>{(nutrition.recipes ?? []).length ? `${nutrition.recipes.length} saved` : 'No recipes yet'}</h2></div></header>
@@ -2542,7 +2521,7 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
       </section>}
 
       {tab === 'Insights' && <section className="nutrition-panel nutrition-insights-panel">
-        <header><div><span className="eyebrow">LAST 7 DAYS</span><h2>Your nutrition rhythm</h2><p>One calm view of consistency, not a wall of data.</p></div></header>
+        <header><div><span className="eyebrow">LAST 7 DAYS</span><h2>Your nutrition rhythm</h2><p>Start with the weekly pattern. Deeper adjustment details stay below.</p></div></header>
         <section className="nutrition-insight-hero">
           <div><span>Protein goal</span><strong>{weeklyInsights.proteinDays} of 7 days</strong><small>{Math.round(weeklyInsights.averageProtein)}g daily average</small></div>
           <ProgressBar value={weeklyInsights.proteinDays} goal={7}/>
