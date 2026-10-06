@@ -18,100 +18,62 @@ const STEPS = [
   {
     id: 'welcome',
     eyebrow: 'WELCOME TO AVAREN',
-    title: 'Your day, made clear.',
+    title: 'Start with today.',
     copy:
-      'AVAREN brings training, nutrition, readiness, coaching, schedule, and progress into one calm daily system.',
+      'AVAREN is built to make your next decision obvious—not to make you manage another fitness app.',
     points: [
       {
         icon: Home,
-        title: 'Home',
-        copy: 'See the one thing that matters most today, plus what is coming next.',
+        title: 'Home tells you what matters now',
+        copy: 'Your workout, readiness, recovery, nutrition, coaching, or schedule becomes the primary action when it matters.',
       },
       {
         icon: Sparkles,
-        title: 'AVA',
-        copy: 'Ask questions across your training, recovery, nutrition, schedule, and progress.',
+        title: 'AVA adds context',
+        copy: 'Ask about your training, food, recovery, schedule, or progress without digging through screens.',
       },
     ],
   },
   {
-    id: 'training',
-    eyebrow: 'TRAIN',
-    title: 'Open the session. Log the work.',
+    id: 'daily-system',
+    eyebrow: 'YOUR DAILY SYSTEM',
+    title: 'Train. Recover. Track. Progress.',
     copy:
-      'Start today’s workout, continue where you left off, or choose another workout when you need flexibility.',
+      'Use each area when you need it. AVAREN keeps the deeper tools out of the way until they become useful.',
     points: [
       {
         icon: Dumbbell,
         title: 'Train',
-        copy: 'Log weight, reps, sets, notes, and previous performance without leaving the session.',
+        copy: 'Start the session, log the current set, and let previous performance stay available without crowding the workout.',
       },
-      {
-        icon: Target,
-        title: 'Stay on plan',
-        copy: 'Coach assignments and your own training stay clear without mixing appointments with workouts.',
-      },
-    ],
-  },
-  {
-    id: 'nutrition',
-    eyebrow: 'FOOD',
-    title: 'Track without the friction.',
-    copy:
-      'Search, scan, upload, or use the camera. AVAREN keeps protein visible and learns from your long-term response.',
-    points: [
       {
         icon: UtensilsCrossed,
-        title: 'Nutrition',
-        copy: 'Log food quickly, choose the amount you ate, and review calories, protein, and trends.',
+        title: 'Food',
+        copy: 'Search, photograph, or scan food and log the amount you actually ate.',
       },
-      {
-        icon: Sparkles,
-        title: 'Adaptive guidance',
-        copy: 'Targets can stabilize over time using your goal, adherence, body-weight trend, and training demand.',
-      },
-    ],
-  },
-  {
-    id: 'schedule',
-    eyebrow: 'COACHING',
-    title: 'Know what is next.',
-    copy:
-      'Appointments with your coach stay separate from workout assignments so the day is always easy to understand.',
-    points: [
       {
         icon: CalendarDays,
-        title: 'Schedule',
-        copy: 'See upcoming in-person sessions, details, confirmation status, and past appointments.',
-      },
-      {
-        icon: Gauge,
-        title: 'Readiness & check-ins',
-        copy: 'Complete the short check-ins that help AVAREN and your coach understand how you are doing.',
+        title: 'Coaching & schedule',
+        copy: 'Appointments stay separate from workout assignments, while readiness and check-ins give your coach useful context.',
       },
     ],
   },
   {
     id: 'ready',
     eyebrow: 'YOU ARE READY',
-    title: 'Start with today.',
+    title: 'You do not need to learn everything now.',
     copy:
-      'You do not need to manage every feature. AVAREN will surface what matters when it matters.',
+      'Open Home and follow the primary action. Progress, goals, deeper history, and settings are there when you want them.',
     points: [
       {
-        icon: Home,
-        title: 'Begin on Home',
-        copy: 'Follow the primary action, then use Train, Food, Schedule, or Progress when you need more.',
-      },
-      {
         icon: BarChart3,
-        title: 'Progress',
-        copy: 'Review strength, consistency, recovery patterns, records, and the work you have built over time.',
+        title: 'Progress starts with the big picture',
+        copy: 'See overall training progress first, then open an individual lift when you want its trend or goal.',
       },
       {
         icon: RefreshCcw,
         title: 'Replay anytime',
-        copy: 'Open Profile and choose Replay App Tour whenever you want a refresher.',
+        copy: 'You can replay this introduction later from Profile.',
       },
     ],
   },
