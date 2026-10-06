@@ -273,9 +273,29 @@ export default function AthleteInPersonScheduleScreen({
   const weekDayKeys = weekDays.map((day) => dateKey(day))
   const todayItems = dayItemsByKey[todayKey] ?? []
   const weekItems = weekDayKeys.flatMap((key) => dayItemsByKey[key] ?? [])
-  const nextCoachAppointment = upcomingAppointments?.[0] ?? null
+  const upcomingCalendarItems = scheduleItems.filter((item) => {
+    const itemDate = String(item.sessionDate ?? '')
+    if (!itemDate) return false
+    if (itemDate > todayKey) return true
+    if (itemDate < todayKey) return false
+
+    const time = String(item.startTime ?? '23:59').slice(0, 5)
+    const nowTime = new Date().toLocaleTimeString([], {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    })
+    return time >= nowTime
+  })
+  const nextCalendarItem = upcomingCalendarItems[0] ?? null
   const athletePrivateThisWeek = weekItems.filter(
     (item) => item.isAthletePrivateEvent,
+  ).length
+  const coachingThisWeek = weekItems.filter(
+    (item) =>
+      !item.isAthletePrivateEvent &&
+      !item.isCoachPrivateEvent &&
+      !item.isCoachWorkAppointment,
   ).length
   const openDaysThisWeek = weekDayKeys.filter(
     (key) => (dayItemsByKey[key] ?? []).length === 0,
@@ -613,26 +633,26 @@ export default function AthleteInPersonScheduleScreen({
         </article>
 
         <article>
-          <small>NEXT COACHING</small>
+          <small>NEXT</small>
           <strong>
-            {nextCoachAppointment
-              ? `${formatTime12Hour(nextCoachAppointment.startTime)} · ${itemTitle(nextCoachAppointment)}`
+            {nextCalendarItem
+              ? `${formatTime12Hour(nextCalendarItem.startTime)} · ${itemTitle(nextCalendarItem)}`
               : 'Nothing scheduled'}
           </strong>
           <span>
-            {nextCoachAppointment
-              ? formatCoachCalendarDayHeading(nextCoachAppointment.sessionDate)
-              : 'Your next coaching session will appear here'}
+            {nextCalendarItem
+              ? `${formatCoachCalendarDayHeading(nextCalendarItem.sessionDate)} · ${sourceLabel(nextCalendarItem)}`
+              : 'Your next calendar item will appear here'}
           </span>
         </article>
 
         <article>
           <small>THIS WEEK</small>
-          <strong>{openDaysThisWeek} open day{openDaysThisWeek === 1 ? '' : 's'}</strong>
+          <strong>{weekItems.length} scheduled item{weekItems.length === 1 ? '' : 's'}</strong>
           <span>
-            {athletePrivateThisWeek
-              ? `${athletePrivateThisWeek} private event${athletePrivateThisWeek === 1 ? '' : 's'} on your calendar`
-              : 'No private events this week'}
+            {openDaysThisWeek} open day{openDaysThisWeek === 1 ? '' : 's'}
+            {coachingThisWeek ? ` · ${coachingThisWeek} coaching` : ''}
+            {athletePrivateThisWeek ? ` · ${athletePrivateThisWeek} private` : ''}
           </span>
         </article>
       </section>
