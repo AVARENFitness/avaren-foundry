@@ -1,5 +1,9 @@
 import { estimatedOneRepMax } from './strengthEstimate'
-import { consistencyStreak, sessionVolume } from './metrics'
+import {
+  consistencyStreak,
+  longestConsistencyStreak,
+  sessionVolume,
+} from './metrics'
 import {
   localCalendarDateKey,
   sessionLocalCalendarDateKey,
@@ -319,7 +323,7 @@ export const analyticsSnapshot = (state = {}) => {
     monthlyVolume: monthlyVolume(history),
     averageDurationMinutes: averageWorkoutDuration(history),
     currentStreak: consistencyStreak(history),
-    longestStreak: longestWorkoutStreak(history),
+    longestStreak: longestConsistencyStreak(history),
     exerciseFrequency: exerciseFrequency(history),
     muscleFrequency: muscleFrequency(history),
     muscleVolume: muscleVolume(history),
