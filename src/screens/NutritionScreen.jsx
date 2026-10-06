@@ -69,8 +69,8 @@ import {
   FOOD_MEASURE_UNIT,
   foodMeasureDisplay,
   foodMeasureMultiplier,
-  parseFoodServingMeasurement,
   resolveFoodServingBasis,
+  resolveNutritionLabelConsumptionMeasurement,
 } from '../lib/nutritionMeasurement'
 import {
   detectNutritionBarcode,
@@ -734,35 +734,21 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
         servingUnit: result.servingUnit,
         servingDescription: result.servingDescription,
       })
-      const userMeasuredAmount = parseFoodServingMeasurement(
-        contextOverride ?? scanContext,
-      )
-      const isMeasuredLabel =
-        result.sourceType === 'label_read' &&
-        resultServingBasis &&
-        (resultServingBasis.unit === FOOD_MEASURE_UNIT.GRAM ||
-          resultServingBasis.unit === FOOD_MEASURE_UNIT.OUNCE)
+      const labelConsumption =
+        result.sourceType === 'label_read'
+          ? resolveNutritionLabelConsumptionMeasurement({
+              servingBasis: resultServingBasis,
+              context: contextOverride ?? scanContext,
+            })
+          : null
 
       setScanResult(result)
       setScanDraft(draft)
 
-      if (isMeasuredLabel) {
-        const resolvedMeasurement =
-          userMeasuredAmount &&
-          (userMeasuredAmount.unit === FOOD_MEASURE_UNIT.GRAM ||
-            userMeasuredAmount.unit === FOOD_MEASURE_UNIT.OUNCE)
-            ? userMeasuredAmount
-            : resultServingBasis
-        const resolvedMultiplier =
-          foodMeasureMultiplier({
-            amount: resolvedMeasurement.amount,
-            unit: resolvedMeasurement.unit,
-            servingBasis: resultServingBasis,
-          }) ?? 1
-
-        setScanMeasureUnit(resolvedMeasurement.unit)
-        setScanMeasureAmount(String(resolvedMeasurement.amount))
-        setScanQuantity(resolvedMultiplier)
+      if (labelConsumption) {
+        setScanMeasureUnit(labelConsumption.unit)
+        setScanMeasureAmount(String(labelConsumption.amount))
+        setScanQuantity(labelConsumption.multiplier)
       } else {
         setScanQuantity(1)
         setScanMeasureUnit(FOOD_MEASURE_UNIT.SERVING)
