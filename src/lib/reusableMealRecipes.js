@@ -160,3 +160,79 @@ export const calculateReusableMealTotals = (
     ),
   }
 }
+
+
+export const buildReusableMealIngredientFromFood = (
+  food = {},
+  { id = null } = {},
+) => {
+  const servingBasis =
+    food.servingBasis ??
+    (() => {
+      const parsed = parseFoodServingMeasurement(
+        food.serving ??
+          food.description ??
+          food.servingDescription ??
+          '',
+      )
+      return parsed
+        ? { amount: parsed.amount, unit: parsed.unit }
+        : null
+    })()
+
+  return {
+    id:
+      id ??
+      `meal-food-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    name: String(food.name ?? 'Ingredient').trim() || 'Ingredient',
+    amount: servingBasis
+      ? `${round(servingBasis.amount)} ${servingBasis.unit}`
+      : String(food.serving ?? '1 serving'),
+    baseAmount: servingBasis?.amount ?? null,
+    baseUnit: servingBasis?.unit ?? null,
+    multiplier: 1,
+    calories: round(food.calories),
+    protein: round(food.protein),
+    carbs: round(food.carbs),
+    fat: round(food.fat),
+    fiber: round(food.fiber),
+    basis: food.basis ?? 'database',
+  }
+}
+
+export const applyReusableMealPreviewToRecipe = (
+  recipe = {},
+  preview = null,
+) => {
+  if (!preview) return recipe
+
+  return {
+    ...recipe,
+    ingredients: (preview.ingredients ?? []).map((ingredient) => {
+      const measurement = normalizeComponentMeasurement(
+        ingredient.adjustedAmount,
+      )
+      return {
+        ...ingredient,
+        amount: ingredient.adjustedAmount ?? ingredient.amount ?? '',
+        baseAmount: measurement?.amount ?? null,
+        baseUnit: measurement?.unit ?? null,
+        multiplier: 1,
+        calories: round(ingredient.calories),
+        protein: round(ingredient.protein),
+        carbs: round(ingredient.carbs),
+        fat: round(ingredient.fat),
+        fiber: round(ingredient.fiber),
+        adjustedMultiplier: undefined,
+        adjustedAmount: undefined,
+      }
+    }),
+    totals: Object.fromEntries(
+      Object.entries(preview.totals ?? {}).map(([key, value]) => [
+        key,
+        round(value),
+      ]),
+    ),
+    updatedAt: new Date().toISOString(),
+  }
+}
