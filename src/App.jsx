@@ -204,6 +204,7 @@ const createInitialState = (ownerUserId = null) => {
   sessionExecutionPlan: null,
   athleteFollowUps: [],
   exerciseLoadPreferences: {},
+  liftGoals: {},
   }
 }
 
@@ -2074,6 +2075,15 @@ function App() {
         <ProgressScreen
           state={state}
           athleteId={session?.user?.id ?? null}
+          liftGoals={state.liftGoals ?? {}}
+          onLiftGoalChange={(exercise, goal) =>
+            setState((current) => {
+              const nextGoals = { ...(current.liftGoals ?? {}) }
+              if (goal) nextGoals[exercise] = goal
+              else delete nextGoals[exercise]
+              return { ...current, liftGoals: nextGoals }
+            })
+          }
           onOpenReadinessTrends={() =>
             navigate('readiness-trends')
           }
