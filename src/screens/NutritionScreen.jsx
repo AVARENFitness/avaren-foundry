@@ -562,8 +562,20 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
 
   const runFoodScan = async (file, contextOverride = null, mode = 'food') => {
     try {
-      setScanState('loading')
       setScanError('')
+
+      if (mode === 'food' && file) {
+        const prepared = await prepareNutritionScanImage(file)
+        if (!prepared) throw new Error('Choose a photo first.')
+        setScanPreview(prepared)
+        setScanResult(null)
+        setScanDraft(null)
+        setScanMatches([])
+        setScanState('context')
+        return
+      }
+
+      setScanState('loading')
 
       if (mode === 'barcode' && file) {
         const detectedBarcode = await detectNutritionBarcode(file)
@@ -1473,11 +1485,11 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
             </div>
           </div>
           <label>
-            <span>Optional meal details</span>
+            <span>Meal details (optional)</span>
             <input
               value={scanContext}
               onChange={(event) => setScanContext(event.target.value)}
-              placeholder="e.g. 8 oz 90/10 beef, 2 tortillas"
+              placeholder="Prefill before photo, e.g. 8 oz chicken, 150 g rice"
               maxLength={600}
             />
           </label>
@@ -1526,17 +1538,79 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
             <section className="nutrition-food-sheet nutrition-scan-sheet" onClick={(event) => event.stopPropagation()}>
               <header>
                 <div>
-                  <span className="eyebrow">SCAN FOOD</span>
-                  <h2>{scanState === 'loading' ? 'AVA is reading your food…' : scanResult?.title || 'Food photo'}</h2>
-                  <p>{scanState === 'loading' ? 'Checking the image, any details you gave, and the best nutrition source.' : scanResult?.servingDescription || 'Review before adding.'}</p>
+                  <span className="eyebrow">
+                    {scanState === 'context' ? 'PHOTO DETAILS' : 'SCAN FOOD'}
+                  </span>
+                  <h2>
+                    {scanState === 'context'
+                      ? 'Help AVA estimate this meal'
+                      : scanState === 'loading'
+                        ? 'AVA is reading your food…'
+                        : scanResult?.title || 'Food photo'}
+                  </h2>
+                  <p>
+                    {scanState === 'context'
+                      ? 'Add anything you know before AVA calculates the macros, or skip for the best visual estimate.'
+                      : scanState === 'loading'
+                        ? 'Checking the image, any details you gave, and the best nutrition source.'
+                        : scanResult?.servingDescription || 'Review before adding.'}
+                  </p>
                 </div>
                 <button onClick={resetFoodScan}><X size={18}/></button>
               </header>
 
               {scanPreview ? <img className="nutrition-scan-preview" src={scanPreview} alt="Food scan preview"/> : null}
 
+              {scanState === 'context' ? (
+                <section className="nutrition-scan-preanalysis">
+                  <div className="nutrition-scan-preanalysis-copy">
+                    <span className="eyebrow">OPTIONAL DETAILS</span>
+                    <strong>Tell AVA what you know</strong>
+                    <small>
+                      Exact ingredients and scale weights take priority over the photo.
+                      Anything you leave out will be estimated visually.
+                    </small>
+                  </div>
+
+                  <label>
+                    <span>Ingredients, amounts, or cooking details</span>
+                    <textarea
+                      value={scanContext}
+                      onChange={(event) => setScanContext(event.target.value)}
+                      placeholder="Example: 6 oz grilled chicken, 150 g cooked rice, 40 g avocado, Greek-yogurt sauce"
+                      maxLength={600}
+                      rows={4}
+                      autoFocus
+                    />
+                  </label>
+
+                  <div className="nutrition-scan-preanalysis-examples">
+                    <span>Useful details:</span>
+                    <small>weights · brands · cooking oil · sauces · portions</small>
+                  </div>
+
+                  <div className="nutrition-scan-preanalysis-actions">
+                    <button
+                      type="button"
+                      className="nutrition-secondary-button"
+                      onClick={() => runFoodScan(null, '', 'food')}
+                    >
+                      Best estimate
+                    </button>
+                    <button
+                      type="button"
+                      className="gold-button machined"
+                      onClick={() => runFoodScan(null, scanContext, 'food')}
+                    >
+                      <Sparkles size={16}/>
+                      {scanContext.trim() ? 'Analyze with details' : 'Analyze photo'}
+                    </button>
+                  </div>
+                </section>
+              ) : null}
+
               {scanState === 'loading' ? <div className="nutrition-scan-loading"><Sparkles size={20}/><span>Analyzing image…</span></div> : null}
-              {scanState === 'error' ? <div className="nutrition-fatsecret-detail-state error"><strong>Couldn’t analyze this photo.</strong><span>{scanError}</span><button onClick={() => runFoodScan(null)}>Try Again</button></div> : null}
+              {scanState === 'error' ? <div className="nutrition-fatsecret-detail-state error"><strong>Couldn’t analyze this photo.</strong><span>{scanError}</span><button onClick={() => runFoodScan(null, scanContext, 'food')}>Try Again</button></div> : null}
 
               {scanState === 'success' && scanResult && scanDraft ? <>
                 <div className="nutrition-scan-confidence" data-confidence={scanResult.confidence}>
