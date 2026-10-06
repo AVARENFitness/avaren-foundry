@@ -89,7 +89,6 @@ import {
 import { findCompletedWorkoutToday } from './lib/programWorkout'
 import CloudStatus from './components/CloudStatus'
 import AuthScreen from './screens/AuthScreen'
-import { BASELINES, DEFAULT_PROGRAM } from './data/defaultProgram'
 import { recentPRs } from './lib/metrics'
 import {
   COACH_ACTIONS,
@@ -132,42 +131,27 @@ import {
   clearDevWeeklyCheckInDueOverride,
 } from './lib/weeklyCheckInDev'
 
-const createInitialState = (ownerUserId = null) => {
-  const isBootstrapState = !ownerUserId
-
-  return {
+const createInitialState = (ownerUserId = null) => ({
   ownerUserId,
-  program: isBootstrapState
-    ? DEFAULT_PROGRAM
-    : {
-        rotation: [],
-        nextWorkout: null,
-        workouts: {},
-      },
+  program: {
+    rotation: [],
+    nextWorkout: null,
+    workouts: {},
+  },
   activeWorkout: null,
   history: [],
   achievements: [],
-  baselines: isBootstrapState ? BASELINES : {},
-  selectedWorkout: isBootstrapState ? DEFAULT_PROGRAM.nextWorkout : null,
-  weeklySchedule: isBootstrapState
-    ? {
-        0: 'Rest',
-        1: 'Chest + Back',
-        2: 'Arms',
-        3: 'Legs + Core',
-        4: 'Chest + Back',
-        5: 'Arms',
-        6: 'Legs + Core',
-      }
-    : {
-        0: 'Rest',
-        1: 'Rest',
-        2: 'Rest',
-        3: 'Rest',
-        4: 'Rest',
-        5: 'Rest',
-        6: 'Rest',
-      },
+  baselines: {},
+  selectedWorkout: null,
+  weeklySchedule: {
+    0: 'Rest',
+    1: 'Rest',
+    2: 'Rest',
+    3: 'Rest',
+    4: 'Rest',
+    5: 'Rest',
+    6: 'Rest',
+  },
   lastBackupAt: null,
   schemaVersion: STATE_SCHEMA_VERSION,
   mobility: {
@@ -203,8 +187,7 @@ const createInitialState = (ownerUserId = null) => {
   athleteFollowUps: [],
   exerciseLoadPreferences: {},
   liftGoals: {},
-  }
-}
+})
 
 
 function App() {
@@ -2111,7 +2094,26 @@ function App() {
         <WorkoutBuilderScreen
           program={state.program}
           onSave={(program) =>
-            setState((current) => ({ ...current, program }))
+            setState((current) => {
+              const workoutNames = new Set(Object.keys(program.workouts ?? {}))
+              const weeklySchedule = Object.fromEntries(
+                Object.entries(current.weeklySchedule ?? {}).map(([day, value]) => [
+                  day,
+                  value === 'Rest' || workoutNames.has(value) ? value : 'Rest',
+                ]),
+              )
+              const selectedWorkout =
+                current.selectedWorkout && workoutNames.has(current.selectedWorkout)
+                  ? current.selectedWorkout
+                  : program.nextWorkout ?? program.rotation?.[0] ?? null
+
+              return {
+                ...current,
+                program,
+                selectedWorkout,
+                weeklySchedule,
+              }
+            })
           }
           onClose={closeSubScreen}
         />

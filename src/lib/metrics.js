@@ -11,6 +11,10 @@ import {
   estimatedOneRepMax,
   resolveExerciseStrength,
 } from './strengthEstimate'
+import {
+  localCalendarDateKey,
+  sessionLocalCalendarDateKey,
+} from './localCalendarDay'
 
 export { estimatedOneRepMax }
 
@@ -126,23 +130,50 @@ export const exerciseProfile = (history, exercise) => {
   }
 }
 
-export const consistencyStreak = (history) => {
-  const dates = [...new Set(history.map((session) => session.date))]
+const trainingDateKeys = (history = []) =>
+  [...new Set((history ?? []).map(sessionLocalCalendarDateKey).filter(Boolean))]
     .sort()
-    .reverse()
 
+const trainingDayDifference = (newerKey, olderKey) => {
+  const newer = new Date(`${newerKey}T12:00:00`)
+  const older = new Date(`${olderKey}T12:00:00`)
+  return Math.round((newer - older) / 86400000)
+}
+
+export const consistencyStreak = (history, now = new Date()) => {
+  const dates = trainingDateKeys(history)
   if (!dates.length) return 0
 
+  const newestKey = dates.at(-1)
+  const todayKey = localCalendarDateKey(now)
+  if (trainingDayDifference(todayKey, newestKey) > 2) return 0
+
   let count = 1
-  for (let index = 1; index < dates.length; index += 1) {
-    const newer = new Date(`${dates[index - 1]}T12:00:00`)
-    const older = new Date(`${dates[index]}T12:00:00`)
-    const difference = Math.round((newer - older) / 86400000)
-    if (difference <= 2) count += 1
+  for (let index = dates.length - 1; index > 0; index -= 1) {
+    const newer = dates[index]
+    const older = dates[index - 1]
+    if (trainingDayDifference(newer, older) <= 2) count += 1
     else break
   }
 
   return count
+}
+
+export const longestConsistencyStreak = (history = []) => {
+  const dates = trainingDateKeys(history)
+  if (!dates.length) return 0
+
+  let longest = 1
+  let current = 1
+  for (let index = 1; index < dates.length; index += 1) {
+    if (trainingDayDifference(dates[index], dates[index - 1]) <= 2) {
+      current += 1
+      longest = Math.max(longest, current)
+    } else {
+      current = 1
+    }
+  }
+  return longest
 }
 
 export const recentPRs = (history, limit = 12) =>

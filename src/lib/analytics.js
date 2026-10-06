@@ -1,4 +1,13 @@
 import { estimatedOneRepMax } from './strengthEstimate'
+import {
+  consistencyStreak,
+  longestConsistencyStreak,
+  sessionVolume,
+} from './metrics'
+import {
+  localCalendarDateKey,
+  sessionLocalCalendarDateKey,
+} from './localCalendarDay'
 
 const DAY_MS = 86400000
 
@@ -116,8 +125,18 @@ export const volumeSince = (history = [], boundary) => {
     )
 }
 
-export const weeklyVolume = (history = [], referenceDate = new Date()) =>
-  volumeSince(history, startOfWeek(referenceDate))
+export const weeklyVolume = (history = [], referenceDate = new Date()) => {
+  const weekStart = startOfWeek(referenceDate)
+  if (!weekStart) return 0
+
+  const startKey = localCalendarDateKey(weekStart)
+  return history
+    .filter((session) => {
+      const key = sessionLocalCalendarDateKey(session)
+      return key && key >= startKey
+    })
+    .reduce((total, session) => total + sessionVolume(session), 0)
+}
 
 export const monthlyVolume = (history = [], referenceDate = new Date()) =>
   volumeSince(history, startOfMonth(referenceDate))
@@ -303,8 +322,8 @@ export const analyticsSnapshot = (state = {}) => {
     weeklyVolume: weeklyVolume(history),
     monthlyVolume: monthlyVolume(history),
     averageDurationMinutes: averageWorkoutDuration(history),
-    currentStreak: currentWorkoutStreak(history),
-    longestStreak: longestWorkoutStreak(history),
+    currentStreak: consistencyStreak(history),
+    longestStreak: longestConsistencyStreak(history),
     exerciseFrequency: exerciseFrequency(history),
     muscleFrequency: muscleFrequency(history),
     muscleVolume: muscleVolume(history),
