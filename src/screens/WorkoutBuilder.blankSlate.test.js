@@ -22,6 +22,8 @@ describe('Workout Builder blank-slate behavior', () => {
     expect(builder).not.toContain('disabled={draft.rotation.length <= 1}')
     expect(builder).toContain("replacement =")
     expect(builder).toContain("?? null")
+    expect(builder).toContain("if (!rotation.length)")
+    expect(builder).toContain("onSave(nextProgram)")
   })
 
   it('provides a deliberate clear-all action without deleting history', () => {
