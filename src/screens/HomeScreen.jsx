@@ -720,6 +720,7 @@ export default function HomeScreen({
           <AthleteNextAppointment
             appointment={appointmentsReady ? nextAppointment : null}
             onViewDetails={setDetailAppointment}
+            compact
           />
         ) : null}
 
