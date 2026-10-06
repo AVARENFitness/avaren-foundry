@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
+  CalendarClock,
   CalendarDays,
   ChevronDown,
   ChevronLeft,
@@ -269,6 +270,16 @@ export default function AthleteInPersonScheduleScreen({
   }, [scheduleItems])
 
   const selectedDayItems = dayItemsByKey[selectedDayKey] ?? []
+  const weekDayKeys = weekDays.map((day) => dateKey(day))
+  const todayItems = dayItemsByKey[todayKey] ?? []
+  const weekItems = weekDayKeys.flatMap((key) => dayItemsByKey[key] ?? [])
+  const nextCoachAppointment = upcomingAppointments?.[0] ?? null
+  const athletePrivateThisWeek = weekItems.filter(
+    (item) => item.isAthletePrivateEvent,
+  ).length
+  const openDaysThisWeek = weekDayKeys.filter(
+    (key) => (dayItemsByKey[key] ?? []).length === 0,
+  ).length
 
   const shiftMonth = (delta) => {
     const next = new Date(anchor)
@@ -580,6 +591,57 @@ export default function AthleteInPersonScheduleScreen({
           </button>
         </div>
       </header>
+
+      <section className="athlete-calendar-intelligence" aria-label="Your calendar overview">
+        <article className="athlete-calendar-intelligence-primary">
+          <span className="athlete-calendar-intelligence-icon">
+            <CalendarClock size={19} strokeWidth={1.7} />
+          </span>
+          <div>
+            <small>TODAY</small>
+            <strong>
+              {todayItems.length
+                ? `${todayItems.length} calendar item${todayItems.length === 1 ? '' : 's'}`
+                : 'Your day is open'}
+            </strong>
+            <span>
+              {todayItems.length
+                ? 'Tap Day to see the full agenda'
+                : 'No AVAREN commitments scheduled today'}
+            </span>
+          </div>
+        </article>
+
+        <article>
+          <small>NEXT COACHING</small>
+          <strong>
+            {nextCoachAppointment
+              ? `${formatTime12Hour(nextCoachAppointment.startTime)} · ${itemTitle(nextCoachAppointment)}`
+              : 'Nothing scheduled'}
+          </strong>
+          <span>
+            {nextCoachAppointment
+              ? formatCoachCalendarDayHeading(nextCoachAppointment.sessionDate)
+              : 'Your next coaching session will appear here'}
+          </span>
+        </article>
+
+        <article>
+          <small>THIS WEEK</small>
+          <strong>{openDaysThisWeek} open day{openDaysThisWeek === 1 ? '' : 's'}</strong>
+          <span>
+            {athletePrivateThisWeek
+              ? `${athletePrivateThisWeek} private event${athletePrivateThisWeek === 1 ? '' : 's'} on your calendar`
+              : 'No private events this week'}
+          </span>
+        </article>
+      </section>
+
+      <div className="coach-calendar-legend athlete-calendar-legend" aria-label="Calendar legend">
+        <span><i className="is-client" /> Coaching</span>
+        <span><i className="is-private" /> Private</span>
+        <span><i className="is-today" /> Today</span>
+      </div>
 
       {calendarLoading || (!ready && loading) ? (
         <p className="athlete-in-person-schedule-empty">Loading calendar…</p>
