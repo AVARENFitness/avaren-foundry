@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
+  CalendarClock,
   CalendarDays,
   ChevronDown,
   ChevronLeft,
@@ -269,6 +270,36 @@ export default function AthleteInPersonScheduleScreen({
   }, [scheduleItems])
 
   const selectedDayItems = dayItemsByKey[selectedDayKey] ?? []
+  const weekDayKeys = weekDays.map((day) => dateKey(day))
+  const todayItems = dayItemsByKey[todayKey] ?? []
+  const weekItems = weekDayKeys.flatMap((key) => dayItemsByKey[key] ?? [])
+  const upcomingCalendarItems = scheduleItems.filter((item) => {
+    const itemDate = String(item.sessionDate ?? '')
+    if (!itemDate) return false
+    if (itemDate > todayKey) return true
+    if (itemDate < todayKey) return false
+
+    const time = String(item.startTime ?? '23:59').slice(0, 5)
+    const nowTime = new Date().toLocaleTimeString([], {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    })
+    return time >= nowTime
+  })
+  const nextCalendarItem = upcomingCalendarItems[0] ?? null
+  const athletePrivateThisWeek = weekItems.filter(
+    (item) => item.isAthletePrivateEvent,
+  ).length
+  const coachingThisWeek = weekItems.filter(
+    (item) =>
+      !item.isAthletePrivateEvent &&
+      !item.isCoachPrivateEvent &&
+      !item.isCoachWorkAppointment,
+  ).length
+  const openDaysThisWeek = weekDayKeys.filter(
+    (key) => (dayItemsByKey[key] ?? []).length === 0,
+  ).length
 
   const shiftMonth = (delta) => {
     const next = new Date(anchor)
@@ -580,6 +611,57 @@ export default function AthleteInPersonScheduleScreen({
           </button>
         </div>
       </header>
+
+      <section className="athlete-calendar-intelligence" aria-label="Your calendar overview">
+        <article className="athlete-calendar-intelligence-primary">
+          <span className="athlete-calendar-intelligence-icon">
+            <CalendarClock size={19} strokeWidth={1.7} />
+          </span>
+          <div>
+            <small>TODAY</small>
+            <strong>
+              {todayItems.length
+                ? `${todayItems.length} calendar item${todayItems.length === 1 ? '' : 's'}`
+                : 'Your day is open'}
+            </strong>
+            <span>
+              {todayItems.length
+                ? 'Tap Day to see the full agenda'
+                : 'No AVAREN commitments scheduled today'}
+            </span>
+          </div>
+        </article>
+
+        <article>
+          <small>NEXT</small>
+          <strong>
+            {nextCalendarItem
+              ? `${formatTime12Hour(nextCalendarItem.startTime)} · ${itemTitle(nextCalendarItem)}`
+              : 'Nothing scheduled'}
+          </strong>
+          <span>
+            {nextCalendarItem
+              ? `${formatCoachCalendarDayHeading(nextCalendarItem.sessionDate)} · ${sourceLabel(nextCalendarItem)}`
+              : 'Your next calendar item will appear here'}
+          </span>
+        </article>
+
+        <article>
+          <small>THIS WEEK</small>
+          <strong>{weekItems.length} scheduled item{weekItems.length === 1 ? '' : 's'}</strong>
+          <span>
+            {openDaysThisWeek} open day{openDaysThisWeek === 1 ? '' : 's'}
+            {coachingThisWeek ? ` · ${coachingThisWeek} coaching` : ''}
+            {athletePrivateThisWeek ? ` · ${athletePrivateThisWeek} private` : ''}
+          </span>
+        </article>
+      </section>
+
+      <div className="coach-calendar-legend athlete-calendar-legend" aria-label="Calendar legend">
+        <span><i className="is-client" /> Coaching</span>
+        <span><i className="is-private" /> Private</span>
+        <span><i className="is-today" /> Today</span>
+      </div>
 
       {calendarLoading || (!ready && loading) ? (
         <p className="athlete-in-person-schedule-empty">Loading calendar…</p>
