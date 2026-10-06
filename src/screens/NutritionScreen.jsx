@@ -553,8 +553,10 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
       setScanError('')
       await openBarcodeMatch(barcodeManualValue)
     } catch (error) {
-      setScanState('error')
-      setScanError(error?.message ?? 'Barcode lookup failed.')
+      setScanState('idle')
+      const message = error?.message ?? 'Barcode lookup failed.'
+      setScanError(message)
+      setNotice(message)
     }
   }
 
@@ -1377,7 +1379,7 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
 
         <section className="nutrition-food-log">
           <header><div><span className="eyebrow">FOOD LOG</span><h2>{resolvedDayFoods.length ? `${resolvedDayFoods.length} items` : 'Nothing logged yet'}</h2></div><button onClick={() => setTab('Meals')}><Plus/>Add</button></header>
-          {resolvedDayFoods.length ? resolvedDayFoods.map((food) => <article key={food.id}><div><strong>{food.name}</strong><span>{food.source === 'fatsecret' && (food.name === 'Loading food…' || food.name === 'Food unavailable') ? (food.name === 'Loading food…' ? 'Refreshing nutrition…' : 'Nutrition unavailable') : `${food.calories} cal · P ${food.protein} · C ${food.carbs} · F ${food.fat}`}</span></div><button onClick={() => patchDay((current) => ({ ...current, foods: current.foods.filter((item) => item.id !== food.id) }))}><Trash2 size={16}/></button></article>) : <div className="nutrition-empty"><Utensils/><p>Log your first meal to start today’s dashboard.</p></div>}
+          {resolvedDayFoods.length ? resolvedDayFoods.map((food) => <article key={food.id}><div><strong>{food.name}</strong><span>{food.source === 'fatsecret' && (food.name === 'Loading food…' || food.name === 'Food unavailable') ? (food.name === 'Loading food…' ? 'Refreshing nutrition…' : 'Nutrition unavailable') : `${food.measurement ? `${foodMeasureDisplay(food.measurement)} · ` : ''}${food.calories} cal · P ${food.protein} · C ${food.carbs} · F ${food.fat}`}</span></div><button onClick={() => patchDay((current) => ({ ...current, foods: current.foods.filter((item) => item.id !== food.id) }))}><Trash2 size={16}/></button></article>) : <div className="nutrition-empty"><Utensils/><p>Log your first meal to start today’s dashboard.</p></div>}
         </section>
           </>
         )}
@@ -1447,8 +1449,28 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
             </button>
             <button onClick={() => barcodeInputRef.current?.click()}>
               <ScanLine size={19}/>
-              <span><strong>Barcode</strong><small>UPC or EAN product lookup</small></span>
+              <span><strong>Barcode</strong><small>Native scan first · AVA fallback</small></span>
             </button>
+          </div>
+          <div className="nutrition-barcode-manual">
+            <span>Barcode not scanning?</span>
+            <div>
+              <input
+                value={barcodeManualValue}
+                onChange={(event) =>
+                  setBarcodeManualValue(event.target.value.replace(/\D/g, '').slice(0, 13))
+                }
+                inputMode="numeric"
+                placeholder="Enter 8, 12, or 13 digits"
+              />
+              <button
+                type="button"
+                onClick={lookupManualBarcode}
+                disabled={!normalizeBarcodeDigits(barcodeManualValue)}
+              >
+                Look up
+              </button>
+            </div>
           </div>
           <label>
             <span>Optional meal details</span>
@@ -1495,7 +1517,7 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
                 </button>
                 <button className={`nutrition-save-result ${favoriteIds.includes(food.id) ? 'active' : ''}`} title="Favorite food" onClick={() => toggleFavorite(food)}>{favoriteIds.includes(food.id) ? <BookmarkCheck size={16}/> : <Bookmark size={16}/>}</button>
               </article>
-            )) : <div className="nutrition-no-results"><Utensils/><strong>No match yet</strong><span>Create a custom food for this item. Later, barcode and AI search will make this even faster.</span><button onClick={() => { setFoodDraft({...blankFood,name:foodSearch}); setShowCustomFood(true) }}>Create “{foodSearch}”</button></div>}
+            )) : <div className="nutrition-no-results"><Utensils/><strong>No match yet</strong><span>Try the barcode, scan the nutrition label, or create a custom food.</span><button onClick={() => { setFoodDraft({...blankFood,name:foodSearch}); setShowCustomFood(true) }}>Create “{foodSearch}”</button></div>}
           </div>
         </>}
 
