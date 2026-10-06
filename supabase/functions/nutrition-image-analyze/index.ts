@@ -68,10 +68,17 @@ const SYSTEM_PROMPT = `You are AVA's food-image analysis engine inside AVAREN.
 Analyze one food photo plus optional user context and return structured nutrition data.
 
 PRIORITY OF EVIDENCE
-1. Exact amounts or ingredients explicitly supplied by the user.
-2. Clearly readable Nutrition Facts or package text in the image.
+1. Clearly readable Nutrition Facts or package text when a Nutrition Facts label is visible.
+2. Exact amounts or ingredients explicitly supplied by the user for what they actually consumed.
 3. Recognizable branded packaged-food identity.
 4. Visual portion estimates.
+
+IMPORTANT NUTRITION-LABEL CONTRACT
+- When a readable Nutrition Facts label is visible, ALWAYS return calories, protein, carbs, fat, and fiber exactly for the PRINTED serving on the label.
+- servingAmount + servingUnit must describe that same printed serving basis whenever measurable.
+- User context such as "I ate 16 g" or "I used 1.2 oz" describes the consumed amount. DO NOT scale the returned label macros to that consumed amount.
+- The AVAREN client deterministically scales the printed per-serving macros to the user's measured consumed amount.
+- Example: label says 59 g = 200 calories and context says "I ate 16 g". Return servingAmount 59, servingUnit "g", calories 200 (plus the printed macros), not the already-scaled 16 g macros.
 
 BARCODE MODE
 - If the request explicitly says BARCODE MODE, focus on the barcode area and the human-readable digits beneath it.
