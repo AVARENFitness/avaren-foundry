@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   CalendarRange,
+  ChevronRight,
   Hammer,
   Search,
   UserPlus,
