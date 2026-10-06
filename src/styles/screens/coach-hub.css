@@ -830,3 +830,169 @@
   font-size:13px;
   line-height:1.5;
 }
+
+
+/* ===== COACH HUB CALM HIERARCHY ===== */
+.coach-command-center--calm {
+  gap: 12px;
+}
+
+.coach-command-hero--compact {
+  margin-bottom: 0;
+}
+
+.coach-command-hero--compact h1 {
+  margin: 4px 0 2px;
+}
+
+.coach-command-summary {
+  font-size: 12px;
+  color: #948d84;
+}
+
+.coach-today-schedule {
+  margin-top: 0;
+}
+
+.coach-command-tools--quiet {
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.coach-command-tools--quiet .coach-command-tools-grid {
+  gap: 7px;
+}
+
+.coach-command-tools--quiet .coach-secondary-button {
+  min-height: 40px;
+  padding: 0 10px;
+  opacity: .86;
+}
+
+.coach-operations-snapshot {
+  overflow: hidden;
+  border: 1px solid rgba(246,242,233,.06);
+  border-radius: 13px;
+  background: rgba(255,255,255,.01);
+}
+
+.coach-operations-snapshot > summary {
+  min-height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 13px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.coach-operations-snapshot > summary::-webkit-details-marker {
+  display: none;
+}
+
+.coach-operations-snapshot > summary > span {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.coach-operations-snapshot > summary strong {
+  color: #f1ebe1;
+  font-size: 13px;
+}
+
+.coach-operations-snapshot > summary small {
+  overflow: hidden;
+  color: #948d84;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.coach-operations-snapshot > summary svg {
+  flex: 0 0 auto;
+  color: #8a8379;
+  transition: transform .18s ease;
+}
+
+.coach-operations-snapshot[open] > summary svg {
+  transform: rotate(90deg);
+}
+
+.coach-operations-snapshot .coach-business-snapshot {
+  padding: 0 12px 12px;
+}
+
+.coach-client-overview-actions--calm {
+  grid-template-columns: minmax(0,1fr) minmax(0,1fr);
+  align-items: start;
+}
+
+.coach-client-overview-actions--calm .coach-primary-action {
+  grid-column: 1 / -1;
+}
+
+.coach-client-more-actions {
+  grid-column: 1 / -1;
+  overflow: hidden;
+  border: 1px solid rgba(246,242,233,.06);
+  border-radius: 11px;
+  background: rgba(255,255,255,.01);
+}
+
+.coach-client-more-actions > summary {
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  padding: 0 11px;
+  color: #9a9389;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 650;
+  list-style: none;
+}
+
+.coach-client-more-actions > summary::-webkit-details-marker {
+  display: none;
+}
+
+.coach-client-more-actions > div {
+  display: grid;
+  grid-template-columns: repeat(2,minmax(0,1fr));
+  gap: 7px;
+  padding: 0 9px 9px;
+}
+
+.coach-client-more-actions .coach-secondary-button {
+  min-height: 40px;
+}
+
+@media (max-width: 560px) {
+  .coach-command-tools--quiet .coach-command-tools-grid {
+    grid-template-columns: repeat(3,minmax(0,1fr));
+  }
+
+  .coach-command-tools--quiet .coach-secondary-button {
+    min-width: 0;
+    font-size: 11px;
+  }
+
+  .coach-operations-snapshot .coach-business-snapshot {
+    grid-template-columns: repeat(2,minmax(0,1fr));
+  }
+
+  .coach-client-overview-actions--calm {
+    grid-template-columns: 1fr;
+  }
+
+  .coach-client-overview-actions--calm .coach-primary-action,
+  .coach-client-more-actions {
+    grid-column: 1;
+  }
+
+  .coach-client-more-actions > div {
+    grid-template-columns: 1fr;
+  }
+}

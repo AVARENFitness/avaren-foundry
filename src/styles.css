@@ -25514,3 +25514,102 @@ body > .nutrition-food-sheet-backdrop > .nutrition-food-sheet {
     padding-inline: 8px;
   }
 }
+
+
+/* ===== FIRST-RUN ONBOARDING · VALUE FIRST ===== */
+.onboarding-screen {
+  gap: 12px;
+}
+
+.onboarding-topbar {
+  min-height: 44px;
+}
+
+.onboarding-progress {
+  height: 3px;
+  opacity: .72;
+}
+
+.onboarding-card {
+  max-width: 560px;
+  padding: 22px 20px;
+  border-radius: 20px;
+}
+
+.onboarding-mark {
+  width: 46px;
+  height: 46px;
+  margin-bottom: 5px;
+}
+
+.onboarding-card h1 {
+  max-width: 480px;
+  margin: 7px 0 7px;
+  font-size: clamp(2rem,8vw,3rem);
+  letter-spacing: -.05em;
+  line-height: 1.02;
+}
+
+.onboarding-copy {
+  max-width: 500px;
+  margin: 0;
+  color: var(--muted);
+  font-size: .9rem;
+  line-height: 1.55;
+}
+
+.onboarding-points {
+  display: grid;
+  gap: 7px;
+  margin-top: 8px;
+}
+
+.onboarding-points article {
+  min-height: 0;
+  padding: 11px;
+  border-radius: 12px;
+  background: rgba(255,255,255,.012);
+}
+
+.onboarding-points article > span:first-child {
+  width: 32px;
+  height: 32px;
+}
+
+.onboarding-points strong {
+  font-size: .82rem;
+}
+
+.onboarding-points p {
+  margin-top: 3px;
+  font-size: .72rem;
+  line-height: 1.45;
+}
+
+.onboarding-primary {
+  min-height: 48px;
+  margin-top: 8px;
+}
+
+.onboarding-note {
+  margin-top: 2px;
+  opacity: .7;
+}
+
+@media (max-width: 620px) {
+  .onboarding-screen {
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
+  }
+
+  .onboarding-card {
+    padding: 18px 15px;
+  }
+
+  .onboarding-card h1 {
+    font-size: clamp(1.9rem,10vw,2.5rem);
+  }
+
+  .onboarding-points article {
+    padding: 10px;
+  }
+}

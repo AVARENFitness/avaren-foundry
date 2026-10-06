@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   CalendarRange,
+  ChevronRight,
   Hammer,
   Search,
   UserPlus,
@@ -308,29 +309,27 @@ export default function CoachCommandCenter({
 
           {!rosterOnly ? (
             <>
-              <section className="coach-business-snapshot" aria-label="Business snapshot">
-                <article>
-                  <span>Sessions today</span>
-                  <strong>{todaySessionCount}</strong>
-                </article>
-                <article>
-                  <span>Active clients</span>
-                  <strong>
-                    {hero?.activeClients ?? countActiveBusinessClients(clients)}
-                  </strong>
-                </article>
-                <article>
-                  <span>Low passes</span>
-                  <strong>{lowPassCount}</strong>
-                </article>
-                <article>
-                  <span>Lead follow-ups</span>
-                  <strong>{leadFollowUpCount}</strong>
-                </article>
-              </section>
+              <CoachTodaySchedule
+                clients={clients}
+                passSummaryByBusinessClientId={passSummaryByBusinessClientId}
+                onSchedule={onSchedule ?? (() => onNavigateCoachScreen?.('calendar'))}
+                onOpenCalendar={() => onNavigateCoachScreen?.('calendar')}
+                onOpenClient={onSelectClient}
+                onOpenSession={openSession}
+                onOpenClientSection={(client, section) => {
+                  onSelectClient?.(client, section)
+                }}
+                refreshSignal={hubScheduleRefresh}
+              />
+
+              <CoachAvaDailyBrief
+                packet={coachDailyBriefPacket}
+                clients={clients}
+                onOpenClient={onSelectClient}
+              />
 
               <section
-                className="coach-command-tools coach-command-tools--priority"
+                className="coach-command-tools coach-command-tools--quiet"
                 aria-label="Coach quick actions"
               >
                 <div className="coach-command-tools-grid">
@@ -361,24 +360,35 @@ export default function CoachCommandCenter({
                 </div>
               </section>
 
-              <CoachAvaDailyBrief
-                packet={coachDailyBriefPacket}
-                clients={clients}
-                onOpenClient={onSelectClient}
-              />
-
-              <CoachTodaySchedule
-                clients={clients}
-                passSummaryByBusinessClientId={passSummaryByBusinessClientId}
-                onSchedule={onSchedule ?? (() => onNavigateCoachScreen?.('calendar'))}
-                onOpenCalendar={() => onNavigateCoachScreen?.('calendar')}
-                onOpenClient={onSelectClient}
-                onOpenSession={openSession}
-                onOpenClientSection={(client, section) => {
-                  onSelectClient?.(client, section)
-                }}
-                refreshSignal={hubScheduleRefresh}
-              />
+              <details className="coach-operations-snapshot">
+                <summary>
+                  <span>
+                    <strong>Business snapshot</strong>
+                    <small>{hero?.activeClients ?? countActiveBusinessClients(clients)} active clients · {lowPassCount} low passes · {leadFollowUpCount} lead follow-ups</small>
+                  </span>
+                  <ChevronRight size={16} />
+                </summary>
+                <section className="coach-business-snapshot" aria-label="Business snapshot">
+                  <article>
+                    <span>Sessions today</span>
+                    <strong>{todaySessionCount}</strong>
+                  </article>
+                  <article>
+                    <span>Active clients</span>
+                    <strong>
+                      {hero?.activeClients ?? countActiveBusinessClients(clients)}
+                    </strong>
+                  </article>
+                  <article>
+                    <span>Low passes</span>
+                    <strong>{lowPassCount}</strong>
+                  </article>
+                  <article>
+                    <span>Lead follow-ups</span>
+                    <strong>{leadFollowUpCount}</strong>
+                  </article>
+                </section>
+              </details>
 
             </>
           ) : null}
