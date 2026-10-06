@@ -78,6 +78,8 @@ export default function CompletionScreen({
   forgeAchievements = [],
   onSaveReflection,
   openCoachFollowUpCount = 0,
+  recoveryPlan = null,
+  onOpenRecovery,
 }) {
   const [reflection, setReflection] = useState(
     session?.reflection ?? '',
@@ -300,6 +302,33 @@ export default function CompletionScreen({
         </p>
       </header>
 
+      <section className="completion-next-actions">
+        {recoveryPlan ? (
+          <button
+            type="button"
+            className="completion-recovery-card"
+            onClick={onOpenRecovery}
+          >
+            <span className="completion-recovery-icon">
+              <Sparkles size={19} />
+            </span>
+            <span className="completion-recovery-copy">
+              <span className="eyebrow">RECOVER</span>
+              <strong>Cooldown + Recovery</strong>
+              <small>{recoveryPlan.reason || 'Downshift after today’s training.'}</small>
+            </span>
+            <ArrowRight size={17} />
+          </button>
+        ) : null}
+
+        {nextWorkout ? (
+          <div className="completion-next-workout-quiet">
+            <span>Up next</span>
+            <strong>{nextWorkout}</strong>
+          </div>
+        ) : null}
+      </section>
+
       {victoryCount > 0 && (
         <section className="celebration-reveal sprint5-victories">
           <div className="sprint5-section-heading">
@@ -438,6 +467,15 @@ export default function CompletionScreen({
         </section>
       )}
 
+      <details className="completion-detail-disclosure">
+        <summary>
+          <span>
+            <strong>Workout details</strong>
+            <small>{summary.exerciseNames.length} exercises · {summary.sets.length} sets{recentPrs.length ? ` · ${recentPrs.length} PR${recentPrs.length === 1 ? '' : 's'}` : ''}</small>
+          </span>
+          <ArrowRight size={16}/>
+        </summary>
+        <div className="completion-detail-disclosure-body">
       <section className="sprint5-completion-section">
         <div className="sprint5-section-heading">
           <div>
@@ -631,6 +669,17 @@ export default function CompletionScreen({
         </section>
       )}
 
+        </div>
+      </details>
+
+      <details className="completion-reflection-disclosure">
+        <summary>
+          <span>
+            <strong>Session reflection</strong>
+            <small>{reflection?.trim() ? 'Saved note available' : 'Optional · keep a note for next time'}</small>
+          </span>
+          <BookOpen size={17}/>
+        </summary>
       <section className="sprint5-completion-section session-reflection-section">
         <div className="sprint5-section-heading">
           <div>
@@ -670,11 +719,7 @@ export default function CompletionScreen({
             : 'Save Reflection'}
         </button>
       </section>
-
-      <div className="next-workout-card sprint5-next-workout">
-        <span>Next workout</span>
-        <strong>{nextWorkout}</strong>
-      </div>
+      </details>
 
       <button
         className="gold-button machined sprint5-done-button"

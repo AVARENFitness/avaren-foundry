@@ -25130,3 +25130,387 @@ body > .nutrition-food-sheet-backdrop > .nutrition-food-sheet {
     grid-template-columns: repeat(2,minmax(0,1fr));
   }
 }
+
+
+/* ===== HOME + COMPLETION VISUAL HIERARCHY ===== */
+
+.home-3 {
+  gap: 12px;
+}
+
+.home-3-header--quiet {
+  margin-bottom: 0;
+}
+
+.home-today-plan {
+  padding: 16px;
+  border-radius: 16px;
+}
+
+.home-today-plan h2 {
+  margin: 5px 0 4px;
+  letter-spacing: -.035em;
+}
+
+.home-today-plan > p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.home-coach-hub-shortcut--quiet {
+  min-height: 46px;
+  padding: 9px 11px;
+  opacity: .86;
+}
+
+.home-coach-hub-shortcut--quiet .home-coach-hub-shortcut-copy > span {
+  font-size: .66rem;
+}
+
+.home-nutrition-quicklog {
+  min-height: 58px;
+  padding: 10px 12px;
+}
+
+.home-nutrition-quicklog-copy {
+  gap: 2px;
+}
+
+.home-nutrition-quicklog-copy > strong {
+  font-size: .83rem;
+}
+
+.home-nutrition-quicklog-copy > span:last-child {
+  font-size: .68rem;
+}
+
+.home-nutrition-quicklog-action {
+  min-height: 36px;
+  padding-inline: 10px;
+}
+
+.home-coaching-now {
+  display: grid;
+  grid-template-columns: repeat(2,minmax(0,1fr));
+  gap: 8px;
+}
+
+.home-coaching-now:empty {
+  display: none;
+}
+
+.home-coaching-now .athlete-next-appointment,
+.home-coaching-now .athlete-pass-status {
+  min-width: 0;
+  margin: 0;
+  min-height: 66px;
+  border-radius: 12px;
+}
+
+.home-coaching-now .athlete-next-appointment--compact {
+  display: grid;
+  gap: 2px;
+  padding: 10px 11px;
+  text-align: left;
+}
+
+.home-coaching-now .athlete-next-appointment--compact > strong {
+  font-size: .83rem;
+}
+
+.home-coaching-now .athlete-next-appointment--compact > span:not(.eyebrow) {
+  font-size: .66rem;
+}
+
+.home-coaching-now .athlete-pass-status--compact {
+  padding: 10px 11px;
+}
+
+.home-coaching-schedule {
+  margin-top: 0;
+}
+
+.home-coaching-schedule-body {
+  display: grid;
+  gap: 9px;
+  padding-top: 9px;
+}
+
+.home-coaching-schedule-body .athlete-appointment-week-strip,
+.home-coaching-schedule-body .home-assignment-slot {
+  margin: 0;
+}
+
+.home-daily-panel,
+.home-week-panel,
+.home-coaching-schedule {
+  border-radius: 12px;
+}
+
+.home-daily-panel > summary,
+.home-week-panel > summary,
+.home-coaching-schedule > summary {
+  min-height: 48px;
+}
+
+/* Completion is one story: result, recovery, wins, optional detail. */
+.sprint5-completion {
+  gap: 12px;
+}
+
+.sprint5-completion-hero {
+  padding: 18px 16px 15px;
+  border-radius: 18px;
+}
+
+.sprint5-completion-hero h1 {
+  margin: 6px 0 2px;
+  font-size: clamp(2rem,10vw,2.8rem);
+  letter-spacing: -.05em;
+}
+
+.sprint5-completion-hero > p:not(.completion-coach-followup-note) {
+  margin: 0;
+  color: var(--muted);
+}
+
+.sprint5-hero-stats {
+  gap: 7px;
+  margin-top: 14px;
+}
+
+.sprint5-hero-stats article {
+  min-height: 58px;
+  padding: 9px 10px;
+  border-radius: 11px;
+}
+
+.completion-coach-followup-note {
+  margin: 9px 0 0;
+  color: var(--muted);
+  font-size: .66rem;
+}
+
+.completion-next-actions {
+  display: grid;
+  grid-template-columns: minmax(0,1.4fr) minmax(0,.8fr);
+  gap: 8px;
+}
+
+.completion-recovery-card,
+.completion-next-workout-quiet {
+  min-width: 0;
+  min-height: 72px;
+  border: 1px solid rgba(248,243,230,.07);
+  border-radius: 13px;
+  background: rgba(255,255,255,.012);
+}
+
+.completion-recovery-card {
+  display: grid;
+  grid-template-columns: auto minmax(0,1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 11px;
+  color: var(--cream);
+  text-align: left;
+}
+
+.completion-recovery-icon {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: rgba(223,195,125,.07);
+  color: var(--gold-bright);
+}
+
+.completion-recovery-copy {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.completion-recovery-copy strong {
+  font-size: .84rem;
+}
+
+.completion-recovery-copy small {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: .67rem;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.completion-next-workout-quiet {
+  display: grid;
+  align-content: center;
+  gap: 3px;
+  padding: 11px 12px;
+}
+
+.completion-next-workout-quiet span {
+  color: var(--muted);
+  font-size: .67rem;
+  font-weight: 680;
+}
+
+.completion-next-workout-quiet strong {
+  color: var(--cream);
+  font-size: .86rem;
+}
+
+.sprint5-victories {
+  padding: 14px;
+}
+
+.sprint5-victories .sprint5-section-heading h2 {
+  font-size: 1rem;
+}
+
+.sprint5-victories .celebration-card {
+  min-height: 0;
+  padding: 11px;
+}
+
+.completion-detail-disclosure,
+.completion-reflection-disclosure {
+  overflow: hidden;
+  border: 1px solid rgba(248,243,230,.07);
+  border-radius: 13px;
+  background: rgba(255,255,255,.01);
+}
+
+.completion-detail-disclosure > summary,
+.completion-reflection-disclosure > summary {
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 12px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.completion-detail-disclosure > summary::-webkit-details-marker,
+.completion-reflection-disclosure > summary::-webkit-details-marker {
+  display: none;
+}
+
+.completion-detail-disclosure > summary > span,
+.completion-reflection-disclosure > summary > span {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.completion-detail-disclosure > summary strong,
+.completion-reflection-disclosure > summary strong {
+  color: var(--cream);
+  font-size: .79rem;
+}
+
+.completion-detail-disclosure > summary small,
+.completion-reflection-disclosure > summary small {
+  color: var(--muted);
+  font-size: .66rem;
+}
+
+.completion-detail-disclosure > summary svg,
+.completion-reflection-disclosure > summary svg {
+  flex: 0 0 auto;
+  color: var(--muted);
+  transition: transform .18s ease;
+}
+
+.completion-detail-disclosure[open] > summary svg {
+  transform: rotate(90deg);
+}
+
+.completion-detail-disclosure-body {
+  display: grid;
+  gap: 9px;
+  padding: 0 10px 10px;
+}
+
+.completion-detail-disclosure-body .sprint5-completion-section {
+  margin: 0;
+  padding: 12px;
+}
+
+.completion-detail-disclosure-body .sprint5-summary-grid,
+.completion-detail-disclosure-body .sprint5-highlight-grid {
+  gap: 7px;
+}
+
+.completion-reflection-disclosure .session-reflection-section {
+  margin: 0;
+  padding: 0 12px 12px;
+  border: 0;
+  background: transparent;
+}
+
+.completion-reflection-disclosure .sprint5-section-heading {
+  display: none;
+}
+
+.sprint5-done-button {
+  min-height: 50px;
+  position: sticky;
+  bottom: max(10px, env(safe-area-inset-bottom));
+  z-index: 3;
+  box-shadow: 0 10px 30px rgba(0,0,0,.3);
+}
+
+@media (max-width: 620px) {
+  .home-3 {
+    gap: 10px;
+  }
+
+  .home-today-plan {
+    padding: 14px;
+  }
+
+  .home-coaching-now {
+    grid-template-columns: 1fr;
+  }
+
+  .home-coaching-now .athlete-next-appointment,
+  .home-coaching-now .athlete-pass-status {
+    min-height: 58px;
+  }
+
+  .completion-next-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .completion-recovery-card,
+  .completion-next-workout-quiet {
+    min-height: 62px;
+  }
+
+  .sprint5-completion-hero {
+    padding: 16px 14px 13px;
+  }
+
+  .sprint5-hero-stats {
+    grid-template-columns: repeat(3,minmax(0,1fr));
+  }
+
+  .sprint5-hero-stats article {
+    padding: 8px;
+  }
+
+  .sprint5-hero-stats article span {
+    font-size: .58rem;
+  }
+
+  .completion-detail-disclosure-body {
+    padding-inline: 8px;
+  }
+}

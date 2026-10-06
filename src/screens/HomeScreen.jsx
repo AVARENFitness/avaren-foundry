@@ -509,23 +509,6 @@ export default function HomeScreen({
         <h1>{dashboard.greeting}</h1>
       </header>
 
-      {showCoachHubShortcut && (
-        <button
-          type="button"
-          className="home-coach-hub-shortcut"
-          onClick={onOpenCoachHub}
-        >
-          <span className="home-coach-hub-shortcut-icon">
-            <BriefcaseBusiness size={18} strokeWidth={1.75} />
-          </span>
-          <span className="home-coach-hub-shortcut-copy">
-            <strong>Coach Hub</strong>
-            <span>Clients, reviews, and assignments</span>
-          </span>
-          <ChevronRight size={16} strokeWidth={1.75} />
-        </button>
-      )}
-
       {pendingInvitations.map((invitation) => (
         <AthleteCoachInvitationCard
           key={invitation.id}
@@ -684,6 +667,23 @@ export default function HomeScreen({
         )}
       </section>
 
+      {showCoachHubShortcut && (
+        <button
+          type="button"
+          className="home-coach-hub-shortcut home-coach-hub-shortcut--quiet"
+          onClick={onOpenCoachHub}
+        >
+          <span className="home-coach-hub-shortcut-icon">
+            <BriefcaseBusiness size={17} strokeWidth={1.75} />
+          </span>
+          <span className="home-coach-hub-shortcut-copy">
+            <strong>Coach Hub</strong>
+            <span>Clients, reviews, and assignments</span>
+          </span>
+          <ChevronRight size={15} strokeWidth={1.75} />
+        </button>
+      )}
+
       {homeState.primaryAction?.id !== HOME_ACTION_IDS.NUTRITION ? (
         <section className="home-nutrition-quicklog">
           <div className="home-nutrition-quicklog-copy">
@@ -715,14 +715,17 @@ export default function HomeScreen({
         contextActionOverride={avaHomeSupportAction}
       />
 
-      {homeState.primaryAction?.id !== HOME_ACTION_IDS.APPOINTMENT ? (
-        <AthleteNextAppointment
-          appointment={appointmentsReady ? nextAppointment : null}
-          onViewDetails={setDetailAppointment}
-        />
-      ) : null}
+      <section className="home-coaching-now" aria-label="Coaching and appointments">
+        {homeState.primaryAction?.id !== HOME_ACTION_IDS.APPOINTMENT ? (
+          <AthleteNextAppointment
+            appointment={appointmentsReady ? nextAppointment : null}
+            onViewDetails={setDetailAppointment}
+            compact
+          />
+        ) : null}
 
-      <AthletePassStatus variant="compact" />
+        <AthletePassStatus variant="compact" />
+      </section>
 
       <AthleteAppointmentDetailSheet
         appointment={detailAppointment}
@@ -734,18 +737,31 @@ export default function HomeScreen({
         }}
       />
 
-      <AthleteAppointmentWeekStrip
-        appointments={appointmentsReady ? upcomingAppointments : []}
-      />
+      <details className="foundry-disclosure home-coaching-schedule">
+        <summary>
+          <span>Coaching & schedule</span>
+          <small>
+            {upcomingAppointments.length
+              ? `${upcomingAppointments.length} upcoming appointment${upcomingAppointments.length === 1 ? '' : 's'}`
+              : 'Calendar and coaching details'}
+          </small>
+        </summary>
 
-      <div className="home-assignment-slot">
-        {!activeCoachAssignment && (
-          <AthleteAssignmentHome
-            compact
-            onStartAssignment={onStartCoachAssignment}
+        <div className="home-coaching-schedule-body">
+          <AthleteAppointmentWeekStrip
+            appointments={appointmentsReady ? upcomingAppointments : []}
           />
-        )}
-      </div>
+
+          <div className="home-assignment-slot">
+            {!activeCoachAssignment && (
+              <AthleteAssignmentHome
+                compact
+                onStartAssignment={onStartCoachAssignment}
+              />
+            )}
+          </div>
+        </div>
+      </details>
 
       {weeklyCheckInConfirmation && (
         <p className="home-weekly-checkin-confirmation" role="status">
