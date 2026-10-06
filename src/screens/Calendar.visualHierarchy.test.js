@@ -24,10 +24,20 @@ describe('calendar visual information hierarchy', () => {
 
   it('gives the athlete useful calendar context before the grid', () => {
     expect(athlete).toContain('athlete-calendar-intelligence')
-    expect(athlete).toContain('NEXT COACHING')
+    expect(athlete).toContain('<small>NEXT</small>')
     expect(athlete).toContain('Your day is open')
+    expect(athlete).toContain('nextCalendarItem')
+    expect(athlete).toContain('weekItems.length')
     expect(athlete).toContain('Coaching')
     expect(athlete).toContain('Private')
+  })
+
+  it('prioritizes the full personal day before coaching-specific context', () => {
+    expect(athlete).toContain('upcomingCalendarItems')
+    expect(athlete).toContain('itemTitle(nextCalendarItem)')
+    expect(athlete).toContain('sourceLabel(nextCalendarItem)')
+    expect(athlete).toContain('scheduled item')
+    expect(athlete).not.toContain('NEXT COACHING')
   })
 
   it('keeps Month Week Day and adds restrained calendar motion', () => {
