@@ -135,16 +135,22 @@ export const parseCoachAvailabilityQuery = (
   const afterMinutes = afterMatch ? parseClockMinutes(afterMatch[1]) : null
   const beforeMinutes = beforeMatch ? parseClockMinutes(beforeMatch[1]) : null
 
-  const clientSlotMatch = text.match(
-    /\b(?:find|show|give)\s+(?:me\s+)?(?:an?\s+)?(?:open|available)?\s*(?:(\d+)[-\s]*(?:minute|min)\s+)?slot\s+for\s+(.+?)\s+(this week|today|tomorrow|sunday|sun|monday|mon|tuesday|tue|tues|wednesday|wed|thursday|thu|thurs|friday|fri|saturday|sat)(?:\b|$)/i,
-  )
+  const hasClientSlotIntent =
+    /\b(?:find|show|give|choose)\b.*\bslot\b.*\bfor\b/i.test(text)
+  const clientMatch = hasClientSlotIntent
+    ? text.match(
+        /\bfor\s+(.+?)(?=\s+(?:after|before|this week|today|tomorrow|sunday|sun|monday|mon|tuesday|tue|tues|wednesday|wed|thursday|thu|thurs|friday|fri|saturday|sat)\b|\s+(?:and\s+)?(?:book|schedule)\b|$)/i,
+      )
+    : null
+  const periodMatch = hasClientSlotIntent
+    ? text.match(
+        /\b(this week|today|tomorrow|sunday|sun|monday|mon|tuesday|tue|tues|wednesday|wed|thursday|thu|thurs|friday|fri|saturday|sat)\b/i,
+      )
+    : null
 
-  if (clientSlotMatch) {
-    const explicitMinutes = clientSlotMatch[1]
-      ? Number(clientSlotMatch[1])
-      : duration
-    const clientQuery = normalizeText(clientSlotMatch[2])
-    const period = lower(clientSlotMatch[3])
+  if (clientMatch && periodMatch) {
+    const clientQuery = normalizeText(clientMatch[1])
+    const period = lower(periodMatch[1])
 
     if (period === 'this week') {
       const startDate = mondayKeyFor(now)
@@ -153,7 +159,7 @@ export const parseCoachAvailabilityQuery = (
         rangeKind: 'week',
         startDate,
         endDate: addDaysKey(startDate, 6),
-        durationMinutes: explicitMinutes || 60,
+        durationMinutes: duration || 60,
         afterMinutes,
         beforeMinutes,
         clientQuery,
@@ -167,7 +173,7 @@ export const parseCoachAvailabilityQuery = (
       rangeKind: 'day',
       startDate: date,
       endDate: date,
-      durationMinutes: explicitMinutes || 60,
+      durationMinutes: duration || 60,
       afterMinutes,
       beforeMinutes,
       clientQuery,
