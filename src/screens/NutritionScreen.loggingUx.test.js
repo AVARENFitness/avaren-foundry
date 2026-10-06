@@ -18,19 +18,33 @@ describe('NutritionScreen logging UX regressions', () => {
     expect(todayQuickArea).not.toContain('<strong>Log Food</strong>')
   })
 
-  it('prioritizes results while an active food search is being typed', () => {
+  it('keeps the default Log tab quiet and reveals heavier tools on demand', () => {
     expect(source).toContain(
       "const activeFoodSearch = foodSearch.trim().length >= 2",
     )
-    expect(source).toContain(
-      '{!activeFoodSearch && <div className="nutrition-scan-food">',
-    )
-    expect(source).toContain(
-      '{!activeFoodSearch && <div className="nutrition-search-tools">',
-    )
-    expect(source).toContain(
-      '{!activeFoodSearch && <div className="nutrition-category-strip">',
-    )
+    expect(source).toContain('className="nutrition-log-quick-actions"')
+    expect(source).toContain("logCaptureMode === 'photo'")
+    expect(source).toContain("logCaptureMode === 'barcode'")
+    expect(source).toContain('Take photo')
+    expect(source).toContain('Choose photo')
+    expect(source).toContain('Or enter 8, 12, or 13 digits')
+    expect(source).not.toContain('className="nutrition-category-strip"')
+    expect(source).not.toContain('Meal details (optional)')
+  })
+
+  it('limits idle quick logging to recent or favorite foods', () => {
+    expect(source).toContain("const [logBrowseMode, setLogBrowseMode] = useState('Recent')")
+    expect(source).toContain('const quickLogFoods = useMemo')
+    expect(source).toContain('.slice(0, 6)')
+    expect(source).toContain("logBrowseMode === 'Favorites'")
+    expect(source).toContain('Log again')
+    expect(source).toContain('Foods you come back to')
+  })
+
+  it('limits active search results so the Log tab does not become a catalog', () => {
+    expect(source).toContain('...fatSecretFoods,')
+    expect(source).toContain('].slice(0, 12)')
+    expect(source).toContain('Verified food database')
   })
 
   it('lets the quantity field be temporarily blank while the user types', () => {
@@ -69,9 +83,8 @@ describe('NutritionScreen logging UX regressions', () => {
 
   it('uses native barcode detection first and keeps a manual fallback', () => {
     expect(source).toContain('detectNutritionBarcode(file)')
-    expect(source).toContain('Native scan first · AVA fallback')
-    expect(source).toContain('Barcode not scanning?')
-    expect(source).toContain('Enter 8, 12, or 13 digits')
+    expect(source).toContain('Scan barcode')
+    expect(source).toContain('Or enter 8, 12, or 13 digits')
   })
 
   it('shows measured quantities in the food log', () => {
