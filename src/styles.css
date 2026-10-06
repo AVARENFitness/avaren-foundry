@@ -25989,3 +25989,356 @@ body > .nutrition-food-sheet-backdrop > .nutrition-food-sheet {
     transition: none !important;
   }
 }
+
+
+/* ===== AVAREN CALENDAR · INFORMATION + VISUAL POLISH ===== */
+
+.coach-calendar-intelligence,
+.athlete-calendar-intelligence {
+  display: grid;
+  grid-template-columns: minmax(0,1.15fr) minmax(0,1fr) minmax(0,.85fr);
+  gap: 8px;
+}
+
+.coach-calendar-intelligence > article,
+.athlete-calendar-intelligence > article {
+  min-width: 0;
+  min-height: 82px;
+  display: grid;
+  align-content: center;
+  gap: 3px;
+  padding: 12px 13px;
+  border: 1px solid rgba(248,243,230,.07);
+  border-radius: 14px;
+  background:
+    linear-gradient(160deg, rgba(255,255,255,.018), rgba(255,255,255,.006));
+}
+
+.coach-calendar-intelligence-primary,
+.athlete-calendar-intelligence-primary {
+  grid-template-columns: auto minmax(0,1fr);
+  align-items: center;
+  column-gap: 10px !important;
+  background:
+    radial-gradient(circle at 0% 0%, rgba(184,149,78,.08), transparent 48%),
+    rgba(255,255,255,.008) !important;
+  border-color: rgba(223,195,125,.11) !important;
+}
+
+.coach-calendar-intelligence-icon,
+.athlete-calendar-intelligence-icon {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 11px;
+  background: rgba(223,195,125,.07);
+  color: var(--gold-bright);
+}
+
+.coach-calendar-intelligence-primary > div,
+.athlete-calendar-intelligence-primary > div {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.coach-calendar-intelligence small,
+.athlete-calendar-intelligence small {
+  color: color-mix(in srgb, var(--gold-bright) 70%, var(--muted));
+  font-size: .61rem;
+  font-weight: 800;
+  letter-spacing: .12em;
+}
+
+.coach-calendar-intelligence strong,
+.athlete-calendar-intelligence strong {
+  overflow: hidden;
+  color: var(--cream);
+  font-size: .88rem;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.coach-calendar-intelligence span:not(.coach-calendar-intelligence-icon),
+.athlete-calendar-intelligence span:not(.athlete-calendar-intelligence-icon) {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: .68rem;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.coach-calendar-legend {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  min-height: 24px;
+  padding: 0 3px;
+}
+
+.coach-calendar-legend > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: .68rem;
+  font-weight: 650;
+}
+
+.coach-calendar-legend i {
+  width: 7px;
+  height: 7px;
+  display: inline-block;
+  border-radius: 999px;
+}
+
+.coach-calendar-legend i.is-client {
+  background: var(--gold);
+  box-shadow: 0 0 0 3px rgba(184,149,78,.07);
+}
+
+.coach-calendar-legend i.is-private {
+  background: color-mix(in srgb, var(--muted) 72%, transparent);
+}
+
+.coach-calendar-legend i.is-today {
+  background: transparent;
+  border: 1px solid var(--gold-bright);
+  box-shadow: 0 0 0 2px rgba(184,149,78,.06);
+}
+
+.coach-calendar-month-view,
+.coach-calendar-week-board,
+.coach-session-calendar-day-block,
+.athlete-calendar-day {
+  animation: avarenCalendarViewIn var(--motion-medium,190ms) var(--motion-ease-standard,cubic-bezier(.22,.76,.26,1)) both;
+}
+
+@keyframes avarenCalendarViewIn {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.coach-calendar-month-view {
+  padding: 10px;
+  border: 1px solid rgba(248,243,230,.055);
+  border-radius: 18px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.012), rgba(0,0,0,.06));
+}
+
+.coach-calendar-month-weekdays {
+  padding-inline: 2px;
+}
+
+.coach-calendar-month-day {
+  position: relative;
+  overflow: hidden;
+  transition:
+    transform var(--motion-fast,110ms) var(--motion-ease-standard,ease),
+    border-color var(--motion-medium,190ms) ease,
+    background-color var(--motion-medium,190ms) ease,
+    opacity var(--motion-medium,190ms) ease;
+}
+
+.coach-calendar-month-day.has-items {
+  background:
+    linear-gradient(155deg, rgba(255,255,255,.018), rgba(255,255,255,.006));
+}
+
+.coach-calendar-month-day.is-today {
+  background:
+    radial-gradient(circle at 50% 0%, rgba(184,149,78,.09), transparent 48%),
+    color-mix(in srgb, var(--surface-elevated) 96%, transparent);
+}
+
+.coach-calendar-month-day.is-today::after {
+  content: '';
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: 5px;
+  height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, rgba(223,195,125,.72), transparent);
+}
+
+.coach-calendar-month-events > span {
+  transition:
+    transform var(--motion-fast,110ms) ease,
+    background-color var(--motion-medium,190ms) ease;
+}
+
+.coach-calendar-week-board {
+  padding: 2px 1px 8px;
+  scrollbar-width: none;
+}
+
+.coach-calendar-week-board::-webkit-scrollbar {
+  display: none;
+}
+
+.coach-calendar-week-column {
+  transition:
+    transform var(--motion-fast,110ms) ease,
+    border-color var(--motion-medium,190ms) ease,
+    background-color var(--motion-medium,190ms) ease;
+}
+
+.coach-calendar-week-column.is-today {
+  background:
+    linear-gradient(180deg, rgba(184,149,78,.045), rgba(255,255,255,.006));
+}
+
+.coach-calendar-week-item {
+  transition:
+    transform var(--motion-fast,110ms) var(--motion-ease-standard,ease),
+    border-color var(--motion-medium,190ms) ease,
+    background-color var(--motion-medium,190ms) ease;
+}
+
+.coach-calendar-week-open {
+  display: grid;
+  place-items: center;
+  min-height: 58px;
+  border: 1px dashed rgba(248,243,230,.045);
+  border-radius: 9px;
+  margin: 2px 0;
+}
+
+.coach-session-calendar-day-block {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid rgba(248,243,230,.065);
+  border-radius: 16px;
+  background: rgba(255,255,255,.008);
+}
+
+.coach-session-calendar-day-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.coach-session-calendar-list {
+  gap: 8px;
+}
+
+.coach-calendar-private-event,
+.coach-appointment-card,
+.athlete-calendar-agenda-item {
+  transition:
+    transform var(--motion-fast,110ms) var(--motion-ease-standard,ease),
+    border-color var(--motion-medium,190ms) ease,
+    background-color var(--motion-medium,190ms) ease,
+    opacity var(--motion-medium,190ms) ease;
+}
+
+.coach-appointment-card--next {
+  position: relative;
+  overflow: hidden;
+}
+
+.coach-appointment-card--next::before {
+  content: '';
+  position: absolute;
+  top: 10px;
+  bottom: 10px;
+  left: 0;
+  width: 2px;
+  border-radius: 999px;
+  background: var(--gold-bright);
+}
+
+.athlete-calendar-screen .athlete-pass-status--detailed {
+  margin-top: 2px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .coach-calendar-month-day:hover,
+  .coach-calendar-week-item:hover,
+  .coach-calendar-private-event:hover,
+  .coach-appointment-card:hover,
+  .athlete-calendar-agenda-item:hover {
+    transform: translateY(-1px);
+    border-color: rgba(223,195,125,.16);
+  }
+}
+
+@media (max-width: 720px) {
+  .coach-calendar-intelligence,
+  .athlete-calendar-intelligence {
+    grid-template-columns: repeat(2,minmax(0,1fr));
+  }
+
+  .coach-calendar-intelligence-primary,
+  .athlete-calendar-intelligence-primary {
+    grid-column: 1 / -1;
+    min-height: 68px;
+  }
+
+  .coach-calendar-intelligence > article,
+  .athlete-calendar-intelligence > article {
+    min-height: 68px;
+    padding: 10px 11px;
+  }
+
+  .coach-calendar-month-view {
+    padding: 7px;
+    border-radius: 15px;
+  }
+
+  .coach-calendar-month-grid {
+    gap: 4px;
+  }
+
+  .coach-calendar-month-day {
+    min-height: 70px;
+  }
+
+  .coach-calendar-legend {
+    gap: 9px;
+  }
+}
+
+@media (max-width: 390px) {
+  .coach-calendar-intelligence,
+  .athlete-calendar-intelligence {
+    gap: 6px;
+  }
+
+  .coach-calendar-intelligence > article:not(.coach-calendar-intelligence-primary),
+  .athlete-calendar-intelligence > article:not(.athlete-calendar-intelligence-primary) {
+    min-height: 62px;
+  }
+
+  .coach-calendar-intelligence strong,
+  .athlete-calendar-intelligence strong {
+    font-size: .8rem;
+  }
+
+  .coach-calendar-intelligence span:not(.coach-calendar-intelligence-icon),
+  .athlete-calendar-intelligence span:not(.athlete-calendar-intelligence-icon) {
+    font-size: .63rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .coach-calendar-month-view,
+  .coach-calendar-week-board,
+  .coach-session-calendar-day-block,
+  .athlete-calendar-day {
+    animation: none !important;
+  }
+}
