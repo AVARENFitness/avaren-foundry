@@ -45,7 +45,7 @@ import {
   logRecipeToNutrition,
   nutritionRound as round,
 } from '../lib/nutritionActions'
-import { COMMON_FOODS, FOOD_CATEGORIES } from '../data/commonFoods'
+import { COMMON_FOODS } from '../data/commonFoods'
 import { appUi } from '../lib/appUi'
 import { createRuntimeId } from '../lib/createRuntimeId'
 import {
@@ -162,11 +162,12 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
   const [foodDraft, setFoodDraft] = useState(blankFood)
   const [foodSearch, setFoodSearch] = useState('')
   const [showCustomFood, setShowCustomFood] = useState(false)
+  const [logCaptureMode, setLogCaptureMode] = useState(null)
+  const [logBrowseMode, setLogBrowseMode] = useState('Recent')
   const [selectedFood, setSelectedFood] = useState(null)
   const [selectedMultiplier, setSelectedMultiplier] = useState(1)
   const [selectedMeasureUnit, setSelectedMeasureUnit] = useState(FOOD_MEASURE_UNIT.SERVING)
   const [selectedMeasureAmount, setSelectedMeasureAmount] = useState('1')
-  const [foodCategory, setFoodCategory] = useState('All')
   const [fatSecretFoods, setFatSecretFoods] = useState([])
   const [fatSecretSearchState, setFatSecretSearchState] = useState('idle')
   const [fatSecretSearchError, setFatSecretSearchError] = useState('')
@@ -268,7 +269,6 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
     const common = COMMON_FOODS.map((food) => ({ ...food, sourceLabel: food.brand }))
     const combined = [...saved, ...common]
     return combined
-      .filter((food) => foodCategory === 'All' || food.category === foodCategory || (foodCategory === 'Favorites' && favoriteIds.includes(food.id)))
       .filter((food) => !query || `${food.name} ${food.brand ?? ''} ${food.category ?? ''} ${food.keywords ?? ''}`.toLowerCase().includes(query))
       .sort((a, b) => {
         const favoriteDelta = Number(favoriteIds.includes(b.id)) - Number(favoriteIds.includes(a.id))
@@ -283,7 +283,7 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
         return a.name.localeCompare(b.name)
       })
       .slice(0, 28)
-  }, [foodSearch, foodCategory, favoriteIds, recentIds, nutrition.savedFoods])
+  }, [foodSearch, favoriteIds, recentIds, nutrition.savedFoods])
 
   useEffect(() => {
     const today = new Date(`${nutritionDateKey()}T12:00:00`)
@@ -477,16 +477,28 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
 
   const visibleFoodMatches = useMemo(() => {
     const query = foodSearch.trim()
-    if (query.length < 2 || foodCategory === 'Favorites') {
-      return foodMatches
-    }
+    if (query.length < 2) return foodMatches
 
     const remoteIds = new Set(fatSecretFoods.map((food) => food.id))
     return [
       ...foodMatches.filter((food) => !remoteIds.has(food.id)),
       ...fatSecretFoods,
-    ]
-  }, [foodMatches, fatSecretFoods, foodSearch, foodCategory])
+    ].slice(0, 12)
+  }, [foodMatches, fatSecretFoods, foodSearch])
+
+  const quickLogFoods = useMemo(() => {
+    const byId = new Map(foodMatches.map((food) => [food.id, food]))
+    const ids = logBrowseMode === 'Favorites' ? favoriteIds : recentIds
+    const preferred = ids
+      .map((id) => byId.get(id))
+      .filter(Boolean)
+    const fallback =
+      logBrowseMode === 'Favorites'
+        ? foodMatches.filter((food) => favoriteIds.includes(food.id))
+        : foodMatches
+
+    return (preferred.length ? preferred : fallback).slice(0, 6)
+  }, [favoriteIds, foodMatches, logBrowseMode, recentIds])
 
   const weeklyInsights = useMemo(() => {
     const today = new Date(`${nutritionDateKey()}T12:00:00`)
@@ -1703,77 +1715,113 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
           }}
         />
 
-        {!activeFoodSearch && <div className="nutrition-scan-food">
-          <div className="nutrition-scan-food-copy">
-            <span className="eyebrow">SCAN FOOD</span>
-            <strong>Use the fastest source you have</strong>
-            <small>Take a photo, upload one you already have, or scan a barcode.</small>
+        {!activeFoodSearch && !showCustomFood && <>
+          <div className="nutrition-log-quick-actions">
+            <button
+              type="button"
+              className={logCaptureMode === 'photo' ? 'active' : ''}
+              onClick={() => setLogCaptureMode((mode) => mode === 'photo' ? null : 'photo')}
+            >
+              <Camera size={18}/>
+              <span>Photo</span>
+            </button>
+            <button
+              type="button"
+              className={logCaptureMode === 'barcode' ? 'active' : ''}
+              onClick={() => setLogCaptureMode((mode) => mode === 'barcode' ? null : 'barcode')}
+            >
+              <ScanLine size={18}/>
+              <span>Barcode</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setLogCaptureMode(null)
+                setShowCustomFood(true)
+              }}
+            >
+              <Plus size={18}/>
+              <span>Custom</span>
+            </button>
           </div>
-          <div className="nutrition-scan-choice-grid">
-            <button onClick={() => cameraInputRef.current?.click()}>
-              <Camera size={19}/>
-              <span><strong>Camera</strong><small>Meal, package, or label</small></span>
-            </button>
-            <button onClick={() => uploadInputRef.current?.click()}>
-              <ImagePlus size={19}/>
-              <span><strong>Upload</strong><small>Choose an existing photo</small></span>
-            </button>
-            <button onClick={() => barcodeInputRef.current?.click()}>
-              <ScanLine size={19}/>
-              <span><strong>Barcode</strong><small>Native scan first · AVA fallback</small></span>
-            </button>
-          </div>
-          <div className="nutrition-barcode-manual">
-            <span>Barcode not scanning?</span>
-            <div>
-              <input
-                value={barcodeManualValue}
-                onChange={(event) =>
-                  setBarcodeManualValue(event.target.value.replace(/\D/g, '').slice(0, 13))
-                }
-                inputMode="numeric"
-                placeholder="Enter 8, 12, or 13 digits"
-              />
+
+          {logCaptureMode === 'photo' ? (
+            <div className="nutrition-log-capture-panel">
+              <button type="button" onClick={() => cameraInputRef.current?.click()}>
+                <Camera size={17}/>
+                <span><strong>Take photo</strong><small>Meal, package, or label</small></span>
+              </button>
+              <button type="button" onClick={() => uploadInputRef.current?.click()}>
+                <ImagePlus size={17}/>
+                <span><strong>Choose photo</strong><small>Use one from your library</small></span>
+              </button>
+            </div>
+          ) : null}
+
+          {logCaptureMode === 'barcode' ? (
+            <div className="nutrition-log-barcode-panel">
               <button
                 type="button"
-                onClick={lookupManualBarcode}
-                disabled={!normalizeBarcodeDigits(barcodeManualValue)}
+                className="nutrition-log-scan-barcode"
+                onClick={() => barcodeInputRef.current?.click()}
               >
-                Look up
+                <ScanLine size={17}/>
+                Scan barcode
+              </button>
+              <div className="nutrition-log-manual-barcode">
+                <input
+                  value={barcodeManualValue}
+                  onChange={(event) =>
+                    setBarcodeManualValue(event.target.value.replace(/\D/g, '').slice(0, 13))
+                  }
+                  inputMode="numeric"
+                  placeholder="Or enter 8, 12, or 13 digits"
+                />
+                <button
+                  type="button"
+                  onClick={lookupManualBarcode}
+                  disabled={!normalizeBarcodeDigits(barcodeManualValue)}
+                >
+                  Look up
+                </button>
+              </div>
+            </div>
+          ) : null}
+
+          <div className="nutrition-log-quick-heading">
+            <div>
+              <span className="eyebrow">{logBrowseMode === 'Favorites' ? 'FAVORITES' : 'RECENT'}</span>
+              <strong>{logBrowseMode === 'Favorites' ? 'Foods you come back to' : 'Log again'}</strong>
+            </div>
+            <div className="nutrition-log-quick-toggle">
+              <button
+                type="button"
+                className={logBrowseMode === 'Recent' ? 'active' : ''}
+                onClick={() => setLogBrowseMode('Recent')}
+              >
+                Recent
+              </button>
+              <button
+                type="button"
+                className={logBrowseMode === 'Favorites' ? 'active' : ''}
+                onClick={() => setLogBrowseMode('Favorites')}
+              >
+                Favorites
               </button>
             </div>
           </div>
-          <label>
-            <span>Meal details (optional)</span>
-            <input
-              value={scanContext}
-              onChange={(event) => setScanContext(event.target.value)}
-              placeholder="Prefill before photo, e.g. 8 oz chicken, 150 g rice"
-              maxLength={600}
-            />
-          </label>
-        </div>}
-
-        {!activeFoodSearch && <div className="nutrition-search-tools">
-          <span><Sparkles size={15}/>Nutrition is filled in for you</span>
-          <button onClick={() => setShowCustomFood((value) => !value)}>{showCustomFood ? 'Hide custom food' : '+ Create Custom Food'}</button>
-        </div>}
+        </>}
 
         {!showCustomFood && <>
-          {!activeFoodSearch && <div className="nutrition-category-strip">
-            {['All', 'Favorites', ...FOOD_CATEGORIES].map((category) => (
-              <button key={category} className={foodCategory === category ? 'active' : ''} onClick={() => setFoodCategory(category)}>{category}</button>
-            ))}
-          </div>}
           {foodSearch.trim().length >= 2 && (
             <div className="nutrition-live-search-status" data-state={fatSecretSearchState}>
               {fatSecretSearchState === 'loading' && <span>Searching verified foods…</span>}
-              {fatSecretSearchState === 'success' && fatSecretFoods.length > 0 && <span>Live food database · {fatSecretFoods.length} matches shown</span>}
+              {fatSecretSearchState === 'success' && fatSecretFoods.length > 0 && <span>Verified food database</span>}
               {fatSecretSearchState === 'error' && <span>{fatSecretSearchError}</span>}
             </div>
           )}
           <div className="nutrition-food-results">
-            {visibleFoodMatches.length ? visibleFoodMatches.map((food) => (
+            {(activeFoodSearch ? visibleFoodMatches : quickLogFoods).length ? (activeFoodSearch ? visibleFoodMatches : quickLogFoods).map((food) => (
               <article key={`${food.sourceLabel}-${food.id ?? food.name}`}>
                 <button className="nutrition-food-result-main" onClick={() => openFood(food)}>
                   <span className="nutrition-food-result-copy">
@@ -1788,7 +1836,7 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
                 </button>
                 <button className={`nutrition-save-result ${favoriteIds.includes(food.id) ? 'active' : ''}`} title="Favorite food" onClick={() => toggleFavorite(food)}>{favoriteIds.includes(food.id) ? <BookmarkCheck size={16}/> : <Bookmark size={16}/>}</button>
               </article>
-            )) : <div className="nutrition-no-results"><Utensils/><strong>No match yet</strong><span>Try the barcode, scan the nutrition label, or create a custom food.</span><button onClick={() => { setFoodDraft({...blankFood,name:foodSearch}); setShowCustomFood(true) }}>Create “{foodSearch}”</button></div>}
+            )) : <div className="nutrition-no-results compact"><Utensils/><strong>{activeFoodSearch ? 'No match yet' : logBrowseMode === 'Favorites' ? 'No favorites yet' : 'No recent foods yet'}</strong><span>{activeFoodSearch ? 'Try another search, a photo, barcode, or custom food.' : 'Search for a food above and AVAREN will keep your quickest choices here.'}</span>{activeFoodSearch ? <button onClick={() => { setFoodDraft({...blankFood,name:foodSearch}); setShowCustomFood(true) }}>Create “{foodSearch}”</button> : null}</div>}
           </div>
         </>}
 
