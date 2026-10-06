@@ -24254,3 +24254,241 @@ body > .nutrition-food-sheet-backdrop > .nutrition-food-sheet {
     grid-template-columns: 1fr;
   }
 }
+
+
+/* ===== NUTRITION LOG QUIET DEFAULT ===== */
+.nutrition-quick-log-panel {
+  gap: 12px;
+}
+
+.nutrition-quick-log-panel > header {
+  margin-bottom: 2px;
+}
+
+.nutrition-quick-log-panel > header p {
+  max-width: 540px;
+  margin-top: 5px;
+}
+
+.nutrition-log-quick-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.nutrition-log-quick-actions > button {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 11px;
+  border: 1px solid rgba(248,243,230,.075);
+  border-radius: 11px;
+  background: rgba(255,255,255,.012);
+  color: var(--muted);
+  font-size: .78rem;
+  font-weight: 760;
+}
+
+.nutrition-log-quick-actions > button.active {
+  border-color: rgba(223,195,125,.18);
+  background: rgba(223,195,125,.055);
+  color: var(--gold-bright);
+}
+
+.nutrition-log-capture-panel,
+.nutrition-log-barcode-panel {
+  display: grid;
+  gap: 7px;
+  padding: 9px;
+  border: 1px solid rgba(248,243,230,.07);
+  border-radius: 12px;
+  background: rgba(0,0,0,.12);
+}
+
+.nutrition-log-capture-panel {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.nutrition-log-capture-panel > button {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 48px;
+  padding: 8px 10px;
+  border: 1px solid rgba(248,243,230,.06);
+  border-radius: 9px;
+  background: rgba(255,255,255,.012);
+  color: var(--cream);
+  text-align: left;
+}
+
+.nutrition-log-capture-panel > button > span {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.nutrition-log-capture-panel strong {
+  font-size: .78rem;
+}
+
+.nutrition-log-capture-panel small {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: .65rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nutrition-log-barcode-panel {
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+}
+
+.nutrition-log-scan-barcode {
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 11px;
+  border: 1px solid rgba(223,195,125,.13);
+  border-radius: 9px;
+  background: rgba(223,195,125,.04);
+  color: var(--gold-bright);
+  font-size: .74rem;
+  font-weight: 760;
+}
+
+.nutrition-log-manual-barcode {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px;
+}
+
+.nutrition-log-manual-barcode input {
+  min-width: 0;
+  min-height: 40px;
+  padding: 0 10px;
+  border: 1px solid rgba(248,243,230,.075);
+  border-radius: 9px;
+  background: rgba(0,0,0,.14);
+  color: var(--cream);
+}
+
+.nutrition-log-manual-barcode button {
+  min-height: 40px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 9px;
+  background: rgba(255,255,255,.035);
+  color: var(--muted);
+  font-size: .72rem;
+  font-weight: 740;
+}
+
+.nutrition-log-manual-barcode button:disabled {
+  opacity: .38;
+}
+
+.nutrition-log-quick-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 3px;
+}
+
+.nutrition-log-quick-heading > div:first-child {
+  display: grid;
+  gap: 3px;
+}
+
+.nutrition-log-quick-heading > div:first-child > strong {
+  color: var(--cream);
+  font-size: .92rem;
+}
+
+.nutrition-log-quick-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 9px;
+  background: rgba(0,0,0,.15);
+}
+
+.nutrition-log-quick-toggle button {
+  min-height: 30px;
+  padding: 0 9px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--muted);
+  font-size: .68rem;
+  font-weight: 760;
+}
+
+.nutrition-log-quick-toggle button.active {
+  background: rgba(223,195,125,.08);
+  color: var(--gold-bright);
+}
+
+.nutrition-quick-log-panel .nutrition-food-results {
+  margin-top: 0;
+}
+
+.nutrition-quick-log-panel .nutrition-food-result-main {
+  min-height: 62px;
+  padding-top: 9px;
+  padding-bottom: 9px;
+}
+
+.nutrition-quick-log-panel .nutrition-no-results.compact {
+  padding: 18px 12px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .nutrition-log-quick-actions > button:hover,
+  .nutrition-log-capture-panel > button:hover {
+    border-color: rgba(223,195,125,.14);
+    background: rgba(223,195,125,.035);
+  }
+}
+
+@media (max-width: 620px) {
+  .nutrition-quick-log-panel {
+    padding: 14px;
+  }
+
+  .nutrition-quick-log-panel > header p {
+    display: none;
+  }
+
+  .nutrition-search-shell input {
+    min-height: 44px;
+  }
+
+  .nutrition-log-capture-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .nutrition-log-barcode-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .nutrition-log-quick-heading {
+    align-items: center;
+  }
+
+  .nutrition-quick-log-panel .nutrition-food-result-main {
+    min-height: 58px;
+  }
+
+  .nutrition-quick-log-panel .nutrition-food-result-macros {
+    margin-top: -3px;
+  }
+}
