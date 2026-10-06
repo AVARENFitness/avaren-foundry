@@ -50,6 +50,23 @@ describe('NutritionScreen logging UX regressions', () => {
     expect(source).toContain('Enter what your scale actually showed.')
   })
 
+  it('pauses food photos before macro analysis so athletes can add meal details', () => {
+    expect(source).toContain("setScanState('context')")
+    expect(source).toContain('Help AVA estimate this meal')
+    expect(source).toContain('Tell AVA what you know')
+    expect(source).toContain('Exact ingredients and scale weights take priority over the photo.')
+    expect(source).toContain('6 oz grilled chicken, 150 g cooked rice, 40 g avocado')
+    expect(source).toContain("runFoodScan(null, '', 'food')")
+    expect(source).toContain("runFoodScan(null, scanContext, 'food')")
+    expect(source).toContain('Best estimate')
+    expect(source).toContain('Analyze with details')
+  })
+
+  it('keeps barcode photos on the immediate barcode path', () => {
+    expect(source).toContain("if (mode === 'barcode' && file)")
+    expect(source).toContain('detectNutritionBarcode(file)')
+  })
+
   it('uses native barcode detection first and keeps a manual fallback', () => {
     expect(source).toContain('detectNutritionBarcode(file)')
     expect(source).toContain('Native scan first · AVA fallback')
