@@ -195,17 +195,22 @@ export function logRecipeToNutrition(
       ...foodResult.nutrition,
       recipes: (foodResult.nutrition.recipes ?? []).map((item) =>
         item.id === recipe.id
-          ? {
-              ...item,
-              remainingServings: Math.max(
-                0,
-                nutritionRound(
-                  Number(item.remainingServings ?? item.servings ?? 0) -
-                    multiplier,
+          ? recipe.trackInventory === false
+            ? {
+                ...item,
+                updatedAt: new Date().toISOString(),
+              }
+            : {
+                ...item,
+                remainingServings: Math.max(
+                  0,
+                  nutritionRound(
+                    Number(item.remainingServings ?? item.servings ?? 0) -
+                      multiplier,
+                  ),
                 ),
-              ),
-              updatedAt: new Date().toISOString(),
-            }
+                updatedAt: new Date().toISOString(),
+              }
           : item,
       ),
     },

@@ -1,7 +1,48 @@
+describe('Reusable scanned meals', () => {
+  it('logs a reusable meal without decrementing fake batch inventory', () => {
+    const nutrition = {
+      ...createNutritionState(),
+      recipes: [
+        {
+          id: 'meal-1',
+          name: 'Chicken bowl',
+          reusableMeal: true,
+          trackInventory: false,
+          servings: 1,
+          remainingServings: null,
+          totals: {
+            calories: 500,
+            protein: 50,
+            carbs: 45,
+            fat: 12,
+            fiber: 6,
+          },
+        },
+      ],
+    }
+
+    const result = logRecipeToNutrition(
+      nutrition,
+      '2026-10-05',
+      nutrition.recipes[0],
+      1,
+    )
+
+    expect(result.entry).toMatchObject({
+      source: 'recipe',
+      name: 'Chicken bowl',
+      calories: 500,
+      protein: 50,
+    })
+    expect(result.nutrition.recipes[0].remainingServings).toBeNull()
+  })
+})
+
 import { describe, expect, it } from 'vitest'
 import {
   appendFatSecretFoodReference,
   hydrateFatSecretNutritionSnapshot,
+  logRecipeToNutrition,
   needsFatSecretNutritionSnapshot,
 } from './nutritionActions'
 import {

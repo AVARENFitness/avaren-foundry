@@ -76,6 +76,13 @@ import {
   detectNutritionBarcode,
   normalizeBarcodeDigits,
 } from '../lib/nutritionBarcode'
+import {
+  applyReusableMealPreviewToRecipe,
+  buildReusableMealAdjustments,
+  buildReusableMealIngredientFromFood,
+  buildReusableMealRecipe,
+  calculateReusableMealTotals,
+} from '../lib/reusableMealRecipes'
 
 const tabs = [
   { label: 'Today', value: 'Today' },
@@ -174,6 +181,12 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
   const [recipeSearch, setRecipeSearch] = useState('')
   const [recipeLogTarget, setRecipeLogTarget] = useState(null)
   const [recipeLogAmount, setRecipeLogAmount] = useState(1)
+  const [reusableMealLogTarget, setReusableMealLogTarget] = useState(null)
+  const [reusableMealWorkingIngredients, setReusableMealWorkingIngredients] = useState([])
+  const [reusableMealAdjustments, setReusableMealAdjustments] = useState([])
+  const [reusableIngredientSearch, setReusableIngredientSearch] = useState('')
+  const [reusableIngredientResults, setReusableIngredientResults] = useState([])
+  const [reusableIngredientSearchState, setReusableIngredientSearchState] = useState('idle')
   const [notice, setNotice] = useState('')
   const cameraInputRef = useRef(null)
   const uploadInputRef = useRef(null)
@@ -188,6 +201,7 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
   const [scanMeasureUnit, setScanMeasureUnit] = useState(FOOD_MEASURE_UNIT.SERVING)
   const [scanMeasureAmount, setScanMeasureAmount] = useState('1')
   const [scanMatches, setScanMatches] = useState([])
+  const [scanSavedAsReusable, setScanSavedAsReusable] = useState(false)
   const [barcodeManualValue, setBarcodeManualValue] = useState('')
   const [showWorkoutActivityForm, setShowWorkoutActivityForm] = useState(false)
   const [workoutActivityDraft, setWorkoutActivityDraft] = useState({
@@ -213,7 +227,13 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
   const [setupError, setSetupError] = useState('')
   const [editingTargets, setEditingTargets] = useState(false)
 
-  useAppModalLayer(Boolean(selectedFood || recipeLogTarget || scanPreview || scanResult))
+  useAppModalLayer(Boolean(
+    selectedFood ||
+    recipeLogTarget ||
+    reusableMealLogTarget ||
+    scanPreview ||
+    scanResult
+  ))
 
   const goals = { ...DEFAULT_NUTRITION_GOALS, ...(nutrition?.goals ?? {}) }
   const nutritionConfigured =
@@ -375,6 +395,84 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
     }
   }, [foodSearch, tab, showCustomFood])
 
+  useEffect(() => {
+    const query = reusableIngredientSearch.trim()
+    if (!reusableMealLogTarget || query.length < 2) {
+      setReusableIngredientResults([])
+      setReusableIngredientSearchState('idle')
+      return undefined
+    }
+
+    const localQuery = query.toLowerCase()
+    const localMatches = [
+      ...(nutrition.savedFoods ?? []).map((food) => ({
+        ...food,
+        sourceLabel: 'Saved',
+      })),
+      ...COMMON_FOODS.map((food) => ({
+        ...food,
+        sourceLabel: food.brand ?? 'AVAREN',
+      })),
+    ]
+      .filter((food) =>
+        `${food.name} ${food.brand ?? ''} ${food.keywords ?? ''}`
+          .toLowerCase()
+          .includes(localQuery),
+      )
+      .slice(0, 6)
+
+    setReusableIngredientResults(localMatches)
+    setReusableIngredientSearchState('loading')
+
+    let cancelled = false
+    const timer = window.setTimeout(async () => {
+      try {
+        const result = await searchFatSecretFoods(query, { maxResults: 8 })
+        if (cancelled) return
+        const remote = (result.foods ?? []).map((food) => ({
+          id: `fatsecret:${food.foodId}`,
+          foodId: food.foodId,
+          provider: 'fatsecret',
+          sourceLabel: 'FatSecret',
+          name: food.name,
+          brand: food.brand || 'FatSecret',
+          serving:
+            food.description?.match(/^Per ([^-]+?)\s+-/i)?.[1]?.trim() ??
+            '1 serving',
+          calories: Number(food.summaryNutrition?.calories ?? 0),
+          protein: Number(food.summaryNutrition?.protein ?? 0),
+          carbs: Number(food.summaryNutrition?.carbs ?? 0),
+          fat: Number(food.summaryNutrition?.fat ?? 0),
+          fiber: 0,
+          description: food.description,
+        }))
+        setReusableIngredientResults([
+          ...localMatches,
+          ...remote.filter(
+            (food) =>
+              !localMatches.some(
+                (local) =>
+                  local.name.toLowerCase() === food.name.toLowerCase(),
+              ),
+          ),
+        ].slice(0, 10))
+        setReusableIngredientSearchState('success')
+      } catch {
+        if (cancelled) return
+        setReusableIngredientSearchState('success')
+      }
+    }, 300)
+
+    return () => {
+      cancelled = true
+      window.clearTimeout(timer)
+    }
+  }, [
+    reusableIngredientSearch,
+    reusableMealLogTarget,
+    nutrition.savedFoods,
+  ])
+
   const activeFoodSearch = foodSearch.trim().length >= 2
 
   const visibleFoodMatches = useMemo(() => {
@@ -510,6 +608,7 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
     setScanMeasureUnit(FOOD_MEASURE_UNIT.SERVING)
     setScanMeasureAmount('1')
     setScanMatches([])
+    setScanSavedAsReusable(false)
     setBarcodeManualValue('')
     if (cameraInputRef.current) cameraInputRef.current.value = ''
     if (uploadInputRef.current) uploadInputRef.current.value = ''
@@ -624,6 +723,7 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
       setScanMeasureUnit(FOOD_MEASURE_UNIT.SERVING)
       setScanMeasureAmount('1')
       setScanMatches([])
+      setScanSavedAsReusable(false)
 
       if (result.kind === 'packaged_product' && result.searchQuery?.trim()) {
         try {
@@ -697,6 +797,32 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
         fiber: round(Number(scanDraft.fiber || 0) * scanQuantityValue),
       }
     : null
+
+  const saveScannedMealAsReusable = () => {
+    if (!scanDraft?.name?.trim()) return
+
+    const recipe = buildReusableMealRecipe({
+      name: scanDraft.name,
+      components: scanResult?.components ?? [],
+      totals: {
+        calories: Number(scaledScanDraft?.calories || 0),
+        protein: Number(scaledScanDraft?.protein || 0),
+        carbs: Number(scaledScanDraft?.carbs || 0),
+        fat: Number(scaledScanDraft?.fat || 0),
+        fiber: Number(scaledScanDraft?.fiber || 0),
+      },
+      context: scanContext,
+      sourceImageKind: scanResult?.kind ?? 'meal',
+    })
+
+    patch((current) => ({
+      ...current,
+      recipes: [recipe, ...(current.recipes ?? [])],
+    }))
+
+    setScanSavedAsReusable(true)
+    setNotice(`${recipe.name} saved to Library for one-tap logging.`)
+  }
 
   const logScannedFood = () => {
     if (!scanDraft?.name?.trim()) return
@@ -1061,7 +1187,8 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
         ...recipe,
         id: createRuntimeId(),
         name: `${recipe.name} Copy`,
-        remainingServings: recipe.servings,
+        remainingServings:
+          recipe.trackInventory === false ? null : recipe.servings,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       },
@@ -1091,6 +1218,138 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
     )
     setRecipeLogTarget(null)
     setRecipeLogAmount(1)
+  }
+
+  const openReusableMealAdjuster = (recipe) => {
+    setReusableMealLogTarget(recipe)
+    setReusableMealWorkingIngredients(recipe.ingredients ?? [])
+    setReusableMealAdjustments(buildReusableMealAdjustments(recipe))
+    setReusableIngredientSearch('')
+    setReusableIngredientResults([])
+    setReusableIngredientSearchState('idle')
+  }
+
+  const reusableMealPreview = reusableMealLogTarget
+    ? calculateReusableMealTotals(
+        {
+          ...reusableMealLogTarget,
+          ingredients: reusableMealWorkingIngredients,
+        },
+        reusableMealAdjustments,
+      )
+    : null
+
+  const removeReusableMealIngredient = (ingredientId) => {
+    setReusableMealWorkingIngredients((current) =>
+      current.filter((item) => item.id !== ingredientId),
+    )
+    setReusableMealAdjustments((current) =>
+      current.filter((item) => item.id !== ingredientId),
+    )
+  }
+
+  const addReusableMealIngredient = async (food) => {
+    try {
+      let resolvedFood = food
+
+      if (food.provider === 'fatsecret' && food.foodId) {
+        const detail = await getFatSecretFood(food.foodId)
+        const serving = detail.servings?.[0]
+        if (!serving) throw new Error('No serving information is available for that food.')
+
+        resolvedFood = {
+          name: detail.name || food.name,
+          serving: serving.description,
+          servingBasis: resolveFoodServingBasis(serving),
+          calories: Number(serving.calories || 0),
+          protein: Number(serving.protein || 0),
+          carbs: Number(serving.carbs || 0),
+          fat: Number(serving.fat || 0),
+          fiber: Number(serving.fiber || 0),
+          basis: 'database',
+        }
+      }
+
+      const ingredient = buildReusableMealIngredientFromFood(resolvedFood)
+      setReusableMealWorkingIngredients((current) => [...current, ingredient])
+      setReusableMealAdjustments((current) => [
+        ...current,
+        ...buildReusableMealAdjustments({ ingredients: [ingredient] }),
+      ])
+      setReusableIngredientSearch('')
+      setReusableIngredientResults([])
+      setReusableIngredientSearchState('idle')
+      setNotice(`${ingredient.name} added to today’s meal edit.`)
+    } catch (error) {
+      setNotice(error?.message ?? 'Could not add that ingredient.')
+    }
+  }
+
+  const updateSavedReusableMeal = () => {
+    if (!reusableMealLogTarget || !reusableMealPreview) return
+
+    const updated = applyReusableMealPreviewToRecipe(
+      {
+        ...reusableMealLogTarget,
+        ingredients: reusableMealWorkingIngredients,
+      },
+      reusableMealPreview,
+    )
+
+    patch((current) => ({
+      ...current,
+      recipes: (current.recipes ?? []).map((recipe) =>
+        recipe.id === updated.id ? updated : recipe,
+      ),
+    }))
+
+    setReusableMealLogTarget(updated)
+    setReusableMealWorkingIngredients(updated.ingredients ?? [])
+    setReusableMealAdjustments(buildReusableMealAdjustments(updated))
+    setNotice(`${updated.name} updated as your new default meal.`)
+  }
+
+  const logAdjustedReusableMeal = () => {
+    if (!reusableMealLogTarget || !reusableMealPreview) return
+
+    const payload = {
+      id: reusableMealLogTarget.id,
+      name: reusableMealLogTarget.name,
+      calories: reusableMealPreview.totals.calories,
+      protein: reusableMealPreview.totals.protein,
+      carbs: reusableMealPreview.totals.carbs,
+      fat: reusableMealPreview.totals.fat,
+      fiber: reusableMealPreview.totals.fiber,
+      servings: 1,
+      recipeId: reusableMealLogTarget.id,
+      reusableMeal: true,
+      components: reusableMealPreview.ingredients.map((item) => ({
+        name: item.name,
+        amount: item.adjustedAmount,
+        calories: item.calories,
+        protein: item.protein,
+        carbs: item.carbs,
+        fat: item.fat,
+        fiber: item.fiber,
+      })),
+    }
+
+    patch((current) =>
+      appendFoodToNutrition(
+        current,
+        date,
+        payload,
+        'reusable_meal',
+      ).nutrition,
+    )
+
+    setNotice(`${reusableMealLogTarget.name} added with today’s adjustments.`)
+    setReusableMealLogTarget(null)
+    setReusableMealWorkingIngredients([])
+    setReusableMealAdjustments([])
+    setReusableIngredientSearch('')
+    setReusableIngredientResults([])
+    setTab('Today')
   }
 
   const addWater = (ounces) =>
@@ -1759,7 +2018,16 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
 
                 {scanResult.notes ? <p className="nutrition-scan-note">{scanResult.notes}</p> : null}
 
-                <div className="nutrition-sheet-actions">
+                <div className="nutrition-sheet-actions nutrition-scan-final-actions">
+                  <button
+                    type="button"
+                    className="nutrition-secondary-button"
+                    onClick={saveScannedMealAsReusable}
+                    disabled={scanSavedAsReusable}
+                  >
+                    {scanSavedAsReusable ? <BookmarkCheck/> : <BookmarkPlus/>}
+                    {scanSavedAsReusable ? 'Saved to Library' : 'Save reusable meal'}
+                  </button>
                   <button className="gold-button machined" onClick={logScannedFood}><Plus/>Add to Today</button>
                 </div>
               </> : null}
@@ -2029,19 +2297,189 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
               const servings = Math.max(1, Number(recipe.servings || 1))
               const totals = recipe.totals ?? { calories: recipe.calories, protein: recipe.protein, carbs: recipe.carbs, fat: recipe.fat, fiber: recipe.fiber }
               const remainingServings = Number(recipe.remainingServings ?? recipe.servings ?? 0)
-              return <article key={recipe.id} className="nutrition-recipe-card">
-                <header><div><strong>{recipe.name}</strong><span>{servings} serving batch · {Math.round(Number(totals.calories || 0) / servings)} cal per serving</span></div><PackageCheck size={19}/></header>
-                <div className="nutrition-recipe-inventory"><span>Remaining</span><strong>{round(remainingServings)} <small>of {servings}</small></strong><ProgressBar value={remainingServings} goal={servings}/></div>
+              return <article key={recipe.id} className={`nutrition-recipe-card${recipe.reusableMeal ? ' is-reusable-meal' : ''}`}>
+                <header>
+                  <div>
+                    <strong>{recipe.name}</strong>
+                    <span>
+                      {recipe.reusableMeal
+                        ? `AVA reusable meal · ${Math.round(Number(totals.calories || 0))} cal`
+                        : `${servings} serving batch · ${Math.round(Number(totals.calories || 0) / servings)} cal per serving`}
+                    </span>
+                  </div>
+                  {recipe.reusableMeal ? <Sparkles size={19}/> : <PackageCheck size={19}/>}
+                </header>
+
+                {recipe.reusableMeal ? (
+                  <div className="nutrition-reusable-meal-summary">
+                    <span>{(recipe.ingredients ?? []).length ? `${recipe.ingredients.length} remembered components` : 'Saved macro estimate'}</span>
+                    {recipe.context ? <small>{recipe.context}</small> : null}
+                  </div>
+                ) : (
+                  <div className="nutrition-recipe-inventory"><span>Remaining</span><strong>{round(remainingServings)} <small>of {servings}</small></strong><ProgressBar value={remainingServings} goal={servings}/></div>
+                )}
+
                 <div className="nutrition-recipe-card-actions">
-                  <button onClick={() => { setRecipeLogTarget(recipe); setRecipeLogAmount(1) }}><Plus size={15}/>Log Portion</button>
+                  {recipe.reusableMeal ? (
+                    <>
+                      <button onClick={() => logRecipe(recipe, 1)}><Plus size={15}/>Log Again</button>
+                      <button onClick={() => openReusableMealAdjuster(recipe)}><Scale size={15}/>Adjust & Log</button>
+                    </>
+                  ) : (
+                    <>
+                      <button onClick={() => { setRecipeLogTarget(recipe); setRecipeLogAmount(1) }}><Plus size={15}/>Log Portion</button>
+                      <button onClick={() => resetRecipeBatch(recipe)}><RotateCcw size={15}/>New Batch</button>
+                    </>
+                  )}
                   <button onClick={() => duplicateRecipe(recipe)}><Copy size={15}/>Duplicate</button>
-                  <button onClick={() => resetRecipeBatch(recipe)}><RotateCcw size={15}/>New Batch</button>
                   <button className="danger" onClick={() => deleteRecipe(recipe)}><Trash2 size={15}/>Delete</button>
                 </div>
               </article>
             })}
           </div>
         </section>
+
+        {reusableMealLogTarget && <div className="nutrition-food-sheet-backdrop" data-app-ui-backdrop="open" onClick={() => {
+          setReusableMealLogTarget(null)
+          setReusableMealWorkingIngredients([])
+          setReusableMealAdjustments([])
+          setReusableIngredientSearch('')
+          setReusableIngredientResults([])
+        }}>
+          <section className="nutrition-food-sheet nutrition-reusable-meal-sheet" onClick={(event) => event.stopPropagation()}>
+            <header>
+              <div>
+                <span className="eyebrow">ADJUST & LOG</span>
+                <h2>{reusableMealLogTarget.name}</h2>
+                <p>Change what was different today. AVAREN rescales each measurable ingredient before logging.</p>
+              </div>
+              <button onClick={() => {
+                setReusableMealLogTarget(null)
+                setReusableMealWorkingIngredients([])
+                setReusableMealAdjustments([])
+                setReusableIngredientSearch('')
+                setReusableIngredientResults([])
+              }}><X size={18}/></button>
+            </header>
+
+            <div className="nutrition-reusable-adjustments">
+              {reusableMealWorkingIngredients.length ? reusableMealWorkingIngredients.map((ingredient) => {
+                const adjustment = reusableMealAdjustments.find((item) => item.id === ingredient.id)
+                const measured = ingredient.baseAmount != null && ingredient.baseUnit
+                return <article key={ingredient.id}>
+                  <div>
+                    <strong>{ingredient.name}</strong>
+                    <small>{ingredient.amount || 'AVA estimate'} · {Math.round(Number(ingredient.calories || 0))} cal baseline</small>
+                  </div>
+                  <div className="nutrition-reusable-adjustment-input">
+                    <input
+                      type="number"
+                      min="0.01"
+                      step="0.1"
+                      inputMode="decimal"
+                      value={adjustment?.amount ?? ''}
+                      onChange={(event) => setReusableMealAdjustments((current) =>
+                        current.map((item) =>
+                          item.id === ingredient.id
+                            ? { ...item, amount: event.target.value }
+                            : item,
+                        ),
+                      )}
+                    />
+                    {measured ? (
+                      <select
+                        value={adjustment?.unit ?? ingredient.baseUnit}
+                        onChange={(event) => setReusableMealAdjustments((current) =>
+                          current.map((item) =>
+                            item.id === ingredient.id
+                              ? { ...item, unit: event.target.value }
+                              : item,
+                          ),
+                        )}
+                      >
+                        <option value="g">g</option>
+                        <option value="oz">oz</option>
+                      </select>
+                    ) : (
+                      <strong>×</strong>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    className="nutrition-reusable-remove"
+                    aria-label={`Remove ${ingredient.name}`}
+                    onClick={() => removeReusableMealIngredient(ingredient.id)}
+                  >
+                    <Trash2 size={15}/>
+                  </button>
+                </article>
+              }) : <div className="nutrition-empty compact"><Utensils/><p>No ingredients in this version yet.</p></div>}
+            </div>
+
+            <section className="nutrition-reusable-add">
+              <div>
+                <span className="eyebrow">ADD INGREDIENT</span>
+                <strong>Search AVAREN foods</strong>
+                <small>Add something that is in today’s version but not the saved meal.</small>
+              </div>
+              <div className="nutrition-reusable-add-search">
+                <Search size={16}/>
+                <input
+                  value={reusableIngredientSearch}
+                  onChange={(event) => setReusableIngredientSearch(event.target.value)}
+                  placeholder="Try cheese, Greek yogurt, avocado..."
+                />
+              </div>
+              {reusableIngredientSearchState === 'loading' ? (
+                <small className="nutrition-reusable-search-status">Searching verified foods…</small>
+              ) : null}
+              {reusableIngredientResults.length ? (
+                <div className="nutrition-reusable-add-results">
+                  {reusableIngredientResults.map((food) => (
+                    <button
+                      type="button"
+                      key={`${food.sourceLabel ?? 'food'}-${food.id ?? food.name}`}
+                      onClick={() => void addReusableMealIngredient(food)}
+                    >
+                      <span>
+                        <strong>{food.name}</strong>
+                        <small>{food.serving ?? '1 serving'} · {food.sourceLabel ?? food.brand ?? 'AVAREN'}</small>
+                      </span>
+                      <Plus size={15}/>
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </section>
+
+            {reusableMealPreview ? <div className="nutrition-sheet-macros">
+              <article><span>Calories</span><strong>{Math.round(Number(reusableMealPreview.totals.calories || 0))}</strong></article>
+              <article><span>Protein</span><strong>{round(reusableMealPreview.totals.protein)}g</strong></article>
+              <article><span>Carbs</span><strong>{round(reusableMealPreview.totals.carbs)}g</strong></article>
+              <article><span>Fat</span><strong>{round(reusableMealPreview.totals.fat)}g</strong></article>
+            </div> : null}
+
+            <div className="nutrition-reusable-final-actions">
+              <button
+                type="button"
+                className="nutrition-secondary-button"
+                onClick={updateSavedReusableMeal}
+                disabled={!reusableMealWorkingIngredients.length}
+              >
+                <Save size={16}/>
+                Update saved meal
+              </button>
+              <button
+                className="gold-button machined"
+                onClick={logAdjustedReusableMeal}
+                disabled={!reusableMealWorkingIngredients.length}
+              >
+                <Plus/>
+                Add adjusted meal
+              </button>
+            </div>
+          </section>
+        </div>}
 
         {recipeLogTarget && <div className="nutrition-food-sheet-backdrop" data-app-ui-backdrop="open" onClick={() => setRecipeLogTarget(null)}>
           <section className="nutrition-food-sheet nutrition-recipe-log-sheet" onClick={(event) => event.stopPropagation()}>
