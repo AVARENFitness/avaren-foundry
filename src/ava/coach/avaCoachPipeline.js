@@ -46,6 +46,15 @@ import {
   ensureCoachPortfolio,
   mergeCoachPortfolioBundle,
 } from '../../lib/coachPortfolioService'
+import {
+  executeCoachCalendarCommand,
+  parseCoachCalendarCommand,
+} from './avaCoachCalendarActions'
+import {
+  executeCoachAvailabilityQuery,
+  parseCoachAvailabilityQuery,
+} from './avaCoachAvailability'
+
 
 const collectCoachActions = (result = {}) => {
   const actions = []
