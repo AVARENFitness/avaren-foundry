@@ -150,24 +150,27 @@ export default function WorkoutBuilderScreen({
     const index = draft.rotation.indexOf(selectedWorkout)
     const replacement =
       draft.rotation[index + 1] ?? draft.rotation[index - 1] ?? null
+    const workouts = { ...draft.workouts }
+    delete workouts[selectedWorkout]
+    const rotation = draft.rotation.filter((item) => item !== selectedWorkout)
+    const nextProgram = {
+      ...draft,
+      rotation,
+      nextWorkout:
+        draft.nextWorkout === selectedWorkout
+          ? replacement
+          : draft.nextWorkout,
+      workouts,
+    }
 
-    setDraft((current) => {
-      const workouts = { ...current.workouts }
-      delete workouts[selectedWorkout]
-      const rotation = current.rotation.filter((item) => item !== selectedWorkout)
-
-      return {
-        ...current,
-        rotation,
-        nextWorkout:
-          current.nextWorkout === selectedWorkout
-            ? replacement
-            : current.nextWorkout,
-        workouts,
-      }
-    })
+    setDraft(nextProgram)
     setSelectedWorkout(replacement)
     setSaved(false)
+
+    if (!rotation.length) {
+      onSave(nextProgram)
+      appUi.toast('Workout builder is empty. Build your next program from scratch.', 'success')
+    }
   }
 
   const clearAllWorkouts = async () => {
