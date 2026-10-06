@@ -23994,3 +23994,117 @@ body > .nutrition-food-sheet-backdrop > .nutrition-food-sheet {
     order: 2;
   }
 }
+
+
+/* ===== REUSABLE SCANNED MEALS ===== */
+.nutrition-scan-final-actions {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.nutrition-recipe-card.is-reusable-meal {
+  border-color: rgba(223,195,125,.13);
+  background: rgba(223,195,125,.025);
+}
+
+.nutrition-reusable-meal-summary {
+  display: grid;
+  gap: 4px;
+  padding: 10px 0;
+}
+
+.nutrition-reusable-meal-summary > span {
+  color: var(--gold-bright);
+  font-size: .73rem;
+  font-weight: 720;
+}
+
+.nutrition-reusable-meal-summary > small {
+  color: var(--muted);
+  font-size: .72rem;
+  line-height: 1.4;
+}
+
+.nutrition-reusable-meal-sheet {
+  max-width: 620px;
+}
+
+.nutrition-reusable-adjustments {
+  display: grid;
+  gap: 8px;
+}
+
+.nutrition-reusable-adjustments > article {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 12px;
+  border: 1px solid rgba(248,243,230,.075);
+  border-radius: 11px;
+  background: rgba(255,255,255,.012);
+}
+
+.nutrition-reusable-adjustments > article > div:first-child {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.nutrition-reusable-adjustments strong {
+  color: var(--cream);
+  font-size: .83rem;
+}
+
+.nutrition-reusable-adjustments small {
+  color: var(--muted);
+  font-size: .69rem;
+}
+
+.nutrition-reusable-adjustment-input {
+  display: grid;
+  grid-template-columns: 82px auto;
+  align-items: center;
+  gap: 6px;
+}
+
+.nutrition-reusable-adjustment-input input,
+.nutrition-reusable-adjustment-input select {
+  min-height: 38px;
+  border: 1px solid rgba(248,243,230,.09);
+  border-radius: 9px;
+  background: rgba(0,0,0,.16);
+  color: var(--cream);
+}
+
+.nutrition-reusable-adjustment-input input {
+  width: 82px;
+  padding: 0 9px;
+}
+
+.nutrition-reusable-adjustment-input select {
+  padding: 0 8px;
+}
+
+.nutrition-reusable-adjustment-input > strong {
+  color: var(--gold-bright);
+  font-size: .8rem;
+}
+
+@media (max-width: 520px) {
+  .nutrition-scan-final-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .nutrition-reusable-adjustments > article {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+
+  .nutrition-reusable-adjustment-input {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .nutrition-reusable-adjustment-input input {
+    width: 100%;
+  }
+}
