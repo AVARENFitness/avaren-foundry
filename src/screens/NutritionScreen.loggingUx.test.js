@@ -88,6 +88,22 @@ describe('NutritionScreen logging UX regressions', () => {
     expect(source).toContain('Change what was different today.')
   })
 
+  it('lets reusable meals add and remove ingredients before logging', () => {
+    expect(source).toContain('removeReusableMealIngredient')
+    expect(source).toContain('addReusableMealIngredient')
+    expect(source).toContain('Search AVAREN foods')
+    expect(source).toContain('Try cheese, Greek yogurt, avocado...')
+    expect(source).toContain('Update saved meal')
+    expect(source).toContain('Add adjusted meal')
+    expect(source).toContain('applyReusableMealPreviewToRecipe')
+  })
+
+  it('keeps one-time meal edits separate from saved-default updates', () => {
+    expect(source).toContain('updateSavedReusableMeal')
+    expect(source).toContain('added with today’s adjustments')
+    expect(source).toContain('updated as your new default meal')
+  })
+
   it('keeps reusable meals separate from batch inventory semantics', () => {
     expect(source).toContain('recipe.reusableMeal')
     expect(source).toContain("recipe.trackInventory === false ? null : recipe.servings")
