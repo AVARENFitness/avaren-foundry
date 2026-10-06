@@ -128,3 +128,42 @@ export const foodMeasureDisplay = ({ amount, unit } = {}) => {
   }
   return `${rounded} ${normalizedUnit}`
 }
+
+
+export const resolveNutritionLabelConsumptionMeasurement = ({
+  servingBasis = null,
+  context = '',
+} = {}) => {
+  if (
+    !servingBasis?.amount ||
+    ![FOOD_MEASURE_UNIT.GRAM, FOOD_MEASURE_UNIT.OUNCE].includes(
+      normalizeFoodMeasureUnit(servingBasis.unit),
+    )
+  ) {
+    return null
+  }
+
+  const userMeasurement = parseFoodServingMeasurement(context)
+  const measurement =
+    userMeasurement &&
+    [FOOD_MEASURE_UNIT.GRAM, FOOD_MEASURE_UNIT.OUNCE].includes(
+      userMeasurement.unit,
+    )
+      ? userMeasurement
+      : {
+          amount: Number(servingBasis.amount),
+          unit: normalizeFoodMeasureUnit(servingBasis.unit),
+        }
+
+  const multiplier = foodMeasureMultiplier({
+    amount: measurement.amount,
+    unit: measurement.unit,
+    servingBasis,
+  })
+
+  return {
+    ...measurement,
+    multiplier: multiplier ?? 1,
+    source: userMeasurement ? 'user_context' : 'label_serving',
+  }
+}

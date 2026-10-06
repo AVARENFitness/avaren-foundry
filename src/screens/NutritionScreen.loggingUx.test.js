@@ -76,6 +76,26 @@ describe('NutritionScreen logging UX regressions', () => {
     expect(source).toContain('Analyze with details')
   })
 
+  it('keeps camera and barcode capture inputs mounted for Today quick log', () => {
+    const nav = source.indexOf('className="nutrition-tabs"')
+    const today = source.indexOf("tab === 'Today'")
+    const cameraInput = source.indexOf('ref={cameraInputRef}')
+    const barcodeInput = source.indexOf('ref={barcodeInputRef}')
+
+    expect(cameraInput).toBeGreaterThan(nav)
+    expect(barcodeInput).toBeGreaterThan(nav)
+    expect(cameraInput).toBeLessThan(today)
+    expect(barcodeInput).toBeLessThan(today)
+  })
+
+  it('uses exact user-entered weight when a nutrition label has a measurable serving', () => {
+    expect(source).toContain('resolveNutritionLabelConsumptionMeasurement')
+    expect(source).toContain('setScanMeasureUnit(labelConsumption.unit)')
+    expect(source).toContain('setScanMeasureAmount(String(labelConsumption.amount))')
+    expect(source).toContain('setScanQuantity(labelConsumption.multiplier)')
+    expect(source).toContain('What did your scale show?')
+  })
+
   it('keeps barcode photos on the immediate barcode path', () => {
     expect(source).toContain("if (mode === 'barcode' && file)")
     expect(source).toContain('detectNutritionBarcode(file)')

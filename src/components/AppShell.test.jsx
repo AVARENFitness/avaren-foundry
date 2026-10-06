@@ -125,6 +125,21 @@ describe('AppShell navigation', () => {
       </AppShell>,
     )
 
-    expect(screen.getByRole('button', { name: 'Food' }).className).toContain('active')
+    const food = screen.getByRole('button', { name: 'Food' })
+    expect(food.className).toContain('active')
+    expect(food).toHaveAttribute('aria-current', 'page')
+  })
+
+  it('marks the screen stage busy during route transition', () => {
+    const { container } = render(
+      <AppShell screen="home" setScreen={() => {}} transitioning>
+        <div>Home</div>
+      </AppShell>,
+    )
+
+    expect(container.querySelector('.screen-stage')).toHaveAttribute(
+      'aria-busy',
+      'true',
+    )
   })
 })

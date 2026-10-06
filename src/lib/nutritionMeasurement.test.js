@@ -6,6 +6,7 @@ import {
   foodMeasureMultiplier,
   parseFoodServingMeasurement,
   resolveFoodServingBasis,
+  resolveNutritionLabelConsumptionMeasurement,
 } from './nutritionMeasurement'
 
 describe('nutritionMeasurement', () => {
@@ -53,5 +54,33 @@ describe('nutritionMeasurement', () => {
   it('converts grams and ounces both ways', () => {
     expect(convertFoodMeasureAmount(GRAMS_PER_OUNCE, 'g', 'oz')).toBeCloseTo(1, 6)
     expect(convertFoodMeasureAmount(1, 'oz', 'g')).toBeCloseTo(GRAMS_PER_OUNCE, 6)
+  })
+
+  it('uses an exact user-entered label weight instead of one full serving', () => {
+    const measurement = resolveNutritionLabelConsumptionMeasurement({
+      servingBasis: { amount: 59, unit: 'g' },
+      context: 'I ate 16g',
+    })
+
+    expect(measurement).toMatchObject({
+      amount: 16,
+      unit: FOOD_MEASURE_UNIT.GRAM,
+      source: 'user_context',
+    })
+    expect(measurement.multiplier).toBeCloseTo(16 / 59, 6)
+  })
+
+  it('defaults a measurable label to its printed weight when no eaten weight was supplied', () => {
+    expect(
+      resolveNutritionLabelConsumptionMeasurement({
+        servingBasis: { amount: 59, unit: 'g' },
+        context: '',
+      }),
+    ).toEqual({
+      amount: 59,
+      unit: FOOD_MEASURE_UNIT.GRAM,
+      multiplier: 1,
+      source: 'label_serving',
+    })
   })
 })
