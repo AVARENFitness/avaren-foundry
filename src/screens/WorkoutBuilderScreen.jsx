@@ -15,6 +15,7 @@ import {
   LOAD_TYPE_OPTIONS,
   suggestDefaultLoadType,
 } from '../lib/exerciseLoad'
+import { appUi } from '../lib/appUi'
 
 const MUSCLES = [
   'Chest','Back','Shoulders','Traps','Biceps','Triceps','Rear Delts',
@@ -145,17 +146,19 @@ export default function WorkoutBuilderScreen({
   }
 
   const deleteWorkout = () => {
-    if (draft.rotation.length <= 1) return
+    if (!selectedWorkout) return
     const index = draft.rotation.indexOf(selectedWorkout)
     const replacement =
-      draft.rotation[index + 1] ?? draft.rotation[index - 1]
+      draft.rotation[index + 1] ?? draft.rotation[index - 1] ?? null
 
     setDraft((current) => {
       const workouts = { ...current.workouts }
       delete workouts[selectedWorkout]
+      const rotation = current.rotation.filter((item) => item !== selectedWorkout)
+
       return {
         ...current,
-        rotation: current.rotation.filter((item) => item !== selectedWorkout),
+        rotation,
         nextWorkout:
           current.nextWorkout === selectedWorkout
             ? replacement
@@ -165,6 +168,30 @@ export default function WorkoutBuilderScreen({
     })
     setSelectedWorkout(replacement)
     setSaved(false)
+  }
+
+  const clearAllWorkouts = async () => {
+    if (!draft.rotation.length) return
+
+    const confirmed = await appUi.confirm({
+      message:
+        'Clear every workout from your builder? Your completed workout history will stay intact, but your current program and weekly workout plan will be reset.',
+      tone: 'danger',
+      confirmLabel: 'Clear workouts',
+    })
+    if (!confirmed) return
+
+    const emptyProgram = {
+      rotation: [],
+      nextWorkout: null,
+      workouts: {},
+    }
+
+    setDraft(emptyProgram)
+    setSelectedWorkout(null)
+    setSaved(false)
+    onSave(emptyProgram)
+    appUi.toast('Workout builder cleared. Start fresh whenever you are ready.', 'success')
   }
 
   const groups = useMemo(() => {
@@ -241,7 +268,6 @@ export default function WorkoutBuilderScreen({
             <button onClick={duplicateWorkout}><Copy size={15} /> Duplicate</button>
             <button
               className="builder-delete-workout"
-              disabled={draft.rotation.length <= 1}
               onClick={deleteWorkout}
             >
               <Trash2 size={15} /> Delete
@@ -365,6 +391,15 @@ export default function WorkoutBuilderScreen({
         <>
           <button className="builder-add-exercise" onClick={addExercise}>
             <Plus size={18} /> Add Exercise
+          </button>
+
+          <button
+            type="button"
+            className="builder-clear-program"
+            onClick={clearAllWorkouts}
+          >
+            <Trash2 size={16} />
+            Clear all workouts
           </button>
 
           <div className="builder-save-bar">
