@@ -24492,3 +24492,641 @@ body > .nutrition-food-sheet-backdrop > .nutrition-food-sheet {
     margin-top: -3px;
   }
 }
+
+
+/* ===== CALM VISUAL HIERARCHY · PROGRESS / ACTIVE WORKOUT / NUTRITION ===== */
+
+/* Progress opens with the big picture instead of configuration. */
+.progress-overall-hero,
+.progress-lift-browser {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid rgba(248,243,230,.075);
+  border-radius: 18px;
+  background: rgba(255,255,255,.012);
+}
+
+.progress-overall-hero h1,
+.progress-lift-browser h2,
+.progress-selected-lift-header h2 {
+  margin: 5px 0 4px;
+  letter-spacing: -.035em;
+}
+
+.progress-overall-hero > div:first-child > p,
+.progress-lift-browser > header p {
+  max-width: 620px;
+  margin: 0;
+  color: var(--muted);
+  font-size: .82rem;
+  line-height: 1.45;
+}
+
+.progress-overall-stats {
+  display: grid;
+  grid-template-columns: repeat(4,minmax(0,1fr));
+  gap: 8px;
+}
+
+.progress-overall-stats article {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid rgba(248,243,230,.065);
+  border-radius: 12px;
+  background: rgba(0,0,0,.12);
+}
+
+.progress-overall-stats small,
+.progress-selected-best span,
+.progress-lift-goal-progress span {
+  color: var(--muted);
+  font-size: .68rem;
+  font-weight: 680;
+}
+
+.progress-overall-stats strong {
+  color: var(--cream);
+  font-size: 1.35rem;
+  line-height: 1.05;
+}
+
+.progress-overall-stats strong span {
+  color: var(--muted);
+  font-size: .7rem;
+  font-weight: 650;
+}
+
+.progress-lift-select {
+  display: grid;
+  gap: 6px;
+}
+
+.progress-lift-select > span {
+  color: var(--muted);
+  font-size: .69rem;
+  font-weight: 700;
+}
+
+.progress-lift-select select {
+  width: 100%;
+  min-height: 46px;
+  padding: 0 12px;
+  border: 1px solid rgba(223,195,125,.14);
+  border-radius: 11px;
+  background: rgba(0,0,0,.16);
+  color: var(--cream);
+  font: inherit;
+  font-size: .88rem;
+}
+
+.progress-lift-empty {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  padding: 14px;
+  border: 1px dashed rgba(248,243,230,.075);
+  border-radius: 12px;
+  color: var(--muted);
+}
+
+.progress-lift-empty svg {
+  flex: 0 0 auto;
+  color: var(--gold-bright);
+}
+
+.progress-lift-empty div {
+  display: grid;
+  gap: 4px;
+}
+
+.progress-lift-empty strong {
+  color: var(--cream);
+  font-size: .84rem;
+}
+
+.progress-lift-empty span {
+  font-size: .74rem;
+  line-height: 1.45;
+}
+
+.progress-selected-lift {
+  display: grid;
+  gap: 10px;
+}
+
+.progress-selected-lift-header {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 14px;
+  padding-top: 3px;
+}
+
+.progress-selected-lift-header small {
+  color: var(--muted);
+  font-size: .72rem;
+}
+
+.progress-selected-best {
+  flex: 0 0 auto;
+  display: grid;
+  gap: 3px;
+  text-align: right;
+}
+
+.progress-selected-best strong {
+  color: var(--cream);
+  font-size: 1.15rem;
+}
+
+.progress-lift-goal-card {
+  display: grid;
+  gap: 11px;
+  padding: 13px;
+  border: 1px solid rgba(223,195,125,.11);
+  border-radius: 13px;
+  background: rgba(223,195,125,.025);
+}
+
+.progress-lift-goal-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.progress-lift-goal-heading > div {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.progress-lift-goal-heading strong {
+  color: var(--cream);
+  font-size: .88rem;
+}
+
+.progress-lift-goal-heading small {
+  color: var(--muted);
+  font-size: .69rem;
+}
+
+.progress-lift-goal-edit {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 34px;
+  padding: 0 9px;
+  border: 1px solid rgba(223,195,125,.13);
+  border-radius: 9px;
+  background: transparent;
+  color: var(--gold-bright);
+  font-size: .7rem;
+  font-weight: 760;
+}
+
+.progress-lift-goal-progress {
+  display: grid;
+  gap: 7px;
+}
+
+.progress-lift-goal-progress > div:first-child {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.progress-lift-goal-progress strong {
+  color: var(--cream);
+  font-size: .77rem;
+}
+
+.progress-lift-goal-track {
+  height: 5px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(248,243,230,.07);
+}
+
+.progress-lift-goal-track i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg,#9d7c3e,#e0c675);
+}
+
+.progress-lift-goal-form {
+  display: grid;
+  grid-template-columns: minmax(0,1fr) minmax(0,1fr);
+  gap: 9px;
+}
+
+.progress-lift-goal-form label {
+  display: grid;
+  gap: 5px;
+}
+
+.progress-lift-goal-form label > span {
+  color: var(--muted);
+  font-size: .67rem;
+  font-weight: 680;
+}
+
+.progress-lift-goal-form label > div {
+  display: grid;
+  grid-template-columns: minmax(0,1fr) auto;
+  align-items: center;
+  gap: 6px;
+  min-height: 42px;
+  padding: 0 10px;
+  border: 1px solid rgba(248,243,230,.08);
+  border-radius: 9px;
+  background: rgba(0,0,0,.15);
+}
+
+.progress-lift-goal-form input {
+  min-width: 0;
+  width: 100%;
+  min-height: 42px;
+  padding: 0 10px;
+  border: 1px solid rgba(248,243,230,.08);
+  border-radius: 9px;
+  background: rgba(0,0,0,.15);
+  color: var(--cream);
+}
+
+.progress-lift-goal-form label > div input {
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.progress-lift-goal-form label > div strong {
+  color: var(--gold-bright);
+  font-size: .72rem;
+}
+
+.progress-lift-goal-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  gap: 7px;
+}
+
+.progress-lift-goal-actions button {
+  min-height: 38px;
+  padding-inline: 10px;
+}
+
+.progress-lift-goal-clear {
+  color: #c99696 !important;
+}
+
+.progress-lift-browser .progress-chart-panel {
+  margin: 0;
+  padding: 14px;
+}
+
+.progress-training-goal .athlete-goal-panel {
+  margin-top: 10px;
+}
+
+/* Active workout: session context is quiet, current work stays central. */
+.focus-mode-bar.lift-session-overview {
+  padding: 12px 14px;
+  border-radius: 15px;
+}
+
+.gym-workout-heading .eyebrow {
+  opacity: .68;
+  font-size: .61rem;
+}
+
+.gym-workout-title-row {
+  gap: 8px;
+}
+
+.gym-workout-title-row h2 {
+  margin: 2px 0 0;
+  font-size: clamp(1.15rem,4.8vw,1.45rem);
+  letter-spacing: -.03em;
+}
+
+.change-workout-button {
+  min-height: 32px;
+  padding: 0 8px;
+  opacity: .74;
+}
+
+.lift-overview-meta {
+  margin-top: 5px;
+  gap: 10px;
+}
+
+.gym-session-context {
+  display: grid;
+  gap: 6px;
+  padding: 9px 11px;
+  border: 1px solid rgba(248,243,230,.065);
+  border-radius: 11px;
+  background: rgba(255,255,255,.01);
+}
+
+.gym-session-context-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.gym-session-context-chips span {
+  min-height: 24px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: rgba(223,195,125,.055);
+  color: var(--gold-bright);
+  font-size: .63rem;
+  font-weight: 760;
+}
+
+.gym-session-context p,
+.gym-session-context small {
+  margin: 0;
+  color: var(--muted);
+  font-size: .69rem;
+  line-height: 1.4;
+}
+
+.lift-session-notes {
+  border-color: rgba(248,243,230,.06);
+  background: rgba(255,255,255,.008);
+}
+
+.lift-session-notes-toggle {
+  min-height: 44px;
+  padding: 8px 10px;
+}
+
+.lift-session-notes-toggle strong {
+  font-size: .78rem;
+}
+
+.lift-session-notes-toggle small {
+  font-size: .66rem;
+}
+
+.focus-exercise {
+  gap: 10px;
+}
+
+.focus-exercise-header {
+  gap: 8px;
+  padding-bottom: 10px;
+}
+
+.focus-exercise-header h1 {
+  margin: 1px 0 0;
+  font-size: clamp(1.55rem,7vw,2.2rem);
+  letter-spacing: -.045em;
+}
+
+.focus-prescription-label {
+  margin: 0;
+  font-size: .74rem;
+}
+
+.focus-exercise-details {
+  width: 100%;
+  border-top: 1px solid rgba(248,243,230,.06);
+}
+
+.focus-exercise-details > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 42px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.focus-exercise-details > summary::-webkit-details-marker {
+  display: none;
+}
+
+.focus-exercise-details > summary > span {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.focus-exercise-details > summary strong {
+  color: var(--cream);
+  font-size: .76rem;
+}
+
+.focus-exercise-details > summary small {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: .64rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.focus-exercise-details > summary svg {
+  flex: 0 0 auto;
+  color: var(--muted);
+  transition: transform .18s ease;
+}
+
+.focus-exercise-details[open] > summary svg {
+  transform: rotate(180deg);
+}
+
+.focus-exercise-details-body {
+  display: grid;
+  gap: 8px;
+  padding: 2px 0 10px;
+}
+
+.focus-previous-session-compact {
+  margin: 0;
+  padding: 8px 10px;
+}
+
+.focus-history-glance {
+  margin-top: 0 !important;
+}
+
+.focus-set-list {
+  gap: 8px;
+}
+
+.focus-set-card {
+  border-radius: 14px;
+}
+
+.focus-utility-grid {
+  gap: 7px;
+}
+
+.skip-exercise-button,
+.remove-exercise-button {
+  opacity: .72;
+}
+
+/* Nutrition: content first, configuration second. */
+.nutrition-calorie-hero {
+  padding: 15px;
+}
+
+.nutrition-calorie-hero strong {
+  font-size: clamp(2.55rem,12vw,3.25rem);
+}
+
+.nutrition-macro-grid {
+  gap: 7px;
+}
+
+.nutrition-macro-grid article {
+  padding: 11px;
+}
+
+.nutrition-quick-log-launcher {
+  padding: 12px;
+}
+
+.nutrition-quick-log-actions {
+  grid-template-columns: repeat(3,minmax(0,1fr));
+}
+
+.nutrition-recipe-builder--collapsed {
+  padding: 0;
+  overflow: hidden;
+}
+
+.nutrition-recipe-builder--collapsed > summary {
+  min-height: 58px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 0 13px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.nutrition-recipe-builder--collapsed > summary::-webkit-details-marker {
+  display: none;
+}
+
+.nutrition-recipe-builder--collapsed > summary > div {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.nutrition-recipe-builder--collapsed > summary span {
+  display: grid;
+  gap: 2px;
+}
+
+.nutrition-recipe-builder--collapsed > summary strong {
+  color: var(--cream);
+  font-size: .84rem;
+}
+
+.nutrition-recipe-builder--collapsed > summary small {
+  color: var(--muted);
+  font-size: .68rem;
+}
+
+.nutrition-recipe-builder--collapsed > summary > svg {
+  color: var(--gold-bright);
+  transition: transform .18s ease;
+}
+
+.nutrition-recipe-builder--collapsed[open] > summary > svg {
+  transform: rotate(45deg);
+}
+
+.nutrition-recipe-builder-body {
+  display: grid;
+  gap: 14px;
+  padding: 0 13px 13px;
+  border-top: 1px solid rgba(248,243,230,.055);
+}
+
+.nutrition-insights-panel {
+  gap: 12px;
+}
+
+.nutrition-insight-grid {
+  gap: 7px;
+}
+
+.nutrition-insight-grid article {
+  padding: 10px;
+}
+
+.nutrition-adaptive-card,
+.nutrition-coaching-insight {
+  box-shadow: none;
+}
+
+@media (max-width: 620px) {
+  .progress-overall-stats {
+    grid-template-columns: repeat(2,minmax(0,1fr));
+  }
+
+  .progress-overall-hero,
+  .progress-lift-browser {
+    padding: 14px;
+  }
+
+  .progress-lift-goal-form {
+    grid-template-columns: 1fr;
+  }
+
+  .progress-lift-goal-actions {
+    grid-column: 1;
+  }
+
+  .progress-selected-lift-header {
+    align-items: flex-start;
+  }
+
+  .focus-mode-bar.lift-session-overview {
+    padding: 10px 11px;
+  }
+
+  .gym-session-context {
+    padding: 8px 9px;
+  }
+
+  .focus-exercise-header {
+    padding-inline: 1px;
+  }
+
+  .nutrition-screen {
+    gap: 12px;
+  }
+
+  .nutrition-calorie-hero,
+  .nutrition-panel,
+  .nutrition-food-log,
+  .nutrition-hydration-card {
+    padding: 14px;
+  }
+
+  .nutrition-macro-grid {
+    grid-template-columns: repeat(2,minmax(0,1fr));
+  }
+}
