@@ -16,6 +16,11 @@ import {
   resolveCalendarClient,
   resolveCoachCalendarDate,
 } from './avaCoachCalendarActions'
+import {
+  resolveAthleteDataId,
+  resolveRecordBusinessClientId,
+} from '../../lib/coachBusinessClient'
+import { getClientDisplayName } from '../../lib/clientDisplayName'
 
 export const DEFAULT_COACH_AVAILABILITY = {
   dayStartMinutes: 6 * 60,
@@ -114,6 +119,13 @@ export const parseCoachAvailabilityQuery = (
   if (!text) return null
 
   const duration = parseDuration(text)
+  const bookingRequested =
+    /\b(?:and\s+)?(?:book|schedule)(?:\s+it|\s+that|\s+the\s+best\s+(?:slot|time))?\b/i.test(
+      text,
+    ) ||
+    /\b(?:find|choose)\s+the\s+best\b.*\b(?:and\s+)?(?:book|schedule)\b/i.test(
+      text,
+    )
   const afterMatch = text.match(
     /\bafter\s+(\d{1,2}(?::?\d{2})?\s*(?:a\.?m\.?|p\.?m\.?)?)/i,
   )
@@ -123,16 +135,22 @@ export const parseCoachAvailabilityQuery = (
   const afterMinutes = afterMatch ? parseClockMinutes(afterMatch[1]) : null
   const beforeMinutes = beforeMatch ? parseClockMinutes(beforeMatch[1]) : null
 
-  const clientSlotMatch = text.match(
-    /\b(?:find|show|give)\s+(?:me\s+)?(?:an?\s+)?(?:open|available)?\s*(?:(\d+)[-\s]*(?:minute|min)\s+)?slot\s+for\s+(.+?)\s+(this week|today|tomorrow|sunday|sun|monday|mon|tuesday|tue|tues|wednesday|wed|thursday|thu|thurs|friday|fri|saturday|sat)(?:\b|$)/i,
-  )
+  const hasClientSlotIntent =
+    /\b(?:find|show|give|choose)\b.*\bslot\b.*\bfor\b/i.test(text)
+  const clientMatch = hasClientSlotIntent
+    ? text.match(
+        /\bfor\s+(.+?)(?=\s+(?:after|before|this week|today|tomorrow|sunday|sun|monday|mon|tuesday|tue|tues|wednesday|wed|thursday|thu|thurs|friday|fri|saturday|sat)\b|\s+(?:and\s+)?(?:book|schedule)\b|$)/i,
+      )
+    : null
+  const periodMatch = hasClientSlotIntent
+    ? text.match(
+        /\b(this week|today|tomorrow|sunday|sun|monday|mon|tuesday|tue|tues|wednesday|wed|thursday|thu|thurs|friday|fri|saturday|sat)\b/i,
+      )
+    : null
 
-  if (clientSlotMatch) {
-    const explicitMinutes = clientSlotMatch[1]
-      ? Number(clientSlotMatch[1])
-      : duration
-    const clientQuery = normalizeText(clientSlotMatch[2])
-    const period = lower(clientSlotMatch[3])
+  if (clientMatch && periodMatch) {
+    const clientQuery = normalizeText(clientMatch[1])
+    const period = lower(periodMatch[1])
 
     if (period === 'this week') {
       const startDate = mondayKeyFor(now)
@@ -141,10 +159,11 @@ export const parseCoachAvailabilityQuery = (
         rangeKind: 'week',
         startDate,
         endDate: addDaysKey(startDate, 6),
-        durationMinutes: explicitMinutes || 60,
+        durationMinutes: duration || 60,
         afterMinutes,
         beforeMinutes,
         clientQuery,
+        bookingRequested,
       }
     }
 
@@ -154,10 +173,11 @@ export const parseCoachAvailabilityQuery = (
       rangeKind: 'day',
       startDate: date,
       endDate: date,
-      durationMinutes: explicitMinutes || 60,
+      durationMinutes: duration || 60,
       afterMinutes,
       beforeMinutes,
       clientQuery,
+      bookingRequested,
     }
   }
 
@@ -178,6 +198,7 @@ export const parseCoachAvailabilityQuery = (
       afterMinutes,
       beforeMinutes,
       clientQuery: null,
+      bookingRequested: false,
     }
   }
 
@@ -198,6 +219,7 @@ export const parseCoachAvailabilityQuery = (
       afterMinutes,
       beforeMinutes,
       clientQuery: null,
+      bookingRequested: false,
     }
   }
 
@@ -350,6 +372,22 @@ const listUnifiedBusyItems = async ({ startDate, endDate }) => {
   ]
 }
 
+const rankBookableSlots = (slots = []) =>
+  [...slots].sort((a, b) => {
+    const dayCompare = String(a.dayKey).localeCompare(String(b.dayKey))
+    if (dayCompare !== 0) return dayCompare
+    return Number(a.startMinutes || 0) - Number(b.startMinutes || 0)
+  })
+
+const hasEquivalentBestSlot = (slots = []) => {
+  if (slots.length < 2) return false
+  const [first, second] = slots
+  return (
+    String(first.dayKey) === String(second.dayKey) &&
+    Number(first.startMinutes) === Number(second.startMinutes)
+  )
+}
+
 const formatSlot = (slot) =>
   `${formatTime12Hour(slot.startTime)}–${formatTime12Hour(slot.endTime)}`
 
@@ -414,7 +452,8 @@ export const executeCoachAvailabilityQuery = async (
     const candidates = byDay.flatMap(({ dayKey, slots }) =>
       slots.map((slot) => ({ ...slot, dayKey })),
     )
-    const top = candidates.slice(0, 5)
+    const ranked = rankBookableSlots(candidates)
+    const top = ranked.slice(0, 5)
 
     if (!top.length) {
       return {
@@ -428,7 +467,7 @@ export const executeCoachAvailabilityQuery = async (
     }
 
     const label = client
-      ? ` for ${client.coach_label ?? client.display_name ?? query.clientQuery}`
+      ? ` for ${getClientDisplayName(client) || query.clientQuery}`
       : ''
     const list = top
       .map(
@@ -436,6 +475,104 @@ export const executeCoachAvailabilityQuery = async (
           `${formatDayShort(slot.dayKey)} ${formatSlot(slot)}`,
       )
       .join(', ')
+
+    if (query.bookingRequested) {
+      if (!client) {
+        return {
+          kind: 'clarification',
+          message: 'Which client should I book into that opening?',
+          slots: top,
+          client: null,
+        }
+      }
+
+      if (!ranked.length) {
+        return {
+          kind: 'availability',
+          message: `I couldn't find a ${query.durationMinutes}-minute opening${label} in that window.`,
+          slots: [],
+          client,
+        }
+      }
+
+      if (hasEquivalentBestSlot(ranked)) {
+        return {
+          kind: 'clarification',
+          message: `I found multiple equally good options${label}: ${list}. Which one should I book?`,
+          slots: top,
+          client,
+        }
+      }
+
+      const best = ranked[0]
+      const freshItems = await listUnifiedBusyItems({
+        startDate: best.dayKey,
+        endDate: best.dayKey,
+      })
+      const stillAvailable = findAvailabilityForDay({
+        dayKey: best.dayKey,
+        items: freshItems,
+        durationMinutes: query.durationMinutes,
+        afterMinutes: query.afterMinutes,
+        beforeMinutes: query.beforeMinutes,
+        now,
+      }).some(
+        (slot) =>
+          String(slot.dayKey) === String(best.dayKey) &&
+          String(slot.startTime) === String(best.startTime),
+      )
+
+      if (!stillAvailable) {
+        return {
+          kind: 'conflict',
+          message:
+            'That opening changed before I could book it. I did not create an appointment. Ask me to check again and I’ll use the latest calendar.',
+          slots: [],
+          client,
+        }
+      }
+
+      try {
+        await coachBackend.createScheduledSession({
+          businessClientId: resolveRecordBusinessClientId(client),
+          athleteId: resolveAthleteDataId(client),
+          sessionDate: best.dayKey,
+          startTime: best.startTime,
+          durationMinutes: query.durationMinutes,
+          locationType: 'default',
+          locationName: '',
+          coachNote: 'Booked by AVA from availability search',
+          assignmentId: null,
+          existingSessions: freshItems,
+        })
+      } catch (error) {
+        if (
+          error?.message === 'appointment_overlap' ||
+          /overlap/i.test(error?.message ?? '')
+        ) {
+          return {
+            kind: 'conflict',
+            message:
+              'That opening was no longer available when I tried to book it, so I left your calendar unchanged.',
+            slots: [],
+            client,
+          }
+        }
+        throw error
+      }
+
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('avaren:coach-calendar-updated'))
+      }
+
+      return {
+        kind: 'booked',
+        message: `Booked — ${getClientDisplayName(client) || query.clientQuery} is scheduled for ${formatDayShort(best.dayKey)} from ${formatSlot(best)}.`,
+        slots: [best],
+        client,
+        bookedSlot: best,
+      }
+    }
 
     return {
       kind: 'availability',

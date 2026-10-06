@@ -46,6 +46,15 @@ import {
   ensureCoachPortfolio,
   mergeCoachPortfolioBundle,
 } from '../../lib/coachPortfolioService'
+import {
+  executeCoachCalendarCommand,
+  parseCoachCalendarCommand,
+} from './avaCoachCalendarActions'
+import {
+  executeCoachAvailabilityQuery,
+  parseCoachAvailabilityQuery,
+} from './avaCoachAvailability'
+
 
 const collectCoachActions = (result = {}) => {
   const actions = []
@@ -142,12 +151,27 @@ export async function runCoachPipelineStep({
           : availabilityCoachContext?.rosterEntries ?? [],
     })
 
+    if (result?.kind === 'booked') {
+      return createPipelineOutcome({
+        kind: AVA_PIPELINE_KIND.ACTION_SUCCESS,
+        message: result.message,
+        readOnly: false,
+        raw: {
+          calendarAvailability: true,
+          calendarBooking: true,
+          query: availabilityQuery,
+          result,
+        },
+      })
+    }
+
     return createPipelineOutcome({
       kind: AVA_PIPELINE_KIND.RESPONSE,
       message: result?.message ?? "I couldn't read your availability safely.",
       readOnly: true,
       raw: {
         calendarAvailability: true,
+        calendarBooking: false,
         query: availabilityQuery,
         result,
       },

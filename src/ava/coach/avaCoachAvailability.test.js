@@ -11,6 +11,7 @@ vi.mock('../../lib/coachBackend', () => ({
   coachBackend: {
     listScheduledSessions: vi.fn(),
     listCoachCalendarEvents: vi.fn(),
+    createScheduledSession: vi.fn(),
   },
 }))
 
@@ -31,6 +32,7 @@ describe('AVA coach availability', () => {
     vi.clearAllMocks()
     coachBackend.listScheduledSessions.mockResolvedValue([])
     coachBackend.listCoachCalendarEvents.mockResolvedValue([])
+    coachBackend.createScheduledSession.mockResolvedValue({ id: 'session-booked' })
     athleteCalendarBackend.list.mockResolvedValue([])
   })
 
@@ -81,6 +83,37 @@ describe('AVA coach availability', () => {
       endDate: '2026-10-11',
       durationMinutes: 45,
       clientQuery: 'Jake',
+    })
+  })
+
+  it('parses explicit find-and-book intent with natural constraint order', () => {
+    expect(
+      parseCoachAvailabilityQuery(
+        'Find the best 60-minute slot for Jake after 3 this week and book it.',
+        { now },
+      ),
+    ).toMatchObject({
+      rangeKind: 'week',
+      startDate: '2026-10-05',
+      endDate: '2026-10-11',
+      durationMinutes: 60,
+      afterMinutes: 15 * 60,
+      clientQuery: 'Jake',
+      bookingRequested: true,
+    })
+  })
+
+  it('keeps ordinary availability search read-only', () => {
+    expect(
+      parseCoachAvailabilityQuery(
+        'Find me a 60-minute slot for Jake after 3 this week.',
+        { now },
+      ),
+    ).toMatchObject({
+      bookingRequested: false,
+      clientQuery: 'Jake',
+      durationMinutes: 60,
+      afterMinutes: 15 * 60,
     })
   })
 
@@ -170,6 +203,107 @@ describe('AVA coach availability', () => {
     })
     expect(result.message).toMatch(/6:00 AM–10:00 AM/)
     expect(result.message).toMatch(/5:00 PM–9:00 PM/)
+  })
+
+  it('books the earliest safe slot only when explicitly authorized', async () => {
+    const query = parseCoachAvailabilityQuery(
+      'Find the best 60-minute slot for Jake after 3 this week and book it.',
+      { now },
+    )
+    const clients = [
+      {
+        id: 'business-jake',
+        business_client_id: 'business-jake',
+        athlete_id: 'athlete-jake',
+        coach_label: 'Jake',
+      },
+    ]
+
+    const result = await executeCoachAvailabilityQuery(query, {
+      now,
+      clients,
+    })
+
+    expect(result.kind).toBe('booked')
+    expect(coachBackend.createScheduledSession).toHaveBeenCalledWith(
+      expect.objectContaining({
+        businessClientId: 'business-jake',
+        athleteId: 'athlete-jake',
+        sessionDate: '2026-10-05',
+        startTime: '15:00',
+        durationMinutes: 60,
+      }),
+    )
+    expect(result.message).toMatch(/Booked — Jake/i)
+  })
+
+  it('does not create an appointment for read-only slot discovery', async () => {
+    const query = parseCoachAvailabilityQuery(
+      'Find me a 60-minute slot for Jake after 3 this week.',
+      { now },
+    )
+
+    const result = await executeCoachAvailabilityQuery(query, {
+      now,
+      clients: [
+        {
+          business_client_id: 'business-jake',
+          athlete_id: 'athlete-jake',
+          coach_label: 'Jake',
+        },
+      ],
+    })
+
+    expect(result.kind).toBe('availability')
+    expect(coachBackend.createScheduledSession).not.toHaveBeenCalled()
+  })
+
+  it('rechecks the destination immediately before booking and refuses stale openings', async () => {
+    const query = parseCoachAvailabilityQuery(
+      'Find the best 60-minute slot for Jake after 3 this week and book it.',
+      { now },
+    )
+
+    coachBackend.listScheduledSessions
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([
+        {
+          id: 'new-conflict',
+          session_date: '2026-10-05',
+          start_time: '15:00',
+          duration_minutes: 60,
+          status: 'scheduled',
+        },
+      ])
+
+    const result = await executeCoachAvailabilityQuery(query, {
+      now,
+      clients: [
+        {
+          business_client_id: 'business-jake',
+          athlete_id: 'athlete-jake',
+          coach_label: 'Jake',
+        },
+      ],
+    })
+
+    expect(result.kind).toBe('conflict')
+    expect(coachBackend.createScheduledSession).not.toHaveBeenCalled()
+  })
+
+  it('does not book when the client cannot be resolved', async () => {
+    const query = parseCoachAvailabilityQuery(
+      'Find the best 60-minute slot for Jordan after 3 this week and book it.',
+      { now },
+    )
+
+    const result = await executeCoachAvailabilityQuery(query, {
+      now,
+      clients: [{ coach_label: 'Jake', business_client_id: 'business-jake' }],
+    })
+
+    expect(result.kind).toBe('clarification')
+    expect(coachBackend.createScheduledSession).not.toHaveBeenCalled()
   })
 
   it('resolves a client name only to label the coach opening search', async () => {
