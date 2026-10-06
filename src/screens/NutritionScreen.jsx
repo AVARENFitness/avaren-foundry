@@ -860,12 +860,16 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
   const openFood = async (food) => {
     setSelectedFood(food)
     setSelectedMultiplier(1)
+    setSelectedMeasureUnit(FOOD_MEASURE_UNIT.SERVING)
+    setSelectedMeasureAmount('1')
 
     if (food.provider !== 'fatsecret') {
       setFatSecretDetailState('idle')
       setFatSecretDetailError('')
       setSelectedFatSecretServingId('')
       setFatSecretQuantity('1')
+      setFatSecretMeasureUnit(FOOD_MEASURE_UNIT.SERVING)
+      setFatSecretMeasureAmount('1')
       return
     }
 
@@ -873,6 +877,8 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
     setFatSecretDetailError('')
     setSelectedFatSecretServingId('')
     setFatSecretQuantity('1')
+    setFatSecretMeasureUnit(FOOD_MEASURE_UNIT.SERVING)
+    setFatSecretMeasureAmount('1')
 
     try {
       const cached = fatSecretDetailCache[food.foodId]
@@ -898,23 +904,38 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
     if (selectedFood?.provider !== 'fatsecret') return
     if (!selectedFatSecretServingId) return
 
-    const quantity = Number(fatSecretQuantity)
-    if (!Number.isFinite(quantity) || quantity <= 0) {
-      setNotice('Enter a serving quantity greater than 0.')
-      return
-    }
-
     const detail = fatSecretDetailCache[selectedFood.foodId]
     const serving = detail?.servings?.find(
       (item) =>
         String(item.servingId) === String(selectedFatSecretServingId),
     )
+    const servingBasis = resolveFoodServingBasis(serving ?? {})
+    const measureAmount = Number(fatSecretMeasureAmount || fatSecretQuantity)
+    const quantity =
+      foodMeasureMultiplier({
+        amount: measureAmount,
+        unit: fatSecretMeasureUnit,
+        servingBasis,
+      }) ?? Number(fatSecretQuantity)
+
+    if (!Number.isFinite(quantity) || quantity <= 0) {
+      setNotice('Enter an amount greater than 0.')
+      return
+    }
+
+    const measurement = {
+      amount: measureAmount,
+      unit: fatSecretMeasureUnit,
+      servingAmount: servingBasis?.amount ?? 1,
+      servingUnit: servingBasis?.unit ?? FOOD_MEASURE_UNIT.SERVING,
+    }
 
     patch((current) =>
       appendFatSecretFoodReference(current, date, {
         foodId: selectedFood.foodId,
         servingId: selectedFatSecretServingId,
         quantity,
+        measurement,
         servingSnapshot: serving
           ? {
               name: detail?.name ?? selectedFood.name,
@@ -930,14 +951,17 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
       }).nutrition,
     )
 
-
-    setNotice(`${detail?.name ?? selectedFood.name} added to today.`)
+    setNotice(
+      `${detail?.name ?? selectedFood.name} · ${foodMeasureDisplay(measurement) || `${round(quantity)} servings`} added.`,
+    )
     setSelectedFood(null)
     setFoodSearch('')
     setFatSecretFoods([])
     setFatSecretDetailState('idle')
     setSelectedFatSecretServingId('')
     setFatSecretQuantity('1')
+    setFatSecretMeasureUnit(FOOD_MEASURE_UNIT.SERVING)
+    setFatSecretMeasureAmount('1')
     setTab('Today')
   }
 
