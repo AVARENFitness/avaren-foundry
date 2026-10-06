@@ -73,9 +73,7 @@ import CoachScreen from './screens/CoachScreen'
 import { respondToSessionRsvpFromPush } from './components/AthleteScheduledSessions'
 import WorkoutBuilderScreen from './screens/WorkoutBuilderScreen'
 import CompletionScreen from './screens/CompletionScreen'
-import WorkoutIntelligenceSummary from './components/WorkoutIntelligenceSummary'
 import MobilityScreen from './screens/MobilityScreen'
-import MobilityPrompt from './components/MobilityPrompt'
 import {
   buildAdaptiveDailyReset,
   buildRecoveryFlow,
@@ -1972,35 +1970,13 @@ function App() {
             )
           : []
 
+      const completionRecovery = buildRecoveryFlow(
+        completedSession?.session,
+        state.mobility?.durationPreferences ?? {},
+      )
+
       return (
-        <>
-          <WorkoutIntelligenceSummary
-            session={completedSession?.session}
-            recentPrs={completionPrs}
-          milestones={earnedMilestones}
-          />
-          <MobilityPrompt
-            type="recovery"
-            subtitle="ADAPTIVE RECOVERY"
-            title="Recovery Flow"
-            detail="Equipment-free · Start when ready"
-            reason={
-              buildRecoveryFlow(
-                completedSession?.session,
-                state.mobility?.durationPreferences ?? {},
-              ).reason
-            }
-            focusAreas={
-              buildRecoveryFlow(
-                completedSession?.session,
-                state.mobility?.durationPreferences ?? {},
-              ).focusAreas
-            }
-            onOpen={() =>
-              openRecoveryFlow(completedSession?.session)
-            }
-          />
-          <CompletionScreen
+        <CompletionScreen
           session={completedSession?.session}
           nextWorkout={completedSession?.nextWorkout}
           recentPrs={completionPrs}
@@ -2009,6 +1985,10 @@ function App() {
           openCoachFollowUpCount={(state.athleteFollowUps ?? []).filter(
             (item) => item.status === 'open',
           ).length}
+          recoveryPlan={completionRecovery}
+          onOpenRecovery={() =>
+            openRecoveryFlow(completedSession?.session)
+          }
           onSaveReflection={saveSessionReflection}
           onDone={() => {
             setCompletedSession(null)
@@ -2017,8 +1997,7 @@ function App() {
             setIsFinishing(false)
             navigate('home')
           }}
-          />
-        </>
+        />
       )
     }
 
