@@ -25613,3 +25613,379 @@ body > .nutrition-food-sheet-backdrop > .nutrition-food-sheet {
     padding: 10px;
   }
 }
+
+
+/* ===== AVAREN MOTION SYSTEM · VISUAL FINISH ===== */
+:root {
+  --motion-ease-standard: cubic-bezier(.22,.76,.26,1);
+  --motion-ease-emphasized: cubic-bezier(.18,.88,.22,1);
+  --motion-fast: 110ms;
+  --motion-medium: 190ms;
+  --motion-slow: 280ms;
+}
+
+/* Primary route changes: short exit, clean re-entry, no heavy blur. */
+.screen {
+  transform-origin: 50% 10%;
+  animation: avarenScreenIn var(--motion-medium) var(--motion-ease-standard) both;
+}
+
+.app-shell.is-transitioning .screen {
+  opacity: .34;
+  transform: translateY(3px) scale(.998);
+  filter: none;
+  transition:
+    opacity var(--motion-fast) ease,
+    transform var(--motion-fast) ease;
+}
+
+@keyframes avarenScreenIn {
+  from {
+    opacity: 0;
+    transform: translateY(7px) scale(.998);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Bottom navigation should feel selected, not just recolored. */
+.bottom-nav button {
+  position: relative;
+  isolation: isolate;
+  transition:
+    color var(--motion-fast) ease,
+    transform var(--motion-fast) ease;
+}
+
+.bottom-nav button::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  top: 3px;
+  left: 50%;
+  width: 38px;
+  height: 30px;
+  border: 1px solid transparent;
+  border-radius: 11px;
+  background: transparent;
+  transform: translateX(-50%) scale(.84);
+  opacity: 0;
+  transition:
+    opacity var(--motion-medium) ease,
+    transform var(--motion-medium) var(--motion-ease-emphasized),
+    background var(--motion-medium) ease,
+    border-color var(--motion-medium) ease;
+}
+
+.bottom-nav button.active::before {
+  opacity: 1;
+  transform: translateX(-50%) scale(1);
+  border-color: rgba(216,184,109,.08);
+  background: rgba(216,184,109,.055);
+}
+
+.bottom-nav button svg {
+  transition:
+    transform var(--motion-medium) var(--motion-ease-emphasized),
+    filter var(--motion-medium) ease;
+}
+
+.bottom-nav button.active svg {
+  transform: translateY(-1px);
+  filter: drop-shadow(0 4px 10px rgba(216,184,109,.13));
+}
+
+/* Tactile controls across athlete + coach surfaces. */
+:where(
+  .gold-button,
+  .ui-btn-secondary,
+  .ui-btn-tertiary,
+  .coach-secondary-button,
+  .nutrition-secondary-button,
+  .home-nutrition-quicklog,
+  .home-coach-hub-shortcut,
+  .progress-readiness-entry,
+  .progress-lift-goal-edit,
+  .ava-entry-button,
+  .ava-chat-action,
+  .nutrition-log-quick-actions > button,
+  .coach-roster-row,
+  .athlete-next-appointment
+) {
+  transition:
+    transform var(--motion-fast) var(--motion-ease-standard),
+    border-color var(--motion-medium) ease,
+    background-color var(--motion-medium) ease,
+    color var(--motion-medium) ease,
+    box-shadow var(--motion-medium) ease,
+    opacity var(--motion-medium) ease,
+    filter var(--motion-medium) ease;
+}
+
+:where(
+  .gold-button,
+  .ui-btn-secondary,
+  .coach-secondary-button,
+  .nutrition-secondary-button,
+  .home-nutrition-quicklog,
+  .home-coach-hub-shortcut,
+  .progress-readiness-entry,
+  .progress-lift-goal-edit,
+  .ava-entry-button,
+  .ava-chat-action,
+  .nutrition-log-quick-actions > button,
+  .coach-roster-row,
+  .athlete-next-appointment
+):active {
+  transform: translateY(1px) scale(.985);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  :where(
+    .home-nutrition-quicklog,
+    .home-coach-hub-shortcut,
+    .progress-readiness-entry,
+    .coach-roster-row,
+    .athlete-next-appointment
+  ):hover {
+    transform: translateY(-1px);
+    border-color: rgba(216,184,109,.13);
+    background-color: rgba(255,255,255,.022);
+  }
+
+  .gold-button:hover {
+    transform: translateY(-1px);
+    filter: brightness(1.035);
+  }
+}
+
+/* Progressive disclosure feels continuous rather than appearing abruptly. */
+:where(
+  .foundry-disclosure,
+  .focus-exercise-details,
+  .progress-details-panel,
+  .nutrition-history-disclosure,
+  .nutrition-recipe-builder--collapsed,
+  .completion-detail-disclosure,
+  .completion-reflection-disclosure,
+  .home-coaching-schedule,
+  .coach-operations-snapshot,
+  .coach-client-more-actions
+) > summary {
+  transition:
+    color var(--motion-medium) ease,
+    background-color var(--motion-medium) ease;
+}
+
+:where(
+  .foundry-disclosure,
+  .focus-exercise-details,
+  .progress-details-panel,
+  .nutrition-history-disclosure,
+  .nutrition-recipe-builder--collapsed,
+  .completion-detail-disclosure,
+  .completion-reflection-disclosure,
+  .home-coaching-schedule,
+  .coach-operations-snapshot,
+  .coach-client-more-actions
+)[open] > :not(summary) {
+  animation: avarenDisclosureIn var(--motion-medium) var(--motion-ease-standard) both;
+}
+
+@keyframes avarenDisclosureIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Set progression: reinforce completion without celebration noise. */
+.focus-set-card.current {
+  animation: avarenCurrentSetIn var(--motion-medium) var(--motion-ease-standard) both;
+}
+
+.focus-set-card.done {
+  animation: avarenSetComplete var(--motion-medium) var(--motion-ease-emphasized) both;
+}
+
+.focus-set-card.done .focus-done-button svg,
+.focus-set-card.done .focus-done-button span > svg {
+  animation: avarenCheckSettle var(--motion-slow) var(--motion-ease-emphasized) both;
+}
+
+@keyframes avarenCurrentSetIn {
+  from {
+    opacity: .76;
+    transform: translateY(5px) scale(.997);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes avarenSetComplete {
+  0% {
+    transform: scale(1);
+    border-color: rgba(223,195,125,.28);
+  }
+  46% {
+    transform: scale(.994);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes avarenCheckSettle {
+  0% { transform: scale(.76); opacity: .35; }
+  65% { transform: scale(1.08); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* Progress/data changes should glide rather than jump. */
+:where(
+  .progress-track div,
+  .nutrition-progress i,
+  .progress-lift-goal-track i,
+  .home-v2-progress > div:last-child span,
+  .morning-ritual-progress i
+) {
+  transition:
+    width var(--motion-slow) var(--motion-ease-standard),
+    transform var(--motion-slow) var(--motion-ease-standard);
+}
+
+/* Unified overlays and sheets. */
+.app-ui-backdrop,
+.ava-sheet-backdrop,
+.nutrition-food-sheet-backdrop,
+.todays-focus-why-backdrop,
+.ava-why-backdrop {
+  animation: avarenBackdropIn var(--motion-medium) ease both;
+}
+
+.confirmation-dialog,
+.ava-sheet,
+.nutrition-food-sheet,
+.todays-focus-why-sheet,
+.ava-why-sheet,
+.coach-lifecycle-sheet,
+.coach-create-client-sheet,
+.coach-session-detail-sheet,
+.coach-schedule-session-sheet,
+.athlete-appointment-detail-sheet {
+  animation: avarenSheetIn var(--motion-slow) var(--motion-ease-emphasized) both;
+}
+
+@keyframes avarenBackdropIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes avarenSheetIn {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(.99);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Toasts should arrive quickly and quietly. */
+.app-toast {
+  animation: avarenToastIn var(--motion-medium) var(--motion-ease-emphasized) both;
+}
+
+@keyframes avarenToastIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Small visual finishing touches. */
+.app-header {
+  transition:
+    background-color var(--motion-medium) ease,
+    box-shadow var(--motion-medium) ease;
+}
+
+.app-notification-button,
+.app-profile-button {
+  transition:
+    transform var(--motion-fast) ease,
+    background-color var(--motion-medium) ease,
+    border-color var(--motion-medium) ease;
+}
+
+.app-notification-button:active,
+.app-profile-button:active {
+  transform: scale(.94);
+}
+
+.status-pill.active span {
+  animation: avarenStatusWake .42s var(--motion-ease-emphasized) both;
+}
+
+@keyframes avarenStatusWake {
+  0% { transform: scale(.55); opacity: .35; }
+  70% { transform: scale(1.18); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .screen,
+  .focus-set-card.current,
+  .focus-set-card.done,
+  .focus-set-card.done .focus-done-button svg,
+  .focus-set-card.done .focus-done-button span > svg,
+  .app-ui-backdrop,
+  .ava-sheet-backdrop,
+  .nutrition-food-sheet-backdrop,
+  .todays-focus-why-backdrop,
+  .ava-why-backdrop,
+  .confirmation-dialog,
+  .ava-sheet,
+  .nutrition-food-sheet,
+  .todays-focus-why-sheet,
+  .ava-why-sheet,
+  .coach-lifecycle-sheet,
+  .coach-create-client-sheet,
+  .coach-session-detail-sheet,
+  .coach-schedule-session-sheet,
+  .athlete-appointment-detail-sheet,
+  .app-toast,
+  .status-pill.active span,
+  :where(
+    .foundry-disclosure,
+    .focus-exercise-details,
+    .progress-details-panel,
+    .nutrition-history-disclosure,
+    .nutrition-recipe-builder--collapsed,
+    .completion-detail-disclosure,
+    .completion-reflection-disclosure,
+    .home-coaching-schedule,
+    .coach-operations-snapshot,
+    .coach-client-more-actions
+  )[open] > :not(summary) {
+    animation: none !important;
+  }
+
+  .bottom-nav button::before,
+  .bottom-nav button svg {
+    transition: none !important;
+  }
+}
