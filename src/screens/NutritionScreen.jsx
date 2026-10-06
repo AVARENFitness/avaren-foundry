@@ -69,6 +69,7 @@ import {
   FOOD_MEASURE_UNIT,
   foodMeasureDisplay,
   foodMeasureMultiplier,
+  parseFoodServingMeasurement,
   resolveFoodServingBasis,
 } from '../lib/nutritionMeasurement'
 import {
@@ -728,11 +729,46 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
         servings: 1,
       }
 
+      const resultServingBasis = resolveFoodServingBasis({
+        servingAmount: result.servingAmount,
+        servingUnit: result.servingUnit,
+        servingDescription: result.servingDescription,
+      })
+      const userMeasuredAmount = parseFoodServingMeasurement(
+        contextOverride ?? scanContext,
+      )
+      const isMeasuredLabel =
+        result.sourceType === 'label_read' &&
+        resultServingBasis &&
+        (resultServingBasis.unit === FOOD_MEASURE_UNIT.GRAM ||
+          resultServingBasis.unit === FOOD_MEASURE_UNIT.OUNCE)
+
       setScanResult(result)
       setScanDraft(draft)
-      setScanQuantity(1)
-      setScanMeasureUnit(FOOD_MEASURE_UNIT.SERVING)
-      setScanMeasureAmount('1')
+
+      if (isMeasuredLabel) {
+        const resolvedMeasurement =
+          userMeasuredAmount &&
+          (userMeasuredAmount.unit === FOOD_MEASURE_UNIT.GRAM ||
+            userMeasuredAmount.unit === FOOD_MEASURE_UNIT.OUNCE)
+            ? userMeasuredAmount
+            : resultServingBasis
+        const resolvedMultiplier =
+          foodMeasureMultiplier({
+            amount: resolvedMeasurement.amount,
+            unit: resolvedMeasurement.unit,
+            servingBasis: resultServingBasis,
+          }) ?? 1
+
+        setScanMeasureUnit(resolvedMeasurement.unit)
+        setScanMeasureAmount(String(resolvedMeasurement.amount))
+        setScanQuantity(resolvedMultiplier)
+      } else {
+        setScanQuantity(1)
+        setScanMeasureUnit(FOOD_MEASURE_UNIT.SERVING)
+        setScanMeasureAmount('1')
+      }
+
       setScanMatches([])
       setScanSavedAsReusable(false)
 
@@ -1383,6 +1419,39 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
         {visibleTabs.map((item) => <button key={item.value} className={tab === item.value ? 'active' : ''} onClick={() => setTab(item.value)}>{item.label}</button>)}
       </nav>
 
+      <input
+        ref={cameraInputRef}
+        className="nutrition-scan-input"
+        type="file"
+        accept="image/*"
+        capture="environment"
+        onChange={(event) => {
+          const file = event.target.files?.[0]
+          if (file) runFoodScan(file, null, 'food')
+        }}
+      />
+      <input
+        ref={uploadInputRef}
+        className="nutrition-scan-input"
+        type="file"
+        accept="image/*"
+        onChange={(event) => {
+          const file = event.target.files?.[0]
+          if (file) runFoodScan(file, null, 'food')
+        }}
+      />
+      <input
+        ref={barcodeInputRef}
+        className="nutrition-scan-input"
+        type="file"
+        accept="image/*"
+        capture="environment"
+        onChange={(event) => {
+          const file = event.target.files?.[0]
+          if (file) runFoodScan(file, '', 'barcode')
+        }}
+      />
+
       {notice && <div className="nutrition-notice">{notice}</div>}
 
       {tab === 'Today' && <>
@@ -1655,39 +1724,6 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
           {foodSearch && <button aria-label="Clear search" onClick={() => { setFoodSearch(''); setFatSecretFoods([]); setFatSecretSearchError('') }}><X size={17}/></button>}
         </div>
 
-        <input
-          ref={cameraInputRef}
-          className="nutrition-scan-input"
-          type="file"
-          accept="image/*"
-          capture="environment"
-          onChange={(event) => {
-            const file = event.target.files?.[0]
-            if (file) runFoodScan(file, null, 'food')
-          }}
-        />
-        <input
-          ref={uploadInputRef}
-          className="nutrition-scan-input"
-          type="file"
-          accept="image/*"
-          onChange={(event) => {
-            const file = event.target.files?.[0]
-            if (file) runFoodScan(file, null, 'food')
-          }}
-        />
-        <input
-          ref={barcodeInputRef}
-          className="nutrition-scan-input"
-          type="file"
-          accept="image/*"
-          capture="environment"
-          onChange={(event) => {
-            const file = event.target.files?.[0]
-            if (file) runFoodScan(file, '', 'barcode')
-          }}
-        />
-
         {!activeFoodSearch && !showCustomFood && <>
           <div className="nutrition-log-quick-actions">
             <button
@@ -1912,7 +1948,7 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
                     <span className="eyebrow">
                       {scanResult.sourceType === 'label_read' ? 'MEASURED AMOUNT' : 'PORTIONS'}
                     </span>
-                    <strong>How much did you have?</strong>
+                    <strong>{scanResult.sourceType === 'label_read' ? 'What did your scale show?' : 'How much did you have?'}</strong>
                     <small>
                       {scanResult.sourceType === 'label_read' && scanServingBasis
                         ? `Label nutrition is based on ${foodMeasureDisplay({ amount: scanServingBasis.amount, unit: scanServingBasis.unit })}. Enter what your scale actually showed.`
