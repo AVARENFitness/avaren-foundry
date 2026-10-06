@@ -78,6 +78,22 @@ describe('NutritionScreen logging UX regressions', () => {
     expect(source).toContain('foodMeasureDisplay(food.measurement)')
   })
 
+  it('can save an AVA-scanned meal for one-tap repeat or adjusted logging', () => {
+    expect(source).toContain('Save reusable meal')
+    expect(source).toContain('Saved to Library')
+    expect(source).toContain('Log Again')
+    expect(source).toContain('Adjust & Log')
+    expect(source).toContain('buildReusableMealRecipe')
+    expect(source).toContain('calculateReusableMealTotals')
+    expect(source).toContain('Change what was different today.')
+  })
+
+  it('keeps reusable meals separate from batch inventory semantics', () => {
+    expect(source).toContain('recipe.reusableMeal')
+    expect(source).toContain("recipe.trackInventory === false ? null : recipe.servings")
+    expect(source).toContain('AVA reusable meal')
+  })
+
   it('logs a verified serving snapshot for immediate shared totals', () => {
     expect(source).toContain('servingSnapshot: serving')
     expect(source).toContain('calories: serving.calories')
