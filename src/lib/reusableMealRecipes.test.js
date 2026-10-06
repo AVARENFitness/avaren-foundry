@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import {
+  applyReusableMealPreviewToRecipe,
   buildReusableMealAdjustments,
+  buildReusableMealIngredientFromFood,
   buildReusableMealRecipe,
   calculateReusableMealTotals,
 } from './reusableMealRecipes'
@@ -91,6 +93,91 @@ describe('reusableMealRecipes', () => {
       carbs: 52.8,
     })
     expect(result.totals.calories).toBe(540)
+  })
+
+
+  it('adds a searched food as an editable reusable-meal ingredient', () => {
+    const ingredient = buildReusableMealIngredientFromFood({
+      name: 'Greek yogurt',
+      serving: '170 g',
+      calories: 100,
+      protein: 18,
+      carbs: 6,
+      fat: 0,
+      fiber: 0,
+    })
+
+    expect(ingredient).toMatchObject({
+      name: 'Greek yogurt',
+      baseAmount: 170,
+      baseUnit: 'g',
+      calories: 100,
+      protein: 18,
+    })
+  })
+
+  it('can persist an adjusted ingredient list as the new saved default', () => {
+    const recipe = buildReusableMealRecipe({
+      name: 'Chicken bowl',
+      components: [
+        {
+          name: 'Chicken',
+          amount: '6 oz',
+          calories: 300,
+          protein: 50,
+          carbs: 0,
+          fat: 8,
+        },
+        {
+          name: 'Rice',
+          amount: '150 g',
+          calories: 200,
+          protein: 4,
+          carbs: 44,
+          fat: 1,
+        },
+      ],
+    })
+
+    const cheese = buildReusableMealIngredientFromFood({
+      name: 'Cheese',
+      serving: '28 g',
+      calories: 110,
+      protein: 7,
+      carbs: 1,
+      fat: 9,
+    })
+
+    const workingRecipe = {
+      ...recipe,
+      ingredients: [recipe.ingredients[0], cheese],
+    }
+    const adjustments = buildReusableMealAdjustments(workingRecipe).map((item) =>
+      item.name === 'Chicken'
+        ? { ...item, amount: '5', unit: 'oz' }
+        : item,
+    )
+    const preview = calculateReusableMealTotals(workingRecipe, adjustments)
+    const updated = applyReusableMealPreviewToRecipe(
+      workingRecipe,
+      preview,
+    )
+
+    expect(updated.ingredients.map((item) => item.name)).toEqual([
+      'Chicken',
+      'Cheese',
+    ])
+    expect(updated.ingredients[0]).toMatchObject({
+      amount: '5 oz',
+      baseAmount: 5,
+      baseUnit: 'oz',
+    })
+    expect(updated.ingredients[1]).toMatchObject({
+      amount: '28 g',
+      baseAmount: 28,
+      baseUnit: 'g',
+    })
+    expect(updated.totals.calories).toBeGreaterThan(300)
   })
 
   it('converts oz adjustments against gram baselines', () => {
