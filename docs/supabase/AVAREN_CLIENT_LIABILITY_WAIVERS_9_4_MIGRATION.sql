@@ -29,6 +29,36 @@ create table if not exists public.coach_client_documents (
     )
 );
 
+alter table public.coach_client_documents
+  add column if not exists signing_method text not null default 'upload'
+    check (signing_method in ('upload','coach_device')),
+  add column if not exists signer_name text,
+  add column if not exists waiver_text_snapshot text,
+  add column if not exists acknowledgement_text text,
+  add column if not exists device_user_agent text;
+
+alter table public.coach_client_documents
+  drop constraint if exists coach_client_documents_signed_file_check;
+
+alter table public.coach_client_documents
+  add constraint coach_client_documents_signed_file_check
+  check (
+    status <> 'signed'
+    or (
+      storage_path is not null
+      and signed_at is not null
+      and (
+        signing_method = 'upload'
+        or (
+          signing_method = 'coach_device'
+          and signer_name is not null
+          and waiver_text_snapshot is not null
+          and acknowledgement_text is not null
+        )
+      )
+    )
+  );
+
 create index if not exists coach_client_documents_business_client_idx
   on public.coach_client_documents (business_client_id, document_type, created_at desc);
 
