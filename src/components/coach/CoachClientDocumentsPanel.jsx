@@ -2,10 +2,14 @@ import {
   ExternalLink,
   FileCheck2,
   FileText,
+  PenLine,
   ShieldCheck,
   Upload,
 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
+import AppUiBackdrop from '../ui/AppUiBackdrop'
+import AppUiCloseButton from '../ui/AppUiCloseButton'
+import SignaturePad from '../ui/SignaturePad'
 import {
   CLIENT_DOCUMENT_STATUS,
   coachClientDocumentsBackend,
@@ -13,6 +17,14 @@ import {
 } from '../../lib/coachClientDocuments'
 import { resolveRecordBusinessClientId } from '../../lib/coachBusinessClient'
 import { appUi } from '../../lib/appUi'
+import { getClientDisplayName } from '../../lib/clientDisplayName'
+import {
+  AVAREN_LIABILITY_WAIVER_ACKNOWLEDGEMENT,
+  AVAREN_LIABILITY_WAIVER_TEXT,
+  AVAREN_LIABILITY_WAIVER_TITLE,
+  AVAREN_LIABILITY_WAIVER_VERSION,
+  isAvarenLiabilityWaiverConfigured,
+} from '../../content/avarenLiabilityWaiver'
 
 const ICON = { size: 18, strokeWidth: 1.75 }
 
@@ -42,6 +54,17 @@ export default function CoachClientDocumentsPanel({ client }) {
   const [selectedFile, setSelectedFile] = useState(null)
   const [signedAt, setSignedAt] = useState(() => toDateInputValue())
   const [documentVersion, setDocumentVersion] = useState('1')
+  const [showSigning, setShowSigning] = useState(false)
+  const [signerName, setSignerName] = useState('')
+  const [signatureBlob, setSignatureBlob] = useState(null)
+  const [acceptedWaiver, setAcceptedWaiver] = useState(false)
+  const [signatureClearSignal, setSignatureClearSignal] = useState(0)
+  const [signingSaving, setSigningSaving] = useState(false)
+  const [signingError, setSigningError] = useState('')
+  const [recordDocument, setRecordDocument] = useState(null)
+  const [recordSignatureUrl, setRecordSignatureUrl] = useState('')
+  const waiverConfigured = isAvarenLiabilityWaiverConfigured()
+  const clientName = getClientDisplayName(client)
 
   const loadDocuments = async () => {
     if (!businessClientId) {
@@ -88,13 +111,20 @@ export default function CoachClientDocumentsPanel({ client }) {
     [documents],
   )
 
-  const openDocument = async (document) => {
+  const openDocument = async (documentRecord) => {
     try {
       const url =
         await coachClientDocumentsBackend.createSignedDocumentUrl(
-          document.storagePath,
+          documentRecord.storagePath,
         )
-      const link = document.createElement('a')
+
+      if (documentRecord.signingMethod === 'coach_device') {
+        setRecordDocument(documentRecord)
+        setRecordSignatureUrl(url)
+        return
+      }
+
+      const link = window.document.createElement('a')
       link.href = url
       link.target = '_blank'
       link.rel = 'noopener noreferrer'
@@ -104,6 +134,52 @@ export default function CoachClientDocumentsPanel({ client }) {
         openError?.message ?? 'Could not open signed waiver.',
         'error',
       )
+    }
+  }
+
+  const startCoachDeviceSigning = () => {
+    setSignerName(clientName)
+    setSignatureBlob(null)
+    setAcceptedWaiver(false)
+    setSigningError('')
+    setSignatureClearSignal((value) => value + 1)
+    setShowSigning(true)
+  }
+
+  const submitCoachDeviceSignature = async () => {
+    if (!waiverConfigured || signingSaving) return
+
+    if (!signerName.trim()) {
+      setSigningError('Enter the signer’s full name.')
+      return
+    }
+    if (!acceptedWaiver) {
+      setSigningError('The client must acknowledge the waiver before signing.')
+      return
+    }
+    if (!signatureBlob) {
+      setSigningError('The client must sign before saving.')
+      return
+    }
+
+    setSigningSaving(true)
+    setSigningError('')
+    try {
+      await coachClientDocumentsBackend.signLiabilityWaiverOnCoachDevice({
+        businessClientId,
+        signatureBlob,
+        signerName,
+        waiverText: AVAREN_LIABILITY_WAIVER_TEXT,
+        acknowledgementText: AVAREN_LIABILITY_WAIVER_ACKNOWLEDGEMENT,
+        documentVersion: AVAREN_LIABILITY_WAIVER_VERSION,
+      })
+      setShowSigning(false)
+      appUi.toast('Liability waiver signed and saved to this client.', 'success')
+      await loadDocuments()
+    } catch (signError) {
+      setSigningError(signError?.message ?? 'Could not save signed waiver.')
+    } finally {
+      setSigningSaving(false)
     }
   }
 
@@ -183,7 +259,7 @@ export default function CoachClientDocumentsPanel({ client }) {
           <span>
             {signedWaiver
               ? `Signed ${formatSignedDate(signedWaiver.signedAt)} · Version ${signedWaiver.documentVersion || '1'}`
-              : 'Upload the signed copy to keep this client record complete.'}
+              : 'Have the client sign on this device or add an existing signed copy.'}
           </span>
         </div>
         {signedWaiver ? (
@@ -198,16 +274,46 @@ export default function CoachClientDocumentsPanel({ client }) {
         ) : null}
       </article>
 
+      <section className="coach-client-device-signing">
+        <div className="coach-client-device-signing-copy">
+          <span className="coach-client-device-signing-icon" aria-hidden="true">
+            <PenLine {...ICON} />
+          </span>
+          <div>
+            <small>PRIMARY SIGNING FLOW</small>
+            <strong>Sign on this device</strong>
+            <span>
+              Hand your phone or tablet to the client. No AVAREN account is
+              required.
+            </span>
+          </div>
+        </div>
+        <button
+          type="button"
+          className="gold-button machined coach-client-device-signing-button"
+          onClick={startCoachDeviceSigning}
+        >
+          Start signing
+        </button>
+        {!waiverConfigured ? (
+          <p className="coach-client-waiver-config-warning">
+            Waiver text not configured yet. The signing screen is built, but a
+            production signature cannot be saved until the approved AVAREN
+            waiver wording is added.
+          </p>
+        ) : null}
+      </section>
+
       <section className="coach-client-document-upload">
         <div className="coach-client-document-upload-heading">
           <Upload {...ICON} />
           <div>
             <strong>
-              {signedWaiver ? 'Upload a newer signed waiver' : 'Add signed waiver'}
+              {signedWaiver ? 'Import another signed copy' : 'Import existing signed copy'}
             </strong>
             <span>
-              PDF, JPG, PNG, or WebP · up to 10 MB. Older signed copies stay in
-              the client history.
+              For legacy paper/PDF waivers. PDF, JPG, PNG, or WebP · up to
+              10 MB. Older signed copies stay in the client history.
             </span>
           </div>
         </div>
@@ -302,6 +408,180 @@ export default function CoachClientDocumentsPanel({ client }) {
           </div>
         </details>
       ) : null}
+
+      <AppUiBackdrop
+        open={showSigning}
+        onClose={signingSaving ? undefined : () => setShowSigning(false)}
+        className="coach-waiver-signing-backdrop"
+      >
+        <section
+          className="coach-waiver-signing-sheet"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="coach-waiver-signing-title"
+          onClick={(event) => event.stopPropagation()}
+        >
+          <header className="coach-waiver-signing-header">
+            <div>
+              <span className="eyebrow">CLIENT SIGNING</span>
+              <h2 id="coach-waiver-signing-title">{AVAREN_LIABILITY_WAIVER_TITLE}</h2>
+              <p>Hand this device to {clientName}. Coach Hub stays behind this screen.</p>
+            </div>
+            <AppUiCloseButton
+              onClick={() => setShowSigning(false)}
+              disabled={signingSaving}
+            />
+          </header>
+
+          {!waiverConfigured ? (
+            <div className="coach-waiver-unconfigured">
+              <ShieldCheck size={28} strokeWidth={1.6} />
+              <strong>Waiver text not configured</strong>
+              <p>
+                The signing flow is ready, but AVAREN will not create a signed
+                legal record until the exact approved liability-waiver wording
+                and version are added.
+              </p>
+            </div>
+          ) : (
+            <>
+              <div className="coach-waiver-terms" tabIndex="0">
+                {AVAREN_LIABILITY_WAIVER_TEXT.split('\n').map((paragraph, index) =>
+                  paragraph.trim() ? <p key={index}>{paragraph}</p> : <br key={index} />,
+                )}
+              </div>
+
+              <label className="coach-field coach-field--wide">
+                <span>Client full legal name</span>
+                <input
+                  className="coach-field-input"
+                  type="text"
+                  value={signerName}
+                  onChange={(event) => setSignerName(event.target.value)}
+                  autoComplete="name"
+                  disabled={signingSaving}
+                />
+              </label>
+
+              <label className="coach-waiver-acknowledgement">
+                <input
+                  type="checkbox"
+                  checked={acceptedWaiver}
+                  onChange={(event) => setAcceptedWaiver(event.target.checked)}
+                  disabled={signingSaving}
+                />
+                <span>{AVAREN_LIABILITY_WAIVER_ACKNOWLEDGEMENT}</span>
+              </label>
+
+              <div className="coach-waiver-signature-section">
+                <div className="coach-waiver-signature-heading">
+                  <div>
+                    <small>SIGNATURE</small>
+                    <strong>Sign below</strong>
+                  </div>
+                  <button
+                    type="button"
+                    className="coach-secondary-button"
+                    onClick={() => {
+                      setSignatureBlob(null)
+                      setSignatureClearSignal((value) => value + 1)
+                    }}
+                    disabled={signingSaving}
+                  >
+                    Clear
+                  </button>
+                </div>
+                <SignaturePad
+                  disabled={signingSaving}
+                  clearSignal={signatureClearSignal}
+                  onChange={setSignatureBlob}
+                />
+              </div>
+
+              {signingError ? (
+                <p className="coach-create-client-error">{signingError}</p>
+              ) : null}
+
+              <footer className="coach-waiver-signing-footer">
+                <small>
+                  Version {AVAREN_LIABILITY_WAIVER_VERSION} · Signed date and
+                  exact waiver text are stored with this record.
+                </small>
+                <button
+                  type="button"
+                  className="gold-button machined"
+                  onClick={submitCoachDeviceSignature}
+                  disabled={
+                    signingSaving ||
+                    !acceptedWaiver ||
+                    !signatureBlob ||
+                    !signerName.trim()
+                  }
+                >
+                  {signingSaving ? 'Saving signed waiver…' : 'Agree & sign waiver'}
+                </button>
+              </footer>
+            </>
+          )}
+        </section>
+      </AppUiBackdrop>
+
+      <AppUiBackdrop
+        open={Boolean(recordDocument)}
+        onClose={() => {
+          setRecordDocument(null)
+          setRecordSignatureUrl('')
+        }}
+        className="coach-waiver-record-backdrop"
+      >
+        {recordDocument ? (
+          <section
+            className="coach-waiver-record-sheet"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="coach-waiver-record-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <header className="coach-waiver-signing-header">
+              <div>
+                <span className="eyebrow">SIGNED RECORD</span>
+                <h2 id="coach-waiver-record-title">AVAREN Liability Waiver</h2>
+                <p>
+                  {recordDocument.signerName} · Signed{' '}
+                  {formatSignedDate(recordDocument.signedAt)} · Version{' '}
+                  {recordDocument.documentVersion || '1'}
+                </p>
+              </div>
+              <AppUiCloseButton
+                onClick={() => {
+                  setRecordDocument(null)
+                  setRecordSignatureUrl('')
+                }}
+              />
+            </header>
+
+            <div className="coach-waiver-terms coach-waiver-terms--record">
+              {(recordDocument.waiverTextSnapshot || '').split('\n').map(
+                (paragraph, index) =>
+                  paragraph.trim() ? <p key={index}>{paragraph}</p> : <br key={index} />,
+              )}
+            </div>
+
+            <div className="coach-waiver-record-acknowledgement">
+              <small>ACKNOWLEDGEMENT</small>
+              <p>{recordDocument.acknowledgementText}</p>
+            </div>
+
+            <div className="coach-waiver-record-signature">
+              <small>SIGNATURE</small>
+              {recordSignatureUrl ? (
+                <img src={recordSignatureUrl} alt={`${recordDocument.signerName} signature`} />
+              ) : null}
+              <strong>{recordDocument.signerName}</strong>
+            </div>
+          </section>
+        ) : null}
+      </AppUiBackdrop>
     </section>
   )
 }
