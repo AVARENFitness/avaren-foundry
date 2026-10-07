@@ -30,6 +30,7 @@ describe('CoachClientProfileShell', () => {
     }
 
     expect(screen.queryByRole('button', { name: 'Progress' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Documents' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Manage' })).not.toBeInTheDocument()
   })
 
@@ -47,9 +48,10 @@ describe('CoachClientProfileShell', () => {
     )
 
     await user.click(screen.getByRole('button', { name: 'More' }))
-    await user.click(screen.getByRole('button', { name: 'Manage' }))
+    expect(screen.getByRole('button', { name: 'Documents' })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Documents' }))
 
-    expect(onSectionChange).toHaveBeenCalledWith('manage')
+    expect(onSectionChange).toHaveBeenCalledWith('documents')
   })
 
   it('calls onBack from the back link', async () => {
