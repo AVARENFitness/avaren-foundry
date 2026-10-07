@@ -1412,8 +1412,13 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
         accept="image/*"
         capture="environment"
         onChange={(event) => {
-          const file = event.target.files?.[0]
-          if (file) runFoodScan(file, null, 'food')
+          const input = event.currentTarget
+          const file = input.files?.[0]
+          if (file) {
+            void runFoodScan(file, null, 'food').finally(() => {
+              input.value = ''
+            })
+          }
         }}
       />
       <input
@@ -1433,8 +1438,13 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
         accept="image/*"
         capture="environment"
         onChange={(event) => {
-          const file = event.target.files?.[0]
-          if (file) runFoodScan(file, '', 'barcode')
+          const input = event.currentTarget
+          const file = input.files?.[0]
+          if (file) {
+            void runFoodScan(file, '', 'barcode').finally(() => {
+              input.value = ''
+            })
+          }
         }}
       />
 
@@ -1837,7 +1847,12 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
 
         {(scanPreview || scanResult) && typeof document !== 'undefined' && createPortal(
           <div className="nutrition-food-sheet-backdrop" data-app-ui-backdrop="open" onClick={resetFoodScan}>
-            <section className="nutrition-food-sheet nutrition-scan-sheet" onClick={(event) => event.stopPropagation()}>
+            <section
+              className="nutrition-food-sheet nutrition-scan-sheet"
+              data-scan-state={scanState}
+              aria-live="polite"
+              onClick={(event) => event.stopPropagation()}
+            >
               <header>
                 <div>
                   <span className="eyebrow">
@@ -1881,8 +1896,7 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
                       onChange={(event) => setScanContext(event.target.value)}
                       placeholder="Example: 6 oz grilled chicken, 150 g cooked rice, 40 g avocado, Greek-yogurt sauce"
                       maxLength={600}
-                      rows={4}
-                      autoFocus
+                      rows={3}
                     />
                   </label>
 
