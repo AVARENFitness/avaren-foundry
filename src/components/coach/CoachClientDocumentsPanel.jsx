@@ -45,6 +45,29 @@ const formatSignedDate = (value) =>
       })
     : 'Date not recorded'
 
+const renderWaiverText = (text) =>
+  String(text ?? '')
+    .split('\n')
+    .map((line, index) => {
+      const value = line.trim()
+      if (!value) return <div key={index} className="coach-waiver-spacer" aria-hidden="true" />
+      if (/^\d+\./.test(value)) {
+        return (
+          <h3 key={index} className="coach-waiver-section-title">
+            {value}
+          </h3>
+        )
+      }
+      if (value === value.toUpperCase() && value.length < 90) {
+        return (
+          <p key={index} className="coach-waiver-document-heading">
+            {value}
+          </p>
+        )
+      }
+      return <p key={index}>{value}</p>
+    })
+
 export default function CoachClientDocumentsPanel({ client }) {
   const businessClientId = resolveRecordBusinessClientId(client)
   const [documents, setDocuments] = useState([])
@@ -446,9 +469,7 @@ export default function CoachClientDocumentsPanel({ client }) {
           ) : (
             <>
               <div className="coach-waiver-terms" tabIndex="0">
-                {AVAREN_LIABILITY_WAIVER_TEXT.split('\n').map((paragraph, index) =>
-                  paragraph.trim() ? <p key={index}>{paragraph}</p> : <br key={index} />,
-                )}
+                {renderWaiverText(AVAREN_LIABILITY_WAIVER_TEXT)}
               </div>
 
               <label className="coach-field coach-field--wide">
@@ -561,10 +582,7 @@ export default function CoachClientDocumentsPanel({ client }) {
             </header>
 
             <div className="coach-waiver-terms coach-waiver-terms--record">
-              {(recordDocument.waiverTextSnapshot || '').split('\n').map(
-                (paragraph, index) =>
-                  paragraph.trim() ? <p key={index}>{paragraph}</p> : <br key={index} />,
-              )}
+              {renderWaiverText(recordDocument.waiverTextSnapshot)}
             </div>
 
             <div className="coach-waiver-record-acknowledgement">
