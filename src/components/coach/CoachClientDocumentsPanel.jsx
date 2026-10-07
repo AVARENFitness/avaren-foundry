@@ -94,7 +94,11 @@ export default function CoachClientDocumentsPanel({ client }) {
         await coachClientDocumentsBackend.createSignedDocumentUrl(
           document.storagePath,
         )
-      window.open(url, '_blank', 'noopener,noreferrer')
+      const link = document.createElement('a')
+      link.href = url
+      link.target = '_blank'
+      link.rel = 'noopener noreferrer'
+      link.click()
     } catch (openError) {
       appUi.toast(
         openError?.message ?? 'Could not open signed waiver.',
