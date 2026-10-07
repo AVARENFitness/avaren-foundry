@@ -44,6 +44,12 @@ export const normalizeClientDocument = (row = {}) => ({
   mimeType: row.mime_type ?? row.mimeType ?? '',
   signedAt: row.signed_at ?? row.signedAt ?? null,
   uploadedAt: row.uploaded_at ?? row.uploadedAt ?? null,
+  signingMethod: row.signing_method ?? row.signingMethod ?? 'upload',
+  signerName: row.signer_name ?? row.signerName ?? '',
+  waiverTextSnapshot: row.waiver_text_snapshot ?? row.waiverTextSnapshot ?? '',
+  acknowledgementText:
+    row.acknowledgement_text ?? row.acknowledgementText ?? '',
+  deviceUserAgent: row.device_user_agent ?? row.deviceUserAgent ?? '',
 })
 
 export const validateWaiverFile = (file) => {
@@ -120,6 +126,7 @@ export const coachClientDocumentsBackend = {
           mime_type: file.type,
           signed_at: new Date(`${signedAt}T12:00:00`).toISOString(),
           uploaded_at: new Date().toISOString(),
+          signing_method: 'upload',
           updated_at: new Date().toISOString(),
         })
         .select('*')
@@ -149,6 +156,104 @@ export const coachClientDocumentsBackend = {
       throw error
     }
   },
+
+,
+
+  async signLiabilityWaiverOnCoachDevice({
+    businessClientId,
+    signatureBlob,
+    signerName,
+    waiverText,
+    acknowledgementText,
+    documentVersion = '1',
+  } = {}) {
+    if (!isValidUuid(businessClientId)) {
+      throw new Error('Client record not found.')
+    }
+    if (!(signatureBlob instanceof Blob) || !signatureBlob.size) {
+      throw new Error('Signature is required.')
+    }
+
+    const normalizedSignerName = String(signerName ?? '').trim()
+    const normalizedWaiverText = String(waiverText ?? '').trim()
+    const normalizedAcknowledgement = String(acknowledgementText ?? '').trim()
+
+    if (!normalizedSignerName) throw new Error('Signer name is required.')
+    if (!normalizedWaiverText) throw new Error('Waiver text is not configured.')
+    if (!normalizedAcknowledgement) {
+      throw new Error('Waiver acknowledgement is required.')
+    }
+
+    const user = await currentUser()
+    const documentId = crypto.randomUUID()
+    const storagePath = [
+      user.id,
+      businessClientId,
+      documentId,
+      'signature.png',
+    ].join('/')
+
+    const upload = await supabase.storage
+      .from(WAIVER_BUCKET)
+      .upload(storagePath, signatureBlob, {
+        contentType: 'image/png',
+        upsert: false,
+      })
+
+    if (upload.error) throw upload.error
+
+    const signedAt = new Date().toISOString()
+
+    try {
+      const { data: inserted, error: insertError } = await supabase
+        .from('coach_client_documents')
+        .insert({
+          id: documentId,
+          coach_id: user.id,
+          business_client_id: businessClientId,
+          document_type: CLIENT_DOCUMENT_TYPE.LIABILITY_WAIVER,
+          title: 'AVAREN Liability Waiver',
+          status: CLIENT_DOCUMENT_STATUS.SIGNED,
+          document_version: String(documentVersion || '1').trim() || '1',
+          storage_path: storagePath,
+          original_filename: 'signature.png',
+          mime_type: 'image/png',
+          signed_at: signedAt,
+          uploaded_at: signedAt,
+          signing_method: 'coach_device',
+          signer_name: normalizedSignerName,
+          waiver_text_snapshot: normalizedWaiverText,
+          acknowledgement_text: normalizedAcknowledgement,
+          device_user_agent: navigator.userAgent || null,
+          updated_at: signedAt,
+        })
+        .select('*')
+        .single()
+
+      if (insertError) throw insertError
+
+      const { error: supersedeError } = await supabase
+        .from('coach_client_documents')
+        .update({
+          status: CLIENT_DOCUMENT_STATUS.SUPERSEDED,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('coach_id', user.id)
+        .eq('business_client_id', businessClientId)
+        .eq('document_type', CLIENT_DOCUMENT_TYPE.LIABILITY_WAIVER)
+        .eq('status', CLIENT_DOCUMENT_STATUS.SIGNED)
+        .neq('id', documentId)
+
+      if (supersedeError) {
+        console.warn('[client-waivers] Could not supersede prior waiver:', supersedeError)
+      }
+
+      return normalizeClientDocument(inserted)
+    } catch (error) {
+      await supabase.storage.from(WAIVER_BUCKET).remove([storagePath])
+      throw error
+    }
+  }
 
   async createSignedDocumentUrl(storagePath, expiresIn = 120) {
     if (!storagePath) throw new Error('Signed copy is unavailable.')
