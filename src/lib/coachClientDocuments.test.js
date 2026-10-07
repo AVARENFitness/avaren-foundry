@@ -68,7 +68,10 @@ describe('client liability waiver records', () => {
     expect(panel).toContain('Sign on this device')
     expect(panel).toContain('No AVAREN account is')
     expect(panel).toContain('SignaturePad')
-    expect(waiverConfig).toContain("AVAREN_LIABILITY_WAIVER_TEXT = ''")
+    expect(waiverConfig).toContain("AVAREN_LIABILITY_WAIVER_VERSION = '1.0'")
+    expect(waiverConfig).toContain('AVAREN PERSONAL TRAINING LIABILITY WAIVER')
+    expect(waiverConfig).toContain('RELEASE AND WAIVER OF LIABILITY')
+    expect(waiverConfig).toContain('ONLINE AND REMOTE TRAINING')
     expect(waiverConfig).toContain('isAvarenLiabilityWaiverConfigured')
   })
 
