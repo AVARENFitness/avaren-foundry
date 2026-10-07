@@ -996,3 +996,280 @@
     grid-template-columns: 1fr;
   }
 }
+
+
+/* ===== CLIENT DOCUMENTS & WAIVERS ===== */
+.coach-client-documents{
+  display:grid;
+  gap:14px;
+}
+
+.coach-client-documents-header{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:18px;
+  padding:2px 2px 4px;
+}
+
+.coach-client-documents-header h2{
+  margin:5px 0 6px;
+  font-size:1.32rem;
+  letter-spacing:-.035em;
+}
+
+.coach-client-documents-header p{
+  max-width:58ch;
+  margin:0;
+  color:var(--muted);
+  font-size:.86rem;
+  line-height:1.55;
+}
+
+.coach-client-waiver-card{
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr) auto;
+  align-items:center;
+  gap:12px;
+  padding:15px;
+  border:1px solid rgba(248,243,230,.07);
+  border-radius:16px;
+  background:rgba(255,255,255,.008);
+}
+
+.coach-client-waiver-card.is-signed{
+  border-color:rgba(104,157,118,.24);
+  background:
+    linear-gradient(90deg,rgba(72,115,84,.085),rgba(255,255,255,.006));
+}
+
+.coach-client-waiver-card.is-missing{
+  border-color:rgba(216,189,122,.12);
+  background:
+    linear-gradient(90deg,rgba(184,149,78,.05),rgba(255,255,255,.006));
+}
+
+.coach-client-waiver-icon{
+  width:38px;
+  height:38px;
+  display:grid;
+  place-items:center;
+  border-radius:12px;
+  border:1px solid rgba(216,189,122,.14);
+  color:var(--gold-bright);
+  background:rgba(184,149,78,.04);
+}
+
+.coach-client-waiver-card.is-signed .coach-client-waiver-icon{
+  border-color:rgba(104,157,118,.24);
+  color:#78a988;
+  background:rgba(72,115,84,.08);
+}
+
+.coach-client-waiver-copy{
+  min-width:0;
+  display:grid;
+  gap:3px;
+}
+
+.coach-client-waiver-copy small{
+  color:var(--muted);
+  font-size:.62rem;
+  font-weight:800;
+  letter-spacing:.12em;
+}
+
+.coach-client-waiver-copy strong{
+  color:var(--cream);
+  font-size:.95rem;
+}
+
+.coach-client-waiver-copy span{
+  color:var(--muted);
+  font-size:.76rem;
+  line-height:1.4;
+}
+
+.coach-client-waiver-open{
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  white-space:nowrap;
+}
+
+.coach-client-document-upload{
+  display:grid;
+  gap:13px;
+  padding:16px;
+  border:1px solid rgba(248,243,230,.065);
+  border-radius:16px;
+  background:
+    linear-gradient(145deg,rgba(255,255,255,.012),rgba(255,255,255,.004));
+}
+
+.coach-client-document-upload-heading{
+  display:flex;
+  align-items:flex-start;
+  gap:10px;
+  color:var(--gold-bright);
+}
+
+.coach-client-document-upload-heading>div{
+  display:grid;
+  gap:3px;
+}
+
+.coach-client-document-upload-heading strong{
+  color:var(--cream);
+  font-size:.9rem;
+}
+
+.coach-client-document-upload-heading span{
+  color:var(--muted);
+  font-size:.72rem;
+  line-height:1.4;
+}
+
+.coach-client-document-fields{
+  display:grid;
+  grid-template-columns:minmax(0,1.6fr) minmax(140px,.7fr) minmax(110px,.5fr);
+  gap:10px;
+  align-items:end;
+}
+
+.coach-client-document-file{
+  padding:9px;
+}
+
+.coach-client-document-selected{
+  display:flex;
+  align-items:center;
+  gap:7px;
+  color:#b9b1a5;
+  font-size:.76rem;
+}
+
+.coach-client-document-selected svg{
+  color:#78a988;
+}
+
+.coach-client-document-save{
+  width:auto;
+  min-width:190px;
+  justify-self:start;
+}
+
+.coach-client-document-loading{
+  margin:0;
+  color:var(--muted);
+  font-size:.8rem;
+}
+
+.coach-client-document-history{
+  border:1px solid rgba(248,243,230,.055);
+  border-radius:14px;
+  background:rgba(255,255,255,.006);
+}
+
+.coach-client-document-history>summary{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:13px 14px;
+  cursor:pointer;
+  color:#b9b1a5;
+  font-size:.78rem;
+  font-weight:700;
+  list-style:none;
+}
+
+.coach-client-document-history>summary::-webkit-details-marker{
+  display:none;
+}
+
+.coach-client-document-history>summary span{
+  min-width:24px;
+  height:24px;
+  display:grid;
+  place-items:center;
+  border-radius:999px;
+  border:1px solid rgba(248,243,230,.07);
+  color:var(--muted);
+  font-size:.68rem;
+}
+
+.coach-client-document-history>div{
+  display:grid;
+  border-top:1px solid rgba(248,243,230,.05);
+}
+
+.coach-client-document-history-row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:14px;
+  padding:12px 14px;
+  border-bottom:1px solid rgba(248,243,230,.045);
+}
+
+.coach-client-document-history-row:last-child{
+  border-bottom:0;
+}
+
+.coach-client-document-history-row>div{
+  min-width:0;
+  display:grid;
+  gap:3px;
+}
+
+.coach-client-document-history-row strong{
+  color:#d6d0c6;
+  font-size:.78rem;
+}
+
+.coach-client-document-history-row span{
+  color:var(--muted);
+  font-size:.7rem;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+@media (max-width:720px){
+  .coach-client-waiver-card{
+    grid-template-columns:auto minmax(0,1fr);
+  }
+
+  .coach-client-waiver-open{
+    grid-column:1/-1;
+    justify-content:center;
+  }
+
+  .coach-client-document-fields{
+    grid-template-columns:1fr 1fr;
+  }
+
+  .coach-client-document-fields .coach-field--wide{
+    grid-column:1/-1;
+  }
+
+  .coach-client-document-save{
+    width:100%;
+  }
+}
+
+@media (max-width:480px){
+  .coach-client-document-fields{
+    grid-template-columns:1fr;
+  }
+
+  .coach-client-document-fields .coach-field--wide{
+    grid-column:auto;
+  }
+
+  .coach-client-document-history-row{
+    align-items:flex-start;
+    flex-direction:column;
+  }
+}
