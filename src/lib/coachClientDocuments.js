@@ -222,7 +222,8 @@ export const coachClientDocumentsBackend = {
           signer_name: normalizedSignerName,
           waiver_text_snapshot: normalizedWaiverText,
           acknowledgement_text: normalizedAcknowledgement,
-          device_user_agent:\n            typeof navigator !== 'undefined' ? navigator.userAgent || null : null,
+          device_user_agent:
+            typeof navigator !== 'undefined' ? navigator.userAgent || null : null,
           updated_at: signedAt,
         })
         .select('*')
