@@ -6,6 +6,7 @@ export default function AppUiBackdrop({
   open = false,
   onClose,
   className = '',
+  style,
   children,
   onEscape,
 }) {
@@ -33,6 +34,7 @@ export default function AppUiBackdrop({
   return createPortal(
     <div
       className={`app-ui-backdrop ${className}`.trim()}
+      style={style}
       role="presentation"
       data-app-ui-backdrop="open"
       onClick={onClose}
