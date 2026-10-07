@@ -90,84 +90,88 @@ export default function PushNotificationSettings() {
 
   return (
     <section className="push-settings-card">
-      <header>
+      <div className="push-settings-compact-row">
         <span className="push-settings-icon">
-          <Smartphone size={20} />
+          <Smartphone size={18} />
         </span>
-        <div>
+
+        <div className="push-settings-compact-copy">
           <span className="eyebrow">PHONE ALERTS</span>
-          <h2>Training reminders</h2>
-          <p>
-            Get training reminders when sessions are scheduled, updated,
-            or approaching.
-          </p>
+          <strong>Training reminders</strong>
+          <small>
+            {status.subscribed && status.permission === 'granted'
+              ? 'Active on this device'
+              : needsHomeScreen
+                ? 'Add AVAREN to your Home Screen first'
+                : status.permission === 'denied'
+                  ? 'Blocked in device settings'
+                  : 'Off on this device'}
+          </small>
         </div>
-      </header>
+
+        {!status.supported || !status.configured || needsHomeScreen ? null : (
+          <button
+            className={`push-settings-toggle ${status.subscribed ? 'enabled' : ''}`}
+            onClick={toggle}
+            disabled={loading || status.permission === 'denied'}
+          >
+            {status.subscribed ? <Check size={16} /> : <Bell size={16} />}
+            {loading
+              ? 'Checking…'
+              : status.permission === 'denied'
+                ? 'Blocked'
+                : status.subscribed
+                  ? 'On'
+                  : 'Turn on'}
+          </button>
+        )}
+      </div>
 
       {!status.supported ? (
         <div className="push-settings-state warning">
-          <BellOff size={17} />
+          <BellOff size={16} />
           This browser does not support web push.
         </div>
       ) : !status.configured ? (
         <div className="push-settings-state warning">
-          <BellOff size={17} />
+          <BellOff size={16} />
           Push setup is not complete yet.
         </div>
       ) : needsHomeScreen ? (
         <div className="push-settings-state warning">
-          <Smartphone size={17} />
-          Add AVAREN to your Home Screen to receive training reminders.
+          <Smartphone size={16} />
+          Add AVAREN to your Home Screen to receive lock-screen reminders.
         </div>
-      ) : (
-        <button
-          className={`push-settings-toggle ${
-            status.subscribed ? 'enabled' : ''
-          }`}
-          onClick={toggle}
-          disabled={loading || status.permission === 'denied'}
-        >
-          {status.subscribed ? (
-            <Check size={18} />
-          ) : (
-            <Bell size={18} />
-          )}
-          {loading
-            ? 'Checking device…'
-            : status.permission === 'denied'
-            ? 'Blocked in browser settings'
-            : status.subscribed
-            ? 'Disable on this device'
-            : 'Enable notifications'}
-        </button>
-      )}
+      ) : null}
 
-      {!needsHomeScreen && status.supported && status.configured && (
-        <div className="push-settings-diagnostics">
-          <p className="push-settings-message subtle">
-            {status.subscribed && status.permission === 'granted'
-              ? 'Phone alerts are active on this device.'
-              : status.permission === 'denied'
-                ? 'Phone alerts are blocked in device/browser settings.'
-                : 'Enable phone alerts to receive lock-screen and banner notifications.'}
-          </p>
-          {status.subscribed && status.permission === 'granted' ? (
-            <button
-              type="button"
-              className="ui-btn-tertiary push-settings-test"
-              onClick={sendTest}
-              disabled={testing || loading}
-            >
-              <Bell size={16} />
-              {testing ? 'Sending test…' : 'Test this device'}
-            </button>
-          ) : null}
-        </div>
-      )}
+      <div className="push-settings-compact-actions">
+        {status.subscribed && status.permission === 'granted' ? (
+          <button
+            type="button"
+            className="ui-btn-tertiary push-settings-test"
+            onClick={sendTest}
+            disabled={testing || loading}
+          >
+            <Bell size={15} />
+            {testing ? 'Sending…' : 'Test'}
+          </button>
+        ) : null}
 
-      {message && (
+        {status.subscribed && status.permission === 'granted' ? (
+          <button
+            type="button"
+            className="ui-btn-tertiary push-settings-disable"
+            onClick={toggle}
+            disabled={loading}
+          >
+            Disable
+          </button>
+        ) : null}
+      </div>
+
+      {message ? (
         <div className="push-settings-message">{message}</div>
-      )}
+      ) : null}
     </section>
   )
 }

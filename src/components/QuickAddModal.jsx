@@ -1,5 +1,5 @@
 import { X } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import AppUiBackdrop from './ui/AppUiBackdrop'
 
 const MUSCLES = [
@@ -17,9 +17,36 @@ export default function QuickAddModal({
   const [sets, setSets] = useState(3)
   const [muscle, setMuscle] = useState('Other')
   const [saveToPlan, setSaveToPlan] = useState(false)
+  const [viewportStyle, setViewportStyle] = useState(undefined)
+
+  useEffect(() => {
+    const viewport = window.visualViewport
+    if (!viewport) return undefined
+
+    const syncViewport = () => {
+      setViewportStyle({
+        '--quick-add-visible-height': `${Math.round(viewport.height)}px`,
+        '--quick-add-visible-top': `${Math.round(viewport.offsetTop)}px`,
+      })
+    }
+
+    syncViewport()
+    viewport.addEventListener('resize', syncViewport)
+    viewport.addEventListener('scroll', syncViewport)
+
+    return () => {
+      viewport.removeEventListener('resize', syncViewport)
+      viewport.removeEventListener('scroll', syncViewport)
+    }
+  }, [])
 
   return (
-    <AppUiBackdrop open onClose={onClose} className="modal-backdrop-host">
+    <AppUiBackdrop
+      open
+      onClose={onClose}
+      className="modal-backdrop-host quick-add-backdrop"
+      style={viewportStyle}
+    >
       <section
         className="quick-add-modal"
         role="dialog"

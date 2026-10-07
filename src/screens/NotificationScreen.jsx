@@ -2,7 +2,6 @@ import {
   ArrowLeft,
   ArrowRight,
   Bell,
-  BellOff,
   CalendarDays,
   Check,
   Dumbbell,
@@ -96,8 +95,10 @@ export default function NotificationScreen({
 
       <PushNotificationSettings />
 
-      <section className="notification-hero">
-        <Bell size={26} />
+      <section
+        className={`notification-hero ${snapshot.notifications.length ? '' : 'is-empty'}`}
+      >
+        <Bell size={22} />
         <div>
           <span className="eyebrow">INBOX</span>
           <h2>
@@ -106,22 +107,12 @@ export default function NotificationScreen({
               : 'All caught up'}
           </h2>
           <p>
-            AVAREN only surfaces reminders that support today’s training,
-            recovery, or progress.
+            {snapshot.notifications.length
+              ? 'Only reminders that need your attention stay here.'
+              : 'Nothing needs your attention right now.'}
           </p>
         </div>
       </section>
-
-      {!snapshot.notifications.length && (
-        <section className="empty-state">
-          <BellOff size={25} />
-          <h2>No active notifications.</h2>
-          <p>
-            You’re caught up. New reminders will appear when something needs
-            attention.
-          </p>
-        </section>
-      )}
 
       <div className="notification-list">
         {snapshot.notifications.map((notification) => {
