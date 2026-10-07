@@ -47,6 +47,31 @@ describe('client liability waiver records', () => {
     expect(source).toContain('createSignedUrl')
   })
 
+  it('supports coach-device signing without requiring an athlete account', () => {
+    const source = readFileSync(
+      resolve(process.cwd(), 'src/lib/coachClientDocuments.js'),
+      'utf8',
+    )
+    const panel = readFileSync(
+      resolve(process.cwd(), 'src/components/coach/CoachClientDocumentsPanel.jsx'),
+      'utf8',
+    )
+    const waiverConfig = readFileSync(
+      resolve(process.cwd(), 'src/content/avarenLiabilityWaiver.js'),
+      'utf8',
+    )
+
+    expect(source).toContain('signLiabilityWaiverOnCoachDevice')
+    expect(source).toContain("signing_method: 'coach_device'")
+    expect(source).toContain('waiver_text_snapshot')
+    expect(source).toContain('signer_name')
+    expect(panel).toContain('Sign on this device')
+    expect(panel).toContain('No AVAREN account is')
+    expect(panel).toContain('SignaturePad')
+    expect(waiverConfig).toContain("AVAREN_LIABILITY_WAIVER_TEXT = ''")
+    expect(waiverConfig).toContain('isAvarenLiabilityWaiverConfigured')
+  })
+
   it('preserves previous signed waivers as superseded history', () => {
     const source = readFileSync(
       resolve(process.cwd(), 'src/lib/coachClientDocuments.js'),
