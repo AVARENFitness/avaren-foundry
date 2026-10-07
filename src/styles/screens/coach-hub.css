@@ -1630,3 +1630,30 @@
     height:210px;
   }
 }
+
+
+.coach-waiver-document-heading{
+  margin:0 0 8px !important;
+  color:var(--gold-bright);
+  font-size:.66rem !important;
+  font-weight:850;
+  letter-spacing:.14em;
+  line-height:1.4 !important;
+}
+
+.coach-waiver-section-title{
+  margin:18px 0 7px;
+  color:var(--cream);
+  font-size:.83rem;
+  line-height:1.35;
+  letter-spacing:.015em;
+}
+
+.coach-waiver-spacer{
+  height:7px;
+}
+
+.coach-waiver-terms .coach-waiver-section-title:first-child,
+.coach-waiver-terms .coach-waiver-document-heading:first-child{
+  margin-top:0;
+}
