@@ -26342,3 +26342,409 @@ body > .nutrition-food-sheet-backdrop > .nutrition-food-sheet {
     animation: none !important;
   }
 }
+
+
+/* ===== MOBILE APP QUALITY PASS · NOTIFICATIONS / GYM / CAPTURE ===== */
+
+/* Notifications: one calm hierarchy, not a stack of competing cards. */
+.notification-screen {
+  display: grid;
+  gap: 10px;
+  padding-bottom: 96px;
+}
+
+.notification-screen .builder-header {
+  margin-bottom: 0;
+}
+
+.push-settings-card {
+  gap: 8px;
+  margin-bottom: 0;
+  padding: 12px 13px;
+  border-color: rgba(248,243,230,.065);
+  border-radius: 15px;
+  background: rgba(255,255,255,.008);
+  box-shadow: none;
+}
+
+.push-settings-compact-row {
+  display: grid;
+  grid-template-columns: auto minmax(0,1fr) auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.push-settings-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+}
+
+.push-settings-compact-copy {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.push-settings-compact-copy .eyebrow {
+  font-size: .58rem;
+  letter-spacing: .11em;
+}
+
+.push-settings-compact-copy strong {
+  color: var(--cream);
+  font-size: .86rem;
+  line-height: 1.2;
+}
+
+.push-settings-compact-copy small {
+  color: var(--muted);
+  font-size: .69rem;
+  line-height: 1.35;
+}
+
+.push-settings-toggle {
+  width: auto;
+  min-width: 70px;
+  min-height: 38px;
+  padding: 0 11px;
+  border-radius: 10px;
+  font-size: .72rem;
+}
+
+.push-settings-compact-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 7px;
+}
+
+.push-settings-compact-actions:empty {
+  display: none;
+}
+
+.push-settings-test,
+.push-settings-disable {
+  width: auto;
+  min-height: 34px;
+  padding: 0 10px;
+  font-size: .69rem;
+}
+
+.push-settings-message,
+.push-settings-state {
+  padding: 8px 10px;
+  font-size: .7rem !important;
+}
+
+.notification-hero {
+  grid-template-columns: 36px minmax(0,1fr);
+  gap: 10px;
+  padding: 13px 14px;
+  border-color: rgba(248,243,230,.065);
+  border-radius: 15px;
+  background: rgba(255,255,255,.008);
+  box-shadow: none;
+}
+
+.notification-hero > svg {
+  width: 20px;
+  color: color-mix(in srgb, var(--gold-bright) 78%, var(--muted));
+}
+
+.notification-hero h2 {
+  margin: 3px 0 2px;
+  font-size: 1.05rem;
+  letter-spacing: -.025em;
+}
+
+.notification-hero p {
+  max-width: none;
+  color: var(--muted);
+  font-size: .72rem;
+  line-height: 1.4;
+}
+
+.notification-hero.is-empty {
+  border-style: dashed;
+  opacity: .88;
+}
+
+.notification-list {
+  gap: 6px;
+  margin-top: 0;
+}
+
+.notification-item {
+  grid-template-columns: 34px minmax(0,1fr);
+  gap: 10px;
+  padding: 11px 12px;
+  border-radius: 13px;
+  background: rgba(255,255,255,.007);
+  box-shadow: none;
+}
+
+.notification-item-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+}
+
+.notification-item-copy strong {
+  font-size: .84rem;
+}
+
+.notification-item-copy p {
+  font-size: .72rem;
+  line-height: 1.4;
+}
+
+.notification-item-actions {
+  margin-top: 8px;
+}
+
+/* Quick Add: treat it like a native compact sheet even while iOS keyboard is open. */
+.quick-add-backdrop {
+  top: var(--quick-add-visible-top, 0px);
+  bottom: auto;
+  height: var(--quick-add-visible-height, 100dvh);
+  padding: 8px 10px max(8px, env(safe-area-inset-bottom));
+}
+
+.quick-add-modal {
+  width: min(560px, 100%);
+  max-height: calc(var(--quick-add-visible-height, 100dvh) - 16px);
+  overflow: hidden;
+  padding: 14px;
+  padding-bottom: max(14px, env(safe-area-inset-bottom));
+  border-radius: 20px;
+}
+
+.quick-add-modal header {
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.quick-add-modal header .eyebrow {
+  font-size: .62rem;
+}
+
+.quick-add-modal h2 {
+  margin-top: 3px;
+  font-size: 1.5rem;
+}
+
+.quick-add-modal header button {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+}
+
+.quick-add-modal label {
+  margin: 7px 0 4px;
+  font-size: .65rem;
+}
+
+.quick-add-modal input,
+.quick-add-modal select {
+  min-height: 44px;
+  padding: 9px 11px;
+  font-size: 16px !important;
+}
+
+.quick-add-modal .modal-grid {
+  gap: 8px;
+}
+
+.quick-add-modal .quick-add-plan-choice {
+  gap: 7px;
+  margin-top: 8px;
+}
+
+.quick-add-modal .quick-add-plan-choice button {
+  min-height: 38px;
+  padding: 7px 9px;
+  font-size: .7rem;
+  line-height: 1.2;
+}
+
+.quick-add-modal .gold-button {
+  min-height: 46px;
+  margin-top: 10px;
+}
+
+/* Active workout: restore intentional breathing room from the muscle accent rail. */
+@media (max-width: 620px) {
+  .focus-exercise-header {
+    padding: 16px 17px 11px !important;
+  }
+
+  .focus-set-list {
+    padding-inline: 10px;
+  }
+
+  .focus-exercise-details > summary {
+    padding-inline: 1px;
+  }
+
+  .focus-exercise::before {
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.03),
+      inset 2px 0 0 color-mix(in srgb, var(--muscle-accent) 62%, transparent);
+    opacity: .6;
+  }
+
+  .focus-index,
+  .muscle-pill,
+  .focus-exercise-header h1,
+  .focus-prescription-label,
+  .exercise-history-glance,
+  .focus-exercise-details {
+    position: relative;
+    z-index: 1;
+  }
+}
+
+/* Nutrition camera: make the post-photo decision obvious without a hidden scroll hunt. */
+.nutrition-scan-sheet[data-scan-state="context"] {
+  display: grid;
+  grid-template-columns: 120px minmax(0,1fr);
+  column-gap: 12px;
+  align-items: start;
+}
+
+.nutrition-scan-sheet[data-scan-state="context"] > header {
+  grid-column: 1 / -1;
+  margin-bottom: 0;
+}
+
+.nutrition-scan-sheet[data-scan-state="context"] .nutrition-scan-preview {
+  grid-column: 1;
+  width: 120px;
+  height: 120px;
+  max-height: 120px;
+  object-fit: cover;
+}
+
+.nutrition-scan-sheet[data-scan-state="context"] .nutrition-scan-preanalysis {
+  grid-column: 2;
+  gap: 8px;
+  padding: 11px;
+}
+
+.nutrition-scan-sheet[data-scan-state="context"] .nutrition-scan-preanalysis-copy small,
+.nutrition-scan-sheet[data-scan-state="context"] .nutrition-scan-preanalysis-examples {
+  display: none;
+}
+
+.nutrition-scan-sheet[data-scan-state="context"] .nutrition-scan-preanalysis textarea {
+  min-height: 76px;
+  max-height: 96px;
+  resize: none;
+  font-size: 16px;
+}
+
+.nutrition-scan-sheet[data-scan-state="context"] .nutrition-scan-preanalysis-actions {
+  grid-template-columns: minmax(0,.8fr) minmax(0,1.2fr);
+}
+
+.nutrition-scan-sheet[data-scan-state="context"] .nutrition-scan-preanalysis-actions button {
+  min-height: 44px;
+  padding-inline: 9px;
+  font-size: .72rem;
+}
+
+@media (max-width: 520px) {
+  .notification-screen {
+    gap: 8px;
+  }
+
+  .push-settings-card,
+  .notification-hero {
+    border-radius: 14px;
+  }
+
+  .push-settings-compact-row {
+    grid-template-columns: auto minmax(0,1fr) auto;
+  }
+
+  .quick-add-modal {
+    border-radius: 18px 18px 14px 14px;
+  }
+
+  .nutrition-food-sheet-backdrop {
+    align-items: flex-end;
+    padding: 6px;
+  }
+
+  .nutrition-scan-sheet[data-scan-state="context"] {
+    width: 100%;
+    max-height: calc(100dvh - 12px);
+    grid-template-columns: 82px minmax(0,1fr);
+    gap: 8px 10px;
+    padding: 12px;
+    overflow: hidden;
+  }
+
+  .nutrition-scan-sheet[data-scan-state="context"] > header {
+    gap: 10px;
+    margin-bottom: 0;
+  }
+
+  .nutrition-scan-sheet[data-scan-state="context"] h2 {
+    font-size: 1.2rem !important;
+  }
+
+  .nutrition-scan-sheet[data-scan-state="context"] > header p {
+    font-size: .7rem !important;
+    line-height: 1.35;
+  }
+
+  .nutrition-scan-sheet[data-scan-state="context"] .nutrition-scan-preview {
+    width: 82px;
+    height: 82px;
+    border-radius: 11px;
+  }
+
+  .nutrition-scan-sheet[data-scan-state="context"] .nutrition-scan-preanalysis {
+    gap: 6px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+  }
+
+  .nutrition-scan-sheet[data-scan-state="context"] .nutrition-scan-preanalysis-copy {
+    gap: 2px;
+  }
+
+  .nutrition-scan-sheet[data-scan-state="context"] .nutrition-scan-preanalysis-copy .eyebrow {
+    display: none;
+  }
+
+  .nutrition-scan-sheet[data-scan-state="context"] .nutrition-scan-preanalysis-copy strong {
+    font-size: .82rem;
+  }
+
+  .nutrition-scan-sheet[data-scan-state="context"] .nutrition-scan-preanalysis > label {
+    gap: 4px;
+  }
+
+  .nutrition-scan-sheet[data-scan-state="context"] .nutrition-scan-preanalysis > label > span {
+    font-size: .66rem;
+  }
+
+  .nutrition-scan-sheet[data-scan-state="context"] .nutrition-scan-preanalysis textarea {
+    min-height: 68px;
+    max-height: 68px;
+    padding: 8px 9px;
+  }
+
+  .nutrition-scan-sheet[data-scan-state="context"] .nutrition-scan-preanalysis-actions {
+    grid-column: 1 / -1;
+    grid-template-columns: .8fr 1.2fr;
+    gap: 7px;
+  }
+
+  .nutrition-scan-sheet[data-scan-state="context"] .nutrition-scan-preanalysis-actions .nutrition-secondary-button {
+    order: 0;
+  }
+}
