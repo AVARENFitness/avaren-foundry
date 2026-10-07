@@ -72,6 +72,7 @@ import CoachEndCoachingSheet, {
   CoachClientManagementPanel,
 } from '../components/coach/CoachClientManagementPanel'
 import CoachClientProfileShell from '../components/CoachClientProfileShell'
+import CoachClientDocumentsPanel from '../components/coach/CoachClientDocumentsPanel'
 import CoachSessionDetailHost from '../components/coach/CoachSessionDetailHost'
 import EmptyState from '../components/ui/EmptyState'
 import CoachMessageLauncher from '../components/CoachMessageLauncher'
@@ -1117,6 +1118,9 @@ export default function CoachClientProfile({
           </>
         )
 
+
+      case 'documents':
+        return <CoachClientDocumentsPanel client={client} />
 
       case 'manage':
         return (
