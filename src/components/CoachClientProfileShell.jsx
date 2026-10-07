@@ -7,6 +7,7 @@ export const CLIENT_PROFILE_SECTIONS = [
   { id: 'training', label: 'Training' },
   { id: 'notes', label: 'Notes' },
   { id: 'progress', label: 'Progress' },
+  { id: 'documents', label: 'Documents' },
   { id: 'manage', label: 'Manage' },
 ]
 
