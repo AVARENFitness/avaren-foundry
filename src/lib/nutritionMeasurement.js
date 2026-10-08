@@ -146,6 +146,48 @@ export const resolveFoodServingCountBasis = (source = {}) =>
       '',
   )
 
+export const parseFoodCountFromContext = (
+  context = '',
+  countBasis = null,
+) => {
+  if (!countBasis?.amount) return null
+  const text = String(context ?? '').trim().toLowerCase()
+  if (!text) return null
+
+  const label = String(countBasis.label || '').toLowerCase()
+  const singular = String(countBasis.singularLabel || '').toLowerCase()
+  const escapedLabels = [label, singular, 'piece', 'pieces', 'item', 'items']
+    .filter(Boolean)
+    .map((value) => value.replace(/[.*+?^$\{\}()|[\]\\]/g, '\\export const resolveFoodServingCountBasis = (source = {}) =>
+  parseFoodServingCount(
+    source.servingDescription ??
+      source.serving_description ??
+      source.description ??
+      source.serving ??
+      '',
+  )
+
+'))
+    .join('|')
+
+  const labeled = text.match(
+    new RegExp(`(?:had|ate|eaten|used|have)?\\s*([0-9]+(?:\\.[0-9]+)?)\\s*(?:${escapedLabels})\\b`, 'i'),
+  )
+  const simple = text.match(
+    /\b(?:had|ate|eaten|used|have)\s+([0-9]+(?:\.[0-9]+)?)\b/i,
+  )
+  const amount = numeric(labeled?.[1] ?? simple?.[1])
+  if (amount == null || amount <= 0) return null
+
+  return {
+    amount,
+    unit: FOOD_MEASURE_UNIT.ITEM,
+    itemLabel: countBasis.label,
+    multiplier: amount / Number(countBasis.amount),
+    source: 'user_context',
+  }
+}
+
 export const resolveFoodServingBasis = (source = {}) => {
   const metricAmount = numeric(
     source.metricAmount ??
