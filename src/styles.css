@@ -26871,3 +26871,138 @@ body > .nutrition-food-sheet-backdrop > .nutrition-food-sheet {
     font-size: .71rem;
   }
 }
+
+
+/* ===== NUTRITION FOOD FRICTION AUDIT ===== */
+.nutrition-log-saved-meals {
+  display: grid;
+  gap: 9px;
+  padding: 12px;
+  border: 1px solid rgba(216,189,122,.09);
+  border-radius: 14px;
+  background: rgba(185,149,82,.018);
+}
+
+.nutrition-log-saved-meals > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.nutrition-log-saved-meals > header > div {
+  display: grid;
+  gap: 2px;
+}
+
+.nutrition-log-saved-meals > header strong {
+  color: var(--cream);
+  font-size: .82rem;
+}
+
+.nutrition-log-saved-meals > header button {
+  border: 0;
+  background: transparent;
+  color: var(--gold-bright);
+  font-size: .68rem;
+  font-weight: 750;
+}
+
+.nutrition-log-saved-meals > div {
+  display: grid;
+  gap: 6px;
+}
+
+.nutrition-log-saved-meals article,
+.nutrition-repeat-row {
+  display: grid;
+  grid-template-columns: minmax(0,1fr) auto;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 9px 9px 9px 11px;
+  border: 1px solid rgba(248,243,230,.055);
+  border-radius: 12px;
+  background: rgba(255,255,255,.008);
+}
+
+.nutrition-log-saved-main {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+}
+
+.nutrition-log-saved-main strong,
+.nutrition-repeat-copy strong {
+  overflow: hidden;
+  color: var(--cream);
+  font-size: .78rem;
+  font-weight: 720;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nutrition-log-saved-main small,
+.nutrition-repeat-copy small {
+  color: var(--muted);
+  font-size: .66rem;
+  line-height: 1.35;
+}
+
+.nutrition-log-saved-add,
+.nutrition-repeat-button {
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 0 10px;
+  border: 1px solid rgba(216,189,122,.13);
+  border-radius: 10px;
+  background: rgba(185,149,82,.035);
+  color: var(--gold-bright);
+  font-size: .68rem;
+  font-weight: 760;
+  white-space: nowrap;
+}
+
+.nutrition-repeat-list {
+  display: grid;
+  gap: 6px;
+}
+
+.nutrition-repeat-copy {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.nutrition-repeat-copy span {
+  color: #756f67;
+  font-size: .61rem;
+  line-height: 1.3;
+}
+
+@media (max-width: 520px) {
+  .nutrition-log-saved-meals {
+    padding: 10px;
+  }
+
+  .nutrition-log-saved-meals article,
+  .nutrition-repeat-row {
+    padding: 9px;
+    gap: 8px;
+  }
+
+  .nutrition-log-saved-add,
+  .nutrition-repeat-button {
+    min-height: 35px;
+    padding-inline: 9px;
+  }
+}
