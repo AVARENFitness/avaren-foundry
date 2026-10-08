@@ -17,6 +17,16 @@ describe('display-only nutrition log grouping', () => {
     expect(groupLoggedFoods([{ id: 'old' }, { id: 'older' }])).toHaveLength(2)
   })
 
+  it('does not chain foods across a longer window or group reversed timestamps', () => {
+    const foods = [
+      { id: 'a', loggedAt: '2026-10-08T12:00:00Z' },
+      { id: 'b', loggedAt: '2026-10-08T12:12:00Z' },
+      { id: 'c', loggedAt: '2026-10-08T12:24:00Z' },
+      { id: 'd', loggedAt: '2026-10-08T12:05:00Z' },
+    ]
+    expect(groupLoggedFoods(foods).map(g => g.foods.map(f => f.id))).toEqual([['a', 'b'], ['c'], ['d']])
+  })
+
   it('does not reorder entries or mistake a distant logging event for the same group', () => {
     const foods = [
       { id: 'first', loggedAt: '2026-10-08T19:00:00Z' },
