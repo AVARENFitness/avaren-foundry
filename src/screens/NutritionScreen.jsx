@@ -1977,7 +1977,10 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
                         onClick={() =>
                           recipe.reusableMeal
                             ? openReusableMealAdjuster(recipe)
-                            : setRecipeLogTarget(recipe)
+                            : (() => {
+                                setRecipeLogAmount(1)
+                                setRecipeLogTarget(recipe)
+                              })()
                         }
                       >
                         <strong>{recipe.name}</strong>
