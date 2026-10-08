@@ -46,6 +46,7 @@ import {
   addWaterToNutrition,
   logRecipeToNutrition,
   nutritionRound as round,
+  repeatLoggedFoodEntry,
 } from '../lib/nutritionActions'
 import { COMMON_FOODS } from '../data/commonFoods'
 import { appUi } from '../lib/appUi'
@@ -269,6 +270,7 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
     [day],
   )
   const favoriteIds = nutrition?.favoriteFoodIds ?? []
+  const favoriteSnapshots = nutrition?.favoriteFoodSnapshots ?? []
   const recentIds = nutrition?.recentFoodIds ?? []
   const foodMatches = useMemo(() => {
     const query = foodSearch.trim().toLowerCase()
@@ -367,7 +369,7 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
           id: `fatsecret:${food.foodId}`,
           foodId: food.foodId,
           provider: 'fatsecret',
-          sourceLabel: 'FatSecret',
+          sourceLabel: 'Verified',
           name: food.name,
           brand: food.brand || 'FatSecret',
           serving:
@@ -494,7 +496,9 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
   }, [foodMatches, fatSecretFoods, foodSearch])
 
   const quickLogFoods = useMemo(() => {
-    const byId = new Map(foodMatches.map((food) => [food.id, food]))
+    const byId = new Map(
+      [...favoriteSnapshots, ...foodMatches].map((food) => [food.id, food]),
+    )
     const ids = logBrowseMode === 'Favorites' ? favoriteIds : recentIds
     const preferred = ids
       .map((id) => byId.get(id))
@@ -505,7 +509,72 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
         : foodMatches
 
     return (preferred.length ? preferred : fallback).slice(0, 6)
-  }, [favoriteIds, foodMatches, logBrowseMode, recentIds])
+  }, [
+    favoriteIds,
+    favoriteSnapshots,
+    foodMatches,
+    logBrowseMode,
+    recentIds,
+  ])
+
+  const quickSavedMeals = useMemo(
+    () =>
+      [...(nutrition?.recipes ?? [])]
+        .sort(
+          (a, b) =>
+            new Date(b.updatedAt || b.createdAt || 0).getTime() -
+            new Date(a.updatedAt || a.createdAt || 0).getTime(),
+        )
+        .slice(0, 3),
+    [nutrition?.recipes],
+  )
+
+  const recentLoggedFoods = useMemo(() => {
+    const rows = Object.values(nutrition?.days ?? {})
+      .flatMap((entry) =>
+        (entry?.foods ?? []).map((food) => ({
+          ...resolveFatSecretRuntimeEntry(food, fatSecretDetailCache),
+          recentDate: entry?.date ?? '',
+        })),
+      )
+      .filter((food) => food?.name)
+      .sort(
+        (a, b) =>
+          new Date(b.loggedAt || 0).getTime() -
+          new Date(a.loggedAt || 0).getTime(),
+      )
+
+    const seen = new Set()
+    return rows.filter((food) => {
+      const measurementKey = food.measurement
+        ? [
+            food.measurement.amount,
+            food.measurement.unit,
+            food.measurement.itemLabel,
+          ].join(':')
+        : ''
+      const key = [
+        String(food.name).toLowerCase(),
+        measurementKey,
+        Math.round(Number(food.calories || 0) * 10) / 10,
+        Math.round(Number(food.protein || 0) * 10) / 10,
+      ].join('|')
+      if (seen.has(key)) return false
+      seen.add(key)
+      return true
+    }).slice(0, 6)
+  }, [nutrition?.days, fatSecretDetailCache])
+
+  const repeatRecentFood = (food) => {
+    patch((current) =>
+      repeatLoggedFoodEntry(current, date, food).nutrition,
+    )
+    const amount =
+      foodMeasureDisplay(food.measurement) ||
+      food.serving ||
+      'same amount'
+    setNotice(`${food.name} · ${amount} logged again.`)
+  }
 
   const weeklyInsights = useMemo(() => {
     const today = new Date(`${nutritionDateKey()}T12:00:00`)
@@ -1082,11 +1151,26 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
 
   const toggleFavorite = (food) => patch((current) => {
     const ids = current.favoriteFoodIds ?? []
+    const snapshots = current.favoriteFoodSnapshots ?? []
+    const isFavorite = ids.includes(food.id)
+
     return {
       ...current,
-      favoriteFoodIds: ids.includes(food.id)
+      favoriteFoodIds: isFavorite
         ? ids.filter((id) => id !== food.id)
         : [food.id, ...ids],
+      favoriteFoodSnapshots: isFavorite
+        ? snapshots.filter((item) => item.id !== food.id)
+        : [
+            {
+              ...food,
+              sourceLabel:
+                food.provider === 'fatsecret'
+                  ? 'Verified'
+                  : food.sourceLabel,
+            },
+            ...snapshots.filter((item) => item.id !== food.id),
+          ].slice(0, 50),
     }
   })
 
@@ -1882,6 +1966,67 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
             </div>
           ) : null}
 
+          {!activeFoodSearch && quickSavedMeals.length ? (
+            <section className="nutrition-log-saved-meals">
+              <header>
+                <div>
+                  <span className="eyebrow">SAVED MEALS</span>
+                  <strong>Your shortcuts</strong>
+                </div>
+                <button type="button" onClick={() => setTab('Library')}>
+                  Manage
+                </button>
+              </header>
+              <div>
+                {quickSavedMeals.map((recipe) => {
+                  const servings = Math.max(1, Number(recipe.servings || 1))
+                  const totals = recipe.totals ?? {
+                    calories: recipe.calories,
+                    protein: recipe.protein,
+                    carbs: recipe.carbs,
+                    fat: recipe.fat,
+                  }
+                  const perServingCalories = recipe.reusableMeal
+                    ? Number(totals.calories || 0)
+                    : Number(totals.calories || 0) / servings
+                  const perServingProtein = recipe.reusableMeal
+                    ? Number(totals.protein || 0)
+                    : Number(totals.protein || 0) / servings
+
+                  return (
+                    <article key={`quick-meal-${recipe.id}`}>
+                      <button
+                        type="button"
+                        className="nutrition-log-saved-main"
+                        onClick={() =>
+                          recipe.reusableMeal
+                            ? openReusableMealAdjuster(recipe)
+                            : (() => {
+                                setRecipeLogAmount(1)
+                                setRecipeLogTarget(recipe)
+                              })()
+                        }
+                      >
+                        <strong>{recipe.name}</strong>
+                        <small>
+                          {Math.round(perServingCalories)} cal · P {round(perServingProtein)}g
+                        </small>
+                      </button>
+                      <button
+                        type="button"
+                        className="nutrition-log-saved-add"
+                        onClick={() => logRecipe(recipe, 1)}
+                      >
+                        <Plus size={15}/>
+                        Log
+                      </button>
+                    </article>
+                  )
+                })}
+              </div>
+            </section>
+          ) : null}
+
           <div className="nutrition-log-quick-heading">
             <div>
               <span className="eyebrow">{logBrowseMode === 'Favorites' ? 'FAVORITES' : 'RECENT'}</span>
@@ -1914,24 +2059,56 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
               {fatSecretSearchState === 'error' && <span>{fatSecretSearchError}</span>}
             </div>
           )}
-          <div className="nutrition-food-results">
-            {(activeFoodSearch ? visibleFoodMatches : quickLogFoods).length ? (activeFoodSearch ? visibleFoodMatches : quickLogFoods).map((food) => (
-              <article key={`${food.sourceLabel}-${food.id ?? food.name}`}>
-                <button className="nutrition-food-result-main" onClick={() => openFood(food)}>
-                  <span className="nutrition-food-result-copy">
+          {!activeFoodSearch && logBrowseMode === 'Recent' ? (
+            <div className="nutrition-repeat-list">
+              {recentLoggedFoods.length ? recentLoggedFoods.map((food) => (
+                <article key={`recent-${food.id}-${food.loggedAt}`} className="nutrition-repeat-row">
+                  <div className="nutrition-repeat-copy">
                     <strong>{food.name}</strong>
-                    <small>{food.serving ?? '1 serving'} · {food.brand || food.category || food.sourceLabel}</small>
-                  </span>
-                  <span className="nutrition-food-result-macros">
-                    <strong>{Math.round(Number(food.calories || 0))} cal</strong>
-                    <small>P {round(food.protein)} · C {round(food.carbs)} · F {round(food.fat)}</small>
-                  </span>
-                  <ChevronRight size={18}/>
-                </button>
-                <button className={`nutrition-save-result ${favoriteIds.includes(food.id) ? 'active' : ''}`} title="Favorite food" onClick={() => toggleFavorite(food)}>{favoriteIds.includes(food.id) ? <BookmarkCheck size={16}/> : <Bookmark size={16}/>}</button>
-              </article>
-            )) : <div className="nutrition-no-results compact"><Utensils/><strong>{activeFoodSearch ? 'No match yet' : logBrowseMode === 'Favorites' ? 'No favorites yet' : 'No recent foods yet'}</strong><span>{activeFoodSearch ? 'Try another search, a photo, barcode, or custom food.' : 'Search for a food above and AVAREN will keep your quickest choices here.'}</span>{activeFoodSearch ? <button onClick={() => { setFoodDraft({...blankFood,name:foodSearch}); setShowCustomFood(true) }}>Create “{foodSearch}”</button> : null}</div>}
-          </div>
+                    <small>
+                      {foodMeasureDisplay(food.measurement) || food.serving || 'Same portion'}
+                      {' · '}
+                      {Math.round(Number(food.calories || 0))} cal
+                    </small>
+                    <span>P {round(food.protein)} · C {round(food.carbs)} · F {round(food.fat)}</span>
+                  </div>
+                  <button
+                    type="button"
+                    className="nutrition-repeat-button"
+                    onClick={() => repeatRecentFood(food)}
+                  >
+                    <Plus size={15}/>
+                    Log again
+                  </button>
+                </article>
+              )) : (
+                <div className="nutrition-no-results compact">
+                  <Utensils/>
+                  <strong>No recent foods yet</strong>
+                  <span>Log something once and the exact portion will stay here for one-tap repeat logging.</span>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="nutrition-food-results">
+              {(activeFoodSearch ? visibleFoodMatches : quickLogFoods).length ? (activeFoodSearch ? visibleFoodMatches : quickLogFoods).map((food) => (
+                <article key={`${food.sourceLabel}-${food.id ?? food.name}`}>
+                  <button className="nutrition-food-result-main" onClick={() => openFood(food)}>
+                    <span className="nutrition-food-result-copy">
+                      <strong>{food.name}</strong>
+                      <small>{food.serving ?? '1 serving'} · {food.brand || food.category || food.sourceLabel}</small>
+                    </span>
+                    <span className="nutrition-food-result-macros">
+                      <strong>{Math.round(Number(food.calories || 0))} cal</strong>
+                      <small>P {round(food.protein)} · C {round(food.carbs)} · F {round(food.fat)}</small>
+                    </span>
+                    <ChevronRight size={18}/>
+                  </button>
+                  <button className={`nutrition-save-result ${favoriteIds.includes(food.id) ? 'active' : ''}`} title="Favorite food" onClick={() => toggleFavorite(food)}>{favoriteIds.includes(food.id) ? <BookmarkCheck size={16}/> : <Bookmark size={16}/>}</button>
+                </article>
+              )) : <div className="nutrition-no-results compact"><Utensils/><strong>{activeFoodSearch ? 'No match yet' : 'No favorites yet'}</strong><span>{activeFoodSearch ? 'Try another search, a photo, barcode, or custom food.' : 'Favorite foods you use often and they will stay here.'}</span>{activeFoodSearch ? <button onClick={() => { setFoodDraft({...blankFood,name:foodSearch}); setShowCustomFood(true) }}>Create “{foodSearch}”</button> : null}</div>}
+            </div>
+          )}
         </>}
 
         {(scanPreview || scanResult) && typeof document !== 'undefined' && createPortal(

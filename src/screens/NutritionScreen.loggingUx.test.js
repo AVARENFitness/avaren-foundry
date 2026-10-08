@@ -41,6 +41,27 @@ describe('NutritionScreen logging UX regressions', () => {
     expect(source).toContain('Foods you come back to')
   })
 
+  it('uses actual logged portions for one-tap recent food repeats', () => {
+    expect(source).toContain('const recentLoggedFoods = useMemo')
+    expect(source).toContain('repeatLoggedFoodEntry')
+    expect(source).toContain('nutrition-repeat-button')
+    expect(source).toContain('Log again')
+    expect(source).toContain('foodMeasureDisplay(food.measurement)')
+  })
+
+  it('surfaces saved meals from Log without forcing a Library detour', () => {
+    expect(source).toContain('const quickSavedMeals = useMemo')
+    expect(source).toContain('SAVED MEALS')
+    expect(source).toContain('Your shortcuts')
+    expect(source).toContain("onClick={() => setTab('Library')}")
+  })
+
+  it('persists remote verified foods when they are favorited', () => {
+    expect(source).toContain('favoriteFoodSnapshots')
+    expect(source).toContain("food.provider === 'fatsecret'")
+    expect(source).toContain("sourceLabel: 'Verified'")
+  })
+
   it('limits active search results so the Log tab does not become a catalog', () => {
     expect(source).toContain('...fatSecretFoods,')
     expect(source).toContain('].slice(0, 12)')
@@ -112,7 +133,7 @@ describe('NutritionScreen logging UX regressions', () => {
     expect(source).toContain('setScanMeasureUnit(labelConsumption.unit)')
     expect(source).toContain('setScanMeasureAmount(String(labelConsumption.amount))')
     expect(source).toContain('setScanQuantity(labelConsumption.multiplier)')
-    expect(source).toContain('What did your scale show?')
+    expect(source).toContain('How much did you have?')
   })
 
   it('keeps barcode photos on the immediate barcode path', () => {
@@ -131,8 +152,8 @@ describe('NutritionScreen logging UX regressions', () => {
   })
 
   it('can save an AVA-scanned meal for one-tap repeat or adjusted logging', () => {
-    expect(source).toContain('Save reusable meal')
-    expect(source).toContain('Saved to Library')
+    expect(source).toContain("scanSavedAsReusable ? 'Saved' : 'Save meal'")
+    expect(source).toContain('saved to Library for one-tap logging.')
     expect(source).toContain('Log Again')
     expect(source).toContain('Adjust & Log')
     expect(source).toContain('buildReusableMealRecipe')

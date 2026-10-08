@@ -25,6 +25,7 @@ export function buildFoodEntry(food, source = 'manual', entryId = null) {
               ? null
               : Number(food.measurement.servingAmount),
           servingUnit: String(food.measurement.servingUnit || ''),
+          itemLabel: String(food.measurement.itemLabel || ''),
         }
       : null,
     calories: nutritionRound(Number(food.calories || 0) * servings),
@@ -56,6 +57,56 @@ export function appendFoodToNutrition(
       recentFoodIds: [
         foodId,
         ...(nutrition?.recentFoodIds ?? []).filter((id) => id !== foodId),
+      ].slice(0, 30),
+      days: {
+        ...(nutrition?.days ?? {}),
+        [date]: {
+          ...currentDay,
+          foods: [...(currentDay.foods ?? []), entry],
+        },
+      },
+    },
+    entry,
+  }
+}
+
+export function repeatLoggedFoodEntry(
+  nutrition,
+  date = nutritionDateKey(),
+  food,
+) {
+  if (!food?.name?.trim()) {
+    throw new Error('Food name is required.')
+  }
+
+  const currentDay = nutrition?.days?.[date] ?? emptyNutritionDay(date)
+  const entry = {
+    ...food,
+    id: createRuntimeId(),
+    loggedAt: new Date().toISOString(),
+    measurement: food.measurement
+      ? {
+          ...food.measurement,
+          amount: Number(food.measurement.amount || 0),
+          servingAmount:
+            food.measurement.servingAmount == null
+              ? null
+              : Number(food.measurement.servingAmount),
+        }
+      : null,
+  }
+
+  const recentKey =
+    food.source === 'fatsecret' && food.fatSecret?.foodId
+      ? `fatsecret:${food.fatSecret.foodId}`
+      : `recent:${String(food.name).trim().toLowerCase()}`
+
+  return {
+    nutrition: {
+      ...nutrition,
+      recentFoodIds: [
+        recentKey,
+        ...(nutrition?.recentFoodIds ?? []).filter((id) => id !== recentKey),
       ].slice(0, 30),
       days: {
         ...(nutrition?.days ?? {}),
@@ -226,6 +277,7 @@ export function cloneNutritionState(nutrition) {
       recipes: [],
       recentFoodIds: [],
       favoriteFoodIds: [],
+      favoriteFoodSnapshots: [],
     },
   )
 }
@@ -344,6 +396,7 @@ export function appendFatSecretFoodReference(
               ? null
               : Number(measurement.servingAmount),
           servingUnit: String(measurement.servingUnit || ''),
+          itemLabel: String(measurement.itemLabel || ''),
         }
       : null,
     ...snapshot,
