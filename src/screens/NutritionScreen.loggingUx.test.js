@@ -41,6 +41,22 @@ describe('NutritionScreen logging UX regressions', () => {
     expect(source).toContain('Foods you come back to')
   })
 
+  it('organizes busy nutrition days by honest time-based eating moments', () => {
+    expect(source).toContain('groupNutritionFoodsByLoggedTime')
+    expect(source).toContain('nutritionFoodGroupTimeLabel')
+    expect(source).toContain('nutritionFoodGroupTotals')
+    expect(source).toContain('nutrition-day-group')
+    expect(source).not.toContain('Breakfast')
+    expect(source).not.toContain('Lunch')
+    expect(source).not.toContain('Dinner')
+  })
+
+  it('lets daily history navigate directly to an editable day', () => {
+    expect(source).toContain('className="nutrition-history-day"')
+    expect(source).toContain('setDate(entry.date)')
+    expect(source).toContain("setTab('Today')")
+  })
+
   it('lets Today and prior-day food rows open a focused editor', () => {
     expect(source).toContain('openLoggedFoodEditor')
     expect(source).toContain('LOGGED FOOD')
