@@ -14,6 +14,7 @@ const numeric = (value) => {
 
 const pluralizeCountLabel = (label, amount) => {
   const normalized = String(label || 'item').trim().toLowerCase() || 'item'
+
   if (Number(amount) === 1) {
     if (normalized.endsWith('ies')) return `${normalized.slice(0, -3)}y`
     if (normalized.endsWith('ses')) return normalized.slice(0, -2)
@@ -23,17 +24,13 @@ const pluralizeCountLabel = (label, amount) => {
     return normalized
   }
 
-  if (
-    normalized.endsWith('s') ||
-    normalized.endsWith('chips') ||
-    normalized.endsWith('balls') ||
-    normalized.endsWith('pieces')
-  ) {
-    return normalized
-  }
+  if (normalized.endsWith('s')) return normalized
   if (normalized.endsWith('y')) return `${normalized.slice(0, -1)}ies`
   return `${normalized}s`
 }
+
+const escapeRegex = (value = '') =>
+  String(value).replace(/[.*+?^$()|[\]\\]/g, '\\$&')
 
 export const normalizeFoodMeasureUnit = (value = '') => {
   const unit = String(value ?? '').trim().toLowerCase()
@@ -119,6 +116,7 @@ export const parseFoodServingCount = (value = '') => {
 
   const amount = numeric(match[1])
   const rawLabel = String(match[2] || '').toLowerCase()
+
   if (
     amount == null ||
     amount <= 0 ||
@@ -151,32 +149,33 @@ export const parseFoodCountFromContext = (
   countBasis = null,
 ) => {
   if (!countBasis?.amount) return null
+
   const text = String(context ?? '').trim().toLowerCase()
   if (!text) return null
 
-  const label = String(countBasis.label || '').toLowerCase()
-  const singular = String(countBasis.singularLabel || '').toLowerCase()
-  const escapedLabels = [label, singular, 'piece', 'pieces', 'item', 'items']
+  const labels = [
+    countBasis.label,
+    countBasis.singularLabel,
+    'piece',
+    'pieces',
+    'item',
+    'items',
+  ]
     .filter(Boolean)
-    .map((value) => value.replace(/[.*+?^$\{\}()|[\]\\]/g, '\\export const resolveFoodServingCountBasis = (source = {}) =>
-  parseFoodServingCount(
-    source.servingDescription ??
-      source.serving_description ??
-      source.description ??
-      source.serving ??
-      '',
-  )
-
-'))
+    .map(escapeRegex)
     .join('|')
 
   const labeled = text.match(
-    new RegExp(`(?:had|ate|eaten|used|have)?\\s*([0-9]+(?:\\.[0-9]+)?)\\s*(?:${escapedLabels})\\b`, 'i'),
+    new RegExp(
+      `(?:had|ate|eaten|used|have)?\\s*([0-9]+(?:\\.[0-9]+)?)\\s*(?:${labels})\\b`,
+      'i',
+    ),
   )
   const simple = text.match(
     /\b(?:had|ate|eaten|used|have)\s+([0-9]+(?:\.[0-9]+)?)\b/i,
   )
   const amount = numeric(labeled?.[1] ?? simple?.[1])
+
   if (amount == null || amount <= 0) return null
 
   return {
@@ -231,6 +230,7 @@ export const resolveFoodMeasureBasisForUnit = ({
   countBasis = null,
 } = {}) => {
   const normalized = normalizeFoodMeasureUnit(unit)
+
   if (normalized === FOOD_MEASURE_UNIT.ITEM) return countBasis
   if (
     normalized === FOOD_MEASURE_UNIT.GRAM ||
@@ -320,7 +320,10 @@ export const servingFractionDisplay = (multiplier) => {
     [5 / 6, '⅚'],
   ]
 
-  const close = fractions.find(([fraction]) => Math.abs(value - fraction) < 0.015)
+  const close = fractions.find(
+    ([fraction]) => Math.abs(value - fraction) < 0.015,
+  )
+
   if (close) return `${close[1]} serving`
   if (Math.abs(value - 1) < 0.01) return '1 serving'
   if (value < 1) return `${Math.round(value * 100) / 100} serving`
