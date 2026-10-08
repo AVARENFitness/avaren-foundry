@@ -44,6 +44,7 @@ import {
   hydrateFatSecretNutritionSnapshot,
   logRecipeToNutrition,
   needsFatSecretNutritionSnapshot,
+  repeatLoggedFoodEntry,
 } from './nutritionActions'
 import {
   createNutritionState,
@@ -177,5 +178,82 @@ describe('FatSecret nutrition snapshots', () => {
       },
     })
     expect(result.entry.calories).toBeUndefined()
+  })
+})
+
+
+describe('Nutrition repeat logging', () => {
+  it('repeats the exact logged portion without redoing serving math', () => {
+    const nutrition = createNutritionState()
+    const original = {
+      id: 'old-entry',
+      source: 'nutrition_label_scan',
+      name: 'Chicken sausage balls',
+      calories: 120,
+      protein: 14,
+      carbs: 4,
+      fat: 5,
+      fiber: 0,
+      servings: 1 / 3,
+      measurement: {
+        amount: 2,
+        unit: 'item',
+        servingAmount: 6,
+        servingUnit: 'item',
+        itemLabel: 'balls',
+      },
+      loggedAt: '2026-10-07T12:00:00.000Z',
+    }
+
+    const result = repeatLoggedFoodEntry(
+      nutrition,
+      '2026-10-08',
+      original,
+    )
+
+    expect(result.entry.id).not.toBe(original.id)
+    expect(result.entry).toMatchObject({
+      name: 'Chicken sausage balls',
+      calories: 120,
+      protein: 14,
+      measurement: {
+        amount: 2,
+        unit: 'item',
+        servingAmount: 6,
+        servingUnit: 'item',
+        itemLabel: 'balls',
+      },
+    })
+    expect(result.nutrition.days['2026-10-08'].foods).toHaveLength(1)
+  })
+
+  it('preserves item labels on newly built entries', () => {
+    const result = appendFatSecretFoodReference(
+      createNutritionState(),
+      '2026-10-08',
+      {
+        foodId: 'balls-food',
+        servingId: 'balls-serving',
+        quantity: 1 / 3,
+        measurement: {
+          amount: 2,
+          unit: 'item',
+          servingAmount: 6,
+          servingUnit: 'item',
+          itemLabel: 'balls',
+        },
+        servingSnapshot: {
+          name: 'Chicken sausage balls',
+          serving: '6 balls',
+          calories: 360,
+          protein: 42,
+          carbs: 12,
+          fat: 15,
+          fiber: 0,
+        },
+      },
+    )
+
+    expect(result.entry.measurement.itemLabel).toBe('balls')
   })
 })
