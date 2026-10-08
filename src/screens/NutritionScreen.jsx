@@ -258,6 +258,8 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
     : tabs.filter((item) => item.value !== 'Insights')
   const day = nutrition?.days?.[date] ?? emptyNutritionDay(date)
 
+  const logDestinationLabel = date === nutritionDateKey() ? 'today' : `the selected day (${date})`
+
   const resolvedDayFoods = useMemo(
     () => (day.foods ?? []).map((food) =>
       resolveFatSecretRuntimeEntry(food, fatSecretDetailCache),
@@ -581,7 +583,7 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
       foodMeasureDisplay(food.measurement) ||
       food.serving ||
       'same amount'
-    setNotice(`${food.name} · ${amount} logged again.`)
+    setNotice(`${food.name} · ${amount} logged to ${logDestinationLabel}.`)
   }
 
   const weeklyInsights = useMemo(() => {
@@ -1021,8 +1023,8 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
 
     setNotice(
       scanResult?.sourceType === 'label_read'
-        ? `${scanDraft.name} · ${quantityLabel} added from the nutrition label.`
-        : `${scanDraft.name} · ${quantityLabel} estimate added. You can edit or remove it anytime.`,
+        ? `${scanDraft.name} · ${quantityLabel} added to ${logDestinationLabel} from the nutrition label.`
+        : `${scanDraft.name} · ${quantityLabel} estimate added to ${logDestinationLabel}. You can edit or remove it anytime.`,
     )
     resetFoodScan()
     setTab('Today')
@@ -1209,7 +1211,7 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
     setFoodSearch('')
     setSelectedFood(null)
     setSelectedMultiplier(1)
-    setNotice(`${food.name.trim()} added to today.`)
+    setNotice(`${food.name.trim()} added to ${logDestinationLabel}.`)
     setTab('Today')
   }
 
@@ -1369,7 +1371,7 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
     )
 
     setNotice(
-      `${detail?.name ?? selectedFood.name} · ${foodMeasureDisplay(measurement) || `${round(quantity)} servings`} added.`,
+      `${detail?.name ?? selectedFood.name} · ${foodMeasureDisplay(measurement) || `${round(quantity)} servings`} added to ${logDestinationLabel}.`,
     )
     setSelectedFood(null)
     setFoodSearch('')
@@ -1620,7 +1622,7 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
       ).nutrition,
     )
 
-    setNotice(`${reusableMealLogTarget.name} added with today’s adjustments.`)
+    setNotice(`${reusableMealLogTarget.name} added to ${logDestinationLabel} with your adjustments.`)
     setReusableMealLogTarget(null)
     setReusableMealWorkingIngredients([])
     setReusableMealAdjustments([])
