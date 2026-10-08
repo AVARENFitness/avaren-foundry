@@ -913,7 +913,8 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
     } catch (error) {
       setScanState('error')
       setScanError(error?.message ?? 'AVAREN could not analyze that photo.')
-      scheduleNutritionModalCleanup()
+      // Keep the scan sheet and retained image/details available for recovery.
+      // Resetting the modal layer here can unlock scrolling behind an open sheet.
     }
   }
 
@@ -2405,7 +2406,18 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
               ) : null}
 
               {scanState === 'loading' ? <div className="nutrition-scan-loading"><Sparkles size={20}/><span>Analyzing image…</span></div> : null}
-              {scanState === 'error' ? <div className="nutrition-fatsecret-detail-state error"><strong>Couldn’t analyze this photo.</strong><span>{scanError}</span><button onClick={() => runFoodScan(null, scanContext, 'food')}>Try Again</button></div> : null}
+              {scanState === 'error' ? <div className="nutrition-fatsecret-detail-state error">
+                <strong>Couldn’t analyze this photo.</strong>
+                <span>{scanError}</span>
+                <p>Your photo and any details you entered are still here.</p>
+                <div className="nutrition-scan-preanalysis-actions">
+                  <button type="button" className="nutrition-secondary-button" onClick={() => {
+                    setScanError('')
+                    setScanState('context')
+                  }}>Edit details</button>
+                  <button type="button" className="gold-button machined" onClick={() => runFoodScan(null, scanContext, 'food')}>Try again</button>
+                </div>
+              </div> : null}
 
               {scanState === 'success' && scanResult && scanDraft ? <>
                 <div className="nutrition-scan-confidence" data-confidence={scanResult.confidence}>
