@@ -3,6 +3,8 @@ import {
   groupNutritionFoodsByLoggedTime,
   nutritionFoodGroupTimeLabel,
   nutritionFoodGroupTotals,
+  nutritionFoodLoggedTimeLabel,
+  shouldGroupNutritionDay,
 } from './nutritionDayOrganization'
 
 describe('nutrition day organization', () => {
@@ -16,6 +18,36 @@ describe('nutrition day organization', () => {
     expect(groups).toHaveLength(2)
     expect(groups[0].foods.map((food) => food.name)).toEqual(['Chicken', 'Rice'])
     expect(groups[1].foods.map((food) => food.name)).toEqual(['Yogurt'])
+  })
+
+  it('keeps small days visually simple even when times differ', () => {
+    const foods = [
+      { id: '1', loggedAt: '2026-10-08T08:00:00.000Z' },
+      { id: '2', loggedAt: '2026-10-08T18:00:00.000Z' },
+    ]
+    const groups = groupNutritionFoodsByLoggedTime(foods)
+
+    expect(groups).toHaveLength(2)
+    expect(shouldGroupNutritionDay(foods, groups)).toBe(false)
+  })
+
+  it('groups timestamp-less legacy entries together instead of inventing moments', () => {
+    const groups = groupNutritionFoodsByLoggedTime([
+      { id: 'legacy-1', name: 'Old food' },
+      { id: 'legacy-2', name: 'Another old food' },
+    ])
+
+    expect(groups).toHaveLength(1)
+    expect(groups[0].foods).toHaveLength(2)
+    expect(nutritionFoodGroupTimeLabel(groups[0])).toBe('Earlier log')
+  })
+
+  it('shows a real logged time without assigning a meal name', () => {
+    const label = nutritionFoodLoggedTimeLabel({
+      loggedAt: '2026-10-08T12:15:00.000Z',
+    })
+    expect(label).toBeTruthy()
+    expect(label).not.toMatch(/breakfast|lunch|dinner/i)
   })
 
   it('summarizes each eating moment without changing its foods', () => {
