@@ -72,6 +72,7 @@ import {
   FOOD_MEASURE_UNIT,
   foodMeasureDisplay,
   foodMeasureMultiplier,
+  parseFoodCountFromContext,
   resolveFoodMeasureBasisForUnit,
   resolveFoodServingBasis,
   resolveFoodServingCountBasis,
@@ -750,6 +751,16 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
         servingUnit: result.servingUnit,
         servingDescription: result.servingDescription,
       })
+      const resultCountBasis = resolveFoodServingCountBasis({
+        servingDescription: result.servingDescription,
+      })
+      const userCount =
+        result.sourceType === 'label_read'
+          ? parseFoodCountFromContext(
+              contextOverride ?? scanContext,
+              resultCountBasis,
+            )
+          : null
       const labelConsumption =
         result.sourceType === 'label_read'
           ? resolveNutritionLabelConsumptionMeasurement({
@@ -761,7 +772,19 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
       setScanResult(result)
       setScanDraft(draft)
 
-      if (labelConsumption) {
+      if (userCount) {
+        setScanMeasureUnit(FOOD_MEASURE_UNIT.ITEM)
+        setScanMeasureAmount(String(userCount.amount))
+        setScanQuantity(userCount.multiplier)
+      } else if (labelConsumption?.source === 'user_context') {
+        setScanMeasureUnit(labelConsumption.unit)
+        setScanMeasureAmount(String(labelConsumption.amount))
+        setScanQuantity(labelConsumption.multiplier)
+      } else if (resultCountBasis) {
+        setScanMeasureUnit(FOOD_MEASURE_UNIT.ITEM)
+        setScanMeasureAmount(String(resultCountBasis.amount))
+        setScanQuantity(1)
+      } else if (labelConsumption) {
         setScanMeasureUnit(labelConsumption.unit)
         setScanMeasureAmount(String(labelConsumption.amount))
         setScanQuantity(labelConsumption.multiplier)
@@ -1074,6 +1097,14 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
     setSelectedMeasureAmount('1')
 
     if (food.provider !== 'fatsecret') {
+      const countBasis = resolveFoodServingCountBasis(food)
+      setSelectedMeasureUnit(
+        countBasis ? FOOD_MEASURE_UNIT.ITEM : FOOD_MEASURE_UNIT.SERVING,
+      )
+      setSelectedMeasureAmount(
+        countBasis ? String(countBasis.amount) : '1',
+      )
+      setSelectedMultiplier(1)
       setFatSecretDetailState('idle')
       setFatSecretDetailError('')
       setSelectedFatSecretServingId('')
@@ -1100,7 +1131,13 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
       }))
 
       const firstServing = detail.servings?.[0]
+      const countBasis = resolveFoodServingCountBasis(firstServing ?? {})
       setSelectedFatSecretServingId(firstServing?.servingId ?? '')
+      if (countBasis) {
+        setFatSecretMeasureUnit(FOOD_MEASURE_UNIT.ITEM)
+        setFatSecretMeasureAmount(String(countBasis.amount))
+        setFatSecretQuantity('1')
+      }
       setFatSecretDetailState('success')
     } catch (error) {
       setFatSecretDetailState('error')
@@ -2205,9 +2242,16 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
                 <div className="nutrition-serving-picker">
                   <span>Nutrition basis</span>
                   <div>{(detail?.servings ?? []).map((option) => <button key={option.servingId} className={String(selectedFatSecretServingId) === String(option.servingId) ? 'active' : ''} onClick={() => {
+                    const optionCountBasis = resolveFoodServingCountBasis(option)
                     setSelectedFatSecretServingId(option.servingId)
-                    setFatSecretMeasureUnit(FOOD_MEASURE_UNIT.SERVING)
-                    setFatSecretMeasureAmount('1')
+                    setFatSecretMeasureUnit(
+                      optionCountBasis
+                        ? FOOD_MEASURE_UNIT.ITEM
+                        : FOOD_MEASURE_UNIT.SERVING,
+                    )
+                    setFatSecretMeasureAmount(
+                      optionCountBasis ? String(optionCountBasis.amount) : '1',
+                    )
                     setFatSecretQuantity('1')
                   }}>{option.description}</button>)}</div>
                 </div>
