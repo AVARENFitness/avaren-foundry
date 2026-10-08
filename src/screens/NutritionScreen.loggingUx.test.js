@@ -46,9 +46,23 @@ describe('NutritionScreen logging UX regressions', () => {
     expect(source).toContain('nutritionFoodGroupTimeLabel')
     expect(source).toContain('nutritionFoodGroupTotals')
     expect(source).toContain('nutrition-day-group')
+    expect(source).toContain('shouldGroupNutritionDay')
+    expect(source).toContain('nutritionFoodLoggedTimeLabel')
     expect(source).not.toContain('Breakfast')
     expect(source).not.toContain('Lunch')
     expect(source).not.toContain('Dinner')
+  })
+
+  it('keeps previous-day context obvious and offers a direct return to today', () => {
+    expect(source).toContain("date === yesterdayDateKey")
+    expect(source).toContain('Yesterday')
+    expect(source).toContain('Back to Today')
+    expect(source).toContain('setDate(todayDateKey)')
+  })
+
+  it('summarizes the food log without adding another dashboard card', () => {
+    expect(source).toContain("items · ${Math.round(totals.calories)} cal")
+    expect(source).toContain('g protein logged')
   })
 
   it('lets daily history navigate directly to an editable day', () => {
