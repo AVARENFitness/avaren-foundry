@@ -1973,7 +1973,8 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
                     <small>P {round(food.protein)} · C {round(food.carbs)} · F {round(food.fat)}</small>
                     <ChevronRight size={17}/>
                   </span>
-                </button>\n                  ))}
+                </button>
+                  ))}
                 </div>
               ))}
             </div>
