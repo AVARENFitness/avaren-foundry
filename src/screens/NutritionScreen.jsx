@@ -1950,7 +1950,7 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
                 <div className="nutrition-today-log-group" key={group.key}>
                   {group.foods.length > 1 && (
                     <div className="nutrition-today-group-label">
-                      <span>Logged together</span>
+                      <span>Logged around the same time</span>
                       <span>{group.foods.length} items</span>
                     </div>
                   )}
