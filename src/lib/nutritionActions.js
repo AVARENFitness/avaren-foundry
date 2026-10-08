@@ -69,6 +69,56 @@ export function appendFoodToNutrition(
   }
 }
 
+export function repeatLoggedFoodEntry(
+  nutrition,
+  date = nutritionDateKey(),
+  food,
+) {
+  if (!food?.name?.trim()) {
+    throw new Error('Food name is required.')
+  }
+
+  const currentDay = nutrition?.days?.[date] ?? emptyNutritionDay(date)
+  const entry = {
+    ...food,
+    id: createRuntimeId(),
+    loggedAt: new Date().toISOString(),
+    measurement: food.measurement
+      ? {
+          ...food.measurement,
+          amount: Number(food.measurement.amount || 0),
+          servingAmount:
+            food.measurement.servingAmount == null
+              ? null
+              : Number(food.measurement.servingAmount),
+        }
+      : null,
+  }
+
+  const recentKey =
+    food.source === 'fatsecret' && food.fatSecret?.foodId
+      ? `fatsecret:${food.fatSecret.foodId}`
+      : `recent:${String(food.name).trim().toLowerCase()}`
+
+  return {
+    nutrition: {
+      ...nutrition,
+      recentFoodIds: [
+        recentKey,
+        ...(nutrition?.recentFoodIds ?? []).filter((id) => id !== recentKey),
+      ].slice(0, 30),
+      days: {
+        ...(nutrition?.days ?? {}),
+        [date]: {
+          ...currentDay,
+          foods: [...(currentDay.foods ?? []), entry],
+        },
+      },
+    },
+    entry,
+  }
+}
+
 export function appendMultipleFoodsToNutrition(
   nutrition,
   date = nutritionDateKey(),
