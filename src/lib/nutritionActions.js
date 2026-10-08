@@ -298,6 +298,107 @@ export function restoreNutritionUndoSnapshot(nutrition, undoSnapshot) {
   return cloneNutritionState(undoSnapshot.nutrition)
 }
 
+export function updateLoggedFoodAmount(
+  nutrition,
+  date = nutritionDateKey(),
+  entryId,
+  nextAmount,
+) {
+  const amount = Number(nextAmount)
+  if (!Number.isFinite(amount) || amount <= 0) {
+    throw new Error('Amount must be greater than 0.')
+  }
+
+  const currentDay = nutrition?.days?.[date] ?? emptyNutritionDay(date)
+  const currentFood = (currentDay.foods ?? []).find((food) => food.id === entryId)
+  if (!currentFood) {
+    throw new Error('Logged food was not found.')
+  }
+
+  const currentAmount = Number(
+    currentFood.measurement?.amount ??
+      currentFood.quantity ??
+      currentFood.servings ??
+      1,
+  )
+  const safeCurrentAmount =
+    Number.isFinite(currentAmount) && currentAmount > 0 ? currentAmount : 1
+  const multiplier = amount / safeCurrentAmount
+
+  const nextFood = {
+    ...currentFood,
+    calories: nutritionRound(Number(currentFood.calories || 0) * multiplier),
+    protein: nutritionRound(Number(currentFood.protein || 0) * multiplier),
+    carbs: nutritionRound(Number(currentFood.carbs || 0) * multiplier),
+    fat: nutritionRound(Number(currentFood.fat || 0) * multiplier),
+    fiber: nutritionRound(Number(currentFood.fiber || 0) * multiplier),
+    servings:
+      currentFood.servings == null
+        ? currentFood.servings
+        : nutritionRound(Number(currentFood.servings || 1) * multiplier),
+    quantity:
+      currentFood.quantity == null
+        ? currentFood.quantity
+        : nutritionRound(Number(currentFood.quantity || 1) * multiplier),
+    measurement: currentFood.measurement
+      ? {
+          ...currentFood.measurement,
+          amount,
+        }
+      : currentFood.measurement,
+    updatedAt: new Date().toISOString(),
+  }
+
+  return {
+    nutrition: {
+      ...nutrition,
+      days: {
+        ...(nutrition?.days ?? {}),
+        [date]: {
+          ...currentDay,
+          foods: (currentDay.foods ?? []).map((food) =>
+            food.id === entryId ? nextFood : food,
+          ),
+        },
+      },
+    },
+    entry: nextFood,
+  }
+}
+
+export function duplicateLoggedFoodEntry(
+  nutrition,
+  date = nutritionDateKey(),
+  entryId,
+) {
+  const currentDay = nutrition?.days?.[date] ?? emptyNutritionDay(date)
+  const currentFood = (currentDay.foods ?? []).find((food) => food.id === entryId)
+  if (!currentFood) {
+    throw new Error('Logged food was not found.')
+  }
+
+  const entry = {
+    ...currentFood,
+    id: createRuntimeId(),
+    loggedAt: new Date().toISOString(),
+    updatedAt: undefined,
+  }
+
+  return {
+    nutrition: {
+      ...nutrition,
+      days: {
+        ...(nutrition?.days ?? {}),
+        [date]: {
+          ...currentDay,
+          foods: [...(currentDay.foods ?? []), entry],
+        },
+      },
+    },
+    entry,
+  }
+}
+
 export function removeFoodEntriesFromNutrition(
   nutrition,
   date = nutritionDateKey(),
