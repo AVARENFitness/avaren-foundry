@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import {
   getBodyScrollLockCount,
+  repairOrphanedBodyScrollLock,
   useBodyScrollLock,
 } from '../ava/useBodyScrollLock'
 
@@ -13,9 +14,10 @@ export const resetDocumentModalLayer = () => {
     return
   }
 
-  // Nested/local overlays may still hold the shared scroll lock.
+  // If no backdrop remains but the shared lock still has depth, repair the
+  // orphaned iOS scroll lock rather than leaving the app frozen.
   if (getBodyScrollLockCount() > 0) {
-    return
+    repairOrphanedBodyScrollLock()
   }
 
   const root = document.getElementById(APP_ROOT_ID)
