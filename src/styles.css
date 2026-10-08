@@ -26748,3 +26748,34 @@ body > .nutrition-food-sheet-backdrop > .nutrition-food-sheet {
     order: 0;
   }
 }
+
+
+/* ===== NUTRITION PORTION INTELLIGENCE ===== */
+.nutrition-portion-intelligence {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  margin-top: 1px;
+  padding: 5px 8px;
+  border: 1px solid rgba(223,195,125,.12);
+  border-radius: 999px;
+  background: rgba(223,195,125,.045);
+  color: var(--gold-bright) !important;
+  font-size: .68rem !important;
+  font-weight: 740;
+  line-height: 1.25 !important;
+}
+
+.nutrition-measure-tabs {
+  grid-template-columns: repeat(auto-fit, minmax(64px, 1fr));
+}
+
+@media (max-width: 520px) {
+  .nutrition-measure-tabs {
+    grid-template-columns: repeat(auto-fit, minmax(58px, 1fr));
+  }
+
+  .nutrition-portion-intelligence {
+    font-size: .66rem !important;
+  }
+}
