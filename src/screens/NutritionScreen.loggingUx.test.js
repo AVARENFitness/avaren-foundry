@@ -41,6 +41,14 @@ describe('NutritionScreen logging UX regressions', () => {
     expect(source).toContain('Foods you come back to')
   })
 
+  it('uses the selected date in food logging confirmations instead of claiming all logs are for today', () => {
+    expect(source).toContain("const logDestinationLabel = date === nutritionDateKey()")
+    expect(source).toContain('logged to ${logDestinationLabel}')
+    expect(source).toContain('added to ${logDestinationLabel}')
+    expect(source).not.toContain('added to today.')
+    expect(source).not.toContain('with today’s adjustments.')
+  })
+
   it('lets Today and prior-day food rows open a focused editor', () => {
     expect(source).toContain('openLoggedFoodEditor')
     expect(source).toContain('LOGGED FOOD')
