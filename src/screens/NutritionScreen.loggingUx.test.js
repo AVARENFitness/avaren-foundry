@@ -49,6 +49,17 @@ describe('NutritionScreen logging UX regressions', () => {
     expect(source).not.toContain('with today’s adjustments.')
   })
 
+  it('keeps scan drafts recoverable after analysis errors', () => {
+    const start = source.indexOf("const runFoodScan = async")
+    const end = source.indexOf("const scanServingBasis =", start)
+    const scanHandler = source.slice(start, end)
+    expect(scanHandler).toContain("setScanState('error')")
+    expect(scanHandler).not.toContain("scheduleNutritionModalCleanup()")
+    expect(source).toContain("Your photo and any details you entered are still here.")
+    expect(source).toContain("setScanState('context')")
+    expect(source).toContain("runFoodScan(null, scanContext, 'food')")
+  })
+
   it('lets Today and prior-day food rows open a focused editor', () => {
     expect(source).toContain('openLoggedFoodEditor')
     expect(source).toContain('LOGGED FOOD')
