@@ -270,6 +270,7 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
     [day],
   )
   const favoriteIds = nutrition?.favoriteFoodIds ?? []
+  const favoriteSnapshots = nutrition?.favoriteFoodSnapshots ?? []
   const recentIds = nutrition?.recentFoodIds ?? []
   const foodMatches = useMemo(() => {
     const query = foodSearch.trim().toLowerCase()
@@ -368,7 +369,7 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
           id: `fatsecret:${food.foodId}`,
           foodId: food.foodId,
           provider: 'fatsecret',
-          sourceLabel: 'FatSecret',
+          sourceLabel: 'Verified',
           name: food.name,
           brand: food.brand || 'FatSecret',
           serving:
@@ -495,7 +496,9 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
   }, [foodMatches, fatSecretFoods, foodSearch])
 
   const quickLogFoods = useMemo(() => {
-    const byId = new Map(foodMatches.map((food) => [food.id, food]))
+    const byId = new Map(
+      [...favoriteSnapshots, ...foodMatches].map((food) => [food.id, food]),
+    )
     const ids = logBrowseMode === 'Favorites' ? favoriteIds : recentIds
     const preferred = ids
       .map((id) => byId.get(id))
@@ -506,7 +509,13 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
         : foodMatches
 
     return (preferred.length ? preferred : fallback).slice(0, 6)
-  }, [favoriteIds, foodMatches, logBrowseMode, recentIds])
+  }, [
+    favoriteIds,
+    favoriteSnapshots,
+    foodMatches,
+    logBrowseMode,
+    recentIds,
+  ])
 
   const quickSavedMeals = useMemo(
     () =>
@@ -1142,11 +1151,26 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
 
   const toggleFavorite = (food) => patch((current) => {
     const ids = current.favoriteFoodIds ?? []
+    const snapshots = current.favoriteFoodSnapshots ?? []
+    const isFavorite = ids.includes(food.id)
+
     return {
       ...current,
-      favoriteFoodIds: ids.includes(food.id)
+      favoriteFoodIds: isFavorite
         ? ids.filter((id) => id !== food.id)
         : [food.id, ...ids],
+      favoriteFoodSnapshots: isFavorite
+        ? snapshots.filter((item) => item.id !== food.id)
+        : [
+            {
+              ...food,
+              sourceLabel:
+                food.provider === 'fatsecret'
+                  ? 'Verified'
+                  : food.sourceLabel,
+            },
+            ...snapshots.filter((item) => item.id !== food.id),
+          ].slice(0, 50),
     }
   })
 
