@@ -41,6 +41,36 @@ describe('NutritionScreen logging UX regressions', () => {
     expect(source).toContain('Foods you come back to')
   })
 
+  it('organizes busy nutrition days by honest time-based eating moments', () => {
+    expect(source).toContain('groupNutritionFoodsByLoggedTime')
+    expect(source).toContain('nutritionFoodGroupTimeLabel')
+    expect(source).toContain('nutritionFoodGroupTotals')
+    expect(source).toContain('nutrition-day-group')
+    expect(source).toContain('shouldGroupNutritionDay')
+    expect(source).toContain('nutritionFoodLoggedTimeLabel')
+    expect(source).not.toContain('Breakfast')
+    expect(source).not.toContain('Lunch')
+    expect(source).not.toContain('Dinner')
+  })
+
+  it('keeps previous-day context obvious and offers a direct return to today', () => {
+    expect(source).toContain("date === yesterdayDateKey")
+    expect(source).toContain('Yesterday')
+    expect(source).toContain('Back to Today')
+    expect(source).toContain('setDate(todayDateKey)')
+  })
+
+  it('summarizes the food log without adding another dashboard card', () => {
+    expect(source).toContain("items · ${Math.round(totals.calories)} cal")
+    expect(source).toContain('g protein logged')
+  })
+
+  it('lets daily history navigate directly to an editable day', () => {
+    expect(source).toContain('className="nutrition-history-day"')
+    expect(source).toContain('setDate(entry.date)')
+    expect(source).toContain("setTab('Today')")
+  })
+
   it('lets Today and prior-day food rows open a focused editor', () => {
     expect(source).toContain('openLoggedFoodEditor')
     expect(source).toContain('LOGGED FOOD')
