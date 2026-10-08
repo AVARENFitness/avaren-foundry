@@ -109,6 +109,7 @@ CONFIDENCE
 - low: substantial visual ambiguity.
 
 For meals, totals must approximately equal the sum of components.
+Never return all-zero calories/macros for an ordinary meal or for ordinary ingredients with explicit positive amounts. If the user supplies measured amounts such as ounces or grams, estimate nutrition from standard food values when no label/database value is visible.
 For labels, servingDescription must reflect the serving shown.
 For meals or packaged products without a readable measurement basis, set servingAmount to 0 and servingUnit to "unknown".
 Return JSON only.`
@@ -299,10 +300,10 @@ export default {
         result?.kind === 'meal' &&
         !hasUsableMealNutrition(result)
       ) {
-        return json(
-          { ok: false, reason: 'meal-nutrition-unresolved' },
-          422,
-        )
+        return json({
+          ok: false,
+          reason: 'meal-nutrition-unresolved',
+        })
       }
 
       return json({ ok: true, result })
