@@ -1,8 +1,10 @@
 export const NUTRITION_EATING_MOMENT_GAP_MINUTES = 45
+export const NUTRITION_DAY_GROUP_MIN_ITEMS = 4
 
 const timeValue = (food) => {
-  const value = new Date(food?.loggedAt || 0).getTime()
-  return Number.isFinite(value) ? value : 0
+  if (!food?.loggedAt) return null
+  const value = new Date(food.loggedAt).getTime()
+  return Number.isFinite(value) && value > 0 ? value : null
 }
 
 export function groupNutritionFoodsByLoggedTime(
@@ -10,18 +12,20 @@ export function groupNutritionFoodsByLoggedTime(
   gapMinutes = NUTRITION_EATING_MOMENT_GAP_MINUTES,
 ) {
   const thresholdMs = Math.max(1, Number(gapMinutes || 45)) * 60 * 1000
-  const ordered = [...foods].sort((a, b) => timeValue(a) - timeValue(b))
+  const known = foods
+    .filter((food) => timeValue(food) != null)
+    .sort((a, b) => timeValue(a) - timeValue(b))
+  const unknown = foods.filter((food) => timeValue(food) == null)
   const groups = []
 
-  ordered.forEach((food) => {
+  known.forEach((food) => {
     const currentTime = timeValue(food)
     const last = groups[groups.length - 1]
     const lastFood = last?.foods?.[last.foods.length - 1]
     const lastTime = timeValue(lastFood)
     const shouldStartNew =
       !last ||
-      !currentTime ||
-      !lastTime ||
+      lastTime == null ||
       currentTime - lastTime > thresholdMs
 
     if (shouldStartNew) {
@@ -36,7 +40,22 @@ export function groupNutritionFoodsByLoggedTime(
     last.foods.push(food)
   })
 
+  if (unknown.length) {
+    groups.push({
+      id: 'nutrition-moment-unplaced',
+      startedAt: '',
+      foods: unknown,
+    })
+  }
+
   return groups
+}
+
+export function shouldGroupNutritionDay(
+  foods = [],
+  groups = groupNutritionFoodsByLoggedTime(foods),
+) {
+  return foods.length >= NUTRITION_DAY_GROUP_MIN_ITEMS && groups.length > 1
 }
 
 export function nutritionFoodGroupTotals(group = {}) {
@@ -52,9 +71,19 @@ export function nutritionFoodGroupTotals(group = {}) {
 }
 
 export function nutritionFoodGroupTimeLabel(group = {}) {
-  if (!group.startedAt) return 'Logged foods'
+  if (!group.startedAt) return 'Earlier log'
   const date = new Date(group.startedAt)
-  if (!Number.isFinite(date.getTime())) return 'Logged foods'
+  if (!Number.isFinite(date.getTime())) return 'Earlier log'
+  return date.toLocaleTimeString([], {
+    hour: 'numeric',
+    minute: '2-digit',
+  })
+}
+
+export function nutritionFoodLoggedTimeLabel(food = {}) {
+  if (!food.loggedAt) return ''
+  const date = new Date(food.loggedAt)
+  if (!Number.isFinite(date.getTime())) return ''
   return date.toLocaleTimeString([], {
     hour: 'numeric',
     minute: '2-digit',
