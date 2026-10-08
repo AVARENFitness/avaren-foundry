@@ -8,7 +8,8 @@ export function groupLoggedFoods(foods = []) {
     const valid = Number.isFinite(timestamp)
     const previous = groups[groups.length - 1]
     const adjacent = previous && valid && previous.lastTimestamp != null &&
-      Math.abs(timestamp - previous.lastTimestamp) <= WINDOW_MS
+      timestamp >= previous.lastTimestamp &&
+      timestamp - previous.firstTimestamp <= WINDOW_MS
     if (adjacent) {
       previous.foods.push(food)
       previous.lastTimestamp = timestamp
@@ -16,6 +17,7 @@ export function groupLoggedFoods(foods = []) {
       groups.push({
         key: food.id,
         foods: [food],
+        firstTimestamp: valid ? timestamp : null,
         lastTimestamp: valid ? timestamp : null,
       })
     }
