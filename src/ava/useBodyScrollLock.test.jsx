@@ -3,6 +3,7 @@ import { cleanup, render, waitFor } from '@testing-library/react'
 import {
   __resetBodyScrollLockForTests,
   getBodyScrollLockCount,
+  repairOrphanedBodyScrollLock,
   useBodyScrollLock,
 } from './useBodyScrollLock'
 
@@ -57,6 +58,20 @@ describe('useBodyScrollLock', () => {
     })
     expect(root.style.position).toBe('')
     expect(window.scrollY).toBe(120)
+  })
+
+  it('repairs an orphaned lock after a modal disappears', async () => {
+    const root = document.getElementById('root')
+    render(<LockProbe active />, { container: host })
+
+    await waitFor(() => {
+      expect(getBodyScrollLockCount()).toBe(1)
+    })
+    expect(root.style.position).toBe('fixed')
+
+    expect(repairOrphanedBodyScrollLock()).toBe(true)
+    expect(getBodyScrollLockCount()).toBe(0)
+    expect(root.style.position).toBe('')
   })
 
   it('keeps lock active across nested overlays via refcount', async () => {
