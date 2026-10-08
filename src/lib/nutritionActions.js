@@ -277,6 +277,7 @@ export function cloneNutritionState(nutrition) {
       recipes: [],
       recentFoodIds: [],
       favoriteFoodIds: [],
+      favoriteFoodSnapshots: [],
     },
   )
 }
