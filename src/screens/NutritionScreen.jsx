@@ -75,6 +75,8 @@ import {
   groupNutritionFoodsByLoggedTime,
   nutritionFoodGroupTimeLabel,
   nutritionFoodGroupTotals,
+  nutritionFoodLoggedTimeLabel,
+  shouldGroupNutritionDay,
 } from '../lib/nutritionDayOrganization'
 import {
   FOOD_MEASURE_UNIT,
@@ -276,6 +278,10 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
   const groupedDayFoods = useMemo(
     () => groupNutritionFoodsByLoggedTime(resolvedDayFoods),
     [resolvedDayFoods],
+  )
+  const shouldGroupDayFoods = useMemo(
+    () => shouldGroupNutritionDay(resolvedDayFoods, groupedDayFoods),
+    [resolvedDayFoods, groupedDayFoods],
   )
   const totals = useMemo(() => nutritionTotals(resolvedDay), [resolvedDay])
   const remaining = useMemo(() => remainingNutrition(goals, totals, resolvedDay), [goals, totals, resolvedDay])
@@ -1644,6 +1650,45 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
     setDate(nutritionDateKey(next))
   }
 
+  const todayDateKey = nutritionDateKey()
+  const yesterdayDate = new Date(`${todayDateKey}T12:00:00`)
+  yesterdayDate.setDate(yesterdayDate.getDate() - 1)
+  const yesterdayDateKey = nutritionDateKey(yesterdayDate)
+  const isViewingToday = date === todayDateKey
+  const viewedDateContext =
+    isViewingToday
+      ? 'Today'
+      : date === yesterdayDateKey
+        ? 'Yesterday'
+        : new Date(`${date}T12:00:00`).toLocaleDateString([], {
+            weekday: 'long',
+          })
+
+  const renderLoggedFoodRow = (food) => (
+    <button
+      type="button"
+      key={food.id}
+      className="nutrition-today-food-row"
+      onClick={() => openLoggedFoodEditor(food)}
+    >
+      <span className="nutrition-today-food-copy">
+        <strong>{food.name}</strong>
+        <small>
+          {food.source === 'fatsecret' && (food.name === 'Loading food…' || food.name === 'Food unavailable')
+            ? (food.name === 'Loading food…' ? 'Refreshing nutrition…' : 'Nutrition unavailable')
+            : `${food.measurement ? `${foodMeasureDisplay(food.measurement)} · ` : ''}${Math.round(Number(food.calories || 0))} cal`}
+        </small>
+      </span>
+      <span className="nutrition-today-food-macros">
+        <small>P {round(food.protein)} · C {round(food.carbs)} · F {round(food.fat)}</small>
+        {nutritionFoodLoggedTimeLabel(food) ? (
+          <time dateTime={food.loggedAt}>{nutritionFoodLoggedTimeLabel(food)}</time>
+        ) : null}
+        <ChevronRight size={17}/>
+      </span>
+    </button>
+  )
+
   return (
     <div className="nutrition-screen">
       <header className="nutrition-screen-header">
@@ -1856,7 +1901,23 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
           </section>
         ) : (
           <>
-        <div className="nutrition-date-switcher"><button onClick={() => changeDate(-1)}><ChevronLeft/></button><strong>{new Date(`${date}T12:00:00`).toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' })}</strong><button disabled={date === nutritionDateKey()} onClick={() => changeDate(1)}><ChevronRight/></button></div>
+        <div className={`nutrition-date-switcher${isViewingToday ? '' : ' is-history'}`}>
+          <button aria-label="Previous day" onClick={() => changeDate(-1)}><ChevronLeft/></button>
+          <div className="nutrition-date-context">
+            <span>{viewedDateContext}</span>
+            <strong>{new Date(`${date}T12:00:00`).toLocaleDateString([], { month: 'long', day: 'numeric' })}</strong>
+            {!isViewingToday ? (
+              <button
+                type="button"
+                className="nutrition-back-today"
+                onClick={() => setDate(todayDateKey)}
+              >
+                Back to Today
+              </button>
+            ) : null}
+          </div>
+          <button aria-label="Next day" disabled={isViewingToday} onClick={() => changeDate(1)}><ChevronRight/></button>
+        </div>
 
         <section className="nutrition-calorie-hero">
           <div><span className="eyebrow">CALORIES REMAINING</span><strong>{Math.round(remaining.calories)}</strong><small>{Math.round(totals.calories)} eaten · {Math.round(Number(goals.calories) + workoutActivityTotal)} budget{workoutActivityTotal > 0 ? ` · +${Math.round(workoutActivityTotal)} activity` : ''}</small></div>
@@ -1949,49 +2010,42 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
         </section>
 
         <section className="nutrition-food-log">
-          <header><div><span className="eyebrow">FOOD LOG</span><h2>{resolvedDayFoods.length ? `${resolvedDayFoods.length} items` : 'Nothing logged yet'}</h2></div><button onClick={() => setTab('Meals')}><Plus/>Add</button></header>
-          {resolvedDayFoods.length ? (
-            <div className="nutrition-day-groups">
-              {groupedDayFoods.map((group) => {
-                const groupTotals = nutritionFoodGroupTotals(group)
-                return (
-                  <section key={group.id} className="nutrition-day-group">
-                    <header>
-                      <div>
-                        <strong>{nutritionFoodGroupTimeLabel(group)}</strong>
-                        <small>{group.foods.length} {group.foods.length === 1 ? 'item' : 'items'}</small>
-                      </div>
-                      <span>
-                        {Math.round(groupTotals.calories)} cal · P {round(groupTotals.protein)}g
-                      </span>
-                    </header>
-                    <div className="nutrition-today-food-list">
-                      {group.foods.map((food) => (
-                        <button
-                          type="button"
-                          key={food.id}
-                          className="nutrition-today-food-row"
-                          onClick={() => openLoggedFoodEditor(food)}
-                        >
-                          <span className="nutrition-today-food-copy">
-                            <strong>{food.name}</strong>
-                            <small>
-                              {food.source === 'fatsecret' && (food.name === 'Loading food…' || food.name === 'Food unavailable')
-                                ? (food.name === 'Loading food…' ? 'Refreshing nutrition…' : 'Nutrition unavailable')
-                                : `${food.measurement ? `${foodMeasureDisplay(food.measurement)} · ` : ''}${Math.round(Number(food.calories || 0))} cal`}
-                            </small>
-                          </span>
-                          <span className="nutrition-today-food-macros">
-                            <small>P {round(food.protein)} · C {round(food.carbs)} · F {round(food.fat)}</small>
-                            <ChevronRight size={17}/>
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                  </section>
-                )
-              })}
+          <header>
+            <div>
+              <span className="eyebrow">FOOD LOG</span>
+              <h2>{resolvedDayFoods.length ? `${resolvedDayFoods.length} items · ${Math.round(totals.calories)} cal` : 'Nothing logged yet'}</h2>
+              {resolvedDayFoods.length ? <small>{round(totals.protein)}g protein logged</small> : null}
             </div>
+            <button onClick={() => setTab('Meals')}><Plus/>Add</button>
+          </header>
+          {resolvedDayFoods.length ? (
+            shouldGroupDayFoods ? (
+              <div className="nutrition-day-groups">
+                {groupedDayFoods.map((group) => {
+                  const groupTotals = nutritionFoodGroupTotals(group)
+                  return (
+                    <section key={group.id} className="nutrition-day-group">
+                      <header>
+                        <div>
+                          <strong>{nutritionFoodGroupTimeLabel(group)}</strong>
+                          <small>{group.foods.length} {group.foods.length === 1 ? 'item' : 'items'}</small>
+                        </div>
+                        <span>
+                          {Math.round(groupTotals.calories)} cal · P {round(groupTotals.protein)}g
+                        </span>
+                      </header>
+                      <div className="nutrition-today-food-list">
+                        {group.foods.map(renderLoggedFoodRow)}
+                      </div>
+                    </section>
+                  )
+                })}
+              </div>
+            ) : (
+              <div className="nutrition-today-food-list">
+                {resolvedDayFoods.map(renderLoggedFoodRow)}
+              </div>
+            )
           ) : <div className="nutrition-empty"><Utensils/><p>Log your first meal to start today’s dashboard.</p></div>}
         </section>
 
