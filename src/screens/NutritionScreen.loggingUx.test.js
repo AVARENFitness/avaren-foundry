@@ -76,6 +76,12 @@ describe('NutritionScreen logging UX regressions', () => {
     expect(source).toContain('Analyze with details')
   })
 
+  it('releases the scan modal layer after logging so iOS scrolling cannot stay frozen', () => {
+    expect(source).toContain('scheduleNutritionModalCleanup')
+    expect(source).toContain('resetDocumentModalLayer()')
+    expect(source).toContain("setTab('Today')")
+  })
+
   it('keeps camera and barcode capture inputs mounted for Today quick log', () => {
     const nav = source.indexOf('className="nutrition-tabs"')
     const today = source.indexOf("tab === 'Today'")

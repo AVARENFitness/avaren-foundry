@@ -71,6 +71,16 @@ const releaseLock = () => {
   }
 }
 
+export const repairOrphanedBodyScrollLock = () => {
+  if (typeof document === 'undefined') return false
+  if (document.querySelector('[data-app-ui-backdrop="open"]')) return false
+  if (lockCount <= 0 && !lockSnapshot) return false
+
+  lockCount = 0
+  releaseLock()
+  return true
+}
+
 /** Test/helper — current nested lock depth. */
 export const getBodyScrollLockCount = () => lockCount
 

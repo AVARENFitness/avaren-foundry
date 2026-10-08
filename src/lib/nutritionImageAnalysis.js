@@ -3,6 +3,41 @@ import { supabase } from './supabase'
 const MAX_IMAGE_EDGE = 1600
 const JPEG_QUALITY = 0.82
 
+const mealMacroTotal = (value = {}) =>
+  Number(value.calories || 0) +
+  Number(value.protein || 0) +
+  Number(value.carbs || 0) +
+  Number(value.fat || 0) +
+  Number(value.fiber || 0)
+
+export function normalizeNutritionImageResult(result) {
+  if (!result || result.kind !== 'meal') return result
+
+  const componentTotals = (result.components ?? []).reduce(
+    (totals, component) => ({
+      calories: totals.calories + Number(component?.calories || 0),
+      protein: totals.protein + Number(component?.protein || 0),
+      carbs: totals.carbs + Number(component?.carbs || 0),
+      fat: totals.fat + Number(component?.fat || 0),
+      fiber: totals.fiber + Number(component?.fiber || 0),
+    }),
+    { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 },
+  )
+
+  if (mealMacroTotal(result) <= 0 && mealMacroTotal(componentTotals) > 0) {
+    return {
+      ...result,
+      calories: componentTotals.calories,
+      protein: componentTotals.protein,
+      carbs: componentTotals.carbs,
+      fat: componentTotals.fat,
+      fiber: componentTotals.fiber,
+    }
+  }
+
+  return result
+}
+
 const fileToDataUrl = (file) =>
   new Promise((resolve, reject) => {
     const reader = new FileReader()
@@ -61,8 +96,22 @@ export async function analyzeNutritionImage({ imageDataUrl, context = '', mode =
   }
 
   if (!data?.ok || !data?.result) {
+    const reason = data?.reason
+    if (reason === 'meal-nutrition-unresolved') {
+      throw new Error(
+        'AVA recognized the meal but could not calculate reliable nutrition. Try the photo again or enter the ingredients manually.',
+      )
+    }
     throw new Error('AVAREN could not analyze that photo.')
   }
 
-  return data.result
+  const result = normalizeNutritionImageResult(data.result)
+
+  if (result?.kind === 'meal' && mealMacroTotal(result) <= 0) {
+    throw new Error(
+      'AVA recognized the meal but could not calculate reliable nutrition. Try the photo again or enter the ingredients manually.',
+    )
+  }
+
+  return result
 }
