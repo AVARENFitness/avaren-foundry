@@ -4,8 +4,12 @@ import {
   GRAMS_PER_OUNCE,
   convertFoodMeasureAmount,
   foodMeasureMultiplier,
+  parseFoodCountFromContext,
+  parseFoodServingCount,
   parseFoodServingMeasurement,
   resolveFoodServingBasis,
+  resolveFoodServingCountBasis,
+  servingFractionDisplay,
   resolveNutritionLabelConsumptionMeasurement,
 } from './nutritionMeasurement'
 
@@ -54,6 +58,40 @@ describe('nutritionMeasurement', () => {
   it('converts grams and ounces both ways', () => {
     expect(convertFoodMeasureAmount(GRAMS_PER_OUNCE, 'g', 'oz')).toBeCloseTo(1, 6)
     expect(convertFoodMeasureAmount(1, 'oz', 'g')).toBeCloseTo(GRAMS_PER_OUNCE, 6)
+  })
+
+  it('parses count-based servings such as 6 sausage balls', () => {
+    expect(parseFoodServingCount('6 sausage-balls (85 g)')).toMatchObject({
+      amount: 6,
+      unit: FOOD_MEASURE_UNIT.ITEM,
+      label: 'sausage-balls',
+    })
+  })
+
+  it('scales 2 items out of a 6-item serving to one third', () => {
+    const basis = resolveFoodServingCountBasis({
+      description: '6 balls (85 g)',
+    })
+    expect(
+      foodMeasureMultiplier({
+        amount: 2,
+        unit: FOOD_MEASURE_UNIT.ITEM,
+        servingBasis: basis,
+      }),
+    ).toBeCloseTo(2 / 6, 6)
+    expect(servingFractionDisplay(2 / 6)).toBe('⅓ serving')
+  })
+
+  it('understands natural context like "I had 2" against a count serving', () => {
+    const basis = resolveFoodServingCountBasis({
+      servingDescription: '6 balls (85 g)',
+    })
+    expect(parseFoodCountFromContext('I had 2', basis)).toMatchObject({
+      amount: 2,
+      unit: FOOD_MEASURE_UNIT.ITEM,
+      multiplier: 2 / 6,
+      source: 'user_context',
+    })
   })
 
   it('uses an exact user-entered label weight instead of one full serving', () => {
