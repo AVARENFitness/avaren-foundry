@@ -51,6 +51,7 @@ import {
   duplicateLoggedFoodEntry,
 } from '../lib/nutritionActions'
 import { COMMON_FOODS } from '../data/commonFoods'
+import { groupLoggedFoods } from '../lib/nutritionDayGrouping'
 import { appUi } from '../lib/appUi'
 import { createRuntimeId } from '../lib/createRuntimeId'
 import {
@@ -263,6 +264,8 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
     ),
     [day.foods, fatSecretDetailCache],
   )
+
+  const loggedFoodGroups = useMemo(() => groupLoggedFoods(resolvedDayFoods), [resolvedDayFoods])
 
   const resolvedDay = useMemo(
     () => ({ ...day, foods: resolvedDayFoods }),
@@ -1943,7 +1946,15 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
           <header><div><span className="eyebrow">FOOD LOG</span><h2>{resolvedDayFoods.length ? `${resolvedDayFoods.length} items` : 'Nothing logged yet'}</h2></div><button onClick={() => setTab('Meals')}><Plus/>Add</button></header>
           {resolvedDayFoods.length ? (
             <div className="nutrition-today-food-list">
-              {resolvedDayFoods.map((food) => (
+              {loggedFoodGroups.map((group) => (
+                <div className="nutrition-today-log-group" key={group.key}>
+                  {group.foods.length > 1 && (
+                    <div className="nutrition-today-group-label">
+                      <span>Logged together</span>
+                      <span>{group.foods.length} items</span>
+                    </div>
+                  )}
+                  {group.foods.map((food) => (
                 <button
                   type="button"
                   key={food.id}
@@ -1962,7 +1973,8 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
                     <small>P {round(food.protein)} · C {round(food.carbs)} · F {round(food.fat)}</small>
                     <ChevronRight size={17}/>
                   </span>
-                </button>
+                </button>\n                  ))}
+                </div>
               ))}
             </div>
           ) : <div className="nutrition-empty"><Utensils/><p>Log your first meal to start today’s dashboard.</p></div>}
