@@ -72,8 +72,12 @@ import {
   FOOD_MEASURE_UNIT,
   foodMeasureDisplay,
   foodMeasureMultiplier,
+  parseFoodCountFromContext,
+  resolveFoodMeasureBasisForUnit,
   resolveFoodServingBasis,
+  resolveFoodServingCountBasis,
   resolveNutritionLabelConsumptionMeasurement,
+  servingFractionDisplay,
 } from '../lib/nutritionMeasurement'
 import {
   detectNutritionBarcode,
@@ -747,6 +751,16 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
         servingUnit: result.servingUnit,
         servingDescription: result.servingDescription,
       })
+      const resultCountBasis = resolveFoodServingCountBasis({
+        servingDescription: result.servingDescription,
+      })
+      const userCount =
+        result.sourceType === 'label_read'
+          ? parseFoodCountFromContext(
+              contextOverride ?? scanContext,
+              resultCountBasis,
+            )
+          : null
       const labelConsumption =
         result.sourceType === 'label_read'
           ? resolveNutritionLabelConsumptionMeasurement({
@@ -758,7 +772,19 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
       setScanResult(result)
       setScanDraft(draft)
 
-      if (labelConsumption) {
+      if (userCount) {
+        setScanMeasureUnit(FOOD_MEASURE_UNIT.ITEM)
+        setScanMeasureAmount(String(userCount.amount))
+        setScanQuantity(userCount.multiplier)
+      } else if (labelConsumption?.source === 'user_context') {
+        setScanMeasureUnit(labelConsumption.unit)
+        setScanMeasureAmount(String(labelConsumption.amount))
+        setScanQuantity(labelConsumption.multiplier)
+      } else if (resultCountBasis) {
+        setScanMeasureUnit(FOOD_MEASURE_UNIT.ITEM)
+        setScanMeasureAmount(String(resultCountBasis.amount))
+        setScanQuantity(1)
+      } else if (labelConsumption) {
         setScanMeasureUnit(labelConsumption.unit)
         setScanMeasureAmount(String(labelConsumption.amount))
         setScanQuantity(labelConsumption.multiplier)
@@ -818,6 +844,11 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
         servingDescription: scanResult.servingDescription,
       })
     : null
+  const scanCountBasis = scanResult
+    ? resolveFoodServingCountBasis({
+        servingDescription: scanResult.servingDescription,
+      })
+    : null
   const scanMeasureValue = Math.max(
     0.01,
     Number(scanMeasureAmount || scanQuantity || 1),
@@ -826,13 +857,27 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
     foodMeasureMultiplier({
       amount: scanMeasureValue,
       unit: scanMeasureUnit,
-      servingBasis: scanServingBasis,
+      servingBasis: resolveFoodMeasureBasisForUnit({
+        unit: scanMeasureUnit,
+        weightBasis: scanServingBasis,
+        countBasis: scanCountBasis,
+      }),
     }) ?? Math.max(0.01, Number(scanQuantity || 1))
   const scanMeasurement = {
     amount: scanMeasureValue,
     unit: scanMeasureUnit,
-    servingAmount: scanServingBasis?.amount ?? 1,
-    servingUnit: scanServingBasis?.unit ?? FOOD_MEASURE_UNIT.SERVING,
+    servingAmount:
+      scanMeasureUnit === FOOD_MEASURE_UNIT.ITEM
+        ? scanCountBasis?.amount ?? 1
+        : scanServingBasis?.amount ?? 1,
+    servingUnit:
+      scanMeasureUnit === FOOD_MEASURE_UNIT.ITEM
+        ? FOOD_MEASURE_UNIT.ITEM
+        : scanServingBasis?.unit ?? FOOD_MEASURE_UNIT.SERVING,
+    itemLabel:
+      scanMeasureUnit === FOOD_MEASURE_UNIT.ITEM
+        ? scanCountBasis?.label ?? 'items'
+        : '',
   }
   const scaledScanDraft = scanDraft
     ? {
@@ -1052,6 +1097,14 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
     setSelectedMeasureAmount('1')
 
     if (food.provider !== 'fatsecret') {
+      const countBasis = resolveFoodServingCountBasis(food)
+      setSelectedMeasureUnit(
+        countBasis ? FOOD_MEASURE_UNIT.ITEM : FOOD_MEASURE_UNIT.SERVING,
+      )
+      setSelectedMeasureAmount(
+        countBasis ? String(countBasis.amount) : '1',
+      )
+      setSelectedMultiplier(1)
       setFatSecretDetailState('idle')
       setFatSecretDetailError('')
       setSelectedFatSecretServingId('')
@@ -1078,7 +1131,13 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
       }))
 
       const firstServing = detail.servings?.[0]
+      const countBasis = resolveFoodServingCountBasis(firstServing ?? {})
       setSelectedFatSecretServingId(firstServing?.servingId ?? '')
+      if (countBasis) {
+        setFatSecretMeasureUnit(FOOD_MEASURE_UNIT.ITEM)
+        setFatSecretMeasureAmount(String(countBasis.amount))
+        setFatSecretQuantity('1')
+      }
       setFatSecretDetailState('success')
     } catch (error) {
       setFatSecretDetailState('error')
@@ -1098,12 +1157,17 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
         String(item.servingId) === String(selectedFatSecretServingId),
     )
     const servingBasis = resolveFoodServingBasis(serving ?? {})
+    const countBasis = resolveFoodServingCountBasis(serving ?? {})
     const measureAmount = Number(fatSecretMeasureAmount || fatSecretQuantity)
     const quantity =
       foodMeasureMultiplier({
         amount: measureAmount,
         unit: fatSecretMeasureUnit,
-        servingBasis,
+        servingBasis: resolveFoodMeasureBasisForUnit({
+          unit: fatSecretMeasureUnit,
+          weightBasis: servingBasis,
+          countBasis,
+        }),
       }) ?? Number(fatSecretQuantity)
 
     if (!Number.isFinite(quantity) || quantity <= 0) {
@@ -1114,8 +1178,18 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
     const measurement = {
       amount: measureAmount,
       unit: fatSecretMeasureUnit,
-      servingAmount: servingBasis?.amount ?? 1,
-      servingUnit: servingBasis?.unit ?? FOOD_MEASURE_UNIT.SERVING,
+      servingAmount:
+        fatSecretMeasureUnit === FOOD_MEASURE_UNIT.ITEM
+          ? countBasis?.amount ?? 1
+          : servingBasis?.amount ?? 1,
+      servingUnit:
+        fatSecretMeasureUnit === FOOD_MEASURE_UNIT.ITEM
+          ? FOOD_MEASURE_UNIT.ITEM
+          : servingBasis?.unit ?? FOOD_MEASURE_UNIT.SERVING,
+      itemLabel:
+        fatSecretMeasureUnit === FOOD_MEASURE_UNIT.ITEM
+          ? countBasis?.label ?? 'items'
+          : '',
     }
 
     patch((current) =>
@@ -1963,26 +2037,30 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
                     <span className="eyebrow">
                       {scanResult.sourceType === 'label_read' ? 'MEASURED AMOUNT' : 'PORTIONS'}
                     </span>
-                    <strong>{scanResult.sourceType === 'label_read' ? 'What did your scale show?' : 'How much did you have?'}</strong>
+                    <strong>{scanResult.sourceType === 'label_read' ? 'How much did you have?' : 'How much did you have?'}</strong>
                     <small>
-                      {scanResult.sourceType === 'label_read' && scanServingBasis
-                        ? `Label nutrition is based on ${foodMeasureDisplay({ amount: scanServingBasis.amount, unit: scanServingBasis.unit })}. Enter what your scale actually showed.`
-                        : scanResult.sourceType === 'label_read'
-                          ? 'Label values are per serving. AVAREN will scale the totals before logging.'
-                          : 'Choose the amount you actually ate. AVAREN will scale the estimate once.'}
+                      {scanResult.sourceType === 'label_read' && scanCountBasis
+                        ? `1 serving = ${foodMeasureDisplay({ amount: scanCountBasis.amount, unit: FOOD_MEASURE_UNIT.ITEM, itemLabel: scanCountBasis.label })}. Enter the number you actually ate — AVAREN handles the fraction.`
+                        : scanResult.sourceType === 'label_read' && scanServingBasis
+                          ? `Label nutrition is based on ${foodMeasureDisplay({ amount: scanServingBasis.amount, unit: scanServingBasis.unit })}. Enter the amount you actually had.`
+                          : scanResult.sourceType === 'label_read'
+                            ? 'Label values are per serving. AVAREN will scale the totals before logging.'
+                            : 'Choose the amount you actually ate. AVAREN will scale the estimate once.'}
                     </small>
                   </div>
 
-                  {scanServingBasis && (
-                    scanServingBasis.unit === FOOD_MEASURE_UNIT.GRAM ||
-                    scanServingBasis.unit === FOOD_MEASURE_UNIT.OUNCE
-                  ) ? <div className="nutrition-measure-tabs" role="group" aria-label="Scanned food amount unit">
+                  {(scanServingBasis || scanCountBasis) ? <div className="nutrition-measure-tabs" role="group" aria-label="Scanned food amount unit">
                     <button type="button" className={scanMeasureUnit === FOOD_MEASURE_UNIT.SERVING ? 'active' : ''} onClick={() => {
                       setScanMeasureUnit(FOOD_MEASURE_UNIT.SERVING)
                       setScanMeasureAmount('1')
                       setScanQuantity(1)
                     }}>Serving</button>
-                    <button type="button" className={scanMeasureUnit === FOOD_MEASURE_UNIT.GRAM ? 'active' : ''} onClick={() => {
+                    {scanCountBasis ? <button type="button" className={scanMeasureUnit === FOOD_MEASURE_UNIT.ITEM ? 'active' : ''} onClick={() => {
+                      setScanMeasureUnit(FOOD_MEASURE_UNIT.ITEM)
+                      setScanMeasureAmount(String(scanCountBasis.amount))
+                      setScanQuantity(1)
+                    }}>{scanCountBasis.label}</button> : null}
+                    {scanServingBasis ? <button type="button" className={scanMeasureUnit === FOOD_MEASURE_UNIT.GRAM ? 'active' : ''} onClick={() => {
                       setScanMeasureUnit(FOOD_MEASURE_UNIT.GRAM)
                       setScanMeasureAmount(
                         String(
@@ -1994,8 +2072,8 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
                           ),
                         ),
                       )
-                    }}>g</button>
-                    <button type="button" className={scanMeasureUnit === FOOD_MEASURE_UNIT.OUNCE ? 'active' : ''} onClick={() => {
+                    }}>g</button> : null}
+                    {scanServingBasis ? <button type="button" className={scanMeasureUnit === FOOD_MEASURE_UNIT.OUNCE ? 'active' : ''} onClick={() => {
                       setScanMeasureUnit(FOOD_MEASURE_UNIT.OUNCE)
                       setScanMeasureAmount(
                         String(
@@ -2007,7 +2085,7 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
                           ),
                         ),
                       )
-                    }}>oz</button>
+                    }}>oz</button> : null}
                   </div> : null}
 
                   {scanMeasureUnit === FOOD_MEASURE_UNIT.SERVING ? (
@@ -2042,18 +2120,21 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
                     </div>
                   ) : (
                     <label className="nutrition-scan-weight-input">
-                      <span>Amount eaten</span>
+                      <span>{scanMeasureUnit === FOOD_MEASURE_UNIT.ITEM ? `${scanCountBasis?.singularLabel ?? 'Item'} count` : 'Amount eaten'}</span>
                       <div className="nutrition-measure-input">
                         <input
                           type="number"
                           min="0.1"
-                          step="0.1"
+                          step={scanMeasureUnit === FOOD_MEASURE_UNIT.ITEM ? '1' : '0.1'}
                           value={scanMeasureAmount}
                           onChange={(event) => setScanMeasureAmount(event.target.value)}
                           inputMode="decimal"
                         />
-                        <strong>{scanMeasureUnit}</strong>
+                        <strong>{scanMeasureUnit === FOOD_MEASURE_UNIT.ITEM ? scanCountBasis?.label ?? 'items' : scanMeasureUnit}</strong>
                       </div>
+                      {scanMeasureUnit === FOOD_MEASURE_UNIT.ITEM && scanCountBasis ? <small className="nutrition-portion-intelligence">
+                        {foodMeasureDisplay({ amount: scanMeasureValue, unit: FOOD_MEASURE_UNIT.ITEM, itemLabel: scanCountBasis.label })} = {servingFractionDisplay(scanQuantityValue)}
+                      </small> : null}
                     </label>
                   )}
                 </section>
@@ -2124,13 +2205,18 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
                   String(selectedFatSecretServingId),
               )
               const servingBasis = resolveFoodServingBasis(serving ?? {})
+              const countBasis = resolveFoodServingCountBasis(serving ?? {})
               const supportsWeight =
                 servingBasis?.unit === FOOD_MEASURE_UNIT.GRAM ||
                 servingBasis?.unit === FOOD_MEASURE_UNIT.OUNCE
               const measuredQuantity = foodMeasureMultiplier({
                 amount: Number(fatSecretMeasureAmount),
                 unit: fatSecretMeasureUnit,
-                servingBasis,
+                servingBasis: resolveFoodMeasureBasisForUnit({
+                  unit: fatSecretMeasureUnit,
+                  weightBasis: servingBasis,
+                  countBasis,
+                }),
               })
               const quantity =
                 Number.isFinite(measuredQuantity) && measuredQuantity > 0
@@ -2156,9 +2242,16 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
                 <div className="nutrition-serving-picker">
                   <span>Nutrition basis</span>
                   <div>{(detail?.servings ?? []).map((option) => <button key={option.servingId} className={String(selectedFatSecretServingId) === String(option.servingId) ? 'active' : ''} onClick={() => {
+                    const optionCountBasis = resolveFoodServingCountBasis(option)
                     setSelectedFatSecretServingId(option.servingId)
-                    setFatSecretMeasureUnit(FOOD_MEASURE_UNIT.SERVING)
-                    setFatSecretMeasureAmount('1')
+                    setFatSecretMeasureUnit(
+                      optionCountBasis
+                        ? FOOD_MEASURE_UNIT.ITEM
+                        : FOOD_MEASURE_UNIT.SERVING,
+                    )
+                    setFatSecretMeasureAmount(
+                      optionCountBasis ? String(optionCountBasis.amount) : '1',
+                    )
                     setFatSecretQuantity('1')
                   }}>{option.description}</button>)}</div>
                 </div>
@@ -2169,6 +2262,10 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
                       setFatSecretMeasureUnit(FOOD_MEASURE_UNIT.SERVING)
                       setFatSecretMeasureAmount('1')
                     }}>Serving</button>
+                    {countBasis ? <button type="button" className={fatSecretMeasureUnit === FOOD_MEASURE_UNIT.ITEM ? 'active' : ''} onClick={() => {
+                      setFatSecretMeasureUnit(FOOD_MEASURE_UNIT.ITEM)
+                      setFatSecretMeasureAmount(String(countBasis.amount))
+                    }}>{countBasis.label}</button> : null}
                     {supportsWeight ? <>
                       <button type="button" className={fatSecretMeasureUnit === FOOD_MEASURE_UNIT.GRAM ? 'active' : ''} onClick={() => {
                         setFatSecretMeasureUnit(FOOD_MEASURE_UNIT.GRAM)
@@ -2181,12 +2278,24 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
                     </> : null}
                   </div>
                   <label>
-                    <span>{fatSecretMeasureUnit === FOOD_MEASURE_UNIT.SERVING ? 'Servings eaten' : 'Weight eaten'}</span>
+                    <span>{
+                      fatSecretMeasureUnit === FOOD_MEASURE_UNIT.SERVING
+                        ? 'Servings eaten'
+                        : fatSecretMeasureUnit === FOOD_MEASURE_UNIT.ITEM
+                          ? `${countBasis?.singularLabel ?? 'Item'} count`
+                          : 'Weight eaten'
+                    }</span>
                     <div className="nutrition-measure-input">
                       <input
                         type="number"
                         min="0.01"
-                        step={fatSecretMeasureUnit === FOOD_MEASURE_UNIT.SERVING ? '0.25' : '0.1'}
+                        step={
+                          fatSecretMeasureUnit === FOOD_MEASURE_UNIT.SERVING
+                            ? '0.25'
+                            : fatSecretMeasureUnit === FOOD_MEASURE_UNIT.ITEM
+                              ? '1'
+                              : '0.1'
+                        }
                         value={fatSecretMeasureAmount}
                         onChange={(event) => {
                           setFatSecretMeasureAmount(event.target.value)
@@ -2196,10 +2305,21 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
                         }}
                         inputMode="decimal"
                       />
-                      <strong>{fatSecretMeasureUnit === FOOD_MEASURE_UNIT.SERVING ? 'serving' : fatSecretMeasureUnit}</strong>
+                      <strong>{
+                        fatSecretMeasureUnit === FOOD_MEASURE_UNIT.SERVING
+                          ? 'serving'
+                          : fatSecretMeasureUnit === FOOD_MEASURE_UNIT.ITEM
+                            ? countBasis?.label ?? 'items'
+                            : fatSecretMeasureUnit
+                      }</strong>
                     </div>
+                    {fatSecretMeasureUnit === FOOD_MEASURE_UNIT.ITEM && countBasis ? <small className="nutrition-portion-intelligence">
+                      {foodMeasureDisplay({ amount: Number(fatSecretMeasureAmount), unit: FOOD_MEASURE_UNIT.ITEM, itemLabel: countBasis.label })} = {servingFractionDisplay(quantity)}
+                    </small> : null}
                   </label>
-                  {servingBasis ? <small>
+                  {countBasis ? <small>
+                    1 serving = {foodMeasureDisplay({ amount: countBasis.amount, unit: FOOD_MEASURE_UNIT.ITEM, itemLabel: countBasis.label })}.
+                  </small> : servingBasis ? <small>
                     1 serving = {foodMeasureDisplay({ amount: servingBasis.amount, unit: servingBasis.unit })}. Macros scale to the exact amount you enter.
                   </small> : <small>This food only has serving-based nutrition from the database.</small>}
                 </section>
@@ -2218,10 +2338,11 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
                     <Plus/>Add to Today
                   </button>
                 </div>
-                <p className="nutrition-fatsecret-detail-note">Verified serving nutrition stays linked to FatSecret while AVAREN records the exact amount you weighed.</p>
+                <p className="nutrition-fatsecret-detail-note">Verified serving nutrition stays linked to FatSecret while AVAREN records the exact amount you actually ate.</p>
               </>
             })() : (() => {
               const servingBasis = resolveFoodServingBasis(selectedFood)
+              const countBasis = resolveFoodServingCountBasis(selectedFood)
               const supportsWeight =
                 servingBasis?.unit === FOOD_MEASURE_UNIT.GRAM ||
                 servingBasis?.unit === FOOD_MEASURE_UNIT.OUNCE
@@ -2231,7 +2352,11 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
                   : foodMeasureMultiplier({
                       amount: Number(selectedMeasureAmount),
                       unit: selectedMeasureUnit,
-                      servingBasis,
+                      servingBasis: resolveFoodMeasureBasisForUnit({
+                        unit: selectedMeasureUnit,
+                        weightBasis: servingBasis,
+                        countBasis,
+                      }),
                     })
               const multiplier =
                 Number.isFinite(measuredMultiplier) && measuredMultiplier > 0
@@ -2243,9 +2368,18 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
                     ? selectedMultiplier
                     : Number(selectedMeasureAmount),
                 unit: selectedMeasureUnit,
-                servingAmount: servingBasis?.amount ?? 1,
+                servingAmount:
+                  selectedMeasureUnit === FOOD_MEASURE_UNIT.ITEM
+                    ? countBasis?.amount ?? 1
+                    : servingBasis?.amount ?? 1,
                 servingUnit:
-                  servingBasis?.unit ?? FOOD_MEASURE_UNIT.SERVING,
+                  selectedMeasureUnit === FOOD_MEASURE_UNIT.ITEM
+                    ? FOOD_MEASURE_UNIT.ITEM
+                    : servingBasis?.unit ?? FOOD_MEASURE_UNIT.SERVING,
+                itemLabel:
+                  selectedMeasureUnit === FOOD_MEASURE_UNIT.ITEM
+                    ? countBasis?.label ?? 'items'
+                    : '',
               }
 
               return <>
@@ -2264,26 +2398,39 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
                   }}>{option.label}</button>)}</div>
                 </div>
 
-                {supportsWeight ? <section className="nutrition-measure-control">
+                {(supportsWeight || countBasis) ? <section className="nutrition-measure-control">
                   <div className="nutrition-measure-tabs" role="group" aria-label="Amount unit">
-                    <button type="button" className={selectedMeasureUnit === FOOD_MEASURE_UNIT.SERVING ? 'active' : ''} onClick={() => setSelectedMeasureUnit(FOOD_MEASURE_UNIT.SERVING)}>Serving</button>
-                    <button type="button" className={selectedMeasureUnit === FOOD_MEASURE_UNIT.GRAM ? 'active' : ''} onClick={() => {
+                    <button type="button" className={selectedMeasureUnit === FOOD_MEASURE_UNIT.SERVING ? 'active' : ''} onClick={() => {
+                      setSelectedMeasureUnit(FOOD_MEASURE_UNIT.SERVING)
+                      setSelectedMeasureAmount(String(selectedMultiplier))
+                    }}>Serving</button>
+                    {countBasis ? <button type="button" className={selectedMeasureUnit === FOOD_MEASURE_UNIT.ITEM ? 'active' : ''} onClick={() => {
+                      setSelectedMeasureUnit(FOOD_MEASURE_UNIT.ITEM)
+                      setSelectedMeasureAmount(String(countBasis.amount))
+                    }}>{countBasis.label}</button> : null}
+                    {supportsWeight ? <button type="button" className={selectedMeasureUnit === FOOD_MEASURE_UNIT.GRAM ? 'active' : ''} onClick={() => {
                       setSelectedMeasureUnit(FOOD_MEASURE_UNIT.GRAM)
                       setSelectedMeasureAmount(String(Math.round(Number(servingBasis.amount) * (servingBasis.unit === FOOD_MEASURE_UNIT.GRAM ? 1 : 28.3495))))
-                    }}>g</button>
-                    <button type="button" className={selectedMeasureUnit === FOOD_MEASURE_UNIT.OUNCE ? 'active' : ''} onClick={() => {
+                    }}>g</button> : null}
+                    {supportsWeight ? <button type="button" className={selectedMeasureUnit === FOOD_MEASURE_UNIT.OUNCE ? 'active' : ''} onClick={() => {
                       setSelectedMeasureUnit(FOOD_MEASURE_UNIT.OUNCE)
                       setSelectedMeasureAmount(String(round(Number(servingBasis.amount) * (servingBasis.unit === FOOD_MEASURE_UNIT.OUNCE ? 1 : 1 / 28.3495))))
-                    }}>oz</button>
+                    }}>oz</button> : null}
                   </div>
                   {selectedMeasureUnit !== FOOD_MEASURE_UNIT.SERVING ? <label>
-                    <span>Weight eaten</span>
+                    <span>{selectedMeasureUnit === FOOD_MEASURE_UNIT.ITEM ? `${countBasis?.singularLabel ?? 'Item'} count` : 'Weight eaten'}</span>
                     <div className="nutrition-measure-input">
-                      <input type="number" min="0.1" step="0.1" value={selectedMeasureAmount} onChange={(event) => setSelectedMeasureAmount(event.target.value)} inputMode="decimal"/>
-                      <strong>{selectedMeasureUnit}</strong>
+                      <input type="number" min={selectedMeasureUnit === FOOD_MEASURE_UNIT.ITEM ? '1' : '0.1'} step={selectedMeasureUnit === FOOD_MEASURE_UNIT.ITEM ? '1' : '0.1'} value={selectedMeasureAmount} onChange={(event) => setSelectedMeasureAmount(event.target.value)} inputMode="decimal"/>
+                      <strong>{selectedMeasureUnit === FOOD_MEASURE_UNIT.ITEM ? countBasis?.label ?? 'items' : selectedMeasureUnit}</strong>
                     </div>
+                    {selectedMeasureUnit === FOOD_MEASURE_UNIT.ITEM && countBasis ? <small className="nutrition-portion-intelligence">
+                      {foodMeasureDisplay({ amount: Number(selectedMeasureAmount), unit: FOOD_MEASURE_UNIT.ITEM, itemLabel: countBasis.label })} = {servingFractionDisplay(multiplier)}
+                    </small> : null}
                   </label> : null}
-                  <small>1 serving = {foodMeasureDisplay({ amount: servingBasis.amount, unit: servingBasis.unit })}.</small>
+                  <small>{countBasis
+                    ? `1 serving = ${foodMeasureDisplay({ amount: countBasis.amount, unit: FOOD_MEASURE_UNIT.ITEM, itemLabel: countBasis.label })}.`
+                    : `1 serving = ${foodMeasureDisplay({ amount: servingBasis.amount, unit: servingBasis.unit })}.`
+                  }</small>
                 </section> : null}
 
                 <div className="nutrition-sheet-actions">
