@@ -27138,3 +27138,20 @@ body > .nutrition-food-sheet-backdrop > .nutrition-food-sheet {
     min-height: 40px;
   }
 }
+
+/* Today food log: group only entries recorded close together, never inferred meals. */
+.nutrition-today-log-group + .nutrition-today-log-group {
+  border-top: 1px solid rgba(255, 255, 255, 0.09);
+  margin-top: 12px;
+  padding-top: 12px;
+}
+.nutrition-today-group-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 2px 4px 8px;
+  color: var(--text-muted, #aaa69e);
+  font-size: 0.72rem;
+  letter-spacing: 0.025em;
+}
