@@ -25,6 +25,7 @@ export function buildFoodEntry(food, source = 'manual', entryId = null) {
               ? null
               : Number(food.measurement.servingAmount),
           servingUnit: String(food.measurement.servingUnit || ''),
+          itemLabel: String(food.measurement.itemLabel || ''),
         }
       : null,
     calories: nutritionRound(Number(food.calories || 0) * servings),
@@ -394,6 +395,7 @@ export function appendFatSecretFoodReference(
               ? null
               : Number(measurement.servingAmount),
           servingUnit: String(measurement.servingUnit || ''),
+          itemLabel: String(measurement.itemLabel || ''),
         }
       : null,
     ...snapshot,
