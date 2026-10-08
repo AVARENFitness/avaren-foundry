@@ -27,7 +27,10 @@ import {
 } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { useAppModalLayer } from '../hooks/useAppModalLayer'
+import {
+  resetDocumentModalLayer,
+  useAppModalLayer,
+} from '../hooks/useAppModalLayer'
 import {
   DEFAULT_NUTRITION_GOALS,
   emptyNutritionDay,
@@ -598,6 +601,15 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
     ],
   )
 
+  const scheduleNutritionModalCleanup = () => {
+    if (typeof window === 'undefined') return
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        resetDocumentModalLayer()
+      })
+    })
+  }
+
   const patch = (updater) => onChange((current) => {
     const base = current ?? { goals: DEFAULT_NUTRITION_GOALS, days: {}, savedFoods: [], recipes: [], recentFoodIds: [], favoriteFoodIds: [] }
     return typeof updater === 'function' ? updater(base) : updater
@@ -625,6 +637,7 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
     if (cameraInputRef.current) cameraInputRef.current.value = ''
     if (uploadInputRef.current) uploadInputRef.current.value = ''
     if (barcodeInputRef.current) barcodeInputRef.current.value = ''
+    scheduleNutritionModalCleanup()
   }
 
   const openBarcodeMatch = async (barcode) => {
@@ -794,6 +807,7 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
     } catch (error) {
       setScanState('error')
       setScanError(error?.message ?? 'AVAREN could not analyze that photo.')
+      scheduleNutritionModalCleanup()
     }
   }
 
@@ -890,6 +904,7 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
     )
     resetFoodScan()
     setTab('Today')
+    scheduleNutritionModalCleanup()
   }
 
   const chooseScanDatabaseMatch = async (food) => {
