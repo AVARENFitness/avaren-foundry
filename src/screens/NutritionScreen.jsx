@@ -72,8 +72,11 @@ import {
   FOOD_MEASURE_UNIT,
   foodMeasureDisplay,
   foodMeasureMultiplier,
+  resolveFoodMeasureBasisForUnit,
   resolveFoodServingBasis,
+  resolveFoodServingCountBasis,
   resolveNutritionLabelConsumptionMeasurement,
+  servingFractionDisplay,
 } from '../lib/nutritionMeasurement'
 import {
   detectNutritionBarcode,
@@ -818,6 +821,11 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
         servingDescription: scanResult.servingDescription,
       })
     : null
+  const scanCountBasis = scanResult
+    ? resolveFoodServingCountBasis({
+        servingDescription: scanResult.servingDescription,
+      })
+    : null
   const scanMeasureValue = Math.max(
     0.01,
     Number(scanMeasureAmount || scanQuantity || 1),
@@ -826,13 +834,27 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
     foodMeasureMultiplier({
       amount: scanMeasureValue,
       unit: scanMeasureUnit,
-      servingBasis: scanServingBasis,
+      servingBasis: resolveFoodMeasureBasisForUnit({
+        unit: scanMeasureUnit,
+        weightBasis: scanServingBasis,
+        countBasis: scanCountBasis,
+      }),
     }) ?? Math.max(0.01, Number(scanQuantity || 1))
   const scanMeasurement = {
     amount: scanMeasureValue,
     unit: scanMeasureUnit,
-    servingAmount: scanServingBasis?.amount ?? 1,
-    servingUnit: scanServingBasis?.unit ?? FOOD_MEASURE_UNIT.SERVING,
+    servingAmount:
+      scanMeasureUnit === FOOD_MEASURE_UNIT.ITEM
+        ? scanCountBasis?.amount ?? 1
+        : scanServingBasis?.amount ?? 1,
+    servingUnit:
+      scanMeasureUnit === FOOD_MEASURE_UNIT.ITEM
+        ? FOOD_MEASURE_UNIT.ITEM
+        : scanServingBasis?.unit ?? FOOD_MEASURE_UNIT.SERVING,
+    itemLabel:
+      scanMeasureUnit === FOOD_MEASURE_UNIT.ITEM
+        ? scanCountBasis?.label ?? 'items'
+        : '',
   }
   const scaledScanDraft = scanDraft
     ? {
@@ -1098,12 +1120,17 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
         String(item.servingId) === String(selectedFatSecretServingId),
     )
     const servingBasis = resolveFoodServingBasis(serving ?? {})
+    const countBasis = resolveFoodServingCountBasis(serving ?? {})
     const measureAmount = Number(fatSecretMeasureAmount || fatSecretQuantity)
     const quantity =
       foodMeasureMultiplier({
         amount: measureAmount,
         unit: fatSecretMeasureUnit,
-        servingBasis,
+        servingBasis: resolveFoodMeasureBasisForUnit({
+          unit: fatSecretMeasureUnit,
+          weightBasis: servingBasis,
+          countBasis,
+        }),
       }) ?? Number(fatSecretQuantity)
 
     if (!Number.isFinite(quantity) || quantity <= 0) {
@@ -1114,8 +1141,18 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
     const measurement = {
       amount: measureAmount,
       unit: fatSecretMeasureUnit,
-      servingAmount: servingBasis?.amount ?? 1,
-      servingUnit: servingBasis?.unit ?? FOOD_MEASURE_UNIT.SERVING,
+      servingAmount:
+        fatSecretMeasureUnit === FOOD_MEASURE_UNIT.ITEM
+          ? countBasis?.amount ?? 1
+          : servingBasis?.amount ?? 1,
+      servingUnit:
+        fatSecretMeasureUnit === FOOD_MEASURE_UNIT.ITEM
+          ? FOOD_MEASURE_UNIT.ITEM
+          : servingBasis?.unit ?? FOOD_MEASURE_UNIT.SERVING,
+      itemLabel:
+        fatSecretMeasureUnit === FOOD_MEASURE_UNIT.ITEM
+          ? countBasis?.label ?? 'items'
+          : '',
     }
 
     patch((current) =>
@@ -2222,6 +2259,7 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
               </>
             })() : (() => {
               const servingBasis = resolveFoodServingBasis(selectedFood)
+              const countBasis = resolveFoodServingCountBasis(selectedFood)
               const supportsWeight =
                 servingBasis?.unit === FOOD_MEASURE_UNIT.GRAM ||
                 servingBasis?.unit === FOOD_MEASURE_UNIT.OUNCE
@@ -2231,7 +2269,11 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
                   : foodMeasureMultiplier({
                       amount: Number(selectedMeasureAmount),
                       unit: selectedMeasureUnit,
-                      servingBasis,
+                      servingBasis: resolveFoodMeasureBasisForUnit({
+                        unit: selectedMeasureUnit,
+                        weightBasis: servingBasis,
+                        countBasis,
+                      }),
                     })
               const multiplier =
                 Number.isFinite(measuredMultiplier) && measuredMultiplier > 0
@@ -2243,9 +2285,18 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
                     ? selectedMultiplier
                     : Number(selectedMeasureAmount),
                 unit: selectedMeasureUnit,
-                servingAmount: servingBasis?.amount ?? 1,
+                servingAmount:
+                  selectedMeasureUnit === FOOD_MEASURE_UNIT.ITEM
+                    ? countBasis?.amount ?? 1
+                    : servingBasis?.amount ?? 1,
                 servingUnit:
-                  servingBasis?.unit ?? FOOD_MEASURE_UNIT.SERVING,
+                  selectedMeasureUnit === FOOD_MEASURE_UNIT.ITEM
+                    ? FOOD_MEASURE_UNIT.ITEM
+                    : servingBasis?.unit ?? FOOD_MEASURE_UNIT.SERVING,
+                itemLabel:
+                  selectedMeasureUnit === FOOD_MEASURE_UNIT.ITEM
+                    ? countBasis?.label ?? 'items'
+                    : '',
               }
 
               return <>
