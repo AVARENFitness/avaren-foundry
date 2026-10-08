@@ -76,6 +76,19 @@ describe('NutritionScreen logging UX regressions', () => {
     expect(source).toContain('Analyze with details')
   })
 
+  it('keeps technical scan corrections behind progressive disclosure', () => {
+    expect(source).toContain('Review or correct nutrition')
+    expect(source).toContain('nutrition-scan-review')
+    expect(source).toContain('Only change these if AVA read the label or food incorrectly.')
+    expect(source).not.toContain('Nutrition below is the label/base amount before scaling.')
+  })
+
+  it('uses normal serving language instead of database-oriented nutrition basis copy', () => {
+    expect(source).toContain('Serving options')
+    expect(source).not.toContain('<span>Nutrition basis</span>')
+    expect(source).toContain("(detail?.servings ?? []).length > 1")
+  })
+
   it('releases the scan modal layer after logging so iOS scrolling cannot stay frozen', () => {
     expect(source).toContain('scheduleNutritionModalCleanup')
     expect(source).toContain('resetDocumentModalLayer()')

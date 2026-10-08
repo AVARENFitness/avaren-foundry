@@ -2146,20 +2146,6 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
                   <article><span>Fat</span><strong>{round(scaledScanDraft?.fat)}g</strong></article>
                 </div>
 
-                <div className="nutrition-scan-edit-grid">
-                  <p className="nutrition-scan-edit-hint">Nutrition below is the label/base amount before scaling. Edit it only if AVA read the label incorrectly.</p>
-                  <label><span>Name</span><input value={scanDraft.name} onChange={(event) => setScanDraft((current) => ({...current, name:event.target.value}))}/></label>
-                  {['calories','protein','carbs','fat','fiber'].map((field) => <label key={field}><span>{field}</span><input type="number" min="0" step="0.1" value={scanDraft[field]} onChange={(event) => setScanDraft((current) => ({...current, [field]:event.target.value}))}/></label>)}
-                </div>
-
-                {scanResult.components?.length ? <details className="nutrition-scan-components">
-                  <summary>How AVA built this estimate</summary>
-                  <div>{scanResult.components.map((item, index) => <article key={`${item.name}-${index}`}>
-                    <div><strong>{item.name}</strong><span>{item.amount} · {item.basis.replaceAll('_',' ')}</span></div>
-                    <small>{Math.round(Number(item.calories || 0))} cal · P {round(item.protein)} · C {round(item.carbs)} · F {round(item.fat)}</small>
-                  </article>)}</div>
-                </details> : null}
-
                 {scanResult.followUpQuestion ? <div className="nutrition-scan-followup">
                   <strong>{scanResult.followUpQuestion}</strong>
                   <div>
@@ -2169,7 +2155,28 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
                   <button className="nutrition-scan-skip" onClick={() => setScanResult((current) => ({...current, followUpQuestion:''}))}>Use estimate as-is</button>
                 </div> : null}
 
-                {scanResult.notes ? <p className="nutrition-scan-note">{scanResult.notes}</p> : null}
+                <details className="nutrition-scan-review">
+                  <summary>Review or correct nutrition</summary>
+                  <div className="nutrition-scan-review-body">
+                    <p className="nutrition-scan-edit-hint">
+                      Only change these if AVA read the label or food incorrectly.
+                    </p>
+                    <div className="nutrition-scan-edit-grid">
+                      <label><span>Name</span><input value={scanDraft.name} onChange={(event) => setScanDraft((current) => ({...current, name:event.target.value}))}/></label>
+                      {['calories','protein','carbs','fat','fiber'].map((field) => <label key={field}><span>{field}</span><input type="number" min="0" step="0.1" value={scanDraft[field]} onChange={(event) => setScanDraft((current) => ({...current, [field]:event.target.value}))}/></label>)}
+                    </div>
+
+                    {scanResult.components?.length ? <details className="nutrition-scan-components">
+                      <summary>How AVA built this estimate</summary>
+                      <div>{scanResult.components.map((item, index) => <article key={`${item.name}-${index}`}>
+                        <div><strong>{item.name}</strong><span>{item.amount} · {item.basis.replaceAll('_',' ')}</span></div>
+                        <small>{Math.round(Number(item.calories || 0))} cal · P {round(item.protein)} · C {round(item.carbs)} · F {round(item.fat)}</small>
+                      </article>)}</div>
+                    </details> : null}
+
+                    {scanResult.notes ? <p className="nutrition-scan-note">{scanResult.notes}</p> : null}
+                  </div>
+                </details>
 
                 <div className="nutrition-sheet-actions nutrition-scan-final-actions">
                   <button
@@ -2179,7 +2186,7 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
                     disabled={scanSavedAsReusable}
                   >
                     {scanSavedAsReusable ? <BookmarkCheck/> : <BookmarkPlus/>}
-                    {scanSavedAsReusable ? 'Saved to Library' : 'Save reusable meal'}
+                    {scanSavedAsReusable ? 'Saved' : 'Save meal'}
                   </button>
                   <button className="gold-button machined" onClick={logScannedFood}><Plus/>Add to Today</button>
                 </div>
@@ -2239,8 +2246,8 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
                   <article><span>Fat</span><strong>{round(Number(serving.fat || 0) * quantity)}g</strong></article>
                 </div>}
 
-                <div className="nutrition-serving-picker">
-                  <span>Nutrition basis</span>
+                {(detail?.servings ?? []).length > 1 ? <div className="nutrition-serving-picker">
+                  <span>Serving options</span>
                   <div>{(detail?.servings ?? []).map((option) => <button key={option.servingId} className={String(selectedFatSecretServingId) === String(option.servingId) ? 'active' : ''} onClick={() => {
                     const optionCountBasis = resolveFoodServingCountBasis(option)
                     setSelectedFatSecretServingId(option.servingId)
@@ -2254,7 +2261,7 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
                     )
                     setFatSecretQuantity('1')
                   }}>{option.description}</button>)}</div>
-                </div>
+                </div> : null}
 
                 <section className="nutrition-measure-control">
                   <div className="nutrition-measure-tabs" role="group" aria-label="Amount unit">
@@ -2389,14 +2396,14 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
                   <article><span>Carbs</span><strong>{round(Number(selectedFood.carbs || 0) * multiplier)}g</strong></article>
                   <article><span>Fat</span><strong>{round(Number(selectedFood.fat || 0) * multiplier)}g</strong></article>
                 </div>
-                <div className="nutrition-serving-picker">
-                  <span>Nutrition basis</span>
-                  <div>{(selectedFood.servingOptions ?? [{label:selectedFood.serving ?? '1 serving',multiplier:1}]).map((option) => <button key={`${option.label}-${option.multiplier}`} className={selectedMeasureUnit === FOOD_MEASURE_UNIT.SERVING && selectedMultiplier === option.multiplier ? 'active' : ''} onClick={() => {
+                {(selectedFood.servingOptions ?? []).length > 1 ? <div className="nutrition-serving-picker">
+                  <span>Serving options</span>
+                  <div>{selectedFood.servingOptions.map((option) => <button key={`${option.label}-${option.multiplier}`} className={selectedMeasureUnit === FOOD_MEASURE_UNIT.SERVING && selectedMultiplier === option.multiplier ? 'active' : ''} onClick={() => {
                     setSelectedMultiplier(option.multiplier)
                     setSelectedMeasureUnit(FOOD_MEASURE_UNIT.SERVING)
                     setSelectedMeasureAmount(String(option.multiplier))
                   }}>{option.label}</button>)}</div>
-                </div>
+                </div> : null}
 
                 {(supportsWeight || countBasis) ? <section className="nutrition-measure-control">
                   <div className="nutrition-measure-tabs" role="group" aria-label="Amount unit">

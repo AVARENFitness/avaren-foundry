@@ -26779,3 +26779,95 @@ body > .nutrition-food-sheet-backdrop > .nutrition-food-sheet {
     font-size: .66rem !important;
   }
 }
+
+
+/* ===== NUTRITION ZERO-FRICTION LOGGING ===== */
+.nutrition-scan-review {
+  border: 1px solid rgba(248,243,230,.065);
+  border-radius: 12px;
+  background: rgba(255,255,255,.008);
+  overflow: hidden;
+}
+
+.nutrition-scan-review > summary {
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 0 12px;
+  color: #a8a096;
+  font-size: .74rem;
+  font-weight: 700;
+  cursor: pointer;
+  list-style: none;
+}
+
+.nutrition-scan-review > summary::-webkit-details-marker {
+  display: none;
+}
+
+.nutrition-scan-review > summary::after {
+  content: '+';
+  color: var(--gold-bright);
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.nutrition-scan-review[open] > summary::after {
+  content: '–';
+}
+
+.nutrition-scan-review-body {
+  display: grid;
+  gap: 10px;
+  padding: 0 12px 12px;
+  border-top: 1px solid rgba(248,243,230,.05);
+}
+
+.nutrition-scan-review .nutrition-scan-edit-hint {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: .7rem;
+  line-height: 1.4;
+}
+
+.nutrition-scan-final-actions {
+  position: sticky;
+  bottom: -1px;
+  z-index: 3;
+  margin: 0 -2px -2px;
+  padding: 10px 2px max(2px, env(safe-area-inset-bottom));
+  background:
+    linear-gradient(180deg, rgba(23,27,31,0), rgba(23,27,31,.96) 26%, #171b1f 52%);
+  backdrop-filter: blur(12px);
+}
+
+.nutrition-scan-final-actions .gold-button {
+  min-height: 48px;
+}
+
+.nutrition-scan-final-actions .nutrition-secondary-button {
+  min-height: 44px;
+}
+
+@media (max-width: 520px) {
+  .nutrition-scan-final-actions {
+    grid-template-columns: minmax(0,.72fr) minmax(0,1.28fr);
+    gap: 7px;
+  }
+
+  .nutrition-scan-final-actions .nutrition-secondary-button {
+    padding-inline: 9px;
+    font-size: .71rem;
+  }
+
+  .nutrition-scan-final-actions .gold-button {
+    font-size: .8rem;
+  }
+
+  .nutrition-scan-review > summary {
+    min-height: 40px;
+    font-size: .71rem;
+  }
+}
