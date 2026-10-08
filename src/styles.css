@@ -27251,3 +27251,78 @@ body > .nutrition-food-sheet-backdrop > .nutrition-food-sheet {
     display: none;
   }
 }
+
+
+/* ===== NUTRITION DAY READABILITY · REFINEMENT ===== */
+.nutrition-date-switcher {
+  gap: 8px;
+}
+
+.nutrition-date-context {
+  min-width: 0;
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+}
+
+.nutrition-date-context > span {
+  color: var(--gold-bright);
+  font-size: .64rem;
+  font-weight: 800;
+  letter-spacing: .055em;
+  text-transform: uppercase;
+}
+
+.nutrition-date-context > strong {
+  color: var(--cream);
+  font-size: .82rem;
+  font-weight: 760;
+}
+
+.nutrition-back-today {
+  min-height: 28px !important;
+  margin-top: 3px;
+  padding: 0 9px;
+  border: 1px solid rgba(216,189,122,.11) !important;
+  border-radius: 999px !important;
+  background: rgba(185,149,82,.025) !important;
+  color: var(--gold-bright) !important;
+  font-size: .62rem;
+  font-weight: 760;
+}
+
+.nutrition-food-log > header > div {
+  display: grid;
+  gap: 2px;
+}
+
+.nutrition-food-log > header > div > small {
+  color: var(--muted);
+  font-size: .66rem;
+  line-height: 1.35;
+}
+
+.nutrition-today-food-macros time {
+  color: #6f685f;
+  font-size: .6rem;
+  font-weight: 680;
+  white-space: nowrap;
+}
+
+@media (max-width: 520px) {
+  .nutrition-date-switcher {
+    grid-template-columns: 42px minmax(0,1fr) 42px;
+  }
+
+  .nutrition-date-context > strong {
+    font-size: .78rem;
+  }
+
+  .nutrition-back-today {
+    min-height: 28px !important;
+  }
+
+  .nutrition-today-food-macros time {
+    display: inline;
+  }
+}
