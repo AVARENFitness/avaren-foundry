@@ -76,6 +76,15 @@ export const convertFoodMeasureAmount = (
   return null
 }
 
+// Keep a user's exact food-scale portion when switching g ↔ oz.
+// Other unit changes intentionally retain the existing one-serving default.
+export const weightAmountForUnitSwitch = (amount, fromUnit, toUnit, defaultAmount) => {
+  const converted = convertFoodMeasureAmount(amount, fromUnit, toUnit)
+  return converted != null && converted > 0
+    ? String(Math.round(converted * 10000) / 10000)
+    : String(defaultAmount)
+}
+
 export const parseFoodServingMeasurement = (value = '') => {
   const text = String(value ?? '')
   const match = text.match(
