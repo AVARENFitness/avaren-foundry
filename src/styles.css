@@ -27006,3 +27006,135 @@ body > .nutrition-food-sheet-backdrop > .nutrition-food-sheet {
     padding-inline: 9px;
   }
 }
+
+
+/* ===== NUTRITION TODAY + HISTORY EDITING ===== */
+.nutrition-today-food-list {
+  display: grid;
+  gap: 6px;
+}
+
+.nutrition-today-food-row {
+  width: 100%;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0,1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 10px 11px 12px;
+  border: 1px solid rgba(248,243,230,.055);
+  border-radius: 12px;
+  background: rgba(255,255,255,.008);
+  color: inherit;
+  text-align: left;
+}
+
+.nutrition-today-food-copy {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.nutrition-today-food-copy strong {
+  overflow: hidden;
+  color: var(--cream);
+  font-size: .8rem;
+  font-weight: 720;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nutrition-today-food-copy small,
+.nutrition-today-food-macros small {
+  color: var(--muted);
+  font-size: .66rem;
+  line-height: 1.35;
+}
+
+.nutrition-today-food-macros {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #726b62;
+  white-space: nowrap;
+}
+
+.nutrition-log-entry-sheet {
+  gap: 14px;
+}
+
+.nutrition-log-entry-amount {
+  display: grid;
+  gap: 7px;
+}
+
+.nutrition-log-entry-amount > span {
+  color: #aaa198;
+  font-size: .7rem;
+  font-weight: 700;
+}
+
+.nutrition-log-entry-amount > small {
+  color: #766f67;
+  font-size: .66rem;
+  line-height: 1.4;
+}
+
+.nutrition-log-entry-primary {
+  display: grid;
+}
+
+.nutrition-log-entry-primary .gold-button {
+  min-height: 48px;
+}
+
+.nutrition-log-entry-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding-top: 4px;
+  border-top: 1px solid rgba(248,243,230,.05);
+}
+
+.nutrition-log-entry-actions button {
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: 1px solid rgba(248,243,230,.07);
+  border-radius: 11px;
+  background: rgba(255,255,255,.012);
+  color: #b9b0a5;
+  font-size: .72rem;
+  font-weight: 720;
+}
+
+.nutrition-log-entry-actions button.danger {
+  color: #d59a8f;
+  border-color: rgba(213,154,143,.1);
+  background: rgba(213,154,143,.025);
+}
+
+@media (hover:hover) and (pointer:fine) {
+  .nutrition-today-food-row:hover {
+    border-color: rgba(216,189,122,.11);
+    background: rgba(185,149,82,.018);
+  }
+}
+
+@media (max-width: 520px) {
+  .nutrition-today-food-row {
+    gap: 8px;
+    padding: 10px;
+  }
+
+  .nutrition-today-food-macros small {
+    display: none;
+  }
+
+  .nutrition-log-entry-actions button {
+    min-height: 40px;
+  }
+}

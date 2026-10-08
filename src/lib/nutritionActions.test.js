@@ -45,6 +45,8 @@ import {
   logRecipeToNutrition,
   needsFatSecretNutritionSnapshot,
   repeatLoggedFoodEntry,
+  updateLoggedFoodAmount,
+  duplicateLoggedFoodEntry,
 } from './nutritionActions'
 import {
   createNutritionState,
@@ -255,5 +257,97 @@ describe('Nutrition repeat logging', () => {
     )
 
     expect(result.entry.measurement.itemLabel).toBe('balls')
+  })
+})
+
+
+describe('Logged food editing', () => {
+  it('rescales an exact measured food when the logged amount changes', () => {
+    const nutrition = {
+      ...createNutritionState(),
+      days: {
+        '2026-10-08': {
+          date: '2026-10-08',
+          foods: [{
+            id: 'food-1',
+            name: 'Greek yogurt',
+            source: 'nutrition_label_scan',
+            calories: 100,
+            protein: 18,
+            carbs: 7,
+            fat: 0,
+            fiber: 0,
+            servings: 1,
+            measurement: {
+              amount: 170,
+              unit: 'g',
+              servingAmount: 170,
+              servingUnit: 'g',
+            },
+            loggedAt: '2026-10-08T12:00:00.000Z',
+          }],
+          waterOz: 0,
+          weight: '',
+          workoutActivities: [],
+        },
+      },
+    }
+
+    const result = updateLoggedFoodAmount(
+      nutrition,
+      '2026-10-08',
+      'food-1',
+      255,
+    )
+
+    expect(result.entry).toMatchObject({
+      calories: 150,
+      protein: 27,
+      carbs: 10.5,
+      measurement: {
+        amount: 255,
+        unit: 'g',
+      },
+    })
+  })
+
+  it('duplicates a logged food with a new entry id', () => {
+    const nutrition = {
+      ...createNutritionState(),
+      days: {
+        '2026-10-08': {
+          date: '2026-10-08',
+          foods: [{
+            id: 'food-1',
+            name: 'Protein bar',
+            source: 'catalog',
+            calories: 200,
+            protein: 20,
+            carbs: 22,
+            fat: 7,
+            fiber: 5,
+            servings: 1,
+            loggedAt: '2026-10-08T12:00:00.000Z',
+          }],
+          waterOz: 0,
+          weight: '',
+          workoutActivities: [],
+        },
+      },
+    }
+
+    const result = duplicateLoggedFoodEntry(
+      nutrition,
+      '2026-10-08',
+      'food-1',
+    )
+
+    expect(result.entry.id).not.toBe('food-1')
+    expect(result.entry).toMatchObject({
+      name: 'Protein bar',
+      calories: 200,
+      protein: 20,
+    })
+    expect(result.nutrition.days['2026-10-08'].foods).toHaveLength(2)
   })
 })

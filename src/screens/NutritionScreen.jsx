@@ -47,6 +47,8 @@ import {
   logRecipeToNutrition,
   nutritionRound as round,
   repeatLoggedFoodEntry,
+  updateLoggedFoodAmount,
+  duplicateLoggedFoodEntry,
 } from '../lib/nutritionActions'
 import { COMMON_FOODS } from '../data/commonFoods'
 import { appUi } from '../lib/appUi'
@@ -173,6 +175,8 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
   const [logCaptureMode, setLogCaptureMode] = useState(null)
   const [logBrowseMode, setLogBrowseMode] = useState('Recent')
   const [selectedFood, setSelectedFood] = useState(null)
+  const [editingLoggedFood, setEditingLoggedFood] = useState(null)
+  const [editingLoggedAmount, setEditingLoggedAmount] = useState('')
   const [selectedMultiplier, setSelectedMultiplier] = useState(1)
   const [selectedMeasureUnit, setSelectedMeasureUnit] = useState(FOOD_MEASURE_UNIT.SERVING)
   const [selectedMeasureAmount, setSelectedMeasureAmount] = useState('1')
@@ -238,6 +242,7 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
 
   useAppModalLayer(Boolean(
     selectedFood ||
+    editingLoggedFood ||
     recipeLogTarget ||
     reusableMealLogTarget ||
     scanPreview ||
@@ -1129,6 +1134,69 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
     }
   }
 
+  const openLoggedFoodEditor = (food) => {
+    const amount = Number(
+      food.measurement?.amount ??
+        food.quantity ??
+        food.servings ??
+        1,
+    )
+    setEditingLoggedFood(food)
+    setEditingLoggedAmount(
+      Number.isFinite(amount) && amount > 0 ? String(round(amount)) : '1',
+    )
+  }
+
+  const saveLoggedFoodAmount = () => {
+    if (!editingLoggedFood) return
+
+    try {
+      const result = updateLoggedFoodAmount(
+        nutrition,
+        date,
+        editingLoggedFood.id,
+        editingLoggedAmount,
+      )
+      onChange(result.nutrition)
+      setNotice(
+        `${editingLoggedFood.name} updated to ${
+          result.entry.measurement
+            ? foodMeasureDisplay(result.entry.measurement)
+            : `${round(Number(editingLoggedAmount))} servings`
+        }.`,
+      )
+      setEditingLoggedFood(null)
+      setEditingLoggedAmount('')
+      scheduleNutritionModalCleanup()
+    } catch (error) {
+      setNotice(error?.message ?? 'Could not update that amount.')
+    }
+  }
+
+  const duplicateLoggedFood = (food) => {
+    try {
+      const result = duplicateLoggedFoodEntry(nutrition, date, food.id)
+      onChange(result.nutrition)
+      setNotice(`${food.name} duplicated.`)
+      setEditingLoggedFood(null)
+      setEditingLoggedAmount('')
+      scheduleNutritionModalCleanup()
+    } catch (error) {
+      setNotice(error?.message ?? 'Could not duplicate that food.')
+    }
+  }
+
+  const removeLoggedFood = (food) => {
+    patchDay((current) => ({
+      ...current,
+      foods: (current.foods ?? []).filter((item) => item.id !== food.id),
+    }))
+    setEditingLoggedFood(null)
+    setEditingLoggedAmount('')
+    setNotice(`${food.name} removed.`)
+    scheduleNutritionModalCleanup()
+  }
+
   const addFood = (food, source = 'manual') => {
     if (!food.name.trim()) return setNotice('Add a food name first.')
     patch((current) =>
@@ -1873,8 +1941,137 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
 
         <section className="nutrition-food-log">
           <header><div><span className="eyebrow">FOOD LOG</span><h2>{resolvedDayFoods.length ? `${resolvedDayFoods.length} items` : 'Nothing logged yet'}</h2></div><button onClick={() => setTab('Meals')}><Plus/>Add</button></header>
-          {resolvedDayFoods.length ? resolvedDayFoods.map((food) => <article key={food.id}><div><strong>{food.name}</strong><span>{food.source === 'fatsecret' && (food.name === 'Loading food…' || food.name === 'Food unavailable') ? (food.name === 'Loading food…' ? 'Refreshing nutrition…' : 'Nutrition unavailable') : `${food.measurement ? `${foodMeasureDisplay(food.measurement)} · ` : ''}${food.calories} cal · P ${food.protein} · C ${food.carbs} · F ${food.fat}`}</span></div><button onClick={() => patchDay((current) => ({ ...current, foods: current.foods.filter((item) => item.id !== food.id) }))}><Trash2 size={16}/></button></article>) : <div className="nutrition-empty"><Utensils/><p>Log your first meal to start today’s dashboard.</p></div>}
+          {resolvedDayFoods.length ? (
+            <div className="nutrition-today-food-list">
+              {resolvedDayFoods.map((food) => (
+                <button
+                  type="button"
+                  key={food.id}
+                  className="nutrition-today-food-row"
+                  onClick={() => openLoggedFoodEditor(food)}
+                >
+                  <span className="nutrition-today-food-copy">
+                    <strong>{food.name}</strong>
+                    <small>
+                      {food.source === 'fatsecret' && (food.name === 'Loading food…' || food.name === 'Food unavailable')
+                        ? (food.name === 'Loading food…' ? 'Refreshing nutrition…' : 'Nutrition unavailable')
+                        : `${food.measurement ? `${foodMeasureDisplay(food.measurement)} · ` : ''}${Math.round(Number(food.calories || 0))} cal`}
+                    </small>
+                  </span>
+                  <span className="nutrition-today-food-macros">
+                    <small>P {round(food.protein)} · C {round(food.carbs)} · F {round(food.fat)}</small>
+                    <ChevronRight size={17}/>
+                  </span>
+                </button>
+              ))}
+            </div>
+          ) : <div className="nutrition-empty"><Utensils/><p>Log your first meal to start today’s dashboard.</p></div>}
         </section>
+
+        {editingLoggedFood && typeof document !== 'undefined' && createPortal(
+          <div
+            className="nutrition-food-sheet-backdrop"
+            data-app-ui-backdrop="open"
+            onClick={() => {
+              setEditingLoggedFood(null)
+              setEditingLoggedAmount('')
+            }}
+          >
+            <section
+              className="nutrition-food-sheet nutrition-log-entry-sheet"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <header>
+                <div>
+                  <span className="eyebrow">LOGGED FOOD</span>
+                  <h2>{editingLoggedFood.name}</h2>
+                  <p>Correct the amount without searching for the food again.</p>
+                </div>
+                <button onClick={() => {
+                  setEditingLoggedFood(null)
+                  setEditingLoggedAmount('')
+                }}><X size={18}/></button>
+              </header>
+
+              {(() => {
+                const originalAmount = Number(
+                  editingLoggedFood.measurement?.amount ??
+                    editingLoggedFood.quantity ??
+                    editingLoggedFood.servings ??
+                    1,
+                )
+                const nextAmount = Number(editingLoggedAmount)
+                const safeOriginal = Number.isFinite(originalAmount) && originalAmount > 0 ? originalAmount : 1
+                const multiplier = Number.isFinite(nextAmount) && nextAmount > 0 ? nextAmount / safeOriginal : 0
+                const unitLabel = editingLoggedFood.measurement
+                  ? (
+                      editingLoggedFood.measurement.unit === FOOD_MEASURE_UNIT.ITEM
+                        ? editingLoggedFood.measurement.itemLabel || 'items'
+                        : editingLoggedFood.measurement.unit
+                    )
+                  : 'servings'
+
+                return <>
+                  <div className="nutrition-sheet-macros">
+                    <article><span>Calories</span><strong>{Math.round(Number(editingLoggedFood.calories || 0) * multiplier)}</strong></article>
+                    <article><span>Protein</span><strong>{round(Number(editingLoggedFood.protein || 0) * multiplier)}g</strong></article>
+                    <article><span>Carbs</span><strong>{round(Number(editingLoggedFood.carbs || 0) * multiplier)}g</strong></article>
+                    <article><span>Fat</span><strong>{round(Number(editingLoggedFood.fat || 0) * multiplier)}g</strong></article>
+                  </div>
+
+                  <label className="nutrition-log-entry-amount">
+                    <span>Amount eaten</span>
+                    <div className="nutrition-measure-input">
+                      <input
+                        type="number"
+                        min="0.01"
+                        step={editingLoggedFood.measurement?.unit === FOOD_MEASURE_UNIT.ITEM ? '1' : '0.1'}
+                        value={editingLoggedAmount}
+                        onChange={(event) => setEditingLoggedAmount(event.target.value)}
+                        inputMode="decimal"
+                      />
+                      <strong>{unitLabel}</strong>
+                    </div>
+                    <small>
+                      Originally logged as {
+                        editingLoggedFood.measurement
+                          ? foodMeasureDisplay(editingLoggedFood.measurement)
+                          : `${round(safeOriginal)} servings`
+                      }.
+                    </small>
+                  </label>
+
+                  <div className="nutrition-log-entry-primary">
+                    <button
+                      className="gold-button machined"
+                      onClick={saveLoggedFoodAmount}
+                      disabled={!Number.isFinite(nextAmount) || nextAmount <= 0}
+                    >
+                      <Save size={16}/>
+                      Save amount
+                    </button>
+                  </div>
+
+                  <div className="nutrition-log-entry-actions">
+                    <button type="button" onClick={() => duplicateLoggedFood(editingLoggedFood)}>
+                      <Copy size={16}/>
+                      Duplicate
+                    </button>
+                    <button
+                      type="button"
+                      className="danger"
+                      onClick={() => removeLoggedFood(editingLoggedFood)}
+                    >
+                      <Trash2 size={16}/>
+                      Remove
+                    </button>
+                  </div>
+                </>
+              })()}
+            </section>
+          </div>,
+          document.body,
+        )}
           </>
         )}
       </>}
