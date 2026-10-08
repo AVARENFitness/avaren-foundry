@@ -75,6 +75,7 @@ import {
 import {
   FOOD_MEASURE_UNIT,
   foodMeasureDisplay,
+  weightAmountForUnitSwitch,
   foodMeasureMultiplier,
   parseFoodCountFromContext,
   resolveFoodMeasureBasisForUnit,
@@ -2451,29 +2452,11 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
                     }}>{scanCountBasis.label}</button> : null}
                     {scanServingBasis ? <button type="button" className={scanMeasureUnit === FOOD_MEASURE_UNIT.GRAM ? 'active' : ''} onClick={() => {
                       setScanMeasureUnit(FOOD_MEASURE_UNIT.GRAM)
-                      setScanMeasureAmount(
-                        String(
-                          Math.round(
-                            Number(scanServingBasis.amount) *
-                              (scanServingBasis.unit === FOOD_MEASURE_UNIT.GRAM
-                                ? 1
-                                : 28.3495),
-                          ),
-                        ),
-                      )
+                      setScanMeasureAmount(weightAmountForUnitSwitch(scanMeasureAmount, scanMeasureUnit, FOOD_MEASURE_UNIT.GRAM, String(FOOD_MEASURE_UNIT.GRAM === FOOD_MEASURE_UNIT.GRAM ? Math.round(Number(scanServingBasis.amount) * (scanServingBasis.unit === FOOD_MEASURE_UNIT.GRAM ? 1 : 28.3495)) : round(Number(scanServingBasis.amount) * (scanServingBasis.unit === FOOD_MEASURE_UNIT.OUNCE ? 1 : 1 / 28.3495)))))
                     }}>g</button> : null}
                     {scanServingBasis ? <button type="button" className={scanMeasureUnit === FOOD_MEASURE_UNIT.OUNCE ? 'active' : ''} onClick={() => {
                       setScanMeasureUnit(FOOD_MEASURE_UNIT.OUNCE)
-                      setScanMeasureAmount(
-                        String(
-                          round(
-                            Number(scanServingBasis.amount) *
-                              (scanServingBasis.unit === FOOD_MEASURE_UNIT.OUNCE
-                                ? 1
-                                : 1 / 28.3495),
-                          ),
-                        ),
-                      )
+                      setScanMeasureAmount(weightAmountForUnitSwitch(scanMeasureAmount, scanMeasureUnit, FOOD_MEASURE_UNIT.OUNCE, String(FOOD_MEASURE_UNIT.OUNCE === FOOD_MEASURE_UNIT.GRAM ? Math.round(Number(scanServingBasis.amount) * (scanServingBasis.unit === FOOD_MEASURE_UNIT.GRAM ? 1 : 28.3495)) : round(Number(scanServingBasis.amount) * (scanServingBasis.unit === FOOD_MEASURE_UNIT.OUNCE ? 1 : 1 / 28.3495)))))
                     }}>oz</button> : null}
                   </div> : null}
 
@@ -2665,12 +2648,12 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
                     {supportsWeight ? <>
                       <button type="button" className={fatSecretMeasureUnit === FOOD_MEASURE_UNIT.GRAM ? 'active' : ''} onClick={() => {
                         setFatSecretMeasureUnit(FOOD_MEASURE_UNIT.GRAM)
-                        setFatSecretMeasureAmount(String(Math.round(Number(servingBasis.amount) * (servingBasis.unit === FOOD_MEASURE_UNIT.GRAM ? 1 : 28.3495))))
-                      }}>g</button>
+                        setFatSecretMeasureAmount(weightAmountForUnitSwitch(fatSecretMeasureAmount, fatSecretMeasureUnit, FOOD_MEASURE_UNIT.GRAM, String(FOOD_MEASURE_UNIT.GRAM === FOOD_MEASURE_UNIT.GRAM ? Math.round(Number(servingBasis.amount) * (servingBasis.unit === FOOD_MEASURE_UNIT.GRAM ? 1 : 28.3495)) : round(Number(servingBasis.amount) * (servingBasis.unit === FOOD_MEASURE_UNIT.OUNCE ? 1 : 1 / 28.3495)))))
+                    }}>g</button>
                       <button type="button" className={fatSecretMeasureUnit === FOOD_MEASURE_UNIT.OUNCE ? 'active' : ''} onClick={() => {
                         setFatSecretMeasureUnit(FOOD_MEASURE_UNIT.OUNCE)
-                        setFatSecretMeasureAmount(String(round(Number(servingBasis.amount) * (servingBasis.unit === FOOD_MEASURE_UNIT.OUNCE ? 1 : 1 / 28.3495))))
-                      }}>oz</button>
+                        setFatSecretMeasureAmount(weightAmountForUnitSwitch(fatSecretMeasureAmount, fatSecretMeasureUnit, FOOD_MEASURE_UNIT.OUNCE, String(FOOD_MEASURE_UNIT.OUNCE === FOOD_MEASURE_UNIT.GRAM ? Math.round(Number(servingBasis.amount) * (servingBasis.unit === FOOD_MEASURE_UNIT.GRAM ? 1 : 28.3495)) : round(Number(servingBasis.amount) * (servingBasis.unit === FOOD_MEASURE_UNIT.OUNCE ? 1 : 1 / 28.3495)))))
+                    }}>oz</button>
                     </> : null}
                   </div>
                   <label>
@@ -2806,11 +2789,11 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
                     }}>{countBasis.label}</button> : null}
                     {supportsWeight ? <button type="button" className={selectedMeasureUnit === FOOD_MEASURE_UNIT.GRAM ? 'active' : ''} onClick={() => {
                       setSelectedMeasureUnit(FOOD_MEASURE_UNIT.GRAM)
-                      setSelectedMeasureAmount(String(Math.round(Number(servingBasis.amount) * (servingBasis.unit === FOOD_MEASURE_UNIT.GRAM ? 1 : 28.3495))))
+                      setSelectedMeasureAmount(weightAmountForUnitSwitch(selectedMeasureAmount, selectedMeasureUnit, FOOD_MEASURE_UNIT.GRAM, String(FOOD_MEASURE_UNIT.GRAM === FOOD_MEASURE_UNIT.GRAM ? Math.round(Number(servingBasis.amount) * (servingBasis.unit === FOOD_MEASURE_UNIT.GRAM ? 1 : 28.3495)) : round(Number(servingBasis.amount) * (servingBasis.unit === FOOD_MEASURE_UNIT.OUNCE ? 1 : 1 / 28.3495)))))
                     }}>g</button> : null}
                     {supportsWeight ? <button type="button" className={selectedMeasureUnit === FOOD_MEASURE_UNIT.OUNCE ? 'active' : ''} onClick={() => {
                       setSelectedMeasureUnit(FOOD_MEASURE_UNIT.OUNCE)
-                      setSelectedMeasureAmount(String(round(Number(servingBasis.amount) * (servingBasis.unit === FOOD_MEASURE_UNIT.OUNCE ? 1 : 1 / 28.3495))))
+                      setSelectedMeasureAmount(weightAmountForUnitSwitch(selectedMeasureAmount, selectedMeasureUnit, FOOD_MEASURE_UNIT.OUNCE, String(FOOD_MEASURE_UNIT.OUNCE === FOOD_MEASURE_UNIT.GRAM ? Math.round(Number(servingBasis.amount) * (servingBasis.unit === FOOD_MEASURE_UNIT.GRAM ? 1 : 28.3495)) : round(Number(servingBasis.amount) * (servingBasis.unit === FOOD_MEASURE_UNIT.OUNCE ? 1 : 1 / 28.3495)))))
                     }}>oz</button> : null}
                   </div>
                   {selectedMeasureUnit !== FOOD_MEASURE_UNIT.SERVING ? <label>
