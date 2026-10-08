@@ -508,6 +508,18 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
     return (preferred.length ? preferred : fallback).slice(0, 6)
   }, [favoriteIds, foodMatches, logBrowseMode, recentIds])
 
+  const quickSavedMeals = useMemo(
+    () =>
+      [...(nutrition?.recipes ?? [])]
+        .sort(
+          (a, b) =>
+            new Date(b.updatedAt || b.createdAt || 0).getTime() -
+            new Date(a.updatedAt || a.createdAt || 0).getTime(),
+        )
+        .slice(0, 3),
+    [nutrition?.recipes],
+  )
+
   const recentLoggedFoods = useMemo(() => {
     const rows = Object.values(nutrition?.days ?? {})
       .flatMap((entry) =>
@@ -1928,6 +1940,64 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
                 </button>
               </div>
             </div>
+          ) : null}
+
+          {!activeFoodSearch && quickSavedMeals.length ? (
+            <section className="nutrition-log-saved-meals">
+              <header>
+                <div>
+                  <span className="eyebrow">SAVED MEALS</span>
+                  <strong>Your shortcuts</strong>
+                </div>
+                <button type="button" onClick={() => setTab('Library')}>
+                  Manage
+                </button>
+              </header>
+              <div>
+                {quickSavedMeals.map((recipe) => {
+                  const servings = Math.max(1, Number(recipe.servings || 1))
+                  const totals = recipe.totals ?? {
+                    calories: recipe.calories,
+                    protein: recipe.protein,
+                    carbs: recipe.carbs,
+                    fat: recipe.fat,
+                  }
+                  const perServingCalories = recipe.reusableMeal
+                    ? Number(totals.calories || 0)
+                    : Number(totals.calories || 0) / servings
+                  const perServingProtein = recipe.reusableMeal
+                    ? Number(totals.protein || 0)
+                    : Number(totals.protein || 0) / servings
+
+                  return (
+                    <article key={`quick-meal-${recipe.id}`}>
+                      <button
+                        type="button"
+                        className="nutrition-log-saved-main"
+                        onClick={() =>
+                          recipe.reusableMeal
+                            ? openReusableMealAdjuster(recipe)
+                            : setRecipeLogTarget(recipe)
+                        }
+                      >
+                        <strong>{recipe.name}</strong>
+                        <small>
+                          {Math.round(perServingCalories)} cal · P {round(perServingProtein)}g
+                        </small>
+                      </button>
+                      <button
+                        type="button"
+                        className="nutrition-log-saved-add"
+                        onClick={() => logRecipe(recipe, 1)}
+                      >
+                        <Plus size={15}/>
+                        Log
+                      </button>
+                    </article>
+                  )
+                })}
+              </div>
+            </section>
           ) : null}
 
           <div className="nutrition-log-quick-heading">
