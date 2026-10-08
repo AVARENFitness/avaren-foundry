@@ -41,6 +41,22 @@ describe('NutritionScreen logging UX regressions', () => {
     expect(source).toContain('Foods you come back to')
   })
 
+  it('lets Today and prior-day food rows open a focused editor', () => {
+    expect(source).toContain('openLoggedFoodEditor')
+    expect(source).toContain('LOGGED FOOD')
+    expect(source).toContain('Correct the amount without searching for the food again.')
+    expect(source).toContain('Save amount')
+    expect(source).toContain('Duplicate')
+    expect(source).toContain('Remove')
+    expect(source).toContain('updateLoggedFoodAmount')
+    expect(source).toContain('duplicateLoggedFoodEntry')
+  })
+
+  it('keeps the food log itself calm instead of showing destructive controls on every row', () => {
+    expect(source).toContain('nutrition-today-food-row')
+    expect(source).not.toContain("current.foods.filter((item) => item.id !== food.id)")
+  })
+
   it('uses actual logged portions for one-tap recent food repeats', () => {
     expect(source).toContain('const recentLoggedFoods = useMemo')
     expect(source).toContain('repeatLoggedFoodEntry')
