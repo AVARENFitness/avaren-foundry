@@ -113,6 +113,109 @@ For labels, servingDescription must reflect the serving shown.
 For meals or packaged products without a readable measurement basis, set servingAmount to 0 and servingUnit to "unknown".
 Return JSON only.`
 
+
+const macroTotal = (value: any) =>
+  Number(value?.calories || 0) +
+  Number(value?.protein || 0) +
+  Number(value?.carbs || 0) +
+  Number(value?.fat || 0) +
+  Number(value?.fiber || 0)
+
+const sumMealComponents = (components: any[] = []) =>
+  components.reduce(
+    (totals, component) => ({
+      calories: totals.calories + Number(component?.calories || 0),
+      protein: totals.protein + Number(component?.protein || 0),
+      carbs: totals.carbs + Number(component?.carbs || 0),
+      fat: totals.fat + Number(component?.fat || 0),
+      fiber: totals.fiber + Number(component?.fiber || 0),
+    }),
+    { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 },
+  )
+
+const normalizeMealTotals = (result: any) => {
+  if (!result || result.kind !== 'meal') return result
+
+  const componentTotals = sumMealComponents(result.components)
+  const topLevelHasNutrition = macroTotal(result) > 0
+  const componentsHaveNutrition = macroTotal(componentTotals) > 0
+
+  if (!topLevelHasNutrition && componentsHaveNutrition) {
+    return {
+      ...result,
+      calories: Math.round(componentTotals.calories * 10) / 10,
+      protein: Math.round(componentTotals.protein * 10) / 10,
+      carbs: Math.round(componentTotals.carbs * 10) / 10,
+      fat: Math.round(componentTotals.fat * 10) / 10,
+      fiber: Math.round(componentTotals.fiber * 10) / 10,
+    }
+  }
+
+  return result
+}
+
+const hasUsableMealNutrition = (result: any) =>
+  result?.kind !== 'meal' || macroTotal(result) > 0
+
+const requestNutritionAnalysis = async ({
+  apiKey,
+  model,
+  imageDataUrl,
+  userText,
+}: {
+  apiKey: string
+  model: string
+  imageDataUrl: string
+  userText: string
+}) => {
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model,
+      temperature: 0.2,
+      max_tokens: 900,
+      response_format: { type: 'json_schema', json_schema: schema },
+      messages: [
+        { role: 'system', content: SYSTEM_PROMPT },
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: userText },
+            {
+              type: 'image_url',
+              image_url: { url: imageDataUrl, detail: 'high' },
+            },
+          ],
+        },
+      ],
+    }),
+  })
+
+  if (!response.ok) {
+    const errorText = (await response.text()).slice(0, 500)
+    console.error(
+      'nutrition-image-analyze model error',
+      response.status,
+      errorText,
+    )
+    throw new Error('model-error')
+  }
+
+  const payload = await response.json()
+  const content = payload?.choices?.[0]?.message?.content
+  if (!content) throw new Error('empty-model-response')
+
+  try {
+    return JSON.parse(content)
+  } catch {
+    throw new Error('invalid-model-response')
+  }
+}
+
 export default {
   async fetch(req: Request) {
     if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
@@ -153,48 +256,53 @@ export default {
           ? `Analyze this food photo. User context: ${context}`
           : 'Analyze this food photo. No extra context was provided, so do not ask a follow-up question.'
 
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model,
-          temperature: 0.2,
-          max_tokens: 900,
-          response_format: { type: 'json_schema', json_schema: schema },
-          messages: [
-            { role: 'system', content: SYSTEM_PROMPT },
-            {
-              role: 'user',
-              content: [
-                { type: 'text', text: userText },
-                {
-                  type: 'image_url',
-                  image_url: { url: imageDataUrl, detail: 'high' },
-                },
-              ],
-            },
-          ],
-        }),
-      })
-
-      if (!response.ok) {
-        const errorText = (await response.text()).slice(0, 500)
-        console.error('nutrition-image-analyze model error', response.status, errorText)
-        return json({ ok: false, reason: 'model-error' }, 503)
-      }
-
-      const payload = await response.json()
-      const content = payload?.choices?.[0]?.message?.content
-      if (!content) return json({ ok: false, reason: 'empty-model-response' }, 503)
-
       let result
       try {
-        result = JSON.parse(content)
-      } catch {
-        return json({ ok: false, reason: 'invalid-model-response' }, 503)
+        result = await requestNutritionAnalysis({
+          apiKey,
+          model,
+          imageDataUrl,
+          userText,
+        })
+      } catch (modelError) {
+        const reason =
+          modelError instanceof Error ? modelError.message : 'model-error'
+        return json({ ok: false, reason }, 503)
+      }
+
+      result = normalizeMealTotals(result)
+
+      if (
+        mode === 'food' &&
+        context &&
+        result?.kind === 'meal' &&
+        !hasUsableMealNutrition(result)
+      ) {
+        const retryText = `Recalculate this meal from the user's exact stated amounts. The previous analysis identified the meal but returned zero nutrition. Use standard nutrition values for each stated ingredient and amount, preserve separate components, and return realistic non-zero calories/macros unless the food truly contains none. User context: ${context}`
+
+        try {
+          result = normalizeMealTotals(
+            await requestNutritionAnalysis({
+              apiKey,
+              model,
+              imageDataUrl,
+              userText: retryText,
+            }),
+          )
+        } catch (retryError) {
+          console.error('nutrition-image-analyze retry failed', retryError)
+        }
+      }
+
+      if (
+        mode === 'food' &&
+        result?.kind === 'meal' &&
+        !hasUsableMealNutrition(result)
+      ) {
+        return json(
+          { ok: false, reason: 'meal-nutrition-unresolved' },
+          422,
+        )
       }
 
       return json({ ok: true, result })
