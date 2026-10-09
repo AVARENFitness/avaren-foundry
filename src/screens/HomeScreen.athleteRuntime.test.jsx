@@ -148,8 +148,8 @@ describe('HomeScreen athlete runtime', () => {
       capability: capabilityAvailable,
       status: {
         status: 'overdue',
-        weekKey: FROZEN_COACH_WEEK.weekStart,
-        weekRange: FROZEN_COACH_WEEK,
+        weekKey: '2026-08-03',
+        weekRange: { weekStart: '2026-08-03', weekEnd: '2026-08-09' },
         submitted: false,
       },
       loading: false,
@@ -184,8 +184,8 @@ describe('HomeScreen athlete runtime', () => {
       capability: capabilityAvailable,
       status: {
         status: 'overdue',
-        weekKey: FROZEN_COACH_WEEK.weekStart,
-        weekRange: FROZEN_COACH_WEEK,
+        weekKey: '2026-08-03',
+        weekRange: { weekStart: '2026-08-03', weekEnd: '2026-08-09' },
         submitted: false,
       },
       loading: false,
@@ -247,8 +247,8 @@ describe('HomeScreen athlete runtime', () => {
       capability: capabilityAvailable,
       status: {
         status: 'submitted',
-        weekKey: FROZEN_COACH_WEEK.weekStart,
-        weekRange: FROZEN_COACH_WEEK,
+        weekKey: '2026-08-03',
+        weekRange: { weekStart: '2026-08-03', weekEnd: '2026-08-09' },
         submitted: true,
       },
       loading: false,
