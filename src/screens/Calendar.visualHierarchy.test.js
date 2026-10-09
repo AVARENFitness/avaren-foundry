@@ -11,7 +11,7 @@ describe('calendar visual information hierarchy', () => {
     resolve(process.cwd(), 'src/screens/AthleteInPersonScheduleScreen.jsx'),
     'utf8',
   )
-  const styles = readFileSync(resolve(process.cwd(), 'src/styles.css'), 'utf8')
+  const styles = ['src/styles.css', 'src/styles/screens/later-overrides.css']\n    .map((path) => readFileSync(resolve(process.cwd(), path), 'utf8'))\n    .join('\n')
 
   it('gives the coach useful calendar context before the grid', () => {
     expect(coach).toContain('coach-calendar-intelligence')
