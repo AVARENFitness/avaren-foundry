@@ -8,12 +8,12 @@ describe('Coach Today AVA brief integration', () => {
     'utf8',
   )
 
-  it('puts one AVA intelligence surface before the schedule', () => {
+  it('keeps the schedule immediately accessible with one AVA intelligence surface beneath it', () => {
     const briefIndex = source.indexOf('<CoachAvaDailyBrief')
     const scheduleIndex = source.indexOf('<CoachTodaySchedule')
 
     expect(briefIndex).toBeGreaterThan(-1)
-    expect(scheduleIndex).toBeGreaterThan(briefIndex)
+    expect(briefIndex).toBeGreaterThan(scheduleIndex)
   })
 
   it('does not duplicate the old Needs Attention panel on Today', () => {
