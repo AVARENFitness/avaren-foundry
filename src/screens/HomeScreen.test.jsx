@@ -358,7 +358,7 @@ describe('HomeScreen post-workout day state', () => {
       screen.queryByRole('button', { name: 'Start Session' }),
     ).not.toBeInTheDocument()
     expect(screen.getAllByText('Log food').length).toBeGreaterThan(0)
-    expect(screen.getByText(/cal logged/i)).toBeInTheDocument()
+    expect(screen.getByText(/0\s*\/\s*2200 cal/i)).toBeInTheDocument()
   })
 
   it('promotes food logging and stretch after recovery is completed today', () => {
