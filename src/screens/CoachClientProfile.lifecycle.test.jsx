@@ -7,6 +7,18 @@ import { weeklyCheckInBackend } from '../lib/weeklyCheckInBackend'
 import { appUi } from '../lib/appUi'
 import { coachFloorBackend } from '../lib/coachFloorSession'
 
+
+vi.mock('../lib/athleteGoals', async () => {
+  const actual = await vi.importActual('../lib/athleteGoals')
+  return {
+    ...actual,
+    athleteGoalBackend: {
+      ...actual.athleteGoalBackend,
+      getAthleteGoal: vi.fn().mockResolvedValue(null),
+    },
+  }
+})
+
 vi.mock('../lib/coachBackend', () => ({
   coachBackend: {
     getSessionPackage: vi.fn(),
@@ -108,6 +120,7 @@ describe('CoachClientProfile offline lifecycle', () => {
       />,
     )
 
+    await user.click(screen.getByRole('button', { name: /^more$/i }))
     await user.click(screen.getByRole('button', { name: /^progress$/i }))
 
     await waitFor(() => {
@@ -151,6 +164,7 @@ describe('CoachClientProfile offline lifecycle', () => {
       />,
     )
 
+    await user.click(screen.getByRole('button', { name: /^more$/i }))
     await user.click(screen.getByRole('button', { name: /^manage$/i }))
 
     await waitFor(() => {
@@ -179,6 +193,7 @@ describe('CoachClientProfile offline lifecycle', () => {
     })
 
     expect(screen.getByText(/connected since/i)).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: /^more$/i }))
     await user.click(screen.getByRole('button', { name: /^manage$/i }))
     expect(screen.getByTestId('coach-unlink-account-button')).toBeInTheDocument()
   })
@@ -204,6 +219,7 @@ describe('CoachClientProfile offline lifecycle', () => {
       />,
     )
 
+    await user.click(screen.getByRole('button', { name: /^more$/i }))
     await user.click(screen.getByRole('button', { name: /^manage$/i }))
 
     await waitFor(() => {
@@ -244,6 +260,7 @@ describe('CoachClientProfile offline lifecycle', () => {
       />,
     )
 
+    await user.click(screen.getByRole('button', { name: /^more$/i }))
     await user.click(screen.getByRole('button', { name: /^manage$/i }))
 
     await waitFor(() => {
@@ -286,6 +303,7 @@ describe('CoachClientProfile offline lifecycle', () => {
       />,
     )
 
+    await user.click(screen.getByRole('button', { name: /^more$/i }))
     await user.click(screen.getByRole('button', { name: /^manage$/i }))
 
     await waitFor(() => {
@@ -325,6 +343,7 @@ describe('CoachClientProfile offline lifecycle', () => {
       />,
     )
 
+    await user.click(screen.getByRole('button', { name: /^more$/i }))
     await user.click(screen.getByRole('button', { name: /^manage$/i }))
 
     await waitFor(() => {
