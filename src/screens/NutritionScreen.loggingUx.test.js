@@ -105,7 +105,7 @@ describe('NutritionScreen logging UX regressions', () => {
 
   it('lets the quantity field be temporarily blank while the user types', () => {
     expect(source).toContain(
-      'onChange={(event) => setFatSecretQuantity(event.target.value)}',
+      'setFatSecretMeasureAmount(event.target.value)',
     )
     expect(source).not.toContain(
       'setFatSecretQuantity(Math.max(0.25',
@@ -117,7 +117,7 @@ describe('NutritionScreen logging UX regressions', () => {
     expect(source).toContain('FOOD_MEASURE_UNIT.OUNCE')
     expect(source).toContain('foodMeasureMultiplier')
     expect(source).toContain('Macros scale to the exact amount you enter.')
-    expect(source).toContain('Enter what your scale actually showed.')
+    expect(source).toContain('Weight eaten')
   })
 
   it('pauses food photos before macro analysis so athletes can add meal details', () => {
@@ -208,7 +208,7 @@ describe('NutritionScreen logging UX regressions', () => {
 
   it('keeps one-time meal edits separate from saved-default updates', () => {
     expect(source).toContain('updateSavedReusableMeal')
-    expect(source).toContain('added with today’s adjustments')
+    expect(source).toContain('added to ${logDestinationLabel} with your adjustments.')
     expect(source).toContain('updated as your new default meal')
   })
 
