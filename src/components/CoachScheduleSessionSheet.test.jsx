@@ -124,15 +124,15 @@ describe('CoachScheduleSessionSheet', () => {
     )
 
     fireEvent.change(screen.getByLabelText('Personal training date'), {
-      target: { value: '2026-09-20' },
+      target: { value: '2026-11-20' },
     })
 
     expect(onDraftChange).toHaveBeenCalledWith({
       ...baseDraft,
-      sessionDate: '2026-09-20',
+      sessionDate: '2026-11-20',
     })
 
-    const nextDraft = { ...baseDraft, sessionDate: '2026-09-20' }
+    const nextDraft = { ...baseDraft, sessionDate: '2026-11-20' }
     rerender(
       <CoachScheduleSessionSheet
         open
@@ -144,9 +144,9 @@ describe('CoachScheduleSessionSheet', () => {
       />,
     )
 
-    expect(screen.getByLabelText('Personal training date')).toHaveValue('2026-09-20')
+    expect(screen.getByLabelText('Personal training date')).toHaveValue('2026-11-20')
     expect(
-      screen.getByText(formatScheduleDateLong('2026-09-20')),
+      screen.getByText(formatScheduleDateLong('2026-11-20')),
     ).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: /^save personal training$/i }))
