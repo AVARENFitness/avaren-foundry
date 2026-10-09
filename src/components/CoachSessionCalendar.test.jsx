@@ -480,7 +480,7 @@ describe('CoachSessionCalendar usability', () => {
 
     fireEvent.click(screen.getAllByRole('button', { name: new RegExp(`${weekday}[\\s\\S]*${dayNumber}`, 'i') })[0])
 
-    expect(screen.getByText('Cancelled')).toBeInTheDocument()
+    expect(await screen.findByText('Cancelled')).toBeInTheDocument()
     expect(screen.getByText('Offline Client')).toBeInTheDocument()
   })
 
