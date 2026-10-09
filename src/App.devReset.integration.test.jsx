@@ -223,6 +223,7 @@ vi.mock('./lib/identityCapabilities', () => ({
 vi.mock('./lib/coachBackend', () => ({
   coachBackend: {
     listAthleteAssignments: vi.fn(async () => []),
+    listAthleteCoachRelationships: vi.fn(async () => []),
     listAthleteSchedule: vi.fn(async () => []),
     listAthleteScheduledSessions: vi.fn(async () => []),
     listClients: vi.fn(async () => []),
