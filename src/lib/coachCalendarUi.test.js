@@ -20,8 +20,8 @@ const session = (overrides = {}) => ({
 })
 
 describe('coachCalendarUi', () => {
-  it('defaults to today view constant', () => {
-    expect(COACH_CALENDAR_VIEW.TODAY).toBe('today')
+  it('defines month, week and day calendar modes', () => {
+    expect(COACH_CALENDAR_VIEW).toEqual({ MONTH: 'month', WEEK: 'week', DAY: 'day' })
   })
 
   it('sorts day agenda chronologically', () => {
