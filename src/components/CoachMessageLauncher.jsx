@@ -17,7 +17,7 @@ export default function CoachMessageLauncher({
     let active = true
     let unsubscribe = () => {}
 
-    if (!otherUserId) {
+    if (!otherUserId || !supabase?.auth) {
       setUnreadCount(0)
       return undefined
     }
