@@ -61,7 +61,8 @@ describe('Progress workout history detail opening', () => {
       />,
     )
 
-    // Expand exercise profile disclosure if needed — details may be closed
+    fireEvent.change(screen.getByLabelText('Exercise'), { target: { value: 'Bench Press' } })
+    // Expand exercise profile disclosure after selecting a lift.
     const profileSummary = screen.getByText('Exercise profile')
     fireEvent.click(profileSummary)
 
@@ -112,6 +113,7 @@ describe('Progress workout history detail opening', () => {
       />,
     )
 
+    fireEvent.change(screen.getByLabelText('Exercise'), { target: { value: 'Squat' } })
     fireEvent.click(screen.getByText('Exercise profile'))
     fireEvent.click(screen.getByRole('button', { name: /2026-08-20/i }))
 
