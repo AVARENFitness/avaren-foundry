@@ -160,7 +160,7 @@ describe('AvaDailyBriefing', () => {
 
     expect(screen.getByText('POST-WORKOUT')).toBeInTheDocument()
     expect(
-      screen.getByRole('button', { name: /Cooldown \\+ Recovery/i }),
+      screen.getByRole('button', { name: /Cooldown \+ Recovery/i }),
     ).toBeInTheDocument()
   })
 
