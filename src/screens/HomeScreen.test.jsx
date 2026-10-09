@@ -323,8 +323,8 @@ describe('HomeScreen post-workout day state', () => {
       screen.getByRole('button', { name: 'Choose another workout' }),
     ).toBeInTheDocument()
     expect(
-      screen.queryByRole('button', { name: /Cooldown \+ Recovery|Start recovery flow/i }),
-    ).not.toBeInTheDocument()
+      screen.queryAllByRole('button', { name: /Cooldown \+ Recovery|Start recovery flow/i }),
+    ).toHaveLength(0)
   })
 
   it('promotes recovery and drops Choose another workout after completing today', () => {
@@ -349,8 +349,8 @@ describe('HomeScreen post-workout day state', () => {
     })
 
     expect(
-      screen.getByRole('button', { name: /Cooldown \+ Recovery|Start recovery flow/i }),
-    ).toBeInTheDocument()
+      screen.getAllByRole('button', { name: /Cooldown \+ Recovery|Start recovery flow/i }).length,
+    ).toBeGreaterThan(0)
     expect(
       screen.queryByRole('button', { name: 'Choose another workout' }),
     ).not.toBeInTheDocument()
@@ -432,7 +432,7 @@ describe('HomeScreen post-workout day state', () => {
       screen.getByRole('button', { name: 'Start Session' }),
     ).toBeInTheDocument()
     expect(
-      screen.queryByRole('button', { name: /Cooldown \+ Recovery|Start recovery flow/i }),
-    ).not.toBeInTheDocument()
+      screen.queryAllByRole('button', { name: /Cooldown \+ Recovery|Start recovery flow/i }),
+    ).toHaveLength(0)
   })
 })
