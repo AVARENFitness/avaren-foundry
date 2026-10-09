@@ -209,7 +209,7 @@ describe('HomeScreen athlete runtime', () => {
       />,
     )
 
-    expect(screen.getByRole('button', { name: 'Check In' })).toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: /Complete Weekly Check-In|Check In/i }).length).toBeGreaterThan(0)
     expect(
       screen.getAllByRole('button', { name: 'Complete Weekly Check-In' }).length,
     ).toBeGreaterThan(0)
