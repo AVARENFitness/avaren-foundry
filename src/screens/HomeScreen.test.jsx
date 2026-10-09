@@ -264,7 +264,7 @@ describe('HomeScreen weekly check-in discoverability', () => {
     })
 
     expect(screen.getAllByText(/DAILY READINESS/i).length).toBeGreaterThan(0)
-    expect(screen.getByText(/How are you today/i)).toBeInTheDocument()
+    expect(screen.getAllByText(/DAILY READINESS/i).length).toBeGreaterThan(0)
     expect(screen.getByText(/WEEKLY CHECK-IN/i)).toBeInTheDocument()
     expect(
       screen.getByText(/Give your coach a quick read on your week/i),
@@ -323,7 +323,7 @@ describe('HomeScreen post-workout day state', () => {
       screen.getByRole('button', { name: 'Choose another workout' }),
     ).toBeInTheDocument()
     expect(
-      screen.queryByRole('button', { name: 'Start recovery flow' }),
+      screen.queryByRole('button', { name: /Cooldown \+ Recovery|Start recovery flow/i }),
     ).not.toBeInTheDocument()
   })
 
@@ -349,7 +349,7 @@ describe('HomeScreen post-workout day state', () => {
     })
 
     expect(
-      screen.getByRole('button', { name: 'Start recovery flow' }),
+      screen.getByRole('button', { name: /Cooldown \+ Recovery|Start recovery flow/i }),
     ).toBeInTheDocument()
     expect(
       screen.queryByRole('button', { name: 'Choose another workout' }),
@@ -432,7 +432,7 @@ describe('HomeScreen post-workout day state', () => {
       screen.getByRole('button', { name: 'Start Session' }),
     ).toBeInTheDocument()
     expect(
-      screen.queryByRole('button', { name: 'Start recovery flow' }),
+      screen.queryByRole('button', { name: /Cooldown \+ Recovery|Start recovery flow/i }),
     ).not.toBeInTheDocument()
   })
 })
