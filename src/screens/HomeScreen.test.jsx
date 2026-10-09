@@ -349,8 +349,8 @@ describe('HomeScreen post-workout day state', () => {
     })
 
     expect(
-      screen.getAllByRole('button', { name: /Cooldown \+ Recovery|Start recovery flow/i }).length,
-    ).toBeGreaterThan(0)
+      Array.from(document.querySelectorAll('.home-start-session')).some((button) => /Cooldown \+ Recovery|Start recovery flow/i.test(button.textContent)),
+    ).toBe(true)
     expect(
       screen.queryByRole('button', { name: 'Choose another workout' }),
     ).not.toBeInTheDocument()
