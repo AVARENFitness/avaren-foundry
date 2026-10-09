@@ -41,7 +41,8 @@ const EXPLICIT_OPEN_RECOVERY = [
 ]
 
 const EXPLICIT_OPEN_PROGRESS = [
-  /^(open|show|go to|take me to) (my )?progress\.?$/,
+  /^(open|show)( me)? (my )?progress\.?$/,
+  /^(go to|take me to) (my )?progress\.?$/,
   /^(show|open) (my )?(results|history|progress history)\.?$/,
 ]
 
