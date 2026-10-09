@@ -9,6 +9,12 @@ import {
   syncPushSubscription,
 } from './pushNotifications'
 
+// pushNotifications captures its VAPID configuration at module initialization.
+// Stub the test environment before static imports are evaluated.
+vi.hoisted(() => {
+  vi.stubEnv('VITE_VAPID_PUBLIC_KEY', 'BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSnfckjBJuBkr3qBUYIHBQFLXYp5Nksh8U')
+})
+
 const mockRpc = vi.fn()
 const mockFrom = vi.fn()
 const mockGetUser = vi.fn()
