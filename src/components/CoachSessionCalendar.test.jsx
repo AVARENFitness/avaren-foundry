@@ -407,6 +407,9 @@ describe('CoachSessionCalendar usability', () => {
       within(sheet).getByPlaceholderText(/Admin work, appointment, lunch/i),
       'Doctor appointment',
     )
+    fireEvent.change(within(sheet).getByLabelText('Date'), {
+      target: { value: '2026-09-10' },
+    })
     await user.click(
       within(sheet).getByRole('button', { name: /add to calendar/i }),
     )
