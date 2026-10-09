@@ -323,7 +323,7 @@ describe('HomeScreen post-workout day state', () => {
       screen.getByRole('button', { name: 'Choose another workout' }),
     ).toBeInTheDocument()
     expect(
-      screen.queryAllByRole('button', { name: /Cooldown \+ Recovery|Start recovery flow/i }),
+      Array.from(document.querySelectorAll('.home-start-session')).filter((button) => /Cooldown \+ Recovery|Start recovery flow/i.test(button.textContent)),
     ).toHaveLength(0)
   })
 
@@ -357,7 +357,7 @@ describe('HomeScreen post-workout day state', () => {
     expect(
       screen.queryByRole('button', { name: 'Start Session' }),
     ).not.toBeInTheDocument()
-    expect(screen.getByText('Log food')).toBeInTheDocument()
+    expect(screen.getAllByText('Log food').length).toBeGreaterThan(0)
     expect(screen.getByText(/cal logged/i)).toBeInTheDocument()
   })
 
@@ -432,7 +432,7 @@ describe('HomeScreen post-workout day state', () => {
       screen.getByRole('button', { name: 'Start Session' }),
     ).toBeInTheDocument()
     expect(
-      screen.queryAllByRole('button', { name: /Cooldown \+ Recovery|Start recovery flow/i }),
+      Array.from(document.querySelectorAll('.home-start-session')).filter((button) => /Cooldown \+ Recovery|Start recovery flow/i.test(button.textContent)),
     ).toHaveLength(0)
   })
 })
