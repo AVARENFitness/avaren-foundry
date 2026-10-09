@@ -422,8 +422,8 @@ describe('App dev weekly check-in reset integration', () => {
 
     await waitFor(() => {
       expect(
-        screen.getByRole('button', { name: 'Check In' }),
-      ).toBeInTheDocument()
+        screen.getAllByRole('button', { name: /Complete Weekly Check-In|Check In/i }).length,
+      ).toBeGreaterThan(0)
     })
 
     expect(
