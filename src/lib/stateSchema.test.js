@@ -65,7 +65,10 @@ describe('state schema migration', () => {
     expect(migrated.program).toEqual(legacy.program)
     expect(migrated.ownerUserId).toBe('user-1')
     expect(migrated.mobility).toEqual(fallback.mobility)
-    expect(migrated.nutrition).toEqual(fallback.nutrition)
+    expect(migrated.nutrition.schemaVersion).toBe(4)
+    expect(migrated.nutrition.days).toEqual(fallback.nutrition.days)
+    expect(migrated.nutrition.savedFoods).toEqual(fallback.nutrition.savedFoods)
+    expect(migrated.nutrition.goals.configured).toBe(false)
     expect(migrated.liftGoals).toEqual({})
   })
 
@@ -84,7 +87,10 @@ describe('state schema migration', () => {
     expect(migrated.history).toEqual(legacy.history)
     expect(migrated.mobility).toEqual(legacy.mobility)
     expect(migrated.readiness).toEqual(legacy.readiness)
-    expect(migrated.nutrition).toEqual(fallback.nutrition)
+    expect(migrated.nutrition.schemaVersion).toBe(4)
+    expect(migrated.nutrition.days).toEqual(fallback.nutrition.days)
+    expect(migrated.nutrition.savedFoods).toEqual(fallback.nutrition.savedFoods)
+    expect(migrated.nutrition.goals.configured).toBe(false)
   })
 
   it('leaves current-state payloads intact', () => {
