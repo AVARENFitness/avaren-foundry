@@ -91,7 +91,6 @@ function WorkoutsLibrary({
           type="button"
           className="gold-button machined coach-primary-action"
           data-testid="coach-new-workout"
-          disabled={!clients.length}
           onClick={onNewWorkout}
         >
           <Plus {...ICON} />
@@ -100,7 +99,7 @@ function WorkoutsLibrary({
       </header>
 
       {!clients.length ? (
-        <p className="coach-hub-notice">Connect a client before assigning workouts.</p>
+        <p className="coach-hub-notice">You can build workouts now and assign them once a client is connected.</p>
       ) : null}
       {notice ? <p className="coach-hub-notice">{notice}</p> : null}
 
