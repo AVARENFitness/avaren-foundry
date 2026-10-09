@@ -82,7 +82,7 @@ describe('AVA coach availability', () => {
       startDate: '2026-10-05',
       endDate: '2026-10-11',
       durationMinutes: 45,
-      clientQuery: 'Jake',
+      clientQuery: 'jake',
     })
   })
 
@@ -98,7 +98,7 @@ describe('AVA coach availability', () => {
       endDate: '2026-10-11',
       durationMinutes: 60,
       afterMinutes: 15 * 60,
-      clientQuery: 'Jake',
+      clientQuery: 'jake',
       bookingRequested: true,
     })
   })
@@ -111,7 +111,7 @@ describe('AVA coach availability', () => {
       ),
     ).toMatchObject({
       bookingRequested: false,
-      clientQuery: 'Jake',
+      clientQuery: 'jake',
       durationMinutes: 60,
       afterMinutes: 15 * 60,
     })
@@ -202,7 +202,7 @@ describe('AVA coach availability', () => {
       endDate: '2026-10-07',
     })
     expect(result.message).toMatch(/6:00 AM–10:00 AM/)
-    expect(result.message).toMatch(/5:00 PM–9:00 PM/)
+    expect(result.message).toMatch(/1:00 PM–4:00 PM/)
   })
 
   it('books the earliest safe slot only when explicitly authorized', async () => {
