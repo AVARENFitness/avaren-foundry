@@ -1,3 +1,4 @@
+import { activityDisplayName } from '../lib/freeformCardio'
 import {
   Activity,
   ArrowLeft,
@@ -215,7 +216,7 @@ export function SessionDetail({ session, history, onClose, onDelete, onUpdate })
             {session.cardioEntries.map((entry, index) => (
               <article key={entry.id ?? index}>
                 <header>
-                  <div><strong>{String(entry.kind ?? 'movement').replaceAll('_', ' ').replace(/^./, (first) => first.toUpperCase())}</strong></div>
+                  <div><strong>{activityDisplayName(entry)}</strong></div>
                   <small>{entry.durationMinutes} min{entry.distance != null ? ` · ${entry.distance} ${entry.distanceUnit}` : ''}</small>
                 </header>
               </article>
