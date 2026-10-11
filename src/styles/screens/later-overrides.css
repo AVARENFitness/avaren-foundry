@@ -8437,3 +8437,16 @@ body > .nutrition-food-sheet-backdrop > .nutrition-food-sheet {
   color: #d5cbbc; font-size: 14px;
 }
 .freeform-entry-cancel:focus-visible { outline: 2px solid #c7a45d; outline-offset: 2px; }
+
+/* Mixed freeform session navigation and honest completion recap. */
+.freeform-session-jump { margin: 10px 2px 17px; padding: 15px; border: 1px solid rgba(201,166,95,.2); background: #151719; border-radius: 17px; }
+.freeform-session-jump > .eyebrow { display: block; margin-bottom: 11px; }
+.freeform-session-jump > div { display: flex; gap: 9px; }
+.freeform-session-jump button { display: inline-flex; flex: 1; min-width: 0; align-items: center; justify-content: center; gap: 7px; min-height: 46px; padding: 8px; border: 1px solid #3b3933; border-radius: 11px; background: #232324; color: #ebd8b1; font-size: 13px; font-weight: 650; }
+.freeform-session-jump button:focus-visible { outline: 2px solid #c7a45d; outline-offset: 2px; }
+#freeform-movement-section, #freeform-strength-section { scroll-margin-top: 16px; }
+.freeform-completion-breakdown { margin: 18px auto 0; padding: 17px; max-width: 540px; width: 100%; box-sizing: border-box; border: 1px solid rgba(201,166,95,.22); border-radius: 16px; background: rgba(15,17,20,.85); text-align: left; }
+.freeform-completion-activities { display: grid; gap: 8px; margin-top: 12px; }
+.freeform-completion-activities article { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 5px 14px; padding: 11px 12px; border-radius: 10px; background: rgba(255,255,255,.045); }
+.freeform-completion-activities article strong { font-size: 14px; color: #f0e7d7; }
+.freeform-completion-activities article span { color: #c7ae7b; font-size: 13px; }
