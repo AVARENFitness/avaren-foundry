@@ -276,7 +276,11 @@ export default function GymScreen({
               <h2 data-testid="gym-workout-name">{workout.name}</h2>
             </div>
             <div className="lift-overview-meta" data-testid="gym-overview-meta">
-              <span data-testid="gym-completed-count">No exercises yet</span>
+              <span data-testid="gym-completed-count">
+                {(workout.cardioEntries?.length ?? 0) > 0
+                  ? `${workout.cardioEntries.length} movement${workout.cardioEntries.length === 1 ? '' : 's'} logged`
+                  : 'No exercises yet'}
+              </span>
               <span data-testid="gym-elapsed-time">
                 <Clock3 size={13} />
                 {elapsedLabel}
