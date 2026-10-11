@@ -161,7 +161,12 @@ export function SessionDetail({ session, history, onClose, onDelete, onUpdate })
 
         <div className="session-detail-stats">
           <article><Clock3 size={17} /><strong>{formatDuration(session)}</strong><span>Duration</span></article>
-          <article><Dumbbell size={17} /><strong>{session.sets?.length ?? 0}</strong><span>Sets</span></article>
+          {(session.sets?.length ?? 0) > 0 && (
+            <article><Dumbbell size={17} /><strong>{session.sets.length}</strong><span>Sets</span></article>
+          )}
+          {(session.cardioEntries?.length ?? 0) > 0 && (
+            <article><Clock3 size={17} /><strong>{session.cardioEntries.reduce((minutes, entry) => minutes + Number(entry.durationMinutes || 0), 0)} min</strong><span>Movement</span></article>
+          )}
           {volumeDisplay.show ? (
             <article>
               <Target size={17} />
@@ -203,7 +208,22 @@ export function SessionDetail({ session, history, onClose, onDelete, onUpdate })
         </section>
       )}
 
-      <section className="session-detail-card">
+      {(session.cardioEntries?.length ?? 0) > 0 && (
+        <section className="session-detail-card">
+          <div className="session-detail-title"><Clock3 size={18} /><div><span className="eyebrow">CARDIO & RECOVERY</span><h2>Movement recorded.</h2></div></div>
+          <div className="session-exercise-list">
+            {session.cardioEntries.map((entry, index) => (
+              <article key={entry.id ?? index}>
+                <header>
+                  <div><strong>{String(entry.kind ?? 'movement').replaceAll('_', ' ').replace(/^./, (first) => first.toUpperCase())}</strong></div>
+                  <small>{entry.durationMinutes} min{entry.distance != null ? ` · ${entry.distance} ${entry.distanceUnit}` : ''}</small>
+                </header>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
+      {(session.sets?.length ?? 0) > 0 && <section className="session-detail-card">
         <div className="session-detail-title"><Dumbbell size={18} /><div><span className="eyebrow">EXERCISES</span><h2>Every set logged.</h2></div></div>
         <div className="session-exercise-list">
           {Object.entries(groupedSets).map(([exercise, sets]) => (
@@ -221,7 +241,7 @@ export function SessionDetail({ session, history, onClose, onDelete, onUpdate })
             </article>
           ))}
         </div>
-      </section>
+      </section>}
 
       <section className="session-detail-card">
         <div className="session-detail-title"><BookOpen size={18} /><div><span className="eyebrow">REFLECTION</span><h2>Update what you remember.</h2></div></div>
