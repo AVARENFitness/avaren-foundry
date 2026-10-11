@@ -15,6 +15,7 @@ import {
   totalVolume,
 } from '../lib/metrics'
 import { movementProgressSummary } from '../lib/movementProgress'
+import { weeklyMovementTrends } from '../lib/movementTrends'
 import { athleteGoalBackend } from '../lib/athleteGoals'
 import AthleteGoalPanel from '../components/AthleteGoalPanel'
 
@@ -86,6 +87,8 @@ export default function ProgressScreen({
   const monthlyPrs = prsThisMonth(state.history)
   const lifetimeVolume = Math.round(totalVolume(state.history))
   const movement = useMemo(() => movementProgressSummary(state.history), [state.history])
+  const movementWeeks = useMemo(() => weeklyMovementTrends(state.history), [state.history])
+  const maxWeeklyMinutes = Math.max(1, ...movementWeeks.map((week) => week.cardioMinutes + week.mobilityMinutes))
   const currentBest = selectedExercise
     ? personalBest(state.history, selectedExercise)
     : 0
@@ -176,6 +179,26 @@ export default function ProgressScreen({
             <article><small>Movement sessions</small><strong>{movement.sessionsWithMovement}</strong></article>
             {movement.miles > 0 && <article><small>Distance logged</small><strong>{Math.round(movement.miles * 100) / 100}<span> mi</span></strong></article>}
             {movement.kilometers > 0 && <article><small>Distance logged</small><strong>{Math.round(movement.kilometers * 100) / 100}<span> km</span></strong></article>}
+          </div>
+          <div className="progress-movement-trends">
+            <div className="progress-movement-trends-title">
+              <strong>Last 6 weeks</strong>
+              <span>Logged minutes · Monday–Sunday</span>
+            </div>
+            <div className="progress-movement-legend"><span>Cardio</span><span>Mobility</span></div>
+            <div className="progress-movement-bars" role="list" aria-label="Weekly cardio and mobility minutes">
+              {movementWeeks.map((week) => (
+                <div className="progress-movement-week" role="listitem" key={week.key} aria-label={`Week of ${week.label}: ${week.cardioMinutes} cardio minutes, ${week.mobilityMinutes} mobility minutes, ${week.sessions} movement sessions`}>
+                  <div className="progress-movement-week-value">{Math.round((week.cardioMinutes + week.mobilityMinutes) * 10) / 10 || '–'}</div>
+                  <div className="progress-movement-bar-track">
+                    <div className="progress-movement-bar-mobility" style={{ height: `${(week.mobilityMinutes / maxWeeklyMinutes) * 100}%` }} />
+                    <div className="progress-movement-bar-cardio" style={{ height: `${(week.cardioMinutes / maxWeeklyMinutes) * 100}%` }} />
+                  </div>
+                  <small>{week.label}</small>
+                </div>
+              ))}
+            </div>
+            <p>Weeks without logged movement show no bar. This is activity history, not a fitness score.</p>
           </div>
         </section>
       )}
