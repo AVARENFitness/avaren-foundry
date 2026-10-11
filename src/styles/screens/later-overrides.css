@@ -8326,3 +8326,102 @@ body > .nutrition-food-sheet-backdrop > .nutrition-food-sheet {
   font-size: 0.72rem;
   letter-spacing: 0.025em;
 }
+
+
+/* Freeform movement log: calm, compact, and legible on small phones. */
+.freeform-cardio {
+  margin: 18px 16px 24px;
+  padding: clamp(18px, 5vw, 26px);
+  border: 1px solid rgba(200, 174, 113, .23);
+  border-radius: 24px;
+  background: linear-gradient(155deg, #191b1e, #101113 78%);
+  color: #f0eae0;
+}
+.freeform-cardio-heading { display: flex; align-items: flex-start; gap: 14px; }
+.freeform-cardio-heading > svg { flex: none; color: #c9a65f; margin-top: 5px; }
+.freeform-cardio-heading h3 { margin: 6px 0; font-size: clamp(20px, 5vw, 26px); line-height: 1.15; }
+.freeform-cardio-heading p { margin: 8px 0 18px; line-height: 1.5; color: #aaa69e; font-size: 14px; }
+.freeform-cardio-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 12px; }
+.freeform-cardio-form label { display: flex; flex-direction: column; gap: 8px; font-size: 12px; color: #bbb5a9; min-width: 0; }
+.freeform-cardio-form input, .freeform-cardio-form select {
+  width: 100%; min-width: 0; box-sizing: border-box; min-height: 46px;
+  padding: 10px 12px; border: 1px solid #3a3a39; border-radius: 12px;
+  background: #111214; color: #f5eee1; font: inherit; font-size: 16px;
+}
+.freeform-cardio-form input:focus-visible, .freeform-cardio-form select:focus-visible,
+.freeform-cardio-add:focus-visible, .freeform-cardio-entries button:focus-visible {
+  outline: 2px solid #c7a45d; outline-offset: 2px;
+}
+.freeform-cardio-add {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 48px; width: 100%; margin-top: 18px;
+  background: #c6a362; border: 1px solid #d8bd81; border-radius: 13px;
+  color: #15120d; font-weight: 700; font-size: 15px;
+}
+.freeform-cardio-entries { list-style: none; margin: 0 0 18px; padding: 0; display: grid; gap: 8px; }
+.freeform-cardio-entries li {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 12px; border-radius: 12px; background: #222326; gap: 10px;
+}
+.freeform-cardio-entries li div { display: grid; gap: 3px; }
+.freeform-cardio-entries strong { font-size: 14px; }
+.freeform-cardio-entries span { color: #bcb4a6; font-size: 13px; }
+.freeform-cardio-entries button {
+  display: grid; place-items: center; flex: none; width: 42px; height: 42px;
+  border: 1px solid #42413d; border-radius: 10px; color: #c2b9a9; background: transparent;
+}
+.freeform-cardio-error { color: #f0a394; font-size: 13px; line-height: 1.4; }
+@media (max-width: 360px) {
+  .freeform-cardio { margin-inline: 10px; padding: 16px; }
+  .freeform-cardio-form { gap: 12px 8px; }
+}
+
+/* Make an open session feel like a focused recovery/training workspace. */
+.gym-freeform-empty .gym-add-first-exercise {
+  min-height: 0;
+  padding: 28px 22px;
+  border-radius: 23px;
+  text-align: left;
+  background: #16181b;
+  border-color: rgba(234, 220, 190, .12);
+  box-shadow: none;
+}
+.gym-freeform-empty .gym-add-first-exercise > svg {
+  width: 26px; height: 26px; margin-bottom: 14px; color: #c4a46a;
+}
+.gym-freeform-empty .gym-add-first-exercise h2 {
+  font-size: clamp(22px, 5.5vw, 29px);
+  letter-spacing: -.035em;
+  line-height: 1.2;
+  margin-bottom: 9px;
+}
+.gym-freeform-empty .gym-add-first-exercise p {
+  font-size: 14px;
+  line-height: 1.6;
+  max-width: 38ch;
+  color: #aaa49c;
+  margin-bottom: 22px;
+}
+.gym-freeform-empty .gym-add-first-exercise .gold-button {
+  min-height: 48px;
+  width: 100%;
+  max-width: 100%;
+  font-size: 15px;
+  border-radius: 12px;
+}
+.gym-freeform-empty .focus-finish-bar .gold-button {
+  min-height: 50px;
+  font-size: 15px;
+  border-radius: 12px;
+}
+.gym-freeform-empty {
+  padding-bottom: calc(175px + env(safe-area-inset-bottom));
+}
+
+/* Group freeform strength, cardio and mobility without visual clutter. */
+.freeform-section-switch { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; padding: 5px; margin: 0 0 18px; border: 1px solid #373531; border-radius: 13px; background: #101113; }
+.freeform-section-switch button { min-height: 42px; border: 0; border-radius: 9px; background: transparent; color: #ada79b; font-size: 14px; font-weight: 650; }
+.freeform-section-switch button[aria-pressed="true"] { background: #343026; color: #e8c88b; box-shadow: inset 0 0 0 1px rgba(201,166,95,.28); }
+.freeform-activity-group { margin: 0 0 16px; }
+.freeform-activity-group h4, .freeform-log-subtitle { margin: 0 0 11px; color: #c4a46a; font-size: 12px; font-weight: 700; letter-spacing: .055em; }
+.gym-freeform-empty .gym-add-first-exercise .eyebrow { display: block; margin-bottom: 8px; }

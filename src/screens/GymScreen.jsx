@@ -1,5 +1,7 @@
 import { Clock3, Dumbbell, MoreHorizontal, Pause, Play, RefreshCw, RotateCcw, StickyNote, TimerReset, X, LogOut } from 'lucide-react'
 import FocusExercise from '../components/FocusExercise'
+import FreeformCardioLog from '../components/FreeformCardioLog'
+import { isFreeformWorkoutSession } from '../lib/freeformWorkout'
 import ProgressRing from '../components/ProgressRing'
 import QuickAddModal from '../components/QuickAddModal'
 import SupersetFocus from '../components/SupersetFocus'
@@ -206,6 +208,13 @@ export default function GymScreen({
 
   const exercises = workout.exercises ?? []
   const isEmptySession = exercises.length === 0
+  const isFreeform = isFreeformWorkoutSession(workout)
+  const cardioLog = isFreeform ? (
+    <FreeformCardioLog
+      entries={workout.cardioEntries ?? []}
+      onChange={(entries) => onWorkoutMetaChange?.('cardioEntries', entries)}
+    />
+  ) : null
 
   const completedExercises = exercises.filter((exercise) => {
     const entered = exercise.sets.filter((set) =>
@@ -267,7 +276,11 @@ export default function GymScreen({
               <h2 data-testid="gym-workout-name">{workout.name}</h2>
             </div>
             <div className="lift-overview-meta" data-testid="gym-overview-meta">
-              <span data-testid="gym-completed-count">No exercises yet</span>
+              <span data-testid="gym-completed-count">
+                {(workout.cardioEntries?.length ?? 0) > 0
+                  ? `${workout.cardioEntries.length} movement${workout.cardioEntries.length === 1 ? '' : 's'} logged`
+                  : 'No exercises yet'}
+              </span>
               <span data-testid="gym-elapsed-time">
                 <Clock3 size={13} />
                 {elapsedLabel}
@@ -279,8 +292,9 @@ export default function GymScreen({
 
         <section className="empty-state gym-add-first-exercise" aria-label="Add first exercise">
           <Dumbbell size={34} />
-          <h2>Add your first exercise</h2>
-          <p>Build this session as you go — tap to add a movement and start logging sets.</p>
+          {isFreeform && <span className="eyebrow">STRENGTH</span>}
+          <h2>{isFreeform ? 'Strength training' : 'Add your first exercise'}</h2>
+          <p>{isFreeform ? 'Log sets and reps here. Add cardio and mobility below in the same workout.' : 'Build this session as you go — tap to add a movement and start logging sets.'}</p>
           <button
             type="button"
             className="gold-button machined"
@@ -289,6 +303,8 @@ export default function GymScreen({
             Add Exercise
           </button>
         </section>
+
+        {cardioLog}
 
         <div className="focus-finish-bar">
           <button
@@ -1048,6 +1064,8 @@ export default function GymScreen({
           />
         </section>
       )}
+
+      {cardioLog}
 
       <div className="focus-finish-bar">
         <button

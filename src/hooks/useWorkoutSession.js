@@ -28,6 +28,7 @@ import {
   findAppointmentLinkedToAssignment,
 } from '../lib/coachingAppointment'
 
+import { hasLoggedWorkoutActivity } from '../lib/freeformCardio'
 import { createRuntimeId } from '../lib/createRuntimeId'
 import { buildCompletedSet, isActiveSetEntered } from '../lib/exerciseLoad'
 import {
@@ -754,8 +755,8 @@ export function useWorkoutSession({
           ),
       )
 
-    if (sets.length === 0) {
-      appUi.toast('Log at least one set before finishing.', 'error')
+    if (!hasLoggedWorkoutActivity(sets, isFreeformWorkoutSession(workout) ? workout.cardioEntries : [])) {
+      appUi.toast('Log at least one set or cardio activity before finishing.', 'error')
       setIsFinishing(false)
       return
     }
@@ -814,6 +815,7 @@ export function useWorkoutSession({
           sets: exercise.sets.filter((set) => Number(set.reps) > 0),
         })),
         sets,
+        cardioEntries: isFreeformWorkoutSession(workout) ? (workout.cardioEntries ?? []) : [],
       },
       isExecutionPlanCurrent(state.sessionExecutionPlan)
         ? state.sessionExecutionPlan

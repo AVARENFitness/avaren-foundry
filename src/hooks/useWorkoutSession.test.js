@@ -510,13 +510,50 @@ describe('useWorkoutSession freeform Open Workout', () => {
     })
 
     expect(appUi.toast).toHaveBeenCalledWith(
-      'Log at least one set before finishing.',
+      'Log at least one set or cardio activity before finishing.',
       'error',
     )
     expect(latestState.history).toEqual([])
     expect(latestState.activeWorkout?.id).toBe('free-empty')
     expect(navigate).not.toHaveBeenCalledWith('complete')
     expect(completeWorkoutSession).not.toHaveBeenCalled()
+  })
+
+  it('saves a cardio-only active recovery day without advancing tomorrow\'s workout', async () => {
+    const navigate = vi.fn()
+    let latestState = buildState({
+      program: { rotation: ['Chest + Back', 'Arms'], nextWorkout: 'Chest + Back', workouts: {} },
+      activeWorkout: {
+        ...createFreeformActiveWorkout({ id: 'recovery-cardio' }),
+        cardioEntries: [
+          { id: 'walk-1', kind: 'walk', durationMinutes: 35, distance: 2.2, distanceUnit: 'mi' },
+          { id: 'stretch-1', kind: 'mobility', durationMinutes: 15, distance: null, distanceUnit: 'mi' },
+        ],
+      },
+    })
+    const setState = vi.fn((updater) => {
+      latestState = typeof updater === 'function' ? updater(latestState) : updater
+    })
+    const { result } = renderHook(() => useWorkoutSession({
+      state: latestState, setState, navigate, athleteId: 'athlete-1',
+    }))
+
+    await act(async () => { await result.current.finishWorkout() })
+
+    expect(navigate).toHaveBeenCalledWith('complete')
+    expect(latestState.program.nextWorkout).toBe('Chest + Back')
+    expect(latestState.history).toHaveLength(1)
+    expect(latestState.history[0].sets).toEqual([])
+    expect(latestState.history[0].cardioEntries).toHaveLength(2)
+    expect(latestState.history[0].origin).toBe('freeform')
+    expect(latestState.history[0].assignmentId).toBeNull()
+    expect(completeWorkoutSession).toHaveBeenCalledWith(
+      'athlete-1',
+      expect.objectContaining({ id: 'recovery-cardio', cardioEntries: expect.arrayContaining([
+        expect.objectContaining({ kind: 'walk', durationMinutes: 35, distance: 2.2 }),
+      ]) }),
+    )
+    expect(coachBackend.markAssignmentCompleted).not.toHaveBeenCalled()
   })
 
   it('completes freeform into history without advancing rotation or assignments', async () => {

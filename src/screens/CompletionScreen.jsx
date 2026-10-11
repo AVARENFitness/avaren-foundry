@@ -114,6 +114,7 @@ export default function CompletionScreen({
     if (!session) return null
 
     const sets = session.sets ?? []
+    const cardioEntries = session.cardioEntries ?? []
     const volumeDisplay = resolveSessionVolumeDisplay(session)
     const volume = volumeDisplay.show ? volumeDisplay.value : 0
     const exerciseNames = [
@@ -208,6 +209,7 @@ export default function CompletionScreen({
 
     return {
       sets,
+      cardioEntries,
       volume,
       volumeDisplay,
       exerciseNames,
@@ -271,15 +273,24 @@ export default function CompletionScreen({
             </div>
           </article>
 
-          <article>
-            <Layers3 size={16} />
-            <div>
-              <strong>
-                {summary.sets.length}
-              </strong>
-              <span>sets logged</span>
-            </div>
-          </article>
+          {summary.sets.length > 0 && (
+            <article>
+              <Layers3 size={16} />
+              <div>
+                <strong>{summary.sets.length}</strong>
+                <span>sets logged</span>
+              </div>
+            </article>
+          )}
+          {summary.cardioEntries.length > 0 && (
+            <article>
+              <Clock3 size={16} />
+              <div>
+                <strong>{summary.cardioEntries.reduce((minutes, entry) => minutes + Number(entry.durationMinutes || 0), 0)} min</strong>
+                <span>movement logged</span>
+              </div>
+            </article>
+          )}
 
           {summary.volumeDisplay.show ? (
             <article>
