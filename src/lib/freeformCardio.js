@@ -7,7 +7,8 @@ export const CARDIO_ACTIVITIES = [
   { value: 'swim', label: 'Swim' },
   { value: 'row', label: 'Row' },
   { value: 'stair_climber', label: 'Stair climber' },
-  { value: 'other', label: 'Other cardio' },
+  { value: 'mobility', label: 'Stretch & mobility' },
+  { value: 'other', label: 'Other movement' },
 ]
 
 export const normalizeCardioEntry = ({
