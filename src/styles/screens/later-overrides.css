@@ -8375,3 +8375,45 @@ body > .nutrition-food-sheet-backdrop > .nutrition-food-sheet {
   .freeform-cardio { margin-inline: 10px; padding: 16px; }
   .freeform-cardio-form { gap: 12px 8px; }
 }
+
+/* Make an open session feel like a focused recovery/training workspace. */
+.gym-freeform-empty .gym-add-first-exercise {
+  min-height: 0;
+  padding: 28px 22px;
+  border-radius: 23px;
+  text-align: left;
+  background: #16181b;
+  border-color: rgba(234, 220, 190, .12);
+  box-shadow: none;
+}
+.gym-freeform-empty .gym-add-first-exercise > svg {
+  width: 26px; height: 26px; margin-bottom: 14px; color: #c4a46a;
+}
+.gym-freeform-empty .gym-add-first-exercise h2 {
+  font-size: clamp(22px, 5.5vw, 29px);
+  letter-spacing: -.035em;
+  line-height: 1.2;
+  margin-bottom: 9px;
+}
+.gym-freeform-empty .gym-add-first-exercise p {
+  font-size: 14px;
+  line-height: 1.6;
+  max-width: 38ch;
+  color: #aaa49c;
+  margin-bottom: 22px;
+}
+.gym-freeform-empty .gym-add-first-exercise .gold-button {
+  min-height: 48px;
+  width: 100%;
+  max-width: 100%;
+  font-size: 15px;
+  border-radius: 12px;
+}
+.gym-freeform-empty .focus-finish-bar .gold-button {
+  min-height: 50px;
+  font-size: 15px;
+  border-radius: 12px;
+}
+.gym-freeform-empty {
+  padding-bottom: calc(175px + env(safe-area-inset-bottom));
+}
