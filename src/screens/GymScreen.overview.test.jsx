@@ -99,7 +99,7 @@ describe('GymScreen active workout overview', () => {
     expect(overview.querySelector('.progress-ring')).not.toBeNull()
   })
 
-  it('prompts to add the first exercise on an empty Open Workout', () => {
+  it('offers strength and cardio on an empty Open Workout', () => {
     renderGym({
       name: 'Open Workout',
       origin: 'freeform',
@@ -109,7 +109,8 @@ describe('GymScreen active workout overview', () => {
 
     expect(screen.getByTestId('gym-workout-name')).toHaveTextContent('Open Workout')
     expect(screen.getByRole('button', { name: 'Add Exercise' })).toBeInTheDocument()
-    expect(screen.getByText(/Add your first exercise/i)).toBeInTheDocument()
+    expect(screen.getByText(/Make today yours/i)).toBeInTheDocument()
+    expect(screen.getByRole('region', { name: 'Cardio and movement log' })).toBeInTheDocument()
     expect(screen.queryByTestId('focus-exercise')).not.toBeInTheDocument()
   })
 })
