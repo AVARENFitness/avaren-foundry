@@ -1,13 +1,12 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   deriveTodaysFocus,
   FOCUS_ACTIONS,
   FOCUS_TYPES,
 } from './todaysFocus'
 
-const today = new Date().toISOString().slice(0, 10)
-const now = new Date()
-now.setHours(15, 0, 0, 0)
+const today = '2026-08-07'
+const now = new Date('2026-08-07T15:00:00-04:00')
 
 const trainingDaySchedule = [
   'Upper Body',
@@ -92,6 +91,14 @@ const baseState = {
 }
 
 describe('deriveTodaysFocus', () => {
+  beforeEach(() => {
+    // Readiness and weekly-focus helpers consult Date internally.
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(now)
+  })
+
+  afterEach(() => vi.useRealTimers())
+
   it('prioritizes an active workout over everything else', () => {
     const focus = deriveTodaysFocus(
       {
@@ -166,7 +173,7 @@ describe('deriveTodaysFocus', () => {
         },
       },
       { now: (() => {
-        const afternoon = new Date()
+        const afternoon = new Date(now)
         afternoon.setHours(16, 0, 0, 0)
         return afternoon
       })() },
@@ -203,7 +210,7 @@ describe('deriveTodaysFocus', () => {
     expect(continueFocus.action).toBe(FOCUS_ACTIONS.CONTINUE_WORKOUT)
     expect(continueFocus.actionLabel).toBe('Continue Workout')
 
-    const morning = new Date()
+    const morning = new Date(now)
     morning.setHours(9, 0, 0, 0)
     const startFocus = deriveTodaysFocus(
       { ...baseState, weeklySchedule: trainingDaySchedule },
