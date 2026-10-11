@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Activity, Plus, Trash2 } from 'lucide-react'
+import { Activity, Plus, Trash2, Pencil, X } from 'lucide-react'
 import { CARDIO_ACTIVITIES, normalizeCardioEntry } from '../lib/freeformCardio'
 
 export default function FreeformCardioLog({ entries = [], onChange }) {
@@ -9,8 +9,28 @@ export default function FreeformCardioLog({ entries = [], onChange }) {
   const [distance, setDistance] = useState('')
   const [unit, setUnit] = useState('mi')
   const [error, setError] = useState('')
+  const [editingId, setEditingId] = useState(null)
 
+  const resetFields = () => {
+    setMinutes('')
+    setDistance('')
+    setError('')
+    setEditingId(null)
+  }
+  const startEditing = (entry) => {
+    setEditingId(entry.id)
+    setSection(entry.kind === 'mobility' ? 'mobility' : 'cardio')
+    setKind(entry.kind)
+    setMinutes(String(entry.durationMinutes))
+    setDistance(entry.distance == null ? '' : String(entry.distance))
+    setUnit(entry.distanceUnit === 'km' ? 'km' : 'mi')
+    setError('')
+  }
+  const cancelEditing = () => {
+    resetFields()
+  }
   const chooseSection = (next) => {
+    resetFields()
     setSection(next)
     setKind(next === 'mobility' ? 'mobility' : 'walk')
     setDistance('')
@@ -25,10 +45,12 @@ export default function FreeformCardioLog({ entries = [], onChange }) {
       setError('Enter a duration greater than zero and a valid distance, if provided.')
       return
     }
-    onChange([...(entries ?? []), entry])
-    setMinutes('')
-    setDistance('')
-    setError('')
+    if (editingId) {
+      onChange(entries.map((item) => item.id === editingId ? { ...entry, id: editingId } : item))
+    } else {
+      onChange([...(entries ?? []), entry])
+    }
+    resetFields()
   }
 
   return (
@@ -58,15 +80,23 @@ export default function FreeformCardioLog({ entries = [], onChange }) {
                   <strong>{CARDIO_ACTIVITIES.find((item) => item.value === entry.kind)?.label ?? entry.kind}</strong>
                   <span>{entry.durationMinutes} min{entry.distance != null ? ` · ${entry.distance} ${entry.distanceUnit}` : ''}</span>
                 </div>
-                <button type="button" aria-label={`Remove ${entry.kind} entry`} onClick={() => onChange(entries.filter((item) => item !== entry))}>
+                <div className="freeform-entry-actions">
+                  <button type="button" aria-label={`Edit ${entry.kind} entry`} onClick={() => startEditing(entry)}>
+                    <Pencil size={17} />
+                  </button>
+                  <button type="button" aria-label={`Remove ${entry.kind} entry`} onClick={() => {
+                    if (editingId === entry.id) resetFields()
+                    onChange(entries.filter((item) => item !== entry))
+                  }}>
                   <Trash2 size={17} />
-                </button>
+                  </button>
+                </div>
               </li>
             ))}
           </ul>
         </div>
       ))}
-      <h4 className="freeform-log-subtitle">Add {section === 'mobility' ? 'mobility' : 'cardio'} activity</h4>
+      <h4 className="freeform-log-subtitle">{editingId ? 'Edit' : 'Add'} {section === 'mobility' ? 'mobility' : 'cardio'} activity</h4>
       <div className="freeform-cardio-form">
         <label>Activity
           <select value={kind} onChange={(event) => setKind(event.target.value)}>
@@ -87,7 +117,10 @@ export default function FreeformCardioLog({ entries = [], onChange }) {
         </label>}
       </div>
       {error && <p className="freeform-cardio-error" role="alert">{error}</p>}
-      <button type="button" className="freeform-cardio-add" onClick={addEntry}><Plus size={18} /> Add movement</button>
+      <div className="freeform-entry-form-actions">
+        {editingId && <button type="button" className="freeform-entry-cancel" onClick={cancelEditing}><X size={17} /> Cancel</button>}
+        <button type="button" className="freeform-cardio-add" onClick={addEntry}><Plus size={18} /> {editingId ? 'Save changes' : 'Add movement'}</button>
+      </div>
     </section>
   )
 }
