@@ -109,7 +109,7 @@ describe('GymScreen active workout overview', () => {
 
     expect(screen.getByTestId('gym-workout-name')).toHaveTextContent('Open Workout')
     expect(screen.getByRole('button', { name: 'Add Exercise' })).toBeInTheDocument()
-    expect(screen.getByText(/Make today yours/i)).toBeInTheDocument()
+    expect(screen.getByText(/Strength training/i)).toBeInTheDocument()
     expect(screen.getByRole('region', { name: 'Cardio and movement log' })).toBeInTheDocument()
     expect(screen.queryByTestId('focus-exercise')).not.toBeInTheDocument()
   })
