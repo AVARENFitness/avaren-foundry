@@ -111,6 +111,7 @@ describe('GymScreen active workout overview', () => {
     expect(screen.getByRole('button', { name: 'Add Exercise' })).toBeInTheDocument()
     expect(screen.getByText(/Strength training/i)).toBeInTheDocument()
     expect(screen.getByRole('region', { name: 'Cardio and movement log' })).toBeInTheDocument()
+    expect(screen.queryByRole('navigation', { name: 'Freeform workout sections' })).not.toBeInTheDocument()
     expect(screen.queryByTestId('focus-exercise')).not.toBeInTheDocument()
   })
 })
