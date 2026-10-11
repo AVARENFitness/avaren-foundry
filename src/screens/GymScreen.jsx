@@ -292,8 +292,9 @@ export default function GymScreen({
 
         <section className="empty-state gym-add-first-exercise" aria-label="Add first exercise">
           <Dumbbell size={34} />
-          <h2>{isFreeform ? 'Make today yours' : 'Add your first exercise'}</h2>
-          <p>{isFreeform ? 'Strength, cardio, or active recovery. This session counts toward your consistency without moving your next planned workout.' : 'Build this session as you go — tap to add a movement and start logging sets.'}</p>
+          {isFreeform && <span className="eyebrow">STRENGTH</span>}
+          <h2>{isFreeform ? 'Strength training' : 'Add your first exercise'}</h2>
+          <p>{isFreeform ? 'Log sets and reps here. Add cardio and mobility below in the same workout.' : 'Build this session as you go — tap to add a movement and start logging sets.'}</p>
           <button
             type="button"
             className="gold-button machined"
