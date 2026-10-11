@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { CARDIO_ACTIVITIES, hasLoggedWorkoutActivity, normalizeCardioEntry } from './freeformCardio'
+import { CARDIO_ACTIVITIES, hasLoggedWorkoutActivity, normalizeCardioEntry, activityDisplayName, isMobilityActivity } from './freeformCardio'
 import { createFreeformActiveWorkout } from './freeformWorkout'
 import { advanceProgramNextWorkout } from './programWorkout'
 
@@ -17,6 +17,20 @@ describe('freeform cardio logging', () => {
     expect(stretch).toMatchObject({ durationMinutes: 15, distance: null })
     expect(hasLoggedWorkoutActivity([], [walk])).toBe(true)
     expect(hasLoggedWorkoutActivity([], [])).toBe(false)
+  })
+
+  it('supports diverse movement without fabricating distance or changing existing records', () => {
+    expect(isMobilityActivity('yoga')).toBe(true)
+    expect(isMobilityActivity('pilates')).toBe(true)
+    expect(isMobilityActivity('rehab')).toBe(true)
+    expect(isMobilityActivity('walk')).toBe(false)
+    const named = normalizeCardioEntry({ kind: 'other', customName: 'Pickleball', minutes: '45' })
+    expect(named).toMatchObject({ kind: 'other', customName: 'Pickleball', durationMinutes: 45, distance: null })
+    expect(activityDisplayName(named)).toBe('Pickleball')
+    expect(activityDisplayName({ kind: 'mobility' })).toBe('Stretch & mobility')
+    expect(normalizeCardioEntry({ kind: 'other', minutes: 20 })).toBeNull()
+    expect(normalizeCardioEntry({ kind: 'other', customName: '   ', minutes: 20 })).toBeNull()
+    expect(normalizeCardioEntry({ kind: 'other', customName: 'x'.repeat(61), minutes: 20 })).toBeNull()
   })
 
   it('rejects invalid durations, distance, activity, and measurement units', () => {
