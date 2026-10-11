@@ -290,7 +290,7 @@ export default function GymScreen({
           <ProgressRing value={0} />
         </section>
 
-        <section className="empty-state gym-add-first-exercise" aria-label="Add first exercise">
+        <section id="freeform-strength-section" className="empty-state gym-add-first-exercise" aria-label="Add first exercise">
           <Dumbbell size={34} />
           {isFreeform && <span className="eyebrow">STRENGTH</span>}
           <h2>{isFreeform ? 'Strength training' : 'Add your first exercise'}</h2>
@@ -511,6 +511,7 @@ export default function GymScreen({
     >
 
       <section
+        id="freeform-strength-section"
         className="focus-mode-bar lift-session-overview"
         data-testid="gym-session-overview"
         aria-label="Active workout summary"
@@ -541,6 +542,19 @@ export default function GymScreen({
         <ProgressRing value={progress} />
       </section>
 
+      {isFreeform && (
+        <nav className="freeform-session-jump" aria-label="Freeform workout sections">
+          <span className="eyebrow">IN THIS SESSION</span>
+          <div>
+            <button type="button" onClick={() => document.getElementById('freeform-strength-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
+              <Dumbbell size={16} /> Strength · {exercises.length}
+            </button>
+            <button type="button" onClick={() => document.getElementById('freeform-movement-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
+              <Clock3 size={16} /> Movement · {(workout.cardioEntries ?? []).length}
+            </button>
+          </div>
+        </nav>
+      )}
       {(sessionModeBanner || executionPlan?.maxMinutes || workout.coachNotes) ? (
         <section className="gym-session-context" aria-label="Session context">
           <div className="gym-session-context-chips">
@@ -1065,7 +1079,7 @@ export default function GymScreen({
         </section>
       )}
 
-      {cardioLog}
+      <div id="freeform-movement-section">{cardioLog}</div>
 
       <div className="focus-finish-bar">
         <button
