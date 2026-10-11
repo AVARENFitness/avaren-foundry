@@ -1,3 +1,4 @@
+import { activityDisplayName } from '../lib/freeformCardio'
 import {
   ArrowRight,
   Award,
@@ -311,7 +312,7 @@ export default function CompletionScreen({
             <div className="freeform-completion-activities">
               {summary.cardioEntries.map((entry, index) => (
                 <article key={entry.id ?? index}>
-                  <strong>{entry.kind === 'mobility' ? 'Stretch & mobility' : String(entry.kind).replaceAll('_', ' ').replace(/^./, (first) => first.toUpperCase())}</strong>
+                  <strong>{activityDisplayName(entry)}</strong>
                   <span>{entry.durationMinutes} min{entry.distance != null ? ` · ${entry.distance} ${entry.distanceUnit ?? 'mi'}` : ''}</span>
                 </article>
               ))}

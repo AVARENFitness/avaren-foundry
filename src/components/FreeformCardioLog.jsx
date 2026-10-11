@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { Activity, Plus, Trash2, Pencil, X } from 'lucide-react'
-import { CARDIO_ACTIVITIES, normalizeCardioEntry } from '../lib/freeformCardio'
+import { CARDIO_ACTIVITIES, normalizeCardioEntry, isMobilityActivity, activityDisplayName } from '../lib/freeformCardio'
 
 export default function FreeformCardioLog({ entries = [], onChange }) {
   const [section, setSection] = useState('cardio')
   const [kind, setKind] = useState('walk')
+  const [customName, setCustomName] = useState('')
   const [minutes, setMinutes] = useState('')
   const [distance, setDistance] = useState('')
   const [unit, setUnit] = useState('mi')
@@ -13,14 +14,16 @@ export default function FreeformCardioLog({ entries = [], onChange }) {
 
   const resetFields = () => {
     setMinutes('')
+    setCustomName('')
     setDistance('')
     setError('')
     setEditingId(null)
   }
   const startEditing = (entry) => {
     setEditingId(entry.id)
-    setSection(entry.kind === 'mobility' ? 'mobility' : 'cardio')
+    setSection(isMobilityActivity(entry.kind) ? 'mobility' : 'cardio')
     setKind(entry.kind)
+    setCustomName(entry.customName ?? '')
     setMinutes(String(entry.durationMinutes))
     setDistance(entry.distance == null ? '' : String(entry.distance))
     setUnit(entry.distanceUnit === 'km' ? 'km' : 'mi')
@@ -36,13 +39,13 @@ export default function FreeformCardioLog({ entries = [], onChange }) {
     setDistance('')
     setError('')
   }
-  const cardioEntries = entries.filter((entry) => entry.kind !== 'mobility')
-  const mobilityEntries = entries.filter((entry) => entry.kind === 'mobility')
+  const cardioEntries = entries.filter((entry) => !isMobilityActivity(entry.kind))
+  const mobilityEntries = entries.filter((entry) => isMobilityActivity(entry.kind))
 
   const addEntry = () => {
-    const entry = normalizeCardioEntry({ kind, minutes, distance, unit })
+    const entry = normalizeCardioEntry({ kind, minutes, distance: section === 'mobility' ? '' : distance, unit, customName })
     if (!entry) {
-      setError('Enter a duration greater than zero and a valid distance, if provided.')
+      setError('Enter a valid duration and distance. For Other movement, provide an activity name (up to 60 characters).')
       return
     }
     if (editingId) {
@@ -77,7 +80,7 @@ export default function FreeformCardioLog({ entries = [], onChange }) {
             {group.items.map((entry, index) => (
               <li key={entry.id ?? index}>
                 <div>
-                  <strong>{CARDIO_ACTIVITIES.find((item) => item.value === entry.kind)?.label ?? entry.kind}</strong>
+                  <strong>{activityDisplayName(entry)}</strong>
                   <span>{entry.durationMinutes} min{entry.distance != null ? ` · ${entry.distance} ${entry.distanceUnit}` : ''}</span>
                 </div>
                 <div className="freeform-entry-actions">
@@ -99,10 +102,13 @@ export default function FreeformCardioLog({ entries = [], onChange }) {
       <h4 className="freeform-log-subtitle">{editingId ? 'Edit' : 'Add'} {section === 'mobility' ? 'mobility' : 'cardio'} activity</h4>
       <div className="freeform-cardio-form">
         <label>Activity
-          <select value={kind} onChange={(event) => setKind(event.target.value)}>
-            {CARDIO_ACTIVITIES.filter((activity) => section === 'mobility' ? activity.value === 'mobility' : activity.value !== 'mobility').map((activity) => <option key={activity.value} value={activity.value}>{activity.label}</option>)}
+          <select value={kind} onChange={(event) => { setKind(event.target.value); setError(''); if (event.target.value !== 'other') setCustomName('') }}>
+            {CARDIO_ACTIVITIES.filter((activity) => section === 'mobility' ? isMobilityActivity(activity.value) : !isMobilityActivity(activity.value)).map((activity) => <option key={activity.value} value={activity.value}>{activity.label}</option>)}
           </select>
         </label>
+        {kind === 'other' && <label className="freeform-custom-activity-name">Activity name
+          <input value={customName} maxLength={60} placeholder="Basketball, dance, climbing…" onChange={(event) => setCustomName(event.target.value)} />
+        </label>}
         <label>Duration (min)
           <input type="number" inputMode="decimal" min="0.1" step="any" placeholder="30" value={minutes} onChange={(event) => setMinutes(event.target.value)} />
         </label>
