@@ -14,6 +14,7 @@ import {
   recentPRs,
   totalVolume,
 } from '../lib/metrics'
+import { movementProgressSummary } from '../lib/movementProgress'
 import { athleteGoalBackend } from '../lib/athleteGoals'
 import AthleteGoalPanel from '../components/AthleteGoalPanel'
 
@@ -84,6 +85,7 @@ export default function ProgressScreen({
   const streak = consistencyStreak(state.history)
   const monthlyPrs = prsThisMonth(state.history)
   const lifetimeVolume = Math.round(totalVolume(state.history))
+  const movement = useMemo(() => movementProgressSummary(state.history), [state.history])
   const currentBest = selectedExercise
     ? personalBest(state.history, selectedExercise)
     : 0
@@ -160,6 +162,23 @@ export default function ProgressScreen({
           <article><small>Lifetime volume</small><strong>{lifetimeVolume.toLocaleString()}<span> lb</span></strong></article>
         </div>
       </section>
+
+      {movement.activities > 0 && (
+        <section className="progress-movement-overview" aria-label="Cardio and mobility progress">
+          <header>
+            <span className="eyebrow">MOVEMENT PROGRESS</span>
+            <h2>Every kind of movement counts.</h2>
+            <p>Only activities you logged are included. Strength metrics remain separate.</p>
+          </header>
+          <div className="progress-movement-stats">
+            <article><small>Cardio</small><strong>{Math.round(movement.cardioMinutes * 10) / 10}<span> min</span></strong></article>
+            <article><small>Mobility</small><strong>{Math.round(movement.mobilityMinutes * 10) / 10}<span> min</span></strong></article>
+            <article><small>Movement sessions</small><strong>{movement.sessionsWithMovement}</strong></article>
+            {movement.miles > 0 && <article><small>Distance logged</small><strong>{Math.round(movement.miles * 100) / 100}<span> mi</span></strong></article>}
+            {movement.kilometers > 0 && <article><small>Distance logged</small><strong>{Math.round(movement.kilometers * 100) / 100}<span> km</span></strong></article>}
+          </div>
+        </section>
+      )}
 
       <button
         className="progress-readiness-entry progress-readiness-entry--quiet"
