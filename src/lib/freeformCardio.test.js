@@ -13,7 +13,7 @@ describe('freeform cardio logging', () => {
   it('records duration and an optional measured distance without inventing metrics', () => {
     const walk = normalizeCardioEntry({ kind: 'walk', minutes: '35', distance: '2.1', unit: 'mi' })
     expect(walk).toMatchObject({ kind: 'walk', durationMinutes: 35, distance: 2.1, distanceUnit: 'mi' })
-    const stretch = normalizeCardioEntry({ kind: 'other', minutes: '15' })
+    const stretch = normalizeCardioEntry({ kind: 'mobility', minutes: '15' })
     expect(stretch).toMatchObject({ durationMinutes: 15, distance: null })
     expect(hasLoggedWorkoutActivity([], [walk])).toBe(true)
     expect(hasLoggedWorkoutActivity([], [])).toBe(false)
