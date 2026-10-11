@@ -305,6 +305,20 @@ export default function CompletionScreen({
           ) : null}
         </div>
 
+        {summary.cardioEntries.length > 0 && (
+          <section className="freeform-completion-breakdown" aria-label="Completed movement breakdown">
+            <span className="eyebrow">YOUR MOVEMENT</span>
+            <div className="freeform-completion-activities">
+              {summary.cardioEntries.map((entry, index) => (
+                <article key={entry.id ?? index}>
+                  <strong>{entry.kind === 'mobility' ? 'Stretch & mobility' : String(entry.kind).replaceAll('_', ' ').replace(/^./, (first) => first.toUpperCase())}</strong>
+                  <span>{entry.durationMinutes} min{entry.distance != null ? ` · ${entry.distance} ${entry.distanceUnit ?? 'mi'}` : ''}</span>
+                </article>
+              ))}
+            </div>
+          </section>
+        )}
+
         <p className="completion-coach-followup-note">
           Coach follow-up:{' '}
           {openCoachFollowUpCount > 0
