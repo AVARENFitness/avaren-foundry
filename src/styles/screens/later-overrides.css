@@ -8425,3 +8425,15 @@ body > .nutrition-food-sheet-backdrop > .nutrition-food-sheet {
 .freeform-activity-group { margin: 0 0 16px; }
 .freeform-activity-group h4, .freeform-log-subtitle { margin: 0 0 11px; color: #c4a46a; font-size: 12px; font-weight: 700; letter-spacing: .055em; }
 .gym-freeform-empty .gym-add-first-exercise .eyebrow { display: block; margin-bottom: 8px; }
+
+/* Mixed-session entry correction without leaving the workout. */
+.freeform-entry-actions { display: inline-flex; align-items: center; flex: none; gap: 6px; }
+.freeform-entry-form-actions { display: flex; gap: 9px; align-items: center; }
+.freeform-entry-form-actions .freeform-cardio-add { flex: 1; min-width: 0; }
+.freeform-entry-cancel {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  min-height: 48px; margin-top: 18px; padding: 0 13px;
+  border: 1px solid #514b42; border-radius: 12px; background: #202123;
+  color: #d5cbbc; font-size: 14px;
+}
+.freeform-entry-cancel:focus-visible { outline: 2px solid #c7a45d; outline-offset: 2px; }
