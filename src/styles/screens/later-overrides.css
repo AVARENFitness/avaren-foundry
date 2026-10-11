@@ -8464,3 +8464,20 @@ body > .nutrition-food-sheet-backdrop > .nutrition-food-sheet {
 .progress-movement-stats small { color: #aaa49a; font-size: 12px; }
 .progress-movement-stats strong { color: #f4e8d1; font-size: clamp(19px, 5vw, 26px); font-variant-numeric: tabular-nums; }
 .progress-movement-stats strong span { font-size: 13px; color: #c3a773; }
+
+/* Six-week, evidence-only movement trend; mobile-first and accessible. */
+.progress-movement-trends { margin-top: 22px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,.1); }
+.progress-movement-trends-title { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; align-items: baseline; }
+.progress-movement-trends-title strong { color: #f4e8d1; font-size: 16px; }
+.progress-movement-trends-title span { color: #ada69b; font-size: 12px; }
+.progress-movement-legend { display: flex; gap: 17px; margin: 12px 0; color: #c4c0b8; font-size: 12px; }
+.progress-movement-legend span:before { content: ''; display: inline-block; vertical-align: middle; width: 9px; height: 9px; margin-right: 6px; border-radius: 3px; background: #b58e52; }
+.progress-movement-legend span:nth-child(2):before { background: #6e827b; }
+.progress-movement-bars { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); align-items: end; gap: clamp(5px, 2vw, 14px); }
+.progress-movement-week { display: flex; flex-direction: column; align-items: center; gap: 7px; min-width: 0; }
+.progress-movement-week-value { font-size: 11px; color: #e2d6c2; font-variant-numeric: tabular-nums; }
+.progress-movement-bar-track { display: flex; flex-direction: column-reverse; width: min(100%, 34px); height: 112px; overflow: hidden; border-radius: 6px 6px 3px 3px; background: rgba(255,255,255,.045); }
+.progress-movement-bar-cardio { background: #b58e52; width: 100%; }
+.progress-movement-bar-mobility { background: #6e827b; width: 100%; }
+.progress-movement-week small { color: #a9a197; font-size: 10px; white-space: nowrap; }
+.progress-movement-trends > p { margin: 14px 0 0; font-size: 12px; color: #a9a197; }
