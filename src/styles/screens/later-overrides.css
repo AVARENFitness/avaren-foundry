@@ -8454,3 +8454,13 @@ body > .nutrition-food-sheet-backdrop > .nutrition-food-sheet {
 /* Keep optional named activities legible on narrow phones. */
 .freeform-cardio-form .freeform-custom-activity-name { grid-column: 1 / -1; }
 .freeform-cardio-form .freeform-custom-activity-name input { width: 100%; }
+
+/* Movement progress complements — never conflates — strength statistics. */
+.progress-movement-overview { margin: 16px 0 20px; padding: clamp(18px, 4vw, 26px); background: linear-gradient(145deg, #191a1c, #111315); border: 1px solid rgba(203,169,104,.22); border-radius: 21px; }
+.progress-movement-overview h2 { margin: 7px 0; font-size: clamp(20px, 5vw, 27px); letter-spacing: -.035em; }
+.progress-movement-overview p { margin: 0 0 18px; color: #aba397; font-size: 14px; line-height: 1.5; }
+.progress-movement-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
+.progress-movement-stats article { display: flex; flex-direction: column; gap: 7px; padding: 14px; background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.07); border-radius: 13px; min-width: 0; }
+.progress-movement-stats small { color: #aaa49a; font-size: 12px; }
+.progress-movement-stats strong { color: #f4e8d1; font-size: clamp(19px, 5vw, 26px); font-variant-numeric: tabular-nums; }
+.progress-movement-stats strong span { font-size: 13px; color: #c3a773; }

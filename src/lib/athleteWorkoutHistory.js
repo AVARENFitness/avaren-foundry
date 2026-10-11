@@ -70,9 +70,18 @@ export const preferRicherSession = (first, second) => {
 
   const firstSets = Array.isArray(first.sets) ? first.sets.length : 0
   const secondSets = Array.isArray(second.sets) ? second.sets.length : 0
-  if (secondSets !== firstSets) {
-    return secondSets > firstSets ? second : first
-  }
+  const firstMovement = Array.isArray(first.cardioEntries) ? first.cardioEntries.length : 0
+  const secondMovement = Array.isArray(second.cardioEntries) ? second.cardioEntries.length : 0
+
+  // Do not let a stale, incomplete strength-only or movement-only copy win.
+  // Prefer the version containing both categories when the other is missing one.
+  if (firstSets > secondSets && firstMovement >= secondMovement) return first
+  if (secondSets > firstSets && secondMovement >= firstMovement) return second
+  if (firstMovement > secondMovement && firstSets >= secondSets) return first
+  if (secondMovement > firstMovement && secondSets >= firstSets) return second
+
+  if (secondSets !== firstSets) return secondSets > firstSets ? second : first
+  if (secondMovement !== firstMovement) return secondMovement > firstMovement ? second : first
 
   return second.reflection || second.notes ? second : first
 }
