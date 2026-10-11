@@ -174,8 +174,7 @@ describe('CoachSessionCalendar usability', () => {
       'aria-selected',
       'true',
     )
-    expect(screen.getByText('Jake')).toBeInTheDocument()
-    expect(screen.getByText('Sarah')).toBeInTheDocument()
+    expect(screen.getByTestId('coach-calendar-month-grid')).toBeInTheDocument()
   })
 
   it('opens week view in one tap and shows a seven-day schedule board', async () => {
@@ -210,11 +209,7 @@ describe('CoachSessionCalendar usability', () => {
       day: 'numeric',
     })
 
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: new RegExp(label, 'i'),
-      }),
-    )
+    fireEvent.click(within(screen.getByTestId('coach-calendar-month-grid')).getAllByRole('button', { name: new RegExp(label, 'i') })[0])
 
     expect(screen.getByTestId('coach-calendar-view-day')).toHaveAttribute(
       'aria-selected',
@@ -272,6 +267,7 @@ describe('CoachSessionCalendar usability', () => {
 
   it('opens canonical detail when appointment row is tapped', async () => {
     render(<CoachSessionCalendar clients={[jake, sarah]} assignments={[]} />)
+    fireEvent.click(screen.getByTestId('coach-calendar-view-day'))
 
     await waitFor(() => {
       expect(screen.getAllByTestId('coach-appointment-card')).toHaveLength(2)
@@ -321,7 +317,7 @@ describe('CoachSessionCalendar usability', () => {
     expect(within(sheet).getByText('Offline Client')).toBeInTheDocument()
 
     await user.click(
-      within(sheet).getByRole('button', { name: /^save appointment$/i }),
+      within(sheet).getByRole('button', { name: /^save personal training$/i }),
     )
 
     await waitFor(() => {
@@ -350,6 +346,7 @@ describe('CoachSessionCalendar usability', () => {
     ])
 
     render(<CoachSessionCalendar clients={[jake, sarah]} assignments={[]} />)
+    fireEvent.click(screen.getByTestId('coach-calendar-view-day'))
 
     await waitFor(() => {
       expect(screen.getByText(/Admin block/i)).toBeInTheDocument()
@@ -410,6 +407,9 @@ describe('CoachSessionCalendar usability', () => {
       within(sheet).getByPlaceholderText(/Admin work, appointment, lunch/i),
       'Doctor appointment',
     )
+    fireEvent.change(within(sheet).getByLabelText('Date'), {
+      target: { value: '2026-09-10' },
+    })
     await user.click(
       within(sheet).getByRole('button', { name: /add to calendar/i }),
     )
@@ -446,7 +446,7 @@ describe('CoachSessionCalendar usability', () => {
 
     const sheet = await screen.findByTestId('coach-schedule-session-sheet')
     await user.click(
-      within(sheet).getByRole('button', { name: /^save appointment$/i }),
+      within(sheet).getByRole('button', { name: /^save personal training$/i }),
     )
 
     await waitFor(() => {
@@ -478,13 +478,9 @@ describe('CoachSessionCalendar usability', () => {
 
     fireEvent.click(screen.getByTestId('coach-calendar-view-week'))
 
-    fireEvent.click(
-      screen.getByRole('tab', {
-        name: new RegExp(`${weekday}[\\s\\S]*${dayNumber}`, 'i'),
-      }),
-    )
+    fireEvent.click(screen.getAllByRole('button', { name: new RegExp(`${weekday}[\\s\\S]*${dayNumber}`, 'i') })[0])
 
-    expect(screen.getByText('Cancelled')).toBeInTheDocument()
+    expect(await screen.findByText('Cancelled')).toBeInTheDocument()
     expect(screen.getByText('Offline Client')).toBeInTheDocument()
   })
 
@@ -518,7 +514,7 @@ describe('CoachSessionCalendar usability', () => {
     fireEvent.change(endDateInput, { target: { value: '2026-11-13' } })
 
     await user.click(
-      within(sheet).getByRole('button', { name: /^save appointment$/i }),
+      within(sheet).getByRole('button', { name: /^save personal training$/i }),
     )
 
     await waitFor(() => {

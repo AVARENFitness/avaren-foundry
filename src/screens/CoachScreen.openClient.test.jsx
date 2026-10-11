@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import CoachScreen from './CoachScreen'
 import {
@@ -11,11 +11,25 @@ const mockListClientPassBalances = vi.fn()
 const mockListClientPassLedger = vi.fn()
 const mockListCoachClientFollowUps = vi.fn()
 
+
+vi.mock('../lib/athleteGoals', async () => {
+  const actual = await vi.importActual('../lib/athleteGoals')
+  return {
+    ...actual,
+    athleteGoalBackend: {
+      ...actual.athleteGoalBackend,
+      getAthleteGoal: vi.fn().mockResolvedValue(null),
+    },
+  }
+})
+
 vi.mock('../lib/coachBackend', () => ({
   coachBackend: {
     listCoachRoster: vi.fn(),
     listCoachInvitations: vi.fn(),
     listCoachAssignments: vi.fn(),
+    listCoachLeads: vi.fn().mockResolvedValue([]),
+    listCoachConnectionRequests: vi.fn().mockResolvedValue([]),
     listWorkoutTemplates: vi.fn(),
     getClientNotes: (...args) => mockGetClientNotes(...args),
     getSessionPackage: vi.fn().mockResolvedValue(null),
@@ -98,6 +112,12 @@ const archivedAlex = normalizeBusinessClientRecord({
   hasCoachBridge: false,
 })
 
+const openManagementSection = async () => {
+  await waitFor(() => expect(screen.getByRole('button', { name: /^more$/i })).toBeInTheDocument())
+  fireEvent.click(screen.getByRole('button', { name: /^more$/i }))
+  fireEvent.click(screen.getByRole('button', { name: /^manage$/i }))
+}
+
 describe('CoachScreen open client path', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -173,6 +193,7 @@ describe('CoachScreen open client path', () => {
       />,
     )
 
+    await openManagementSection()
     await waitFor(() => {
       expect(screen.getByTestId('coach-end-coaching-button')).toBeInTheDocument()
     })
@@ -197,6 +218,7 @@ describe('CoachScreen open client path', () => {
       expect(screen.getByText(/active client · connected to avaren/i)).toBeInTheDocument()
     })
 
+    await openManagementSection()
     expect(screen.getByTestId('coach-end-coaching-button')).toBeInTheDocument()
     expect(screen.getByTestId('coach-unlink-account-button')).toBeInTheDocument()
   })
@@ -212,6 +234,7 @@ describe('CoachScreen open client path', () => {
       />,
     )
 
+    await openManagementSection()
     await waitFor(() => {
       expect(screen.getByTestId('coach-reopen-coaching-button')).toBeInTheDocument()
     })

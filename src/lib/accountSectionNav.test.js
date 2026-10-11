@@ -8,9 +8,10 @@ import {
 } from './accountSectionNav'
 
 describe('accountSectionNav', () => {
-  it('defines four account tabs without Overview', () => {
+  it('defines five account tabs without Overview', () => {
     expect(ACCOUNT_SECTIONS).toEqual([
       'Training',
+      'Coaching',
       'Recovery',
       'Account',
       'Support',

@@ -3,7 +3,9 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
 describe('AVAREN motion system', () => {
-  const styles = readFileSync(resolve(process.cwd(), 'src/styles.css'), 'utf8')
+  const styles = ['src/styles.css', 'src/styles/screens/later-overrides.css']
+    .map((path) => readFileSync(resolve(process.cwd(), path), 'utf8'))
+    .join('\n')
   const navigation = readFileSync(
     resolve(process.cwd(), 'src/hooks/useNavigation.js'),
     'utf8',

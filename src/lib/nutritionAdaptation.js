@@ -295,11 +295,11 @@ export function analyzeNutritionAdaptation({
   let direction = 'hold'
 
   if (percentPerWeek < rule.minPercentPerWeek) {
-    adjustmentCalories = rule.fastDelta
-    direction = 'too_fast'
+    adjustmentCalories = goal === 'build_muscle' ? rule.slowDelta : rule.fastDelta
+    direction = goal === 'build_muscle' ? 'too_slow' : 'too_fast'
   } else if (percentPerWeek > rule.maxPercentPerWeek) {
-    adjustmentCalories = rule.slowDelta
-    direction = 'too_slow'
+    adjustmentCalories = goal === 'build_muscle' ? rule.fastDelta : rule.slowDelta
+    direction = goal === 'build_muscle' ? 'too_fast' : 'too_slow'
   }
 
   const trainingDemand = analyzeTrainingDemandStabilization({

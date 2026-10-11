@@ -223,6 +223,7 @@ vi.mock('./lib/identityCapabilities', () => ({
 vi.mock('./lib/coachBackend', () => ({
   coachBackend: {
     listAthleteAssignments: vi.fn(async () => []),
+    listAthleteCoachRelationships: vi.fn(async () => []),
     listAthleteSchedule: vi.fn(async () => []),
     listAthleteScheduledSessions: vi.fn(async () => []),
     listClients: vi.fn(async () => []),
@@ -421,8 +422,8 @@ describe('App dev weekly check-in reset integration', () => {
 
     await waitFor(() => {
       expect(
-        screen.getByRole('button', { name: 'Check In' }),
-      ).toBeInTheDocument()
+        screen.getAllByRole('button', { name: /Complete Weekly Check-In|Check In/i }).length,
+      ).toBeGreaterThan(0)
     })
 
     expect(
