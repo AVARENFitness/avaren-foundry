@@ -13,6 +13,7 @@ import {
 } from '../../lib/coachPass'
 import {
   PASS_CREDIT_REASON,
+  listEligibleDebitPasses,
   formatPassLedgerHistoryHeadline,
   formatPassLedgerQuantityLabel,
   resolveManualCreditLedgerReason,
@@ -38,6 +39,7 @@ export default function CoachClientTrainingPassPanel({
   const [showAdjust, setShowAdjust] = useState(false)
   const [creating, setCreating] = useState(false)
   const [adjusting, setAdjusting] = useState(false)
+  const [quickRemoving, setQuickRemoving] = useState(false)
   const [createError, setCreateError] = useState('')
   const [adjustError, setAdjustError] = useState('')
   const [legacyRemaining, setLegacyRemaining] = useState(null)
@@ -123,6 +125,8 @@ export default function CoachClientTrainingPassPanel({
     [passes, ledger],
   )
   const primaryPass = summary.primaryPass
+  const eligibleDebitPasses = useMemo(() => listEligibleDebitPasses(passes), [passes])
+  const quickDebitPass = eligibleDebitPasses.length === 1 ? eligibleDebitPasses[0] : null
   const hasActivePass = summary.totalBalance > 0
   const lowPassNotice =
     hasActivePass && summary.totalBalance <= 2
@@ -219,6 +223,38 @@ export default function CoachClientTrainingPassPanel({
       appUi.toast(message, 'error')
     } finally {
       setAdjusting(false)
+    }
+  }
+
+  const handleQuickCompletedSession = async () => {
+    if (!resolvedBusinessClientId || adjusting || quickRemoving || loading) return
+    // An ambiguous pass selection must go through the existing adjustment UI.
+    if (!quickDebitPass) {
+      openAdjustSheet()
+      return
+    }
+
+    setQuickRemoving(true)
+    setAdjustError('')
+    try {
+      const result = await coachBackend.applyCoachClientPassManualDebit({
+        passId: quickDebitPass.id,
+        quantity: 1,
+        reason: 'Completed session',
+        balanceBefore: quickDebitPass.balance,
+      })
+      if (!result.ok) throw new Error(result.message)
+      await loadPassData()
+      appUi.toast(
+        `Completed session · 1 pass removed · ${result.balanceBefore} → ${result.balanceAfter} remaining`,
+        'success',
+      )
+    } catch (error) {
+      const message = mapPassAdjustmentError(error)
+      setAdjustError(message)
+      appUi.toast(message, 'error')
+    } finally {
+      setQuickRemoving(false)
     }
   }
 
@@ -361,6 +397,16 @@ export default function CoachClientTrainingPassPanel({
             </small>
           ) : null}
           <div className="coach-client-training-pass-actions">
+            <button
+              type="button"
+              className="gold-button machined coach-primary-action"
+              data-testid="coach-completed-session-pass-button"
+              disabled={loading || adjusting || quickRemoving || eligibleDebitPasses.length === 0}
+              onClick={handleQuickCompletedSession}
+              title={eligibleDebitPasses.length > 1 ? 'Select which pass to charge' : 'Record one completed session'}
+            >
+              {quickRemoving ? 'Removing…' : 'Remove 1 pass'}
+            </button>
             <button
               type="button"
               className="coach-secondary-button"
