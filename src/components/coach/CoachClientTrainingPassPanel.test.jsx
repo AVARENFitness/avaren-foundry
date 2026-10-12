@@ -265,6 +265,49 @@ describe('CoachClientTrainingPassPanel', () => {
     )
   })
 
+  it('removes one pass for a completed session without requesting a reason', async () => {
+    const user = userEvent.setup()
+    render(<CoachClientTrainingPassPanel client={clientWithBusinessId} />)
+
+    const quick = await screen.findByTestId('coach-completed-session-pass-button')
+    await user.click(quick)
+    await waitFor(() => expect(coachBackend.applyCoachClientPassManualDebit).toHaveBeenCalledTimes(1))
+    expect(coachBackend.applyCoachClientPassManualDebit).toHaveBeenCalledWith({
+      passId: 'pass-1',
+      quantity: 1,
+      reason: 'Completed session',
+      balanceBefore: 4,
+    })
+    expect(screen.queryByRole('dialog', { name: /pass adjustment/i })).not.toBeInTheDocument()
+    await waitFor(() => expect(coachBackend.listClientPassBalances).toHaveBeenCalledTimes(2))
+  })
+
+  it('blocks a second quick charge while the first is pending', async () => {
+    const user = userEvent.setup()
+    let resolveDebit
+    coachBackend.applyCoachClientPassManualDebit.mockImplementation(() =>
+      new Promise((resolve) => { resolveDebit = resolve }))
+    render(<CoachClientTrainingPassPanel client={clientWithBusinessId} />)
+    const quick = await screen.findByTestId('coach-completed-session-pass-button')
+    await user.click(quick)
+    expect(quick).toBeDisabled()
+    expect(coachBackend.applyCoachClientPassManualDebit).toHaveBeenCalledTimes(1)
+    resolveDebit({ ok: true, balanceBefore: 4, balanceAfter: 3 })
+    await waitFor(() => expect(quick).not.toBeDisabled())
+  })
+
+  it('opens the adjustment picker instead of guessing when multiple passes are eligible', async () => {
+    const user = userEvent.setup()
+    coachBackend.listClientPassBalances.mockResolvedValue([
+      activePassBalance[0],
+      { ...activePassBalance[0], pass_id: 'pass-2', name: 'Second package' },
+    ])
+    render(<CoachClientTrainingPassPanel client={clientWithBusinessId} />)
+    await user.click(await screen.findByTestId('coach-completed-session-pass-button'))
+    expect(coachBackend.applyCoachClientPassManualDebit).not.toHaveBeenCalled()
+    expect(screen.getByRole('dialog', { name: /pass adjustment/i })).toBeInTheDocument()
+  })
+
   it('works for offline clients with business_client_id only', async () => {
     render(
       <CoachClientTrainingPassPanel
