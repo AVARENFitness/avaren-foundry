@@ -293,7 +293,9 @@ describe('CoachClientTrainingPassPanel', () => {
     expect(quick).toBeDisabled()
     expect(coachBackend.applyCoachClientPassManualDebit).toHaveBeenCalledTimes(1)
     resolveDebit({ ok: true, balanceBefore: 4, balanceAfter: 3 })
-    await waitFor(() => expect(quick).not.toBeDisabled())
+    await waitFor(() => expect(coachBackend.listClientPassBalances).toHaveBeenCalledTimes(2))
+    await waitFor(() => expect(appUi.toast).toHaveBeenCalledWith(expect.stringContaining('1 pass removed'), 'success'))
+    expect(coachBackend.applyCoachClientPassManualDebit).toHaveBeenCalledTimes(1)
   })
 
   it('opens the adjustment picker instead of guessing when multiple passes are eligible', async () => {
