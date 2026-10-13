@@ -186,6 +186,17 @@ describe('NutritionScreen logging UX regressions', () => {
     expect(source).toContain('How much did you have?')
   })
 
+  it('falls back to label nutrition when native and visual barcode matching fail', () => {
+    const start = source.indexOf('const runFoodScan = async')
+    const end = source.indexOf('const scanServingBasis =', start)
+    const scan = source.slice(start, end)
+    expect(scan).toContain("const barcode = normalizeBarcodeDigits(result.barcode)")
+    expect(scan).toContain("await openBarcodeMatch(barcode)")
+    expect(scan).toContain("mode: 'food'")
+    expect(scan).toContain("setScanMode('food')")
+    expect(scan).toContain('No verified barcode match or readable nutrition label')
+  })
+
   it('keeps barcode photos on the immediate barcode path', () => {
     expect(source).toContain("if (mode === 'barcode' && file)")
     expect(source).toContain('detectNutritionBarcode(file)')
