@@ -151,6 +151,21 @@ describe('NutritionScreen logging UX regressions', () => {
     expect(source).toContain("setTab('Today')")
   })
 
+  it('moves Today quick captures to the Log tab before showing the scan sheet', () => {
+    const start = source.indexOf('const runFoodScan = async')
+    const end = source.indexOf('const scanServingBasis =', start)
+    const body = source.slice(start, end)
+    expect(body).toContain("setTab('Meals')")
+    expect(body.indexOf("setTab('Meals')")).toBeLessThan(body.indexOf("setScanPreview(prepared)"))
+  })
+
+  it('provides a barcode entry field within the visible error sheet', () => {
+    expect(source).toContain('scanMode === \'barcode\'')
+    expect(source).toContain('aria-label="Barcode digits"')
+    expect(source).toContain('Look up barcode')
+    expect(source).toContain('runFoodScan(null, scanContext, scanMode)')
+  })
+
   it('keeps camera and barcode capture inputs mounted for Today quick log', () => {
     const nav = source.indexOf('className="nutrition-tabs"')
     const today = source.indexOf("tab === 'Today'")
