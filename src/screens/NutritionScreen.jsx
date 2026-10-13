@@ -207,6 +207,7 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
   const uploadInputRef = useRef(null)
   const barcodeInputRef = useRef(null)
   const [scanState, setScanState] = useState('idle')
+  const [scanMode, setScanMode] = useState('food')
   const [scanError, setScanError] = useState('')
   const [scanPreview, setScanPreview] = useState('')
   const [scanContext, setScanContext] = useState('')
@@ -707,6 +708,7 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
 
   const resetFoodScan = () => {
     setScanState('idle')
+    setScanMode('food')
     setScanError('')
     setScanPreview('')
     setScanContext('')
@@ -770,6 +772,10 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
 
   const runFoodScan = async (file, contextOverride = null, mode = 'food') => {
     try {
+      // The scan sheet lives on the Log tab. Always navigate there first,
+      // including when a camera shortcut was launched from Today.
+      setTab('Meals')
+      setScanMode(mode)
       setScanError('')
 
       if (mode === 'food' && file) {
@@ -2410,12 +2416,29 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
                 <strong>Couldn’t analyze this photo.</strong>
                 <span>{scanError}</span>
                 <p>Your photo and any details you entered are still here.</p>
+                {scanMode === 'barcode' ? (
+                  <label className="nutrition-log-manual-barcode">
+                    <span>Enter barcode digits</span>
+                    <input
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      aria-label="Barcode digits"
+                      placeholder="8, 12 or 13 digits"
+                      value={barcodeManualValue}
+                      onChange={(event) => setBarcodeManualValue(event.target.value.replace(/\\D/g, '').slice(0, 13))}
+                    />
+                  </label>
+                ) : null
                 <div className="nutrition-scan-preanalysis-actions">
                   <button type="button" className="nutrition-secondary-button" onClick={() => {
                     setScanError('')
                     setScanState('context')
-                  }}>Edit details</button>
-                  <button type="button" className="gold-button machined" onClick={() => runFoodScan(null, scanContext, 'food')}>Try again</button>
+                  }}>{scanMode === 'barcode' ? 'Scan as food photo' : 'Edit details'}</button>
+                  {scanMode === 'barcode' && normalizeBarcodeDigits(barcodeManualValue) ? (
+                    <button type="button" className="gold-button machined" onClick={lookupManualBarcode}>Look up barcode</button>
+                  ) : (
+                    <button type="button" className="gold-button machined" onClick={() => runFoodScan(null, scanContext, scanMode)}>Try again</button>
+                  )}
                 </div>
               </div> : null}
 
