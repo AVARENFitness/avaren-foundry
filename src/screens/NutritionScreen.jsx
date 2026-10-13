@@ -763,7 +763,7 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
       setScanError('')
       await openBarcodeMatch(barcodeManualValue)
     } catch (error) {
-      setScanState('idle')
+      setScanState(scanPreview ? 'error' : 'idle')
       const message = error?.message ?? 'Barcode lookup failed.'
       setScanError(message)
       setNotice(message)
