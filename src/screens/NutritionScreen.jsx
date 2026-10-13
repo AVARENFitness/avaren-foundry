@@ -805,7 +805,7 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
       if (!prepared) throw new Error('Choose a photo first.')
       if (file) setScanPreview(prepared)
 
-      const result = await analyzeNutritionImage({
+      let result = await analyzeNutritionImage({
         imageDataUrl: prepared,
         context: contextOverride ?? scanContext,
         mode,
@@ -813,13 +813,30 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
 
       if (mode === 'barcode') {
         const barcode = normalizeBarcodeDigits(result.barcode)
-        if (!barcode) {
+        if (barcode) {
+          setBarcodeManualValue(barcode)
+          try {
+            await openBarcodeMatch(barcode)
+            return
+          } catch {
+            // A readable code is not always present in the verified database.
+            // Preserve its digits for manual lookup, but try the label itself.
+          }
+        }
+        // iOS Safari lacks native BarcodeDetector. A failed barcode read must
+        // not block a usable nutrition label or recognizable packaged food.
+        try {
+          result = await analyzeNutritionImage({
+            imageDataUrl: prepared,
+            context: contextOverride ?? scanContext,
+            mode: 'food',
+          })
+        } catch {
           throw new Error(
-            'The barcode was not readable. Try a closer photo or enter the digits below.',
+            'No verified barcode match or readable nutrition label was found. Try a clear photo of the full Nutrition Facts panel, or enter the barcode digits below.',
           )
         }
-        await openBarcodeMatch(barcode)
-        return
+        setScanMode('food')
       }
 
       const draft = {
