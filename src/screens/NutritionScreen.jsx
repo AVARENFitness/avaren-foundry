@@ -2428,7 +2428,7 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
                       onChange={(event) => setBarcodeManualValue(event.target.value.replace(/\\D/g, '').slice(0, 13))}
                     />
                   </label>
-                ) : null
+                ) : null}
                 <div className="nutrition-scan-preanalysis-actions">
                   <button type="button" className="nutrition-secondary-button" onClick={() => {
                     setScanError('')
