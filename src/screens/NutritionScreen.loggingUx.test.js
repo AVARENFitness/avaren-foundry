@@ -29,7 +29,7 @@ describe('NutritionScreen logging UX regressions', () => {
     expect(source).toContain('Create custom food')
     expect(source).toContain('Take photo')
     expect(source).toContain('Choose photo')
-    expect(source).toContain('Or enter 8, 12, or 13 digits')
+    expect(source).not.toContain('Or enter 8, 12, or 13 digits')
     expect(source).not.toContain('className="nutrition-category-strip"')
     expect(source).not.toContain('Meal details (optional)')
   })
@@ -217,7 +217,7 @@ describe('NutritionScreen logging UX regressions', () => {
     expect(source).toContain('detectNutritionBarcode(file)')
     expect(source).not.toContain('<span>Barcode</span>')
     expect(source).toContain('Look up barcode')
-    expect(source).toContain('Or enter 8, 12, or 13 digits')
+    expect(source).not.toContain('Or enter 8, 12, or 13 digits')
   })
 
   it('shows measured quantities in the food log', () => {
