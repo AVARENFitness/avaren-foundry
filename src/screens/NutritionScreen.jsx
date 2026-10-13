@@ -23,7 +23,6 @@ import {
   Watch,
   Camera,
   ImagePlus,
-  ScanLine,
 } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
@@ -805,7 +804,7 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
       if (!prepared) throw new Error('Choose a photo first.')
       if (file) setScanPreview(prepared)
 
-      const result = await analyzeNutritionImage({
+      let result = await analyzeNutritionImage({
         imageDataUrl: prepared,
         context: contextOverride ?? scanContext,
         mode,
@@ -813,13 +812,30 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
 
       if (mode === 'barcode') {
         const barcode = normalizeBarcodeDigits(result.barcode)
-        if (!barcode) {
+        if (barcode) {
+          setBarcodeManualValue(barcode)
+          try {
+            await openBarcodeMatch(barcode)
+            return
+          } catch {
+            // A readable code is not always present in the verified database.
+            // Preserve its digits for manual lookup, but try the label itself.
+          }
+        }
+        // iOS Safari lacks native BarcodeDetector. A failed barcode read must
+        // not block a usable nutrition label or recognizable packaged food.
+        try {
+          result = await analyzeNutritionImage({
+            imageDataUrl: prepared,
+            context: contextOverride ?? scanContext,
+            mode: 'food',
+          })
+        } catch {
           throw new Error(
-            'The barcode was not readable. Try a closer photo or enter the digits below.',
+            'No verified barcode match or readable nutrition label was found. Try a clear photo of the full Nutrition Facts panel, or enter the barcode digits below.',
           )
         }
-        await openBarcodeMatch(barcode)
-        return
+        setScanMode('food')
       }
 
       const draft = {
@@ -1877,9 +1893,8 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
             <strong>Add food in seconds</strong>
           </div>
           <div className="nutrition-quick-log-actions">
-            <button onClick={() => setTab('Meals')}><Search size={17}/><span>Search</span></button>
-            <button onClick={() => cameraInputRef.current?.click()}><Camera size={17}/><span>Camera</span></button>
-            <button onClick={() => barcodeInputRef.current?.click()}><ScanLine size={17}/><span>Barcode</span></button>
+            <button onClick={() => setTab('Meals')}><Search size={17}/><span>Search food</span></button>
+            <button onClick={() => cameraInputRef.current?.click()}><Camera size={17}/><span>Scan food</span></button>
           </div>
         </section>
 
@@ -2121,27 +2136,13 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
               onClick={() => setLogCaptureMode((mode) => mode === 'photo' ? null : 'photo')}
             >
               <Camera size={18}/>
-              <span>Photo</span>
-            </button>
-            <button
-              type="button"
-              className={logCaptureMode === 'barcode' ? 'active' : ''}
-              onClick={() => setLogCaptureMode((mode) => mode === 'barcode' ? null : 'barcode')}
-            >
-              <ScanLine size={18}/>
-              <span>Barcode</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setLogCaptureMode(null)
-                setShowCustomFood(true)
-              }}
-            >
-              <Plus size={18}/>
-              <span>Custom</span>
+              <span>Scan food</span>
             </button>
           </div>
+
+          <button type="button" className="nutrition-create-custom-inline" onClick={() => { setLogCaptureMode(null); setShowCustomFood(true) }}>
+            <Plus size={16}/><span>Create custom food</span>
+          </button>
 
           {logCaptureMode === 'photo' ? (
             <div className="nutrition-log-capture-panel">
@@ -2153,36 +2154,6 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
                 <ImagePlus size={17}/>
                 <span><strong>Choose photo</strong><small>Use one from your library</small></span>
               </button>
-            </div>
-          ) : null}
-
-          {logCaptureMode === 'barcode' ? (
-            <div className="nutrition-log-barcode-panel">
-              <button
-                type="button"
-                className="nutrition-log-scan-barcode"
-                onClick={() => barcodeInputRef.current?.click()}
-              >
-                <ScanLine size={17}/>
-                Scan barcode
-              </button>
-              <div className="nutrition-log-manual-barcode">
-                <input
-                  value={barcodeManualValue}
-                  onChange={(event) =>
-                    setBarcodeManualValue(event.target.value.replace(/\D/g, '').slice(0, 13))
-                  }
-                  inputMode="numeric"
-                  placeholder="Or enter 8, 12, or 13 digits"
-                />
-                <button
-                  type="button"
-                  onClick={lookupManualBarcode}
-                  disabled={!normalizeBarcodeDigits(barcodeManualValue)}
-                >
-                  Look up
-                </button>
-              </div>
             </div>
           ) : null}
 
