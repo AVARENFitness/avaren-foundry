@@ -24,12 +24,23 @@ describe('NutritionScreen logging UX regressions', () => {
     )
     expect(source).toContain('className="nutrition-log-quick-actions"')
     expect(source).toContain("logCaptureMode === 'photo'")
-    expect(source).toContain("logCaptureMode === 'barcode'")
+    expect(source).not.toContain("logCaptureMode === 'barcode'")
+    expect(source).toContain('<span>Scan food</span>')
+    expect(source).toContain('Create custom food')
     expect(source).toContain('Take photo')
     expect(source).toContain('Choose photo')
     expect(source).toContain('Or enter 8, 12, or 13 digits')
     expect(source).not.toContain('className="nutrition-category-strip"')
     expect(source).not.toContain('Meal details (optional)')
+  })
+
+  it('keeps only Scan food and Search food as Today quick actions', () => {
+    const start = source.indexOf('className="nutrition-quick-log-launcher"')
+    const end = source.indexOf('className="nutrition-quick-grid', start)
+    const actions = source.slice(start, end)
+    expect(actions).toContain('<span>Search food</span>')
+    expect(actions).toContain('<span>Scan food</span>')
+    expect(actions).not.toContain('<span>Barcode</span>')
   })
 
   it('limits idle quick logging to recent or favorite foods', () => {
@@ -204,7 +215,8 @@ describe('NutritionScreen logging UX regressions', () => {
 
   it('uses native barcode detection first and keeps a manual fallback', () => {
     expect(source).toContain('detectNutritionBarcode(file)')
-    expect(source).toContain('Scan barcode')
+    expect(source).not.toContain('<span>Barcode</span>')
+    expect(source).toContain('Look up barcode')
     expect(source).toContain('Or enter 8, 12, or 13 digits')
   })
 
