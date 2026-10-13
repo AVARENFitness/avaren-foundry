@@ -1,3 +1,4 @@
+import { validateNutritionLabelResult } from './nutritionLabelValidation'
 import { supabase } from './supabase'
 
 const MAX_IMAGE_EDGE = 1600
@@ -106,6 +107,8 @@ export async function analyzeNutritionImage({ imageDataUrl, context = '', mode =
   }
 
   const result = normalizeNutritionImageResult(data.result)
+  const labelCheck = validateNutritionLabelResult(result)
+  if (!labelCheck.ok) throw new Error(labelCheck.message)
 
   if (result?.kind === 'meal' && mealMacroTotal(result) <= 0) {
     throw new Error(
