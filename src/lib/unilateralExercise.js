@@ -3,6 +3,7 @@ import { COMMON_EXERCISES } from '../data/commonExercises'
 export const SIDES_MODE = {
   SHARED: 'shared',
   DIFFERENT: 'different',
+  BILATERAL: 'bilateral',
 }
 
 const normalizeExerciseName = (value = '') =>
@@ -64,6 +65,10 @@ export const isUnilateralExercise = (exerciseOrName = '') => {
 
 export const resolveSidesMode = (set = {}, exerciseOrName = null) => {
   const name = resolveExerciseName(exerciseOrName ?? set?.exercise ?? '')
+  if (set?.sidesMode === SIDES_MODE.BILATERAL) return null
+  if (set?.sidesMode === SIDES_MODE.SHARED || set?.sidesMode === SIDES_MODE.DIFFERENT) {
+    return set.sidesMode
+  }
   if (!isUnilateralExercise(name || exerciseOrName)) return null
   if (set?.sidesMode === SIDES_MODE.DIFFERENT) return SIDES_MODE.DIFFERENT
   return SIDES_MODE.SHARED
