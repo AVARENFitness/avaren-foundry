@@ -140,7 +140,20 @@ export default function FocusExercise({
     emptyLabel,
   } = glance
 
-  const unilateral = isUnilateralExercise(exercise)
+  const unilateral = isUnilateralExercise(exercise) || exercise.sets.some((set) => resolveSidesMode({ ...set, exercise: exercise.name }, exercise) !== null)
+
+  // Keep completed sets immutable when the athlete changes technique mid-workout.
+  const currentSet = exercise.sets[activeSetIndex]
+  const isSingleSide = resolveSidesMode(
+    { ...currentSet, exercise: exercise.name },
+    exercise,
+  ) !== null
+  const isPerHand = currentSet?.weightBasis === 'per_hand'
+  const updatePendingSets = (key, value) => {
+    exercise.sets.forEach((set, index) => {
+      if (!set.done) onSetChange(index, key, value)
+    })
+  }
 
   const entered = exercise.sets.filter((set) =>
     isActiveSetEntered({ ...set, exercise: exercise.name }, loadType),
@@ -220,6 +233,19 @@ export default function FocusExercise({
         </span>
 
         <h1>{exercise.name}</h1>
+
+        <div className="focus-exercise-compact-modes" aria-label="Exercise logging options">
+          <div role="group" aria-label="Sides">
+            <button type="button" aria-pressed={!isSingleSide} className={!isSingleSide ? 'active' : ''} onClick={() => updatePendingSets('sidesMode', SIDES_MODE.BILATERAL)}>Regular</button>
+            <button type="button" aria-pressed={isSingleSide} className={isSingleSide ? 'active' : ''} onClick={() => updatePendingSets('sidesMode', SIDES_MODE.SHARED)}>Single side</button>
+          </div>
+          {showWeightInput && loadType === 'external' ? (
+            <div role="group" aria-label="Weight entry basis">
+              <button type="button" aria-pressed={!isPerHand} className={!isPerHand ? 'active' : ''} onClick={() => updatePendingSets('weightBasis', 'total')}>Total lb</button>
+              <button type="button" aria-pressed={isPerHand} className={isPerHand ? 'active' : ''} onClick={() => updatePendingSets('weightBasis', 'per_hand')}>Each DB</button>
+            </div>
+          ) : null}
+        </div>
 
         {prescriptionLabel ? (
           <p className="focus-prescription-label">{prescriptionLabel}</p>

@@ -224,11 +224,7 @@ export const activeWorkoutSnapshot = (workout) => {
   const volume = completed.reduce(
     (sum, set) =>
       sum +
-      setLoadVolume({
-        exercise: set.exercise,
-        weight: set.weight,
-        reps: set.reps,
-      }),
+      setLoadVolume(set),
     0,
   )
 

@@ -263,6 +263,7 @@ export const buildCompletedSet = ({
     type: set.type,
     loadType,
     reps,
+    weightBasis: set.weightBasis === 'per_hand' ? 'per_hand' : 'total',
   }
 
   if (mode) {
