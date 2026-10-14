@@ -5,6 +5,7 @@ import {
   formatPassLedgerHistoryHeadline,
   formatPassLedgerQuantityLabel,
   listEligibleDebitPasses,
+  selectQuickDebitPass,
   mapPassAdjustmentError,
   normalizeManualPassAdjustmentResult,
   resolveManualDebitEntryType,
@@ -82,6 +83,17 @@ describe('coachPassAdjustment', () => {
         { id: 'c', status: 'archived', balance: 5 },
       ]).map((pass) => pass.id),
     ).toEqual(['a'])
+  })
+
+  it('selects oldest non-expired pass for one-tap completed session charging', () => {
+    const passes = [
+      { id: 'new', status: 'active', balance: 3, startsAt: '2026-10-01' },
+      { id: 'old', status: 'active', balance: 2, startsAt: '2026-09-01' },
+      { id: 'expired', status: 'active', balance: 1, startsAt: '2026-08-01', expiresAt: '2026-09-01' },
+    ]
+    expect(selectQuickDebitPass(passes, '2026-10-14').id).toBe('old')
+    expect(selectQuickDebitPass(passes.filter((pass) => pass.id !== 'old'), '2026-10-14').id).toBe('new')
+    expect(selectQuickDebitPass([passes[2]], '2026-10-14')).toBeNull()
   })
 
   it('renders ledger history headlines from reason or entry type', () => {
