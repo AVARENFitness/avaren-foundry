@@ -298,16 +298,21 @@ describe('CoachClientTrainingPassPanel', () => {
     expect(coachBackend.applyCoachClientPassManualDebit).toHaveBeenCalledTimes(1)
   })
 
-  it('opens the adjustment picker instead of guessing when multiple passes are eligible', async () => {
+  it('deducts immediately from the oldest usable pass when multiple packages exist', async () => {
     const user = userEvent.setup()
     coachBackend.listClientPassBalances.mockResolvedValue([
-      activePassBalance[0],
-      { ...activePassBalance[0], pass_id: 'pass-2', name: 'Second package' },
+      { ...activePassBalance[0], pass_id: 'new-pass', starts_at: '2026-10-01' },
+      { ...activePassBalance[0], pass_id: 'old-pass', starts_at: '2026-09-01' },
     ])
     render(<CoachClientTrainingPassPanel client={clientWithBusinessId} />)
     await user.click(await screen.findByTestId('coach-completed-session-pass-button'))
-    expect(coachBackend.applyCoachClientPassManualDebit).not.toHaveBeenCalled()
-    expect(screen.getByRole('dialog', { name: /pass adjustment/i })).toBeInTheDocument()
+    await waitFor(() => {
+      expect(coachBackend.applyCoachClientPassManualDebit).toHaveBeenCalledWith({
+        passId: 'old-pass', quantity: 1, reason: 'Completed session', balanceBefore: 4,
+      })
+    })
+    expect(screen.queryByRole('dialog', { name: /pass adjustment/i })).not.toBeInTheDocument()
+    await waitFor(() => expect(screen.getByRole('button', { name: /hide usage/i })).toBeInTheDocument())
   })
 
   it('works for offline clients with business_client_id only', async () => {
