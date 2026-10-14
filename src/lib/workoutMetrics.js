@@ -182,7 +182,11 @@ export const setLoadVolume = (set = {}) => {
   if (!set.loadType && !isValidStrengthSet(set)) return 0
 
   const base = load * reps
-  return mode === SIDES_MODE.SHARED ? base * 2 : base
+  // "per_hand" means two simultaneously lifted implements on bilateral sets.
+  // Shared/different unilateral modes already account for both sides.
+  if (mode === SIDES_MODE.SHARED) return base * 2
+  if (set.weightBasis === 'per_hand' && loadType === LOAD_TYPES.EXTERNAL) return base * 2
+  return base
 }
 
 export const setEstimatedOneRepMax = (set = {}) => {
