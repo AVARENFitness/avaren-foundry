@@ -20,6 +20,22 @@ const session = (sets) => ({
 })
 
 describe('workoutMetrics', () => {
+  it('counts 50 lb per dumbbell as 1000 lb volume across 10 regular reps', () => {
+    const set = { exercise: 'Dumbbell Bench Press', loadType: 'external', weight: 50, reps: 10, weightBasis: 'per_hand', sidesMode: 'bilateral' }
+    expect(setLoadVolume(set)).toBe(1000)
+    expect(setLoadVolume({ ...set, weightBasis: 'total' })).toBe(500)
+  })
+
+  it('does not double two-sided unilateral volume twice', () => {
+    const set = { exercise: 'Single Arm Dumbbell Row', loadType: 'external', weight: 50, reps: 10, weightBasis: 'per_hand', sidesMode: 'shared' }
+    expect(setLoadVolume(set)).toBe(1000)
+  })
+
+  it('keeps explicit left and right weights separate from per-dumbbell mode', () => {
+    const set = { exercise: 'Dumbbell Curl', loadType: 'external', weight: 50, reps: 10, weightBasis: 'per_hand', sidesMode: 'different', left: { weight: 40, reps: 10 }, right: { weight: 50, reps: 10 } }
+    expect(setLoadVolume(set)).toBe(900)
+  })
+
   it('CASE P1: ignores accidental load on Toe Touches', () => {
     const sets = [
       {
