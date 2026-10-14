@@ -14,6 +14,7 @@ import {
 import {
   PASS_CREDIT_REASON,
   listEligibleDebitPasses,
+  selectQuickDebitPass,
   formatPassLedgerHistoryHeadline,
   formatPassLedgerQuantityLabel,
   resolveManualCreditLedgerReason,
@@ -126,7 +127,7 @@ export default function CoachClientTrainingPassPanel({
   )
   const primaryPass = summary.primaryPass
   const eligibleDebitPasses = useMemo(() => listEligibleDebitPasses(passes), [passes])
-  const quickDebitPass = eligibleDebitPasses.length === 1 ? eligibleDebitPasses[0] : null
+  const quickDebitPass = useMemo(() => selectQuickDebitPass(passes), [passes])
   const hasActivePass = summary.totalBalance > 0
   const lowPassNotice =
     hasActivePass && summary.totalBalance <= 2
@@ -228,9 +229,10 @@ export default function CoachClientTrainingPassPanel({
 
   const handleQuickCompletedSession = async () => {
     if (!resolvedBusinessClientId || adjusting || quickRemoving || loading) return
-    // An ambiguous pass selection must go through the existing adjustment UI.
     if (!quickDebitPass) {
-      openAdjustSheet()
+      const message = 'No usable training pass is available for today. Check package dates or use Adjust.'
+      setAdjustError(message)
+      appUi.toast(message, 'error')
       return
     }
 
@@ -245,6 +247,7 @@ export default function CoachClientTrainingPassPanel({
       })
       if (!result.ok) throw new Error(result.message)
       await loadPassData()
+      setShowHistory(true)
       appUi.toast(
         `Completed session · 1 pass removed · ${result.balanceBefore} → ${result.balanceAfter} remaining`,
         'success',
@@ -401,9 +404,9 @@ export default function CoachClientTrainingPassPanel({
               type="button"
               className="gold-button machined coach-primary-action"
               data-testid="coach-completed-session-pass-button"
-              disabled={loading || adjusting || quickRemoving || eligibleDebitPasses.length === 0}
+              disabled={loading || adjusting || quickRemoving || !quickDebitPass}
               onClick={handleQuickCompletedSession}
-              title={eligibleDebitPasses.length > 1 ? 'Select which pass to charge' : 'Record one completed session'}
+              title="Deduct one session and date-stamp it in usage history"
             >
               {quickRemoving ? 'Removing…' : 'Remove 1 pass'}
             </button>

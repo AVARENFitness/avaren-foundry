@@ -125,6 +125,19 @@ export const listEligibleDebitPasses = (passes = []) =>
       pass?.status === 'active' && Number(pass.balance ?? 0) > 0,
   )
 
+// Charge the oldest usable package first. This makes one-tap deductions
+// predictable even when the client has multiple active training passes.
+export const selectQuickDebitPass = (passes = [], today = new Date().toISOString().slice(0, 10)) =>
+  listEligibleDebitPasses(passes)
+    .filter((pass) => (!pass.startsAt || pass.startsAt <= today) &&
+      (!pass.expiresAt || pass.expiresAt >= today))
+    .sort((a, b) => {
+      const expiry = (a.expiresAt ?? '9999-12-31').localeCompare(b.expiresAt ?? '9999-12-31')
+      if (expiry) return expiry
+      const start = (a.startsAt ?? '0000-00-00').localeCompare(b.startsAt ?? '0000-00-00')
+      return start || String(a.id).localeCompare(String(b.id))
+    })[0] ?? null
+
 export const listEligibleCreditPasses = (passes = []) =>
   (passes ?? []).filter((pass) => pass?.status === 'active')
 
