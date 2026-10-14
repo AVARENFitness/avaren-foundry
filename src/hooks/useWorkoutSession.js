@@ -541,6 +541,8 @@ export function useWorkoutSession({
       exercise.sets.push({
         ...makeSet(exercise.sets.length + 1, previous?.type ?? 'Working'),
         weight: previous?.weight ?? '',
+        sidesMode: previous?.sidesMode,
+        weightBasis: previous?.weightBasis,
       })
       return { ...current, activeWorkout }
     })
@@ -557,6 +559,7 @@ export function useWorkoutSession({
       target.reps = previous.reps
       target.done = false
       target.sidesMode = previous.sidesMode
+      target.weightBasis = previous.weightBasis
       if (previous.left) target.left = { ...previous.left }
       if (previous.right) target.right = { ...previous.right }
       return { ...current, activeWorkout }
