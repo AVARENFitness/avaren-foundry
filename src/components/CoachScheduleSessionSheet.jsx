@@ -58,6 +58,7 @@ export default function CoachScheduleSessionSheet({
   const dateInputRef = useRef(null)
   const [timeError, setTimeError] = useState('')
   const [openMenu, setOpenMenu] = useState(null)
+  const [clientSearch, setClientSearch] = useState('')
   const [showMoreOptions, setShowMoreOptions] = useState(false)
 
   const todayKey = dateKey(new Date(), scheduleTimezone)
@@ -86,6 +87,11 @@ export default function CoachScheduleSessionSheet({
     )
   })
 
+  const filteredClients = clients.filter((client) =>
+    `${getClientDisplayName(client) || ''} ${client.athlete_email || ''}`
+      .toLocaleLowerCase().includes(clientSearch.trim().toLocaleLowerCase()),
+  )
+
   const selectedAssignment = draft.assignments?.find(
     (assignment) => String(assignment.id) === String(draft.assignmentId),
   )
@@ -111,6 +117,7 @@ export default function CoachScheduleSessionSheet({
     panelRef.current?.scrollTo?.(0, 0)
     setTimeError('')
     setOpenMenu(null)
+    setClientSearch('')
     setShowMoreOptions(false)
 
     return () => {
@@ -159,6 +166,7 @@ export default function CoachScheduleSessionSheet({
 
   const toggleMenu = (menuId) => (event) => {
     event.stopPropagation()
+    if (menuId === 'client') setClientSearch('')
     setOpenMenu((current) => (current === menuId ? null : menuId))
   }
 
@@ -228,7 +236,21 @@ export default function CoachScheduleSessionSheet({
                   role="listbox"
                   onClick={(event) => event.stopPropagation()}
                 >
-                  {clients.map((client) => {
+                  {clients.length > 5 ? (
+                    <input
+                      className="coach-schedule-client-search"
+                      type="search"
+                      aria-label="Search clients"
+                      placeholder="Find a client…"
+                      value={clientSearch}
+                      autoFocus
+                      onChange={(event) => setClientSearch(event.target.value)}
+                    />
+                  ) : null}
+                  {filteredClients.length === 0 ? (
+                    <p className="coach-schedule-client-search-empty">No matching clients</p>
+                  ) : null}
+                  {filteredClients.map((client) => {
                     const businessClientId = resolveRecordBusinessClientId(client)
                     const athleteId = resolveAthleteDataId(client)
                     const selected =
