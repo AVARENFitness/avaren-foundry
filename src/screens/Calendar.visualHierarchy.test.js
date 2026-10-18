@@ -15,6 +15,16 @@ describe('calendar visual information hierarchy', () => {
     .map((path) => readFileSync(resolve(process.cwd(), path), 'utf8'))
     .join('\n')
 
+  it('keeps coach Add menu bounded within the mobile calendar header', () => {
+    const lastFix = styles.lastIndexOf('Calendar Add menu: keep anchored within the screen')
+    const mobileRule = styles.slice(lastFix)
+    expect(mobileRule).toContain('.coach-calendar-add-menu-wrap { position: static !important; }')
+    expect(mobileRule).toContain('left: 0 !important;')
+    expect(mobileRule).toContain('right: 0 !important;')
+    expect(mobileRule).toContain('width: 100% !important;')
+    expect(mobileRule).toContain('box-sizing: border-box !important;')
+  })
+
   it('gives the coach useful calendar context before the grid', () => {
     expect(coach).toContain('coach-calendar-intelligence')
     expect(coach).toContain('TODAY')
