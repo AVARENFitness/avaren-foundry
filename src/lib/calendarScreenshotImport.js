@@ -13,3 +13,30 @@ export function matchCalendarImportClient(label, clients = []) {
   const firstNames = query.includes(' ') ? [] : named.filter(item => item.name.split(' ')[0] === query)
   return firstNames.length ? { status: 'ambiguous', client: null, candidates: firstNames } : { status: 'unmatched', client: null, candidates: [] }
 }
+
+export function prepareCalendarImportReview(entries = [], clients = []) {
+  return (Array.isArray(entries) ? entries : []).slice(0, 60).map((entry, index) => {
+    const title = String(entry?.title ?? '').trim().slice(0, 120)
+    const date = String(entry?.date ?? '')
+    const startTime = String(entry?.startTime ?? '')
+    const durationMinutes = Number(entry?.durationMinutes)
+    const validDate = /^\d{4}-\d{2}-\d{2}$/.test(date) && Number.isFinite(Date.parse(date + 'T12:00:00'))
+    const validTime = /^([01]\d|2[0-3]):[0-5]\d$/.test(startTime)
+    const validDuration = Number.isInteger(durationMinutes) && durationMinutes > 0 && durationMinutes <= 1440
+    const match = matchCalendarImportClient(title, clients)
+    const needsReview = !title || !validDate || !validTime || !validDuration || match.status === 'ambiguous'
+    return {
+      id: 'import-' + index,
+      title,
+      date: validDate ? date : '',
+      startTime: validTime ? startTime : '',
+      durationMinutes: validDuration ? durationMinutes : 60,
+      suggestedType: match.status === 'matched' ? 'training_candidate' : 'private',
+      businessClientId: match.status === 'matched' ? resolveRecordBusinessClientId(match.client) : null,
+      matchStatus: match.status,
+      candidates: match.candidates.map(item => ({ name: item.name, id: item.id })),
+      needsReview,
+      selected: false,
+    }
+  })
+}
