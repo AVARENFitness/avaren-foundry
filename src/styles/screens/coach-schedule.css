@@ -555,3 +555,8 @@
     justify-content: center;
   }
 }
+
+/* Search stays inside the client's existing picker; no additional scheduling step. */
+.coach-schedule-client-search { width: calc(100% - 16px); margin: 8px; padding: 11px 12px; border: 1px solid rgba(209,177,107,.24); border-radius: 10px; color: var(--cream, #f4f0e9); background: #15191c; font: inherit; outline-offset: 2px; }
+.coach-schedule-client-search:focus { border-color: rgba(209,177,107,.6); }
+.coach-schedule-client-search-empty { padding: 10px 13px; font-size: 13px; opacity: .75; }

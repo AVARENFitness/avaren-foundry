@@ -24,6 +24,19 @@ const baseDraft = {
 }
 
 describe('CoachScheduleSessionSheet', () => {
+  it('filters a longer client roster without adding a scheduling step', async () => {
+    const user = userEvent.setup()
+    const clients = Array.from({ length: 8 }, (_, i) => ({
+      id: String(i + 1), athlete_id: 'a' + (i + 1),
+      coach_label: i === 5 ? 'Michelle' : 'Client ' + (i + 1),
+    }))
+    render(<CoachScheduleSessionSheet open clients={clients} draft={{ ...baseDraft, athleteId: '' }} onDraftChange={vi.fn()} onClose={vi.fn()} onSubmit={vi.fn()} />)
+    await user.click(screen.getByRole('button', { name: /select client/i }))
+    await user.type(screen.getByRole('searchbox', { name: /search clients/i }), 'michelle')
+    expect(screen.getByRole('option', { name: 'Michelle' })).toBeInTheDocument()
+    expect(screen.queryByRole('option', { name: 'Client 1' })).not.toBeInTheDocument()
+  })
+
   it('opens immediately as a focused dialog without requiring page scroll', () => {
     if (!document.getElementById('root')) {
       const root = document.createElement('div')
