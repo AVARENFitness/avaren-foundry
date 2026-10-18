@@ -8492,3 +8492,19 @@ body > .nutrition-food-sheet-backdrop > .nutrition-food-sheet {
 .focus-exercise-compact-modes button { border: 0; border-radius: 999px; padding: 5px 10px; background: transparent; color: var(--text-muted, #aaa); font-size: 11px; font-weight: 600; line-height: 1.3; cursor: pointer; }
 .focus-exercise-compact-modes button.active { background: rgba(189, 151, 93, .18); color: #d9b981; }
 .focus-exercise-compact-modes button:focus-visible { outline: 2px solid #d9b981; outline-offset: 2px; }
+
+/* Calendar Add menu: keep anchored within the screen on mobile Safari.
+   Overrides the desktop fixed-width rule above (which was clipping left). */
+@media (max-width: 900px) {
+  .coach-session-calendar-header { position: relative !important; min-width: 0; }
+  .coach-calendar-add-menu-wrap { position: static !important; }
+  .coach-calendar-add-menu {
+    left: 0 !important;
+    right: 0 !important;
+    top: calc(100% + 8px) !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    transform: none !important;
+  }
+}
