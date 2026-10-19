@@ -8532,3 +8532,21 @@ body > .nutrition-food-sheet-backdrop > .nutrition-food-sheet {
 .coach-calendar-import-suggestions > div { display: flex; flex-wrap: wrap; gap: 7px; }
 .coach-calendar-import-suggestions button { padding: 8px 11px; background: rgba(209,177,107,.1); border: 1px solid rgba(209,177,107,.35); color: #e2c58d; border-radius: 999px; font-size: 12px; line-height: 1.2; }
 .coach-calendar-import-suggestions button:focus-visible { outline: 2px solid #e2c58d; outline-offset: 2px; }
+
+/* Calendar screenshot review: dense summaries, editing only on demand. */
+.coach-calendar-import-compact { padding: 12px !important; gap: 8px !important; }
+.coach-calendar-import-summary { display: flex; gap: 10px; align-items: center; min-width: 0; }
+.coach-calendar-import-summary > input[type=checkbox] { flex: 0 0 auto; width: 18px; height: 18px; accent-color: #d9b981; }
+.coach-calendar-import-summary-copy { display: grid; min-width: 0; flex: 1; gap: 3px; }
+.coach-calendar-import-summary-copy strong { overflow-wrap: anywhere; font-size: 15px; }
+.coach-calendar-import-summary-copy span { color: #d9d6cf; font-size: 12px; }
+.coach-calendar-import-summary-copy small { color: #aaa49c; font-size: 11px; }
+.coach-calendar-import-edit-trigger { flex: 0 0 auto; color: #d9b981; border: 1px solid rgba(217,185,129,.3); background: transparent; border-radius: 9px; padding: 8px 10px; }
+.coach-calendar-import-editor { display: grid; gap: 10px; padding: 11px 0 0; border-top: 1px solid #37332d; }
+.coach-calendar-import-editor label { display: grid; gap: 4px; color: #b8b3ab; font-size: 12px; min-width: 0; }
+.coach-calendar-import-warning { margin: 0; color: #e4ba7a; font-size: 12px; line-height: 1.4; }
+.coach-calendar-import-compact.is-duplicate { opacity: .68; }
+.coach-calendar-import-sheet .coach-calendar-import-editor input,
+.coach-calendar-import-sheet .coach-calendar-import-editor select { box-sizing: border-box; width: 100%; min-width: 0; padding: 9px 7px; background: #0d1013; color: #f4f0e9; border: 1px solid #363a3d; border-radius: 9px; font: inherit; font-size: 14px; }
+.coach-calendar-import-editor .coach-calendar-import-fields { display: grid; grid-template-columns: minmax(0,1.3fr) minmax(0,1fr) minmax(0,.7fr); gap: 7px; }
+@media(max-width:430px){ .coach-calendar-import-editor .coach-calendar-import-fields{ grid-template-columns: repeat(2,minmax(0,1fr)); } .coach-calendar-import-editor .coach-calendar-import-fields label:first-child{grid-column:1/-1} }
