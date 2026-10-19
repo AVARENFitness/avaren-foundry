@@ -19,12 +19,17 @@ export default function CoachCalendarImportSheet({ open, clients = [], existingI
     setAnalyzing(true); setError(''); setItems([])
     try {
       const extracted = await analyzeCalendarScreenshot(file)
+      const seen = new Set()
       const reviewed = prepareCalendarImportReview(extracted, clients).map(item => {
-        const duplicate = existingItems.some(existing =>
-          String(existing.sessionDate ?? existing.eventDate ?? '') === item.date &&
-          String(existing.startTime ?? '').slice(0,5) === item.startTime &&
-          String(existing.title ?? existing.clientName ?? '').toLowerCase() === item.title.toLowerCase()
-        )
+        const key = [item.date, item.startTime, item.title.toLowerCase()].join('|')
+        const existingMatch = existingItems.some(existing => {
+          if (String(existing.sessionDate ?? existing.eventDate ?? '') !== item.date ||
+              String(existing.startTime ?? '').slice(0,5) !== item.startTime) return false
+          if (item.businessClientId && String(existing.businessClientId ?? '') === String(item.businessClientId)) return true
+          return String(existing.title ?? '').toLowerCase() === item.title.toLowerCase()
+        })
+        const duplicate = existingMatch || seen.has(key)
+        seen.add(key)
         return { ...item, duplicate, selected: false }
       })
       setItems(reviewed)
