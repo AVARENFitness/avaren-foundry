@@ -47,7 +47,8 @@ export function prepareCalendarImportReview(entries = [], clients = []) {
     const validTime = /^([01]\d|2[0-3]):[0-5]\d$/.test(startTime)
     const validDuration = Number.isInteger(durationMinutes) && durationMinutes > 0 && durationMinutes <= 1440
     const match = matchCalendarImportClient(title, clients)
-    const needsReview = !title || !validDate || !validTime || !validDuration || !matchesColumn || match.status === 'ambiguous'
+    const geometryConflict = entry?.geometryValid === false
+    const needsReview = !title || !validDate || !validTime || !validDuration || !matchesColumn || geometryConflict || match.status === 'ambiguous'
     return {
       id: 'import-' + index,
       title,
@@ -58,6 +59,7 @@ export function prepareCalendarImportReview(entries = [], clients = []) {
       businessClientId: match.status === 'matched' ? resolveRecordBusinessClientId(match.client) : null,
       matchStatus: match.status,
       dateConflict: !matchesColumn,
+      geometryConflict,
       weekday: Number.isInteger(expectedDay) ? expectedDay : null,
       candidates: match.candidates.map(item => ({ name: item.name, id: item.id })),
       needsReview,
