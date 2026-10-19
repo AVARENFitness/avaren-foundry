@@ -4,15 +4,31 @@ import { resolveRecordBusinessClientId } from './coachBusinessClient'
 const clean = (value) => String(value ?? '').toLowerCase().replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim()
 
 export function matchCalendarImportClient(label, clients = []) {
-  const query = clean(label)
+  const raw = String(label ?? '').trim()
+  const query = clean(raw)
   if (!query) return { status: 'unmatched', client: null, candidates: [] }
-  const named = clients.map(client => ({ client, name: clean(getClientDisplayName(client)), id: resolveRecordBusinessClientId(client) })).filter(item => item.name && item.id)
+  const named = clients.map(client => ({
+    client,
+    name: clean(getClientDisplayName(client)),
+    id: resolveRecordBusinessClientId(client),
+  })).filter(item => item.name && item.id)
   const exact = named.filter(item => item.name === query)
   if (exact.length === 1) return { status: 'matched', client: exact[0].client, candidates: exact }
   if (exact.length > 1) return { status: 'ambiguous', client: null, candidates: exact }
-  const firstNames = query.includes(' ') ? [] : named.filter(item => item.name.split(' ')[0] === query)
-  if (firstNames.length === 1) return { status: 'matched', client: firstNames[0].client, candidates: firstNames }
-  return firstNames.length ? { status: 'ambiguous', client: null, candidates: firstNames } : { status: 'unmatched', client: null, candidates: [] }
+
+  // Narrow Google Calendar columns truncate names; never silently link a
+  // partial label to a person. Slash labels can refer to more than one client.
+  const parts = raw.split('/').map(clean).filter(Boolean)
+  const searchParts = parts.length > 1 ? parts : [query]
+  const possible = named.filter(item => searchParts.some(part => {
+    if (part.length < 2) return false
+    return item.name === part ||
+      item.name.startsWith(part + ' ') ||
+      (part.length >= 3 && item.name.startsWith(part)) ||
+      (part.length >= 3 && item.name.split(' ').some(word => word.startsWith(part)))
+  }))
+  if (possible.length) return { status: 'ambiguous', client: null, candidates: possible }
+  return { status: 'unmatched', client: null, candidates: [] }
 }
 
 export function prepareCalendarImportReview(entries = [], clients = []) {
