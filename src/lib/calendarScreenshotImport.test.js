@@ -12,8 +12,9 @@ describe('review-first screenshot calendar imports', () => {
     expect(matchCalendarImportClient('Michelle', clients).status).toBe('ambiguous')
     expect(matchCalendarImportClient('NextLevel', clients).status).toBe('unmatched')
   })
-  it('matches an exact unique full client name', () => {
+  it('matches exact names and unique first names without auto-saving', () => {
     expect(matchCalendarImportClient('Don Parker', clients).status).toBe('matched')
+    expect(matchCalendarImportClient('Don', clients).status).toBe('matched')
   })
   it('keeps extracted entries unselected until coach confirmation', () => {
     const [event] = prepareCalendarImportReview([{ title: 'NextLevel', date: '2026-10-19', startTime: '10:00', durationMinutes: 60 }], clients)
