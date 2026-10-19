@@ -54,7 +54,7 @@ export function prepareCalendarImportReview(entries = [], clients = []) {
       title,
       date: validDate ? date : '',
       startTime: validTime ? startTime : '',
-      durationMinutes: validDuration ? durationMinutes : 60,
+      durationMinutes: validDuration ? durationMinutes : 0,
       suggestedType: match.status === 'matched' ? 'training_candidate' : 'private',
       businessClientId: match.status === 'matched' ? resolveRecordBusinessClientId(match.client) : null,
       matchStatus: match.status,
