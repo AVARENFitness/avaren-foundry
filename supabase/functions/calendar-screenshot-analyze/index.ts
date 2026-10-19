@@ -1,8 +1,8 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 const headers = { 'Access-Control-Allow-Origin':'*', 'Access-Control-Allow-Headers':'authorization, x-client-info, apikey, content-type' }
 const reply=(value:unknown,status=200)=>new Response(JSON.stringify(value),{status,headers:{...headers,'Content-Type':'application/json'}})
-const schema={name:'calendar_geometry_labels',strict:true,schema:{type:'object',additionalProperties:false,required:['weekStart','gridLeftX','columnWidth','hourAnchor','hourAnchorY','pixelsPerHour','firstVisibleHour','labels'],properties:{
- weekStart:{type:'string'},gridLeftX:{type:'number'},columnWidth:{type:'number'},hourAnchor:{type:'integer'},firstVisibleHour:{type:'integer'},hourAnchorY:{type:'number'},pixelsPerHour:{type:'number'},
+const schema={name:'calendar_geometry_labels',strict:true,schema:{type:'object',additionalProperties:false,required:['weekStart','sundayDayNumber','visibleMonthNumber','gridLeftX','columnWidth','hourAnchor','hourAnchorY','pixelsPerHour','firstVisibleHour','labels'],properties:{
+ weekStart:{type:'string'},sundayDayNumber:{type:'integer'},visibleMonthNumber:{type:'integer'},gridLeftX:{type:'number'},columnWidth:{type:'number'},hourAnchor:{type:'integer'},firstVisibleHour:{type:'integer'},hourAnchorY:{type:'number'},pixelsPerHour:{type:'number'},
  labels:{type:'array',items:{type:'object',additionalProperties:false,required:['id','title'],properties:{id:{type:'integer'},title:{type:'string'}}}}
 }}}
 function startOfWeek(date:string) {
@@ -36,7 +36,7 @@ Deno.serve(async(req:Request)=>{
   if(safe.length!==blocks.length)return reply({ok:false,message:'Invalid event rectangles.'},400)
   const key=Deno.env.get('OPENAI_API_KEY')
   if(!key)return reply({ok:false,message:'Calendar analysis unavailable.'},503)
-  const instructions='You are calibrating a GOOGLE CALENDAR WEEK screenshot. The user device has ALREADY measured the event rectangles with code. You MUST NOT invent, create, merge or move events. Report only the visible title for EACH listed rectangle id. Do not include the calendar header, phone clock or blank cells as events. Do not complete truncated names. Also measure the actual pixel positions of: (1) left border of the Sunday day column (gridLeftX), (2) uniform width in pixels of one weekday column (columnWidth), (3) a clearly visible horizontal hour gridline labeled on the left (hourAnchor), (4) that gridline vertical pixel position (hourAnchorY), and (5) vertical pixel spacing between two adjacent hourly gridlines (pixelsPerHour). Coordinates are measured in the supplied screenshot original dimensions. Return weekStart using the Sunday date header and correct visible month and year. In the hour label strip at left, report firstVisibleHour as the hour printed next to the FIRST FULL hourly horizontal line after the weekday heading. Ignore any non-hour top border line. If unreadable return -1. Never use phone status bar time. All numbers must be measured from this screenshot, not guessed based on event text. The colored rectangles are authoritative for which weekday and time each event occupies; you never return times or dates for individual events. If calibration is unclear, set impossible zero values; the app will ask for review.'
+  const instructions='You are calibrating a GOOGLE CALENDAR WEEK screenshot. The user device has ALREADY measured the event rectangles with code. You MUST NOT invent, create, merge or move events. Report only the visible title for EACH listed rectangle id. Do not include the calendar header, phone clock or blank cells as events. Do not complete truncated names. Also measure the actual pixel positions of: (1) left border of the Sunday day column (gridLeftX), (2) uniform width in pixels of one weekday column (columnWidth), (3) a clearly visible horizontal hour gridline labeled on the left (hourAnchor), (4) that gridline vertical pixel position (hourAnchorY), and (5) vertical pixel spacing between two adjacent hourly gridlines (pixelsPerHour). Coordinates are measured in the supplied screenshot original dimensions. Return sundayDayNumber as the integer date in the leftmost SUNDAY header and visibleMonthNumber as the shown calendar month 1-12. Also return weekStart using that Sunday date header and the correct visible year. In the hour label strip at left, report firstVisibleHour as the hour printed next to the FIRST FULL hourly horizontal line after the weekday heading. Ignore any non-hour top border line. If unreadable return -1. Never use phone status bar time. All numbers must be measured from this screenshot, not guessed based on event text. The colored rectangles are authoritative for which weekday and time each event occupies; you never return times or dates for individual events. If calibration is unclear, set impossible zero values; the app will ask for review.'
   const ai=await fetch('https://api.openai.com/v1/chat/completions',{method:'POST',headers:{Authorization:'Bearer '+key,'Content-Type':'application/json'},body:JSON.stringify({
    model:Deno.env.get('AVA_CALENDAR_VISION_MODEL')||'gpt-4o',temperature:0,max_tokens:1700,response_format:{type:'json_schema',json_schema:schema},
    messages:[{role:'system',content:instructions},{role:'user',content:[
@@ -57,6 +57,17 @@ Deno.serve(async(req:Request)=>{
      .map(y=>startOfWeek(String(y)+'-'+String(mm).padStart(2,'0')+'-'+String(dd).padStart(2,'0')))
      .filter((d):d is Date=>Boolean(d)&&Math.abs(d.getTime()-now.getTime())<50*86400000)
    if(options.length===1)sunday=options[0]
+  }
+  const headerDay=Number(data.sundayDayNumber)
+  const headerMonth=Number(data.visibleMonthNumber)
+  if(Number.isInteger(headerDay)&&headerDay>=1&&headerDay<=31&&
+     Number.isInteger(headerMonth)&&headerMonth>=1&&headerMonth<=12&&
+     (!sunday||sunday.getUTCDate()!==headerDay||sunday.getUTCMonth()+1!==headerMonth)){
+    const now=new Date()
+    const near=[now.getUTCFullYear()-1,now.getUTCFullYear(),now.getUTCFullYear()+1]
+      .map(y=>startOfWeek(String(y)+'-'+String(headerMonth).padStart(2,'0')+'-'+String(headerDay).padStart(2,'0')))
+      .filter((d):d is Date=>Boolean(d)&&Math.abs(d.getTime()-now.getTime())<50*86400000)
+    sunday=near.length===1?near[0]:null
   }
   const detectedGrid=geometry.dayGrid
   const x0=detectedGrid?.matches>=5?Number(detectedGrid.gridLeftX):Number(data.gridLeftX)
