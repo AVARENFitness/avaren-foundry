@@ -11,6 +11,7 @@ export function matchCalendarImportClient(label, clients = []) {
   if (exact.length === 1) return { status: 'matched', client: exact[0].client, candidates: exact }
   if (exact.length > 1) return { status: 'ambiguous', client: null, candidates: exact }
   const firstNames = query.includes(' ') ? [] : named.filter(item => item.name.split(' ')[0] === query)
+  if (firstNames.length === 1) return { status: 'matched', client: firstNames[0].client, candidates: firstNames }
   return firstNames.length ? { status: 'ambiguous', client: null, candidates: firstNames } : { status: 'unmatched', client: null, candidates: [] }
 }
 
