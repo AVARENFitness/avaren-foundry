@@ -1185,7 +1185,7 @@ export default function CoachSessionCalendar({
         onSaveReschedule={sessionDetail.saveReschedule}
         onViewClient={sessionDetail.handleViewClient}
         onComplete={sessionDetail.handleComplete}
-        onApplyPassDebit={sessionDetail.handleApplyPassDebit}
+        onApplyPassDebit={undefined}
         onCancel={sessionDetail.handleCancel}
         onMarkMissed={sessionDetail.handleMarkMissed}
         completingSessionId={sessionDetail.completingSessionId}
@@ -1194,7 +1194,7 @@ export default function CoachSessionCalendar({
       />
 
       <CoachPassSelectionModal
-        open={Boolean(sessionDetail.passSelection)}
+        open={false}
         title={
           sessionDetail.passSelection?.mode === 'complete'
             ? 'Which pass should this session use?'
@@ -1212,11 +1212,11 @@ export default function CoachSessionCalendar({
       />
 
       <CoachMissedChargeSheet
-        open={Boolean(sessionDetail.missedChargeSession)}
+        open={false}
         submitting={sessionDetail.passActionBusy}
         onClose={() => sessionDetail.setMissedChargeSession(null)}
         onNoCharge={sessionDetail.handleMissedNoCharge}
-        onCharge={sessionDetail.handleMissedCharge}
+        onCharge={undefined}
       />
 
       <RecurrenceScopeDialog
