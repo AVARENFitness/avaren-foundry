@@ -24,7 +24,7 @@ export function matchCalendarImportClient(label, clients = []) {
     if (part.length < 2) return false
     return item.name === part ||
       item.name.startsWith(part + ' ') ||
-      (part.length >= 3 && item.name.startsWith(part)) ||
+      (part.length >= (parts.length > 1 ? 2 : 3) && item.name.startsWith(part)) ||
       (part.length >= 3 && item.name.split(' ').some(word => word.startsWith(part)))
   }))
   if (possible.length) return { status: 'ambiguous', client: null, candidates: possible }
