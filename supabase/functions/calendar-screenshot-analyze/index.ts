@@ -59,7 +59,17 @@ Deno.serve(async(req:Request)=>{
     x0+dayWidth*6<width&&Number.isInteger(hour)&&hour>=0&&hour<=23&&
     Number.isFinite(hourY)&&hourY>=0&&hourY<height&&
     Number.isFinite(hourSpacing)&&hourSpacing>=15&&hourSpacing<=height/5
-  if(!calibrated)return reply({ok:false,message:'AVA could not calibrate the day columns and hour lines. Try a full weekly screenshot with dates and hour labels visible.'},422)
+  if(!calibrated){
+   console.warn('calendar-calibration-incomplete',JSON.stringify({
+    sunday:String(data.weekStart||''), x0,dayWidth,hour,hourY,hourSpacing,
+    width,height,blockCount:safe.length,measuredGridLines:measuredLines.length
+   }))
+   const labels=new Map((Array.isArray(data.labels)?data.labels:[]).map((x:Record<string,unknown>)=>[Number(x.id),String(x.title||'').slice(0,120)]))
+   // Return precisely the blocks actually detected, without fabricated times or dates.
+   // The coach can correct these as individual draft rows instead of a total failure.
+   return reply({ok:true,partial:true,message:'AVA found the appointments but could not verify the calendar grid. Please confirm each date and time before adding.',
+    events:safe.map(b=>({ title:labels.get(b.id)||'',date:'',weekday:-1,startTime:'',durationMinutes:0,geometryValid:false,blockId:b.id }))})
+  }
   const labels=new Map((Array.isArray(data.labels)?data.labels:[]).map((x:Record<string,unknown>)=>[Number(x.id),String(x.title||'').slice(0,120)]))
   const events=safe.map(b=>{
    const col=Math.floor((b.x+b.width/2-x0)/dayWidth)
