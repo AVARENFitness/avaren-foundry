@@ -42,9 +42,15 @@ export default function CoachCalendarImportSheet({ open, clients = [], existingI
   const handleSave = async () => {
     setSaving(true); setError('')
     try {
-      const failures = await onSave(ready)
-      if (failures) setError(failures + ' event(s) could not be saved. Review your calendar before retrying.')
-      else { setItems([]); onClose() }
+      const { failedIds = [], savedCount = 0 } = await onSave(ready)
+      if (failedIds.length) {
+        const failed = new Set(failedIds)
+        setItems(current => current.filter(item => !item.selected || failed.has(item.id)))
+        setError(failedIds.length + ' event(s) could not be saved. Only those entries remain selected for retry.')
+      } else {
+        setItems([])
+        onClose()
+      }
     } catch (failure) { setError(failure.message || 'Could not save events.') }
     finally { setSaving(false) }
   }
