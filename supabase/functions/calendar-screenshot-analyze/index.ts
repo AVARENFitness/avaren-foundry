@@ -40,20 +40,23 @@ Deno.serve(async(req:Request)=>{
   const ai=await fetch('https://api.openai.com/v1/chat/completions',{method:'POST',headers:{Authorization:'Bearer '+key,'Content-Type':'application/json'},body:JSON.stringify({
    model:Deno.env.get('AVA_CALENDAR_VISION_MODEL')||'gpt-4o',temperature:0,max_tokens:1700,response_format:{type:'json_schema',json_schema:schema},
    messages:[{role:'system',content:instructions},{role:'user',content:[
-    {type:'text',text:'Screenshot dimensions '+width+'x'+height+'. Detected pixel event rectangles (x,y from upper-left): '+JSON.stringify(safe)+'. Independently detected horizontal hour lines (y pixels): '+JSON.stringify(geometry.hourLines||[])+'. Prefer one of these lines as hourAnchorY, then transcribe its hour label at the left. Read the title in EACH rectangle by id. Return anchors from the visible grid. Do not make additional events.'},
+    {type:'text',text:'Screenshot dimensions '+width+'x'+height+'. Detected pixel event rectangles (x,y from upper-left): '+JSON.stringify(safe)+'. Independently detected horizontal hour lines (y pixels): '+JSON.stringify(geometry.hourLines||[])+'. Measured weekday column lines: '+JSON.stringify(geometry.dayGrid||null)+'. Prefer one of these lines as hourAnchorY, then transcribe its hour label at the left. Read the title in EACH rectangle by id. Return anchors from the visible grid. Do not make additional events.'},
     {type:'image_url',image_url:{url:imageDataUrl,detail:'high'}}
    ]}]})})
   if(!ai.ok)return reply({ok:false,message:'AVA could not read this screenshot.'},502)
   const response=await ai.json()
   const data=JSON.parse(response?.choices?.[0]?.message?.content||'{}')
   const sunday=startOfWeek(String(data.weekStart||''))
-  const x0=Number(data.gridLeftX),dayWidth=Number(data.columnWidth),hour=Number(data.hourAnchor)
+  const detectedGrid=geometry.dayGrid
+  const x0=detectedGrid?.matches>=5?Number(detectedGrid.gridLeftX):Number(data.gridLeftX)
+  const dayWidth=detectedGrid?.matches>=5?Number(detectedGrid.columnWidth):Number(data.columnWidth)
+  const hour=Number(data.hourAnchor)
   const measuredLines=Array.isArray(geometry.hourLines)?geometry.hourLines.map(Number).filter(Number.isFinite):[]
   const measuredSpacing=Number(geometry.pixelsPerHour)
-  const measuredAnchor=measuredLines.find((line:number)=>Math.abs(line-Number(data.hourAnchorY)) <= measuredSpacing*.3)
+  const measuredAnchor=measuredLines.find((line:number)=>Math.abs(line-Number(data.hourAnchorY)) <= measuredSpacing*.55)
   const useMeasured=measuredLines.length>=4&&measuredSpacing>=15&&Number.isFinite(measuredAnchor)
   const hourY=useMeasured?measuredAnchor:Number(data.hourAnchorY)
-  const hourSpacing=useMeasured?measuredSpacing:Number(data.pixelsPerHour)
+  const hourSpacing=measuredSpacing>=15?measuredSpacing:Number(data.pixelsPerHour)
   const calibrated=!!sunday&&Number.isFinite(x0)&&x0>=0&&x0<width*.6&&
     Number.isFinite(dayWidth)&&dayWidth>=width/15&&dayWidth<=width/5&&
     x0+dayWidth*6<width&&Number.isInteger(hour)&&hour>=0&&hour<=23&&
@@ -62,7 +65,7 @@ Deno.serve(async(req:Request)=>{
   if(!calibrated){
    console.warn('calendar-calibration-incomplete',JSON.stringify({
     sunday:String(data.weekStart||''), x0,dayWidth,hour,hourY,hourSpacing,
-    width,height,blockCount:safe.length,measuredGridLines:measuredLines.length
+    width,height,blockCount:safe.length,measuredGridLines:measuredLines.length,dayGrid:detectedGrid
    }))
    const labels=new Map((Array.isArray(data.labels)?data.labels:[]).map((x:Record<string,unknown>)=>[Number(x.id),String(x.title||'').slice(0,120)]))
    // Return precisely the blocks actually detected, without fabricated times or dates.
