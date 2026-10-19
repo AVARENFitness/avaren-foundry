@@ -900,6 +900,7 @@ export function useCoachSessionDetail({
       assignmentId: session.assignmentId ?? null,
       locationType: session.locationType ?? 'default',
       locationName: session.locationName ?? '',
+      coachNote: session.coachNote ?? '',
     })
     setRescheduleMode(true)
   }, [])
@@ -914,6 +915,7 @@ export function useCoachSessionDetail({
       assignmentId: rescheduleDraft.assignmentId,
       locationType: rescheduleDraft.locationType,
       locationName: rescheduleDraft.locationName,
+      coachNote: rescheduleDraft.coachNote ?? '',
     }
 
     if (isRecurringSession(activeSession)) {
