@@ -12,7 +12,7 @@ export async function analyzeCalendarScreenshot(file) {
   if (!supabase) throw new Error('Calendar import is unavailable.')
   const geometry = await getCalendarScreenshotGeometry(file)
   if (!geometry.blocks.length) throw new Error('No calendar event blocks detected. Upload a Google Calendar week screenshot with visible colored events.')
-  const { data, error } = await supabase.functions.invoke('calendar-screenshot-analyze', {
+  const { data, error } = await supabase.functions.invoke('calendar-screenshot-analyze-v2', {
     body: { imageDataUrl, geometry },
   })
   if (error || !data?.ok) throw new Error(data?.message || error?.message || 'Could not analyze calendar screenshot.')
