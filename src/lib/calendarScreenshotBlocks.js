@@ -63,9 +63,8 @@ export async function getCalendarScreenshotGeometry(file) {
   const bitmap=await createImageBitmap(file)
   try {
     const canvas=document.createElement('canvas')
-    const scale=Math.min(1,1300/bitmap.width)
-    canvas.width=Math.round(bitmap.width*scale)
-    canvas.height=Math.round(bitmap.height*scale)
+    canvas.width=bitmap.width
+    canvas.height=bitmap.height
     const ctx=canvas.getContext('2d',{willReadFrequently:true})
     if(!ctx)throw new Error('Screenshot pixel analysis is unavailable on this device.')
     ctx.drawImage(bitmap,0,0,canvas.width,canvas.height)
