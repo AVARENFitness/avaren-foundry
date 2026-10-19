@@ -59,6 +59,38 @@ export function detectCalendarEventBlocks({ width, height, data }) {
   }
   return blocks.sort((a,b)=>a.x-b.x||a.y-b.y).slice(0,60)
 }
+
+// Detect light-gray hourly grid lines across the full calendar width.
+// Their pixel spacing fixes event lengths independently of visual AI estimates.
+export function detectCalendarHourGrid({ width, height, data }) {
+  const candidates=[]
+  for(let y=Math.floor(height*.19);y<Math.floor(height*.96);y++){
+    let gray=0,total=0
+    for(let x=Math.floor(width*.15);x<Math.floor(width*.98);x+=23){
+      const i=(y*width+x)*4
+      const r=data[i],g=data[i+1],b=data[i+2]
+      total++
+      if(r>=220&&r<=245&&g>=220&&g<=247&&b>=220&&b<=249 &&
+        Math.abs(r-g)<=9&&Math.abs(g-b)<=9)gray++
+    }
+    if(total>=5&&gray/total>=.77)candidates.push(y)
+  }
+  const lines=[]
+  for(const y of candidates) {
+    if(!lines.length||y-lines[lines.length-1].end>3)lines.push({start:y,end:y})
+    else lines[lines.length-1].end=y
+  }
+  const centers=lines.map(a=>Math.round((a.start+a.end)/2))
+  const gaps=centers.slice(1).map((y,i)=>y-centers[i]).filter(gap=>
+    gap>=height*.025&&gap<=height*.075)
+  if(gaps.length<3)return { hourLines:[], pixelsPerHour:0 }
+  gaps.sort((a,b)=>a-b)
+  const pixelsPerHour=gaps[Math.floor(gaps.length/2)]
+  const hourLines=centers.filter((y,i)=>centers.some((other,j)=>j!==i&&
+    Math.abs(Math.abs(y-other)-pixelsPerHour)<pixelsPerHour*.12))
+  return {hourLines,pixelsPerHour}
+}
+
 export async function getCalendarScreenshotGeometry(file) {
   const bitmap=await createImageBitmap(file)
   try {
@@ -68,6 +100,7 @@ export async function getCalendarScreenshotGeometry(file) {
     const ctx=canvas.getContext('2d',{willReadFrequently:true})
     if(!ctx)throw new Error('Screenshot pixel analysis is unavailable on this device.')
     ctx.drawImage(bitmap,0,0,canvas.width,canvas.height)
-    return {width:canvas.width,height:canvas.height,blocks:detectCalendarEventBlocks(ctx.getImageData(0,0,canvas.width,canvas.height))}
+    const pixels=ctx.getImageData(0,0,canvas.width,canvas.height)
+    return {width:canvas.width,height:canvas.height,blocks:detectCalendarEventBlocks(pixels),...detectCalendarHourGrid(pixels)}
   }finally{bitmap.close?.()}
 }
