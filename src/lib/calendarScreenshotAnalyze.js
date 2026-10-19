@@ -13,7 +13,7 @@ export async function analyzeCalendarScreenshot(file) {
   const geometry = await getCalendarScreenshotGeometry(file)
   if (!geometry.blocks.length) throw new Error('No calendar event blocks detected. Upload a Google Calendar week screenshot with visible colored events.')
   const labelSheetDataUrl = await createCalendarBlockLabelSheet(file, geometry.blocks)
-  const { data, error } = await supabase.functions.invoke('calendar-screenshot-analyze-v2', {
+  const { data, error } = await supabase.functions.invoke('calendar-screenshot-analyze-v3', {
     body: { imageDataUrl, geometry, labelSheetDataUrl },
   })
   if (error || !data?.ok) {
