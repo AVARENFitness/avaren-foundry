@@ -8508,3 +8508,21 @@ body > .nutrition-food-sheet-backdrop > .nutrition-food-sheet {
     transform: none !important;
   }
 }
+
+/* AVA calendar screenshot import: compact, keyboard-safe mobile review. */
+.coach-calendar-import-sheet { width: min(560px, calc(100vw - 24px)); max-height: min(88dvh, 800px); overflow-y: auto; box-sizing: border-box; padding: 20px; border: 1px solid rgba(206,172,103,.28); border-radius: 20px; background: #0b0d10; color: #f4f0e9; overscroll-behavior: contain; }
+.coach-calendar-import-sheet header { display: flex; align-items: start; justify-content: space-between; gap: 16px; }
+.coach-calendar-import-sheet header h2 { margin: 8px 0; }
+.coach-calendar-import-sheet header p, .coach-calendar-import-hint { color: #a8a5a0; font-size: 13px; }
+.coach-calendar-import-sheet header button { border: 1px solid #37332d; background: #171a1d; color: #eee; padding: 8px 12px; border-radius: 10px; }
+.coach-calendar-import-upload { display: grid; gap: 8px; margin: 18px 0; padding: 16px; border: 1px dashed #ad925d; border-radius: 14px; color: #d9b981; font-size: 13px; }
+.coach-calendar-import-upload input { width: 100%; min-width: 0; color: #eee; }
+.coach-calendar-import-items { display: grid; gap: 12px; margin-top: 12px; }
+.coach-calendar-import-item { display: grid; gap: 9px; padding: 13px; border: 1px solid #302e2a; background: #131619; border-radius: 13px; min-width: 0; }
+.coach-calendar-import-item > label { display: flex; align-items: center; gap: 9px; font-size: 13px; }
+.coach-calendar-import-item input:not([type=checkbox]), .coach-calendar-import-item select { width: 100%; min-width: 0; box-sizing: border-box; padding: 9px 8px; background: #0d1013; color: #f4f0e9; border: 1px solid #363a3d; border-radius: 9px; font: inherit; font-size: 14px; }
+.coach-calendar-import-fields { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, .75fr); gap: 6px; }
+.coach-calendar-import-item small { color: #d9b981; }
+.coach-calendar-import-sheet footer { display: flex; justify-content: flex-end; gap: 10px; align-items: center; margin-top: 18px; }
+.coach-calendar-import-sheet footer button { min-height: 42px; padding: 10px 14px; border-radius: 10px; }
+@media (max-width: 430px) { .coach-calendar-import-sheet { padding: 15px; width: calc(100vw - 16px); max-height: 84dvh; } .coach-calendar-import-fields { grid-template-columns: 1fr 1fr; } .coach-calendar-import-fields input[type=date] { grid-column: 1 / -1; } }
