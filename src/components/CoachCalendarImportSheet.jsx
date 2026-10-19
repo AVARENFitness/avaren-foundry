@@ -10,13 +10,14 @@ export default function CoachCalendarImportSheet({ open, clients = [], existingI
   const [analyzing, setAnalyzing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [expandedId, setExpandedId] = useState(null)
   if (!open) return null
   const update = (id, patch) => setItems(current => current.map(item => item.id === id ? { ...item, ...patch } : item))
   const importPhoto = async event => {
     const file = event.target.files?.[0]
     event.target.value = ''
     if (!file) return
-    setAnalyzing(true); setError(''); setItems([])
+    setAnalyzing(true); setError(''); setItems([]); setExpandedId(null)
     try {
       const extracted = await analyzeCalendarScreenshot(file)
       const seen = new Set()
@@ -37,7 +38,7 @@ export default function CoachCalendarImportSheet({ open, clients = [], existingI
     } catch (failure) { setError(failure.message || 'Could not analyze screenshot.') }
     finally { setAnalyzing(false) }
   }
-  const ready = items.filter(item => item.selected && item.title && item.date && item.startTime && Number(item.durationMinutes) > 0 && !item.duplicate &&
+  const ready = items.filter(item => item.selected && item.title && item.date && item.startTime && Number(item.durationMinutes) > 0 && !item.duplicate && !item.dateConflict &&
     (item.suggestedType !== 'training_candidate' || item.businessClientId))
   const handleSave = async () => {
     setSaving(true); setError('')
@@ -61,22 +62,48 @@ export default function CoachCalendarImportSheet({ open, clients = [], existingI
       <label className="coach-calendar-import-upload"><span>{analyzing ? 'AVA is reading your screenshot…' : 'Choose Google Calendar screenshot'}</span>
         <input type="file" accept="image/*" disabled={analyzing || saving} onChange={importPhoto} /></label>
       {error ? <p role="alert">{error}</p> : null}
-      {items.length ? <><p className="coach-calendar-import-hint">Check each event. Nothing saves until you select it and confirm.</p>
-        <div className="coach-calendar-import-items">{items.map(item => <article key={item.id} className="coach-calendar-import-item">
-          <label><input type="checkbox" checked={item.selected} disabled={item.duplicate || saving} onChange={e => update(item.id, { selected: e.target.checked })} /><strong>{item.duplicate ? 'Already on calendar' : 'Add event'}</strong></label>
-          <input aria-label="Event title" value={item.title} onChange={e => update(item.id, { title: e.target.value })} placeholder="Event title" />
-          <div className="coach-calendar-import-fields"><input type="date" aria-label="Event date" value={item.date} onChange={e => update(item.id, { date: e.target.value })} />
-          <input type="time" aria-label="Start time" value={item.startTime} onChange={e => update(item.id, { startTime: e.target.value })} />
-          <input type="number" min="1" max="1440" aria-label="Duration in minutes" value={item.durationMinutes} onChange={e => update(item.id, { durationMinutes: Number(e.target.value) })} /></div>
-          <select aria-label="Event type" value={item.suggestedType} onChange={e => update(item.id, { suggestedType: e.target.value, businessClientId: e.target.value === 'private' ? null : item.businessClientId })}>
-            <option value="private">Everyday event</option><option value="training_candidate">Training session</option>
-          </select>
-          {item.suggestedType === 'training_candidate' ? <select aria-label="Training client" value={item.businessClientId || ''} onChange={e => update(item.id, { businessClientId: e.target.value })}>
-            <option value="">Choose client</option>{clients.map(client => { const id = resolveRecordBusinessClientId(client); return id ? <option key={id} value={id}>{getClientDisplayName(client)}</option> : null })}
-          </select> : null}
-          {item.matchStatus === 'ambiguous' ? <small>Similar client names found. Confirm the right person.</small> : null}
-          {item.needsReview ? <small>Check the date, time, or matching client before selecting.</small> : null}
-        </article>)}</div>
+      {items.length ? <>
+        <p className="coach-calendar-import-hint">{items.length} events found · Check the details, then select the ones to add.</p>
+        <div className="coach-calendar-import-items">{items.map(item => {
+          const client = clients.find(c => String(resolveRecordBusinessClientId(c)) === String(item.businessClientId))
+          const summaryDate = item.date ? new Date(item.date + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }) : 'Date unclear'
+          const valid = Boolean(item.title.trim() && item.date && item.startTime && Number(item.durationMinutes) > 0 && !item.dateConflict &&
+            (item.suggestedType !== 'training_candidate' || item.businessClientId))
+          const expanded = expandedId === item.id
+          return <article key={item.id} className={'coach-calendar-import-item coach-calendar-import-compact ' + (item.duplicate ? 'is-duplicate' : '')}>
+            <div className="coach-calendar-import-summary">
+              <input type="checkbox" aria-label={'Include ' + item.title} checked={item.selected} disabled={item.duplicate || saving || !valid}
+                onChange={e => update(item.id, { selected: e.target.checked })} />
+              <div className="coach-calendar-import-summary-copy">
+                <strong>{client ? getClientDisplayName(client) : item.title || 'Unclear event'}</strong>
+                <span>{summaryDate} · {item.startTime || 'Time unclear'} · {item.durationMinutes || '?'} min</span>
+                <small>{item.suggestedType === 'training_candidate' ? (client ? 'Training session' : 'Choose training client') : 'Everyday event'}{item.duplicate ? ' · Already on calendar' : ''}</small>
+              </div>
+              <button type="button" className="coach-calendar-import-edit-trigger" aria-expanded={expanded} onClick={() => setExpandedId(expanded ? null : item.id)}>{expanded ? 'Done' : 'Edit'}</button>
+            </div>
+            {item.dateConflict ? <p className="coach-calendar-import-warning">The extracted date does not match the weekday column. Check the date before adding.</p> : null}
+            {item.matchStatus === 'ambiguous' && !item.businessClientId ? <div className="coach-calendar-import-suggestions">
+              <small>Could this be a client?</small>
+              <div>{item.candidates.map(candidate => <button type="button" key={candidate.id} onClick={() => update(item.id, { suggestedType: 'training_candidate', businessClientId: candidate.id, needsReview: false })}>
+                {getClientDisplayName(clients.find(c => String(resolveRecordBusinessClientId(c)) === String(candidate.id)) || {}) || candidate.name}
+              </button>)}</div>
+            </div> : null}
+            {expanded ? <div className="coach-calendar-import-editor">
+              <label>Event name<input aria-label="Event title" value={item.title} onChange={e => update(item.id, { title: e.target.value })} /></label>
+              <div className="coach-calendar-import-fields">
+                <label>Date<input type="date" aria-label="Event date" value={item.date} onChange={e => update(item.id, { date: e.target.value, dateConflict: false })} /></label>
+                <label>Starts<input type="time" aria-label="Start time" value={item.startTime} onChange={e => update(item.id, { startTime: e.target.value })} /></label>
+                <label>Minutes<input type="number" min="1" max="1440" aria-label="Duration in minutes" value={item.durationMinutes} onChange={e => update(item.id, { durationMinutes: Number(e.target.value) })} /></label>
+              </div>
+              <label>Event type<select aria-label="Event type" value={item.suggestedType} onChange={e => update(item.id, { suggestedType: e.target.value, businessClientId: e.target.value === 'private' ? null : item.businessClientId })}>
+                <option value="private">Everyday event</option><option value="training_candidate">Training session</option>
+              </select></label>
+              {item.suggestedType === 'training_candidate' ? <label>Client<select aria-label="Training client" value={item.businessClientId || ''} onChange={e => update(item.id, { businessClientId: e.target.value })}>
+                <option value="">Choose client</option>{clients.map(c => { const id = resolveRecordBusinessClientId(c); return id ? <option key={id} value={id}>{getClientDisplayName(c)}</option> : null })}
+              </select></label> : null}
+            </div> : null}
+          </article>
+        })}</div>
       </> : null}
       <footer><button type="button" onClick={onClose} disabled={saving}>Cancel</button><button type="button" className="gold-button machined coach-primary-action" disabled={!ready.length || saving || analyzing} onClick={handleSave}>{saving ? 'Saving…' : 'Save ' + ready.length + ' selected'}</button></footer>
     </section>

@@ -14,8 +14,28 @@ describe('review-first screenshot calendar imports', () => {
   })
   it('matches exact names and unique first names without auto-saving', () => {
     expect(matchCalendarImportClient('Don Parker', clients).status).toBe('matched')
-    expect(matchCalendarImportClient('Don', clients).status).toBe('matched')
+    expect(matchCalendarImportClient('Don', clients).status).toBe('ambiguous')
   })
+  it('suggests but never auto-links clipped labels and slash names', () => {
+    const partial = matchCalendarImportClient('Michelle Ja', clients)
+    expect(partial.status).toBe('ambiguous')
+    expect(partial.candidates).toHaveLength(1)
+    expect(partial.client).toBeNull()
+    const combined = matchCalendarImportClient('Don/Mi', clients)
+    expect(combined.status).toBe('ambiguous')
+    expect(combined.candidates.length).toBeGreaterThanOrEqual(2)
+    expect(combined.candidates.some(candidate => candidate.name.includes('michelle'))).toBe(true)
+    expect(combined.client).toBeNull()
+    const [review] = prepareCalendarImportReview([
+      { title: 'Don/Mi', date: '2026-10-19', startTime: '07:30', durationMinutes: 30 },
+    ], clients)
+    expect(review.title).toBe('Don/Mi')
+    expect(review.startTime).toBe('07:30')
+    expect(review.durationMinutes).toBe(30)
+    expect(review.selected).toBe(false)
+    expect(review.businessClientId).toBeNull()
+  })
+
   it('keeps extracted entries unselected until coach confirmation', () => {
     const [event] = prepareCalendarImportReview([{ title: 'NextLevel', date: '2026-10-19', startTime: '10:00', durationMinutes: 60 }], clients)
     expect(event.selected).toBe(false)
