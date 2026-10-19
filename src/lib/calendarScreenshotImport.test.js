@@ -24,6 +24,7 @@ describe('review-first screenshot calendar imports', () => {
     const combined = matchCalendarImportClient('Don/Mi', clients)
     expect(combined.status).toBe('ambiguous')
     expect(combined.candidates.length).toBeGreaterThanOrEqual(2)
+    expect(combined.candidates.some(candidate => candidate.name.includes('michelle'))).toBe(true)
     expect(combined.client).toBeNull()
     const [review] = prepareCalendarImportReview([
       { title: 'Don/Mi', date: '2026-10-19', startTime: '07:30', durationMinutes: 30 },
