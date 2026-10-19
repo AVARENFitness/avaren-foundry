@@ -214,6 +214,21 @@ export default function CoachSessionDetailSheet({
                 <option value="other">Other</option>
               </select>
             </label>
+            <label className="coach-date-field">
+              <span>Session notes</span>
+              <textarea
+                className="coach-field-input"
+                rows={3}
+                value={rescheduleDraft.coachNote ?? ''}
+                onChange={(event) =>
+                  onRescheduleDraftChange?.((current) => ({
+                    ...current,
+                    coachNote: event.target.value,
+                  }))
+                }
+                placeholder="Private notes for this appointment"
+              />
+            </label>
             {rescheduleDraft.locationType === 'other' ? (
               <label className="coach-date-field">
                 <span>Location name</span>
