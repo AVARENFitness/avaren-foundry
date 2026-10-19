@@ -23,7 +23,8 @@ export function detectCalendarEventBlocks({ width, height, data }) {
   const spans=[]
   let begin=-1
   for(let x=0;x<=width;x++){
-    const filled=x<width && projection[x]>=8
+    const threshold=Math.min(8,Math.max(3,Math.floor((bottom-top)/100)))
+    const filled=x<width && projection[x]>=threshold
     if(filled && begin<0) begin=x
     if(!filled && begin>=0){
       if(x-begin>=25)spans.push([begin,x])
