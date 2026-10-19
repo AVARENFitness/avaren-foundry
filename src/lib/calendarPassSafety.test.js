@@ -31,6 +31,14 @@ describe('coach calendar pass accounting isolation', () => {
     expect(section).not.toContain('setMissedChargeSession(saved)')
   })
 
+  it('session editor persists notes in an occurrence-specific patch', () => {
+    const editor = read('src/components/coach/CoachSessionDetailSheet.jsx')
+    const controller = read('src/hooks/useCoachSessionDetail.js')
+    expect(editor).toContain('Session notes')
+    expect(controller).toContain("coachNote: rescheduleDraft.coachNote ?? ''")
+    expect(controller).toContain('updateRecurringAppointmentOccurrence(')
+  })
+
   it('event import uses concise label and detail has no calendar debit action', () => {
     const importer = read('src/components/CoachCalendarImportSheet.jsx')
     const detail = read('src/components/coach/CoachSessionDetailSheet.jsx')
