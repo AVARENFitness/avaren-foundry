@@ -20,13 +20,16 @@ export function matchCalendarImportClient(label, clients = []) {
   // partial label to a person. Slash labels can refer to more than one client.
   const parts = raw.split('/').map(clean).filter(Boolean)
   const searchParts = parts.length > 1 ? parts : [query]
-  const possible = named.filter(item => searchParts.some(part => {
+  const possible = named.filter(item => {
+    if (query.length >= 3 && item.name.startsWith(query)) return true
+    return searchParts.some(part => {
     if (part.length < 2) return false
     return item.name === part ||
       item.name.startsWith(part + ' ') ||
       (part.length >= (parts.length > 1 ? 2 : 3) && item.name.startsWith(part)) ||
       (part.length >= 3 && item.name.split(' ').some(word => word.startsWith(part)))
-  }))
+    })
+  })
   if (possible.length) return { status: 'ambiguous', client: null, candidates: possible }
   return { status: 'unmatched', client: null, candidates: [] }
 }
@@ -37,11 +40,14 @@ export function prepareCalendarImportReview(entries = [], clients = []) {
     const date = String(entry?.date ?? '')
     const startTime = String(entry?.startTime ?? '')
     const durationMinutes = Number(entry?.durationMinutes)
-    const validDate = /^\d{4}-\d{2}-\d{2}$/.test(date) && Number.isFinite(Date.parse(date + 'T12:00:00'))
+    const parsedDate = new Date(date + 'T12:00:00Z')
+    const validDate = /^\d{4}-\d{2}-\d{2}$/.test(date) && Number.isFinite(parsedDate.getTime()) && parsedDate.toISOString().slice(0, 10) === date
+    const expectedDay = Number(entry?.weekday)
+    const matchesColumn = !Number.isInteger(expectedDay) || expectedDay < 0 || expectedDay > 6 || (validDate && parsedDate.getUTCDay() === expectedDay)
     const validTime = /^([01]\d|2[0-3]):[0-5]\d$/.test(startTime)
     const validDuration = Number.isInteger(durationMinutes) && durationMinutes > 0 && durationMinutes <= 1440
     const match = matchCalendarImportClient(title, clients)
-    const needsReview = !title || !validDate || !validTime || !validDuration || match.status === 'ambiguous'
+    const needsReview = !title || !validDate || !validTime || !validDuration || !matchesColumn || match.status === 'ambiguous'
     return {
       id: 'import-' + index,
       title,
@@ -51,6 +57,8 @@ export function prepareCalendarImportReview(entries = [], clients = []) {
       suggestedType: match.status === 'matched' ? 'training_candidate' : 'private',
       businessClientId: match.status === 'matched' ? resolveRecordBusinessClientId(match.client) : null,
       matchStatus: match.status,
+      dateConflict: !matchesColumn,
+      weekday: Number.isInteger(expectedDay) ? expectedDay : null,
       candidates: match.candidates.map(item => ({ name: item.name, id: item.id })),
       needsReview,
       selected: false,
