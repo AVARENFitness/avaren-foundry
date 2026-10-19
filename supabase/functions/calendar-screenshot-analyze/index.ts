@@ -79,7 +79,7 @@ Deno.serve(async(req:Request)=>{
    const valid=col>=0&&col<=6&&Number.isFinite(rawTime)&&rawTime>=0&&rawTime<1440&&
     min>=0&&min<1440&&duration>=15&&duration<=960&&Math.abs(rawTime-min)<=8&&
     Math.abs(rawDuration-duration)<=9
-   const date=new Date(sunday!.getTime()+col*86400000).toISOString().slice(0,10)
+   const date=col>=0&&col<=6 ? new Date(sunday!.getTime()+col*86400000).toISOString().slice(0,10) : ''
    return { title:labels.get(b.id)||'',date:valid?date:'',weekday:col>=0&&col<=6?col:-1,
     startTime:valid?timeString(min):'',durationMinutes:valid?duration:0,geometryValid:valid,blockId:b.id }
   })
