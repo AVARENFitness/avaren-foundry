@@ -123,6 +123,37 @@ export function detectCalendarDayGrid({width,height,data}) {
   return candidates[0]??null
 }
 
+export async function createCalendarBlockLabelSheet(file, blocks) {
+  const bitmap = await createImageBitmap(file)
+  try {
+    const tileWidth = 330, tileHeight = 145, columns = 2
+    const rows = Math.ceil(blocks.length / columns)
+    const canvas = document.createElement('canvas')
+    canvas.width = tileWidth * columns
+    canvas.height = Math.max(1, rows) * tileHeight
+    const ctx = canvas.getContext('2d')
+    if (!ctx) throw new Error('Could not prepare appointment titles.')
+    ctx.fillStyle = '#fff'
+    ctx.fillRect(0, 0, canvas.width, canvas.height)
+    blocks.forEach((block, index) => {
+      const left = (index % columns) * tileWidth
+      const top = Math.floor(index / columns) * tileHeight
+      ctx.fillStyle = '#111'
+      ctx.font = 'bold 17px sans-serif'
+      ctx.fillText('BLOCK ' + block.id, left + 9, top + 22)
+      const cropX = Math.max(0, block.x - 5)
+      const cropY = Math.max(0, block.y - 5)
+      const cropW = Math.min(bitmap.width - cropX, block.width + 10)
+      const cropH = Math.min(bitmap.height - cropY, block.height + 10)
+      const scale = Math.min((tileWidth - 18) / cropW, (tileHeight - 37) / cropH, 3)
+      ctx.imageSmoothingEnabled = true
+      ctx.drawImage(bitmap, cropX, cropY, cropW, cropH,
+        left + 9, top + 28, cropW * scale, cropH * scale)
+    })
+    return canvas.toDataURL('image/jpeg', 0.9)
+  } finally { bitmap.close?.() }
+}
+
 export async function getCalendarScreenshotGeometry(file) {
   const bitmap=await createImageBitmap(file)
   try {
