@@ -43,6 +43,7 @@ import CoachSessionDetailSheet from './coach/CoachSessionDetailSheet'
 import CoachAppointmentCard from './coach/CoachAppointmentCard'
 import CoachScheduleSessionSheet from './CoachScheduleSessionSheet'
 import CoachCalendarEventSheet from './CoachCalendarEventSheet'
+import CoachCalendarImportSheet from './CoachCalendarImportSheet'
 import { getClientDisplayName } from '../lib/clientDisplayName'
 import {
   resolveAthleteDataId,
@@ -111,6 +112,7 @@ export default function CoachSessionCalendar({
   const [showComposer, setShowComposer] = useState(initialOpenComposer)
   const [showEventComposer, setShowEventComposer] = useState(false)
   const [showAddMenu, setShowAddMenu] = useState(false)
+  const [showScreenshotImport, setShowScreenshotImport] = useState(false)
   const [scheduling, setScheduling] = useState(false)
   const [eventSaving, setEventSaving] = useState(false)
   const [editingPrivateEvent, setEditingPrivateEvent] = useState(null)
@@ -595,6 +597,44 @@ export default function CoachSessionCalendar({
     }
   }
 
+  const handleSaveScreenshotEntries = async (rows) => {
+    const failedIds = []
+    for (const row of rows) {
+      try {
+        if (row.suggestedType === 'training_candidate') {
+          const client = clients.find(entry => String(resolveRecordBusinessClientId(entry)) === String(row.businessClientId))
+          if (!client) throw new Error('Select an existing client.')
+          await coachBackend.createScheduledSession({
+            businessClientId: row.businessClientId,
+            athleteId: resolveAthleteDataId(client) ?? null,
+            sessionDate: row.date,
+            startTime: row.startTime,
+            durationMinutes: Number(row.durationMinutes),
+            coachNote: 'Imported from calendar screenshot',
+            assignmentId: null,
+            locationType: 'default',
+            locationName: '',
+            existingSessions: scheduleItems,
+          })
+        } else {
+          await coachBackend.createCoachCalendarEvent({
+            title: row.title,
+            eventDate: row.date,
+            startTime: row.startTime,
+            durationMinutes: Number(row.durationMinutes),
+            category: COACH_CALENDAR_EVENT_CATEGORY.PERSONAL,
+            notes: 'Imported from calendar screenshot',
+            locationName: '',
+            existingItems: scheduleItems,
+          })
+        }
+      } catch { failedIds.push(row.id) }
+    }
+    await loadSessions()
+    if (rows.length > failedIds.length) appUi.toast((rows.length - failedIds.length) + ' calendar events added.', 'success')
+    return { failedIds, savedCount: rows.length - failedIds.length }
+  }
+
   const handleSavePrivateEvent = async () => {
     const title = eventDraft.title.trim()
     if (!title) {
@@ -808,6 +848,9 @@ export default function CoachSessionCalendar({
                     <strong>Personal training</strong>
                     <small>Client, date, time, and duration</small>
                   </span>
+                </button>
+                <button type="button" role="menuitem" data-testid="coach-calendar-import-screenshot" onClick={() => { setShowAddMenu(false); setShowScreenshotImport(true) }}>
+                  <span><strong>Import screenshot</strong><small>Google Calendar photo · review with AVA</small></span>
                 </button>
                 <button
                   type="button"
@@ -1078,6 +1121,14 @@ export default function CoachSessionCalendar({
           ) : null}
         </section>
       ) : null}
+
+      <CoachCalendarImportSheet
+        open={showScreenshotImport}
+        clients={clients}
+        existingItems={scheduleItems}
+        onClose={() => setShowScreenshotImport(false)}
+        onSave={handleSaveScreenshotEntries}
+      />
 
       <CoachCalendarEventSheet
         open={showEventComposer}
