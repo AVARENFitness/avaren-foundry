@@ -8526,3 +8526,9 @@ body > .nutrition-food-sheet-backdrop > .nutrition-food-sheet {
 .coach-calendar-import-sheet footer { display: flex; justify-content: flex-end; gap: 10px; align-items: center; margin-top: 18px; }
 .coach-calendar-import-sheet footer button { min-height: 42px; padding: 10px 14px; border-radius: 10px; }
 @media (max-width: 430px) { .coach-calendar-import-sheet { padding: 15px; width: calc(100vw - 16px); max-height: 84dvh; } .coach-calendar-import-fields { grid-template-columns: 1fr 1fr; } .coach-calendar-import-fields input[type=date] { grid-column: 1 / -1; } }
+
+/* Screenshot import: light-touch possible client suggestions, without extra form screens. */
+.coach-calendar-import-suggestions { display: grid; gap: 8px; }
+.coach-calendar-import-suggestions > div { display: flex; flex-wrap: wrap; gap: 7px; }
+.coach-calendar-import-suggestions button { padding: 8px 11px; background: rgba(209,177,107,.1); border: 1px solid rgba(209,177,107,.35); color: #e2c58d; border-radius: 999px; font-size: 12px; line-height: 1.2; }
+.coach-calendar-import-suggestions button:focus-visible { outline: 2px solid #e2c58d; outline-offset: 2px; }
