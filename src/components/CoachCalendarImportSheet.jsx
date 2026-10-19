@@ -74,7 +74,15 @@ export default function CoachCalendarImportSheet({ open, clients = [], existingI
           {item.suggestedType === 'training_candidate' ? <select aria-label="Training client" value={item.businessClientId || ''} onChange={e => update(item.id, { businessClientId: e.target.value })}>
             <option value="">Choose client</option>{clients.map(client => { const id = resolveRecordBusinessClientId(client); return id ? <option key={id} value={id}>{getClientDisplayName(client)}</option> : null })}
           </select> : null}
-          {item.matchStatus === 'ambiguous' ? <small>Similar client names found. Confirm the right person.</small> : null}
+          {item.matchStatus === 'ambiguous' ? <div className="coach-calendar-import-suggestions">
+            <small>Possible client match — tap to confirm, or keep as an everyday event:</small>
+            <div>{item.candidates.map(candidate => <button type="button" key={candidate.id}
+              onClick={() => update(item.id, { suggestedType: 'training_candidate', businessClientId: candidate.id, needsReview: false })}>
+              {clients.find(client => String(resolveRecordBusinessClientId(client)) === String(candidate.id))
+                ? getClientDisplayName(clients.find(client => String(resolveRecordBusinessClientId(client)) === String(candidate.id)))
+                : candidate.name}
+            </button>)}</div>
+          </div> : null}
           {item.needsReview ? <small>Check the date, time, or matching client before selecting.</small> : null}
         </article>)}</div>
       </> : null}
