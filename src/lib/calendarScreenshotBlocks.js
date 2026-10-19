@@ -91,6 +91,69 @@ export function detectCalendarHourGrid({ width, height, data }) {
   return {hourLines,pixelsPerHour}
 }
 
+
+export function detectCalendarDayGrid({width,height,data}) {
+  const xs=[]
+  const fromY=Math.floor(height*.2),toY=Math.floor(height*.95)
+  for(let x=Math.floor(width*.08);x<width-4;x++) {
+    let hits=0,samples=0
+    for(let y=fromY;y<toY;y+=13) {
+      const i=(y*width+x)*4, r=data[i],g=data[i+1],b=data[i+2]
+      if(r>=210&&g>=213&&b>=215&&Math.max(r,g,b)-Math.min(r,g,b)<=22&&r<250&&g<252&&b<253)hits++
+      samples++
+    }
+    if(hits/samples>.52)xs.push(x)
+  }
+  const clusters=[]
+  for(const x of xs){
+    const last=clusters[clusters.length-1]
+    if(last&&x-last[last.length-1]<=3)last.push(x)
+    else clusters.push([x])
+  }
+  const lines=clusters.map(a=>Math.round(a.reduce((x,y)=>x+y,0)/a.length))
+  // Seven equal-width day columns; accept only a coherent sequence.
+  const candidates=[]
+  for(const first of lines)for(const last of lines){
+    const spacing=(last-first)/6
+    if(spacing<width/14||spacing>width/5)continue
+    const matches=Array.from({length:7},(_,i)=>lines.some(x=>Math.abs(x-first-i*spacing)<Math.max(4,spacing*.08))).filter(Boolean).length
+    if(matches>=5)candidates.push({gridLeftX:first,columnWidth:spacing,matches})
+  }
+  candidates.sort((a,b)=>b.matches-a.matches||a.gridLeftX-b.gridLeftX)
+  return candidates[0]??null
+}
+
+export async function createCalendarBlockLabelSheet(file, blocks) {
+  const bitmap = await createImageBitmap(file)
+  try {
+    const tileWidth = 330, tileHeight = 145, columns = 2
+    const rows = Math.ceil(blocks.length / columns)
+    const canvas = document.createElement('canvas')
+    canvas.width = tileWidth * columns
+    canvas.height = Math.max(1, rows) * tileHeight
+    const ctx = canvas.getContext('2d')
+    if (!ctx) throw new Error('Could not prepare appointment titles.')
+    ctx.fillStyle = '#fff'
+    ctx.fillRect(0, 0, canvas.width, canvas.height)
+    blocks.forEach((block, index) => {
+      const left = (index % columns) * tileWidth
+      const top = Math.floor(index / columns) * tileHeight
+      ctx.fillStyle = '#111'
+      ctx.font = 'bold 17px sans-serif'
+      ctx.fillText('BLOCK ' + block.id, left + 9, top + 22)
+      const cropX = Math.max(0, block.x - 5)
+      const cropY = Math.max(0, block.y - 5)
+      const cropW = Math.min(bitmap.width - cropX, block.width + 10)
+      const cropH = Math.min(bitmap.height - cropY, block.height + 10)
+      const scale = Math.min((tileWidth - 18) / cropW, (tileHeight - 37) / cropH, 3)
+      ctx.imageSmoothingEnabled = true
+      ctx.drawImage(bitmap, cropX, cropY, cropW, cropH,
+        left + 9, top + 28, cropW * scale, cropH * scale)
+    })
+    return canvas.toDataURL('image/jpeg', 0.9)
+  } finally { bitmap.close?.() }
+}
+
 export async function getCalendarScreenshotGeometry(file) {
   const bitmap=await createImageBitmap(file)
   try {
@@ -101,6 +164,6 @@ export async function getCalendarScreenshotGeometry(file) {
     if(!ctx)throw new Error('Screenshot pixel analysis is unavailable on this device.')
     ctx.drawImage(bitmap,0,0,canvas.width,canvas.height)
     const pixels=ctx.getImageData(0,0,canvas.width,canvas.height)
-    return {width:canvas.width,height:canvas.height,blocks:detectCalendarEventBlocks(pixels),...detectCalendarHourGrid(pixels)}
+    return {width:canvas.width,height:canvas.height,blocks:detectCalendarEventBlocks(pixels),...detectCalendarHourGrid(pixels),dayGrid:detectCalendarDayGrid(pixels)}
   }finally{bitmap.close?.()}
 }

@@ -1,4 +1,4 @@
-import { getCalendarScreenshotGeometry } from './calendarScreenshotBlocks'
+import { createCalendarBlockLabelSheet, getCalendarScreenshotGeometry } from './calendarScreenshotBlocks'
 import { supabase } from './supabase'
 export async function analyzeCalendarScreenshot(file) {
   if (!file?.type?.startsWith('image/')) throw new Error('Choose a calendar screenshot.')
@@ -12,8 +12,9 @@ export async function analyzeCalendarScreenshot(file) {
   if (!supabase) throw new Error('Calendar import is unavailable.')
   const geometry = await getCalendarScreenshotGeometry(file)
   if (!geometry.blocks.length) throw new Error('No calendar event blocks detected. Upload a Google Calendar week screenshot with visible colored events.')
-  const { data, error } = await supabase.functions.invoke('calendar-screenshot-analyze-v2', {
-    body: { imageDataUrl, geometry },
+  const labelSheetDataUrl = await createCalendarBlockLabelSheet(file, geometry.blocks)
+  const { data, error } = await supabase.functions.invoke('calendar-screenshot-analyze-v3', {
+    body: { imageDataUrl, geometry, labelSheetDataUrl },
   })
   if (error || !data?.ok) {
     let message = data?.message
