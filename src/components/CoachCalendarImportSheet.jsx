@@ -38,7 +38,7 @@ export default function CoachCalendarImportSheet({ open, clients = [], existingI
     } catch (failure) { setError(failure.message || 'Could not analyze screenshot.') }
     finally { setAnalyzing(false) }
   }
-  const ready = items.filter(item => item.selected && item.title && item.date && item.startTime && Number(item.durationMinutes) > 0 && !item.duplicate && !item.dateConflict &&
+  const ready = items.filter(item => item.selected && item.title && item.date && item.startTime && Number(item.durationMinutes) > 0 && !item.duplicate && !item.dateConflict && !item.geometryConflict &&
     (item.suggestedType !== 'training_candidate' || item.businessClientId))
   const handleSave = async () => {
     setSaving(true); setError('')
@@ -67,7 +67,7 @@ export default function CoachCalendarImportSheet({ open, clients = [], existingI
         <div className="coach-calendar-import-items">{items.map(item => {
           const client = clients.find(c => String(resolveRecordBusinessClientId(c)) === String(item.businessClientId))
           const summaryDate = item.date ? new Date(item.date + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }) : 'Date unclear'
-          const valid = Boolean(item.title.trim() && item.date && item.startTime && Number(item.durationMinutes) > 0 && !item.dateConflict &&
+          const valid = Boolean(item.title.trim() && item.date && item.startTime && Number(item.durationMinutes) > 0 && !item.dateConflict && !item.geometryConflict &&
             (item.suggestedType !== 'training_candidate' || item.businessClientId))
           const expanded = expandedId === item.id
           return <article key={item.id} className={'coach-calendar-import-item coach-calendar-import-compact ' + (item.duplicate ? 'is-duplicate' : '')}>
@@ -81,6 +81,7 @@ export default function CoachCalendarImportSheet({ open, clients = [], existingI
               </div>
               <button type="button" className="coach-calendar-import-edit-trigger" aria-expanded={expanded} onClick={() => setExpandedId(expanded ? null : item.id)}>{expanded ? 'Done' : 'Edit'}</button>
             </div>
+            {item.geometryConflict ? <p className="coach-calendar-import-warning">AVA could not verify this appointment against the hour grid. Open Edit, check its day, start and duration, then confirm them.</p> : null}
             {item.dateConflict ? <p className="coach-calendar-import-warning">The extracted date does not match the weekday column. Check the date before adding.</p> : null}
             {item.matchStatus === 'ambiguous' && !item.businessClientId ? <div className="coach-calendar-import-suggestions">
               <small>Could this be a client?</small>
@@ -101,6 +102,7 @@ export default function CoachCalendarImportSheet({ open, clients = [], existingI
               {item.suggestedType === 'training_candidate' ? <label>Client<select aria-label="Training client" value={item.businessClientId || ''} onChange={e => update(item.id, { businessClientId: e.target.value })}>
                 <option value="">Choose client</option>{clients.map(c => { const id = resolveRecordBusinessClientId(c); return id ? <option key={id} value={id}>{getClientDisplayName(c)}</option> : null })}
               </select></label> : null}
+              {item.geometryConflict ? <button type="button" className="coach-calendar-import-verify" onClick={() => update(item.id, { geometryConflict: false })}>I've checked this time against the screenshot</button> : null}
             </div> : null}
           </article>
         })}</div>
