@@ -466,40 +466,7 @@ export default function CoachSessionCalendar({
       // own recurrence series, starting the following week.
       let created = 0
       for (const plan of plans) {
-        if (plan.isEvent) {
-          // Ordinary calendar events are materialized independently so editing
-          // one later cannot shift or replace any neighboring occurrence.
-          let cursor = plan.startsOn
-          const occupied = [...scheduleItems]
-          while (cursor <= repeatEndDate) {
-            if (occupied.some(item => String(item.sessionDate ?? item.eventDate) === cursor &&
-              String(item.startTime).slice(0, 5) === String(plan.session.startTime).slice(0, 5) &&
-              String(item.title ?? '') === String(plan.session.title ?? ''))) {
-              throw new Error('An event already exists on ' + cursor + '. No duplicates were added for this date.')
-            }
-            const createdEvent = await coachBackend.createCoachCalendarEvent({
-              title: plan.session.title,
-              eventDate: cursor,
-              startTime: String(plan.session.startTime).slice(0, 5),
-              durationMinutes: Number(plan.session.durationMinutes),
-              category: plan.session.category ?? 'personal',
-              notes: plan.session.notes ?? '',
-              locationName: plan.session.locationName ?? '',
-              existingItems: occupied,
-            })
-            occupied.push({
-              ...plan.session,
-              ...createdEvent,
-              id: createdEvent.id,
-              eventDate: cursor,
-              sessionDate: cursor,
-              status: 'scheduled',
-            })
-            cursor = addDaysKey(cursor, 7)
-          }
-          created += 1
-          continue
-        }
+        if (plan.isEvent) continue
         await coachBackend.createRecurringAppointmentSeries({
           businessClientId: plan.businessClientId,
           startsOn: plan.startsOn,
@@ -515,6 +482,21 @@ export default function CoachSessionCalendar({
           existingItems: scheduleItems,
         })
         created += 1
+      }
+      if (plannedEvents.length) {
+        await coachBackend.createCoachCalendarEventBatch({
+          events: plannedEvents.map(event => ({
+            title: event.title,
+            eventDate: event.eventDate,
+            startTime: String(event.startTime).slice(0, 5),
+            durationMinutes: Number(event.durationMinutes),
+            category: event.category ?? 'personal',
+            notes: event.notes ?? '',
+            locationName: event.locationName ?? '',
+          })),
+          existingItems: scheduleItems,
+        })
+        created += plans.filter(plan => plan.isEvent).length
       }
       setRepeatSelection([])
       setRepeatEndDate('')
