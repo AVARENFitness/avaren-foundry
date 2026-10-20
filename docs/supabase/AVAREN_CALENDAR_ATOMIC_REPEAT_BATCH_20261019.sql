@@ -48,7 +48,7 @@ begin
     v_title := btrim(v_item->>'title');
     v_start := (v_item->>'startsAt')::timestamptz;
     v_end := v_start + make_interval(mins => v_duration);
-    if v_source is null or v_day is null or v_time is null or v_duration not between 1 and 1440
+    if v_source is null or v_day is null or v_time is null or v_duration not between 5 and 1440
        or v_start is null or v_title is null or v_title = '' or length(v_title) > 120
        or (v_start at time zone coalesce(nullif(v_item->>'scheduleTimezone',''),'America/New_York'))::date <> v_day
        or (v_start at time zone coalesce(nullif(v_item->>'scheduleTimezone',''),'America/New_York'))::time(0) <> v_time
@@ -61,6 +61,11 @@ begin
        coalesce(v_item->>'category','personal'),coalesce(v_item->>'notes',''),
        coalesce(v_item->>'locationName',''),coalesce(v_item->>'scheduleTimezone','America/New_York'));
   end loop;
+
+  if exists (
+    select 1 from pg_temp.avaren_repeat_batch
+    group by source_id, occurrence_date having count(*) > 1
+  ) then raise exception 'duplicate_occurrence_in_batch'; end if;
 
   if exists (
     select 1 from pg_temp.avaren_repeat_batch a join pg_temp.avaren_repeat_batch b
@@ -85,6 +90,9 @@ begin
          and e.repeat_occurrence_date=b.occurrence_date
     where e.status <> 'scheduled' or e.event_date<>b.event_date or e.start_time<>b.start_time
        or e.duration_minutes<>b.duration_minutes or e.title<>b.title
+       or e.starts_at is distinct from b.starts_at or e.ends_at is distinct from b.ends_at
+       or e.notes is distinct from b.notes or e.category is distinct from b.category
+       or e.location_name is distinct from b.location_name
   ) then raise exception 'repeat_retry_changed'; end if;
 
   insert into public.coach_calendar_events (
