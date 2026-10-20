@@ -516,8 +516,16 @@ export default function CoachSessionCalendar({
       <div className="coach-session-calendar-list">
         {items.map((session) =>
           session.isCoachPrivateEvent || session.isAthletePrivateEvent ? (
+            <div key={session.id} className="coach-calendar-repeat-item">
+              {session.isCoachPrivateEvent ? (
+                <label className="coach-calendar-repeat-select">
+                  <input type="checkbox" aria-label={'Repeat event ' + session.title + ' on ' + session.eventDate}
+                    checked={repeatSelection.includes(session.id)}
+                    onChange={() => toggleRepeatSelection(session.id)} />
+                  <span>Repeat</span>
+                </label>
+              ) : null}
             <button
-              key={session.id}
               type="button"
               className="coach-calendar-private-event"
               data-testid="coach-private-calendar-event"
@@ -534,15 +542,9 @@ export default function CoachSessionCalendar({
                   {session.locationName ? ` · ${session.locationName}` : ''}
                 </span>
               </div>
-              <div className="coach-calendar-repeat-select">
-                <input type="checkbox" aria-label={'Repeat event ' + session.title + ' on ' + session.eventDate}
-                  checked={repeatSelection.includes(session.id)}
-                  onClick={event => event.stopPropagation()}
-                  onChange={() => toggleRepeatSelection(session.id)} />
-                <span>Repeat</span>
-              </div>
               <em>Private</em>
             </button>
+            </div>
           ) : (
             <div key={session.id} className="coach-calendar-repeat-item">
               {!session.recurrenceSeriesId && !session.recurrence_series_id ? (
