@@ -14,6 +14,14 @@ describe('repeat existing appointments', () => {
     expect(action).not.toContain('recordCompletedSessionPassUsage(')
     expect(action).not.toContain('applyCoachClientPassManualDebit(')
   })
+  it('repeats ordinary events as independent calendar records', () => {
+    expect(source).toContain('plan.isEvent')
+    expect(source).toContain('createCoachCalendarEvent({')
+    expect(source).toContain('eventDate: cursor')
+    expect(source).toContain('notes: plan.session.notes')
+    expect(source).toContain('Repeat event ')
+    expect(source).toContain('plannedEvents.length > 60')
+  })
   it('requires an explicit date limit and provides bulk selection on week and day views', () => {
     expect(source).toContain('repeatEndDate')
     expect(source).toContain('Repeat through date')
