@@ -1185,6 +1185,62 @@ export const coachBackend = {
     )
   },
 
+  // Insert a prepared ordinary-event batch in one PostgreSQL statement.
+  // A failed statement inserts none of its rows; never loop network inserts here.
+  async createCoachCalendarEventBatch({ events = [], existingItems = null }) {
+    if (!Array.isArray(events) || !events.length || events.length > 60) {
+      throw new Error('Choose between 1 and 60 events to repeat.')
+    }
+    const user = await currentUser()
+    const rows = events.map(event => {
+      const instant = buildScheduleInstant({
+        sessionDate: event.eventDate,
+        startTime: event.startTime,
+        scheduleTimezone: DEFAULT_COACH_SCHEDULE_TIMEZONE,
+      })
+      const duration = Number(event.durationMinutes)
+      if (!instant.startsAt || !Number.isInteger(duration) || duration <= 0 || duration > 1440 ||
+          !/^\\d{4}-\\d{2}-\\d{2}$/.test(String(event.eventDate ?? '')) ||
+          !/^([01]\\d|2[0-3]):[0-5]\\d$/.test(String(event.startTime ?? '')) ||
+          !String(event.title ?? '').trim()) {
+        throw new Error('An event has an invalid title, time or duration.')
+      }
+      return {
+        coach_id: user.id,
+        title: String(event.title).trim(),
+        event_date: event.eventDate,
+        start_time: event.startTime,
+        duration_minutes: duration,
+        starts_at: instant.startsAt,
+        ends_at: new Date(new Date(instant.startsAt).getTime() + duration * 60000).toISOString(),
+        schedule_timezone: instant.scheduleTimezone,
+        category: event.category ?? 'personal',
+        notes: event.notes ?? '',
+        location_name: event.locationName ?? '',
+        status: 'scheduled',
+        updated_at: new Date().toISOString(),
+      }
+    })
+    const collisionCandidates = rows.map(row => ({
+      sessionDate: row.event_date,
+      startTime: row.start_time,
+      startsAt: row.starts_at,
+      endsAt: row.ends_at,
+      durationMinutes: row.duration_minutes,
+      status: row.status,
+    }))
+    if (Array.isArray(existingItems) && collisionCandidates.some(candidate =>
+      findOverlappingAppointment(candidate, existingItems))) {
+      throw new Error('calendar_overlap')
+    }
+    if (collisionCandidates.some((candidate, index) =>
+      Boolean(findOverlappingAppointment(candidate,
+        collisionCandidates.filter((_, otherIndex) => otherIndex !== index))))) {
+      throw new Error('calendar_overlap')
+    }
+    return unwrap(supabase.from('coach_calendar_events').insert(rows).select())
+  },
+
   async createCoachCalendarEvent({
     title,
     eventDate,
