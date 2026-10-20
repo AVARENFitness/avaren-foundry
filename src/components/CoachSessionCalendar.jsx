@@ -424,6 +424,10 @@ export default function CoachSessionCalendar({
         businessClientId: resolveRecordBusinessClientId(client),
       }
     })
+    if (plans.some(plan => plan.isEvent) && plans.some(plan => !plan.isEvent)) {
+      appUi.toast('Repeat training sessions and ordinary events separately to keep each batch safe.', 'error')
+      return
+    }
     if (plans.some(plan => (!plan.isEvent && !plan.businessClientId) || plan.startsOn > repeatEndDate)) {
       appUi.toast('Choose a later end date and check each client.', 'error')
       return
