@@ -16,11 +16,12 @@ describe('repeat existing appointments', () => {
   })
   it('repeats ordinary events as independent calendar records', () => {
     expect(source).toContain('plan.isEvent')
-    expect(source).toContain('createCoachCalendarEvent({')
-    expect(source).toContain('eventDate: cursor')
-    expect(source).toContain('notes: plan.session.notes')
+    expect(source).toContain('createCoachCalendarEventBatch({')
+    expect(source).toContain('eventDate: event.eventDate')
+    expect(source).toContain('notes: event.notes')
     expect(source).toContain('Repeat event ')
     expect(source).toContain('plannedEvents.length > 60')
+    expect(source).toContain('Repeat training sessions and ordinary events separately')
   })
   it('requires an explicit date limit and provides bulk selection on week and day views', () => {
     expect(source).toContain('repeatEndDate')
