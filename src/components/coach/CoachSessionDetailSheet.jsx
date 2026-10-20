@@ -99,18 +99,9 @@ export default function CoachSessionDetailSheet({
                   </div>
                 </div>
                 {session.status === SCHEDULED_SESSION_STATUS.COMPLETED ? (
-                  <div className="coach-session-detail-pass-effect">
-                    <span className="coach-session-detail-status-label">Pass</span>
-                    <strong>
-                      {passDebitState.kind === 'debited'
-                        ? '1 session used'
-                        : passDebitState.kind === 'selection_required'
-                          ? 'Choose a pass to debit'
-                          : passDebitState.kind === 'pending_debit'
-                            ? 'Pass debit pending'
-                            : 'No eligible training pass'}
-                    </strong>
-                  </div>
+                  <p className="coach-session-detail-pass-effect">
+                    Session completed. Passes are managed manually from the client record.
+                  </p>
                 ) : null}
             {formatAppointmentHeadline(session) ? (
               <p className="coach-session-detail-workout">
@@ -223,6 +214,21 @@ export default function CoachSessionDetailSheet({
                 <option value="other">Other</option>
               </select>
             </label>
+            <label className="coach-date-field">
+              <span>Session notes</span>
+              <textarea
+                className="coach-field-input"
+                rows={3}
+                value={rescheduleDraft.coachNote ?? ''}
+                onChange={(event) =>
+                  onRescheduleDraftChange?.((current) => ({
+                    ...current,
+                    coachNote: event.target.value,
+                  }))
+                }
+                placeholder="Private notes for this appointment"
+              />
+            </label>
             {rescheduleDraft.locationType === 'other' ? (
               <label className="coach-date-field">
                 <span>Location name</span>
@@ -271,21 +277,6 @@ export default function CoachSessionDetailSheet({
             <UserRound {...ICON} />
             View client
           </button>
-          {session.status === SCHEDULED_SESSION_STATUS.COMPLETED &&
-            passDebitState.kind !== 'debited' && (
-              <button
-                type="button"
-                className="gold-button machined coach-primary-action"
-                disabled={passActionBusy}
-                onClick={() => onApplyPassDebit?.(session)}
-              >
-                {passDebitState.kind === 'selection_required'
-                  ? 'Choose pass'
-                  : passDebitState.kind === 'no_eligible_pass'
-                    ? 'Review passes'
-                    : 'Apply pass debit'}
-              </button>
-            )}
           {session.status === SCHEDULED_SESSION_STATUS.SCHEDULED && (
             <>
               <button

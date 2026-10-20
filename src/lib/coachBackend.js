@@ -2276,21 +2276,15 @@ export const coachBackend = {
     })
   },
 
-  async completeInPersonAppointment(sessionId, { passId = null } = {}) {
+  // Attendance and pass accounting are deliberately independent.
+  // Only the coach's explicit client-record pass action may deduct a pass.
+  async completeInPersonAppointment(sessionId) {
     const completedAt = new Date().toISOString()
     const session = await this.updateScheduledSession(sessionId, {
       status: SCHEDULED_SESSION_STATUS.COMPLETED,
       completedAt,
     })
-    const passResult = await this.recordCompletedSessionPassUsage(
-      sessionId,
-      passId,
-    )
-
-    return {
-      session,
-      passResult,
-    }
+    return { session }
   },
 
   async markInPersonAppointmentMissed(sessionId) {

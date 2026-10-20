@@ -77,7 +77,7 @@ export default function CoachCalendarImportSheet({ open, clients = [], existingI
               <div className="coach-calendar-import-summary-copy">
                 <strong>{client ? getClientDisplayName(client) : item.title || 'Unclear event'}</strong>
                 <span>{summaryDate} · {item.startTime || 'Time unclear'} · {item.durationMinutes || '?'} min</span>
-                <small>{item.suggestedType === 'training_candidate' ? (client ? 'Training session' : 'Choose training client') : 'Everyday event'}{item.duplicate ? ' · Already on calendar' : ''}</small>
+                <small>{item.suggestedType === 'training_candidate' ? (client ? 'Training session' : 'Choose training client') : 'Event'}{item.duplicate ? ' · Already on calendar' : ''}</small>
               </div>
               <button type="button" className="coach-calendar-import-edit-trigger" aria-expanded={expanded} onClick={() => setExpandedId(expanded ? null : item.id)}>{expanded ? 'Done' : 'Edit'}</button>
             </div>
@@ -97,7 +97,7 @@ export default function CoachCalendarImportSheet({ open, clients = [], existingI
                 <label>Minutes<input type="number" min="1" max="1440" aria-label="Duration in minutes" value={item.durationMinutes} onChange={e => update(item.id, { durationMinutes: Number(e.target.value) })} /></label>
               </div>
               <label>Event type<select aria-label="Event type" value={item.suggestedType} onChange={e => update(item.id, { suggestedType: e.target.value, businessClientId: e.target.value === 'private' ? null : item.businessClientId })}>
-                <option value="private">Everyday event</option><option value="training_candidate">Training session</option>
+                <option value="private">Event</option><option value="training_candidate">Training session</option>
               </select></label>
               {item.suggestedType === 'training_candidate' ? <label>Client<select aria-label="Training client" value={item.businessClientId || ''} onChange={e => update(item.id, { businessClientId: e.target.value })}>
                 <option value="">Choose client</option>{clients.map(c => { const id = resolveRecordBusinessClientId(c); return id ? <option key={id} value={id}>{getClientDisplayName(c)}</option> : null })}

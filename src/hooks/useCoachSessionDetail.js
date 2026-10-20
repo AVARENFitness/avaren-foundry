@@ -560,7 +560,7 @@ export function useCoachSessionDetail({
   )
 
   const handleComplete = useCallback(
-    async (session, passId = null) => {
+    async (session) => {
       if (
         completingSessionId === session.id ||
         session.status !== SCHEDULED_SESSION_STATUS.SCHEDULED
@@ -569,48 +569,16 @@ export function useCoachSessionDetail({
       }
 
       setCompletingSessionId(session.id)
-
       try {
-        const { session: savedRow, passResult } =
-          await coachBackend.completeInPersonAppointment(session.id, { passId })
-
+        const { session: savedRow } = await coachBackend.completeInPersonAppointment(session.id)
         const savedSession = normalizeScheduledSession(savedRow)
         setSessions((current) =>
           current.map((item) => (item.id === session.id ? savedSession : item)),
         )
         setActiveSession(savedSession)
-
-        reportPassUsage({ session: savedSession, passResult })
-
-        if (passResult.passSelectionRequired) {
-          await applyPassUsageResult(savedSession, passResult, { afterComplete: true })
-          return { ok: true, session: savedSession, passResult }
-        }
-
-        if (!passResult.ok && passResult.error) {
-          await applyPassUsageResult(savedSession, passResult, { afterComplete: true })
-          return { ok: true, session: savedSession, passResult }
-        }
-
-        if (passResult.noPass) {
-          appUi.toast(
-            'Session completed. No eligible training pass for this date.',
-            'info',
-          )
-        } else if (passResult.unchanged) {
-          appUi.toast('Session already recorded.', 'info')
-        } else {
-          appUi.toast('Session completed.', 'success')
-        }
-
-        reportPassUsage({
-          session: savedSession,
-          passResult,
-          refreshCalled: true,
-        })
-        await refreshAfterPassAction(session)
+        appUi.toast('Session completed. Pass balance unchanged.', 'success')
         await notifyMutated()
-        return { ok: true, session: savedSession, passResult }
+        return { ok: true, session: savedSession }
       } catch (error) {
         appUi.toast(error.message ?? 'Could not complete session.', 'error')
         return { ok: false, error }
@@ -618,7 +586,7 @@ export function useCoachSessionDetail({
         setCompletingSessionId(null)
       }
     },
-    [completingSessionId, setSessions, refreshAfterPassAction, notifyMutated, reportPassUsage, applyPassUsageResult],
+    [completingSessionId, setSessions, notifyMutated],
   )
 
   const handleMarkMissed = useCallback(
@@ -634,7 +602,8 @@ export function useCoachSessionDetail({
           current.map((item) => (item.id === session.id ? saved : item)),
         )
         setActiveSession(saved)
-        setMissedChargeSession(saved)
+        // Marking an appointment missed never proposes or applies a pass charge.
+        setMissedChargeSession(null)
         await notifyMutated()
       } catch (error) {
         appUi.toast(error.message ?? 'Could not mark session missed.', 'error')
@@ -931,6 +900,7 @@ export function useCoachSessionDetail({
       assignmentId: session.assignmentId ?? null,
       locationType: session.locationType ?? 'default',
       locationName: session.locationName ?? '',
+      coachNote: session.coachNote ?? '',
     })
     setRescheduleMode(true)
   }, [])
@@ -945,6 +915,7 @@ export function useCoachSessionDetail({
       assignmentId: rescheduleDraft.assignmentId,
       locationType: rescheduleDraft.locationType,
       locationName: rescheduleDraft.locationName,
+      coachNote: rescheduleDraft.coachNote ?? '',
     }
 
     if (isRecurringSession(activeSession)) {
