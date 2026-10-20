@@ -428,6 +428,31 @@ export default function CoachSessionCalendar({
       appUi.toast('Choose a later end date and check each client.', 'error')
       return
     }
+    // Check ordinary-event dates against the current calendar before writing.
+    // This prevents the most common partial-import scenario from predictable overlaps.
+    const plannedEvents = []
+    for (const plan of plans.filter(value => value.isEvent)) {
+      for (let date = plan.startsOn; date <= repeatEndDate; date = addDaysKey(date, 7)) {
+        plannedEvents.push({ ...plan.session, sessionDate: date, eventDate: date, status: 'scheduled' })
+        if (plannedEvents.length > 60) {
+          appUi.toast('Choose a shorter timeframe (60 event occurrences maximum per batch).', 'error')
+          return
+        }
+      }
+    }
+    const occupiedKeys = new Set()
+    for (const event of plannedEvents) {
+      const key = [event.eventDate, String(event.startTime).slice(0, 5), String(event.title)].join('|')
+      if (occupiedKeys.has(key) || scheduleItems.some(item =>
+        String(item.sessionDate ?? item.eventDate) === event.eventDate &&
+        String(item.startTime).slice(0, 5) === String(event.startTime).slice(0, 5) &&
+        String(item.title ?? '') === String(event.title ?? '')
+      )) {
+        appUi.toast('A matching event already exists. Review the selected dates before repeating.', 'error')
+        return
+      }
+      occupiedKeys.add(key)
+    }
     setRepeatSaving(true)
     try {
       // Preserve every original appointment. Each chosen weekday becomes its
