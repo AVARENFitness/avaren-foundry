@@ -1200,8 +1200,8 @@ export const coachBackend = {
       })
       const duration = Number(event.durationMinutes)
       if (!instant.startsAt || !Number.isInteger(duration) || duration <= 0 || duration > 1440 ||
-          !/^\\d{4}-\\d{2}-\\d{2}$/.test(String(event.eventDate ?? '')) ||
-          !/^([01]\\d|2[0-3]):[0-5]\\d$/.test(String(event.startTime ?? '')) ||
+          !/^\d{4}-\d{2}-\d{2}$/.test(String(event.eventDate ?? '')) ||
+          !/^([01]\d|2[0-3]):[0-5]\d$/.test(String(event.startTime ?? '')) ||
           !String(event.title ?? '').trim()) {
         throw new Error('An event has an invalid title, time or duration.')
       }
