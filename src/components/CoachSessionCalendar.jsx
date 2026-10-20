@@ -437,7 +437,7 @@ export default function CoachSessionCalendar({
     const plannedEvents = []
     for (const plan of plans.filter(value => value.isEvent)) {
       for (let date = plan.startsOn; date <= repeatEndDate; date = addDaysKey(date, 7)) {
-        plannedEvents.push({ ...plan.session, sessionDate: date, eventDate: date, status: 'scheduled' })
+        plannedEvents.push({ ...plan.session, repeatSourceId: plan.session.id, sessionDate: date, eventDate: date, status: 'scheduled' })
         if (plannedEvents.length > 60) {
           appUi.toast('Choose a shorter timeframe (60 event occurrences maximum per batch).', 'error')
           return
@@ -490,6 +490,7 @@ export default function CoachSessionCalendar({
       if (plannedEvents.length) {
         await coachBackend.createCoachCalendarEventBatch({
           events: plannedEvents.map(event => ({
+            repeatSourceId: event.repeatSourceId,
             title: event.title,
             eventDate: event.eventDate,
             startTime: String(event.startTime).slice(0, 5),
