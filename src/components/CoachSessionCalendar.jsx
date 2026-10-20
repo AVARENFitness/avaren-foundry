@@ -413,17 +413,18 @@ export default function CoachSessionCalendar({
   }
 
   const saveSelectedRepeats = async () => {
-    const selected = sessions.filter(session => repeatSelection.includes(session.id))
+    const selected = scheduleItems.filter(item => repeatSelection.includes(item.id))
     if (!selected.length || !repeatEndDate || repeatSaving) return
     const plans = selected.map(session => {
-      const startsOn = addDaysKey(session.sessionDate, 7)
+      const startsOn = addDaysKey(session.sessionDate ?? session.eventDate, 7)
       const client = resolveClientForSession(session)
       return {
         session, startsOn,
+        isEvent: Boolean(session.isCoachPrivateEvent),
         businessClientId: resolveRecordBusinessClientId(client),
       }
     })
-    if (plans.some(plan => !plan.businessClientId || plan.startsOn > repeatEndDate)) {
+    if (plans.some(plan => (!plan.isEvent && !plan.businessClientId) || plan.startsOn > repeatEndDate)) {
       appUi.toast('Choose a later end date and check each client.', 'error')
       return
     }
@@ -433,6 +434,40 @@ export default function CoachSessionCalendar({
       // own recurrence series, starting the following week.
       let created = 0
       for (const plan of plans) {
+        if (plan.isEvent) {
+          // Ordinary calendar events are materialized independently so editing
+          // one later cannot shift or replace any neighboring occurrence.
+          let cursor = plan.startsOn
+          const occupied = [...scheduleItems]
+          while (cursor <= repeatEndDate) {
+            if (occupied.some(item => String(item.sessionDate ?? item.eventDate) === cursor &&
+              String(item.startTime).slice(0, 5) === String(plan.session.startTime).slice(0, 5) &&
+              String(item.title ?? '') === String(plan.session.title ?? ''))) {
+              throw new Error('An event already exists on ' + cursor + '. No duplicates were added for this date.')
+            }
+            const createdEvent = await coachBackend.createCoachCalendarEvent({
+              title: plan.session.title,
+              eventDate: cursor,
+              startTime: String(plan.session.startTime).slice(0, 5),
+              durationMinutes: Number(plan.session.durationMinutes),
+              category: plan.session.category ?? 'personal',
+              notes: plan.session.notes ?? '',
+              locationName: plan.session.locationName ?? '',
+              existingItems: occupied,
+            })
+            occupied.push({
+              ...plan.session,
+              ...createdEvent,
+              id: createdEvent.id,
+              eventDate: cursor,
+              sessionDate: cursor,
+              status: 'scheduled',
+            })
+            cursor = addDaysKey(cursor, 7)
+          }
+          created += 1
+          continue
+        }
         await coachBackend.createRecurringAppointmentSeries({
           businessClientId: plan.businessClientId,
           startsOn: plan.startsOn,
@@ -498,6 +533,13 @@ export default function CoachSessionCalendar({
                     : coachCalendarEventCategoryLabel(session)}
                   {session.locationName ? ` · ${session.locationName}` : ''}
                 </span>
+              </div>
+              <div className="coach-calendar-repeat-select">
+                <input type="checkbox" aria-label={'Repeat event ' + session.title + ' on ' + session.eventDate}
+                  checked={repeatSelection.includes(session.id)}
+                  onClick={event => event.stopPropagation()}
+                  onChange={() => toggleRepeatSelection(session.id)} />
+                <span>Repeat</span>
               </div>
               <em>Private</em>
             </button>
@@ -1133,7 +1175,7 @@ export default function CoachSessionCalendar({
                 <div className="coach-calendar-week-items">
                   {items.length ? items.map((item) => (
                     <div key={item.id} className="coach-calendar-repeat-item">
-                    {!item.isCoachPrivateEvent && !item.isAthletePrivateEvent && !item.recurrenceSeriesId && !item.recurrence_series_id ? (
+                    {!item.isAthletePrivateEvent && !item.recurrenceSeriesId && !item.recurrence_series_id ? (
                       <label className="coach-calendar-repeat-select">
                         <input type="checkbox" aria-label={'Repeat session on ' + item.sessionDate}
                           checked={repeatSelection.includes(item.id)}
@@ -1200,9 +1242,9 @@ export default function CoachSessionCalendar({
       ) : null}
 
       {repeatSelection.length ? (
-        <section className="coach-calendar-repeat-panel" aria-label="Repeat selected training appointments">
-          <strong>{repeatSelection.length} selected training appointment{repeatSelection.length === 1 ? '' : 's'}</strong>
-          <p>Repeat each selected appointment weekly on its existing weekday and time, starting next week. Existing appointments remain unchanged.</p>
+        <section className="coach-calendar-repeat-panel" aria-label="Repeat selected appointments and events">
+          <strong>{repeatSelection.length} selected calendar item{repeatSelection.length === 1 ? '' : 's'}</strong>
+          <p>Repeat each selected training appointment or event weekly on its existing weekday and time, starting next week. Existing appointments remain unchanged.</p>
           <label>Repeat through
             <input type="date" aria-label="Repeat through date" value={repeatEndDate}
               onChange={event => setRepeatEndDate(event.target.value)} />
