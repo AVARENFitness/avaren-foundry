@@ -6,10 +6,10 @@ describe('ordinary event batch persistence', () => {
   const backend = readFileSync(resolve(process.cwd(), 'src/lib/coachBackend.js'), 'utf8')
   const section = backend.split('async createCoachCalendarEventBatch(')[1]?.split('async createCoachCalendarEvent(')[0]
 
-  it('writes events as one atomic database insert, never a loop of writes', () => {
+  it('delegates the batch to one authenticated database RPC, never looping writes', () => {
     expect(section).toBeTruthy()
-    expect(section).toContain("supabase.from('coach_calendar_events').insert(rows)")
-    expect(section).not.toContain('for (const row of rows)')
+    expect(section).toContain("supabase.rpc('create_coach_calendar_event_batch'")
+    expect(section).not.toContain(".insert(rows)")
     expect(section).not.toContain('await this.createCoachCalendarEvent(')
   })
 
