@@ -113,6 +113,9 @@ export default function CoachSessionCalendar({
   const [showEventComposer, setShowEventComposer] = useState(false)
   const [showAddMenu, setShowAddMenu] = useState(false)
   const [showScreenshotImport, setShowScreenshotImport] = useState(false)
+  const [repeatSelection, setRepeatSelection] = useState([])
+  const [repeatEndDate, setRepeatEndDate] = useState('')
+  const [repeatSaving, setRepeatSaving] = useState(false)
   const [scheduling, setScheduling] = useState(false)
   const [eventSaving, setEventSaving] = useState(false)
   const [editingPrivateEvent, setEditingPrivateEvent] = useState(null)
@@ -403,6 +406,115 @@ export default function CoachSessionCalendar({
     setAnchor(new Date(`${nextKey}T12:00:00`))
   }
 
+  const toggleRepeatSelection = (sessionId) => {
+    setRepeatSelection(current => current.includes(sessionId)
+      ? current.filter(id => id !== sessionId)
+      : [...current, sessionId])
+  }
+
+  const saveSelectedRepeats = async () => {
+    const selected = scheduleItems.filter(item => repeatSelection.includes(item.id))
+    if (!selected.length || !repeatEndDate || repeatSaving) return
+    const plans = selected.map(session => {
+      const startsOn = addDaysKey(session.sessionDate ?? session.eventDate, 7)
+      const client = resolveClientForSession(session)
+      return {
+        session, startsOn,
+        isEvent: Boolean(session.isCoachPrivateEvent),
+        businessClientId: resolveRecordBusinessClientId(client),
+      }
+    })
+    if (plans.some(plan => plan.isEvent) && plans.some(plan => !plan.isEvent)) {
+      appUi.toast('Repeat training sessions and ordinary events separately to keep each batch safe.', 'error')
+      return
+    }
+    if (plans.some(plan => (!plan.isEvent && !plan.businessClientId) || plan.startsOn > repeatEndDate)) {
+      appUi.toast('Choose a later end date and check each client.', 'error')
+      return
+    }
+    // Check ordinary-event dates against the current calendar before writing.
+    // This prevents the most common partial-import scenario from predictable overlaps.
+    const plannedEvents = []
+    for (const plan of plans.filter(value => value.isEvent)) {
+      for (let date = plan.startsOn; date <= repeatEndDate; date = addDaysKey(date, 7)) {
+        plannedEvents.push({ ...plan.session, repeatSourceId: plan.session.id, sessionDate: date, eventDate: date, status: 'scheduled' })
+        if (plannedEvents.length > 60) {
+          appUi.toast('Choose a shorter timeframe (60 event occurrences maximum per batch).', 'error')
+          return
+        }
+      }
+    }
+    // Fail closed on overlaps within the proposed batch and against loaded items.
+    // Prevent conflicts involving different titles and overlapping durations.
+    const toWindow = item => {
+      const date = String(item.sessionDate ?? item.eventDate ?? '')
+      const time = String(item.startTime ?? '').slice(0, 5)
+      const [hour, minute] = time.split(':').map(Number)
+      const duration = Number(item.durationMinutes)
+      if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(date) ||
+          !/^([01]\\d|2[0-3]):[0-5]\\d$/.test(time) ||
+          !Number.isFinite(duration) || duration <= 0) return null
+      return { date, start: hour * 60 + minute, end: hour * 60 + minute + duration }
+    }
+    const overlaps = (a, b) => a.date === b.date && a.start < b.end && b.start < a.end
+    const proposedWindows = plannedEvents.map(toWindow)
+    const occupiedWindows = scheduleItems.filter(item => item.status !== 'cancelled').map(toWindow).filter(Boolean)
+    if (proposedWindows.some(window => !window || occupiedWindows.some(existing => overlaps(window, existing))) ||
+        proposedWindows.some((window, index) => proposedWindows.slice(index + 1).some(other => overlaps(window, other)))) {
+      appUi.toast('Some repeated events overlap another appointment. Nothing was created; adjust dates or times first.', 'error')
+      return
+    }
+    setRepeatSaving(true)
+    try {
+      // Preserve every original appointment. Each chosen weekday becomes its
+      // own recurrence series, starting the following week.
+      let created = 0
+      for (const plan of plans) {
+        if (plan.isEvent) continue
+        await coachBackend.createRecurringAppointmentSeries({
+          businessClientId: plan.businessClientId,
+          startsOn: plan.startsOn,
+          startTime: String(plan.session.startTime).slice(0, 5),
+          durationMinutes: Number(plan.session.durationMinutes),
+          weekdays: [new Date(plan.startsOn + 'T12:00:00Z').getUTCDay()],
+          endsOn: repeatEndDate,
+          scheduleTimezone: DEFAULT_COACH_SCHEDULE_TIMEZONE,
+          coachNote: plan.session.coachNote ?? '',
+          assignmentId: plan.session.assignmentId ?? null,
+          locationType: plan.session.locationType ?? 'default',
+          locationName: plan.session.locationName ?? '',
+          existingItems: scheduleItems,
+        })
+        created += 1
+      }
+      if (plannedEvents.length) {
+        await coachBackend.createCoachCalendarEventBatch({
+          events: plannedEvents.map(event => ({
+            repeatSourceId: event.repeatSourceId,
+            title: event.title,
+            eventDate: event.eventDate,
+            startTime: String(event.startTime).slice(0, 5),
+            durationMinutes: Number(event.durationMinutes),
+            category: event.category ?? 'personal',
+            notes: event.notes ?? '',
+            locationName: event.locationName ?? '',
+          })),
+          existingItems: scheduleItems,
+        })
+        created += plans.filter(plan => plan.isEvent).length
+      }
+      setRepeatSelection([])
+      setRepeatEndDate('')
+      await loadSessions()
+      appUi.toast(created + ' repeating schedules created. Original appointments unchanged.', 'success')
+    } catch (error) {
+      appUi.toast(error.message ?? 'Could not create all repeats. Review the calendar before retrying.', 'error')
+      await loadSessions()
+    } finally {
+      setRepeatSaving(false)
+    }
+  }
+
   const renderAgendaList = (items, { dayKey = agendaDayKey } = {}) => {
     if (!items.length) {
       return (
@@ -423,8 +535,16 @@ export default function CoachSessionCalendar({
       <div className="coach-session-calendar-list">
         {items.map((session) =>
           session.isCoachPrivateEvent || session.isAthletePrivateEvent ? (
+            <div key={session.id} className="coach-calendar-repeat-item">
+              {session.isCoachPrivateEvent ? (
+                <label className="coach-calendar-repeat-select">
+                  <input type="checkbox" aria-label={'Repeat event ' + session.title + ' on ' + session.eventDate}
+                    checked={repeatSelection.includes(session.id)}
+                    onChange={() => toggleRepeatSelection(session.id)} />
+                  <span>Repeat</span>
+                </label>
+              ) : null}
             <button
-              key={session.id}
               type="button"
               className="coach-calendar-private-event"
               data-testid="coach-private-calendar-event"
@@ -443,7 +563,17 @@ export default function CoachSessionCalendar({
               </div>
               <em>Private</em>
             </button>
+            </div>
           ) : (
+            <div key={session.id} className="coach-calendar-repeat-item">
+              {!session.recurrenceSeriesId && !session.recurrence_series_id ? (
+                <label className="coach-calendar-repeat-select">
+                  <input type="checkbox" aria-label={'Repeat ' + (getClientDisplayName(resolveClientForSession(session) ?? {}) || 'session') + ' on ' + session.sessionDate}
+                    checked={repeatSelection.includes(session.id)}
+                    onChange={() => toggleRepeatSelection(session.id)} />
+                  <span>Select to repeat</span>
+                </label>
+              ) : null}
             <CoachAppointmentCard
               key={session.id}
               session={session}
@@ -452,6 +582,7 @@ export default function CoachSessionCalendar({
               isPast={isPastCoachAppointment(session, now)}
               isNext={nextAppointment?.id === session.id}
             />
+            </div>
           ),
         )}
       </div>
@@ -1064,8 +1195,16 @@ export default function CoachSessionCalendar({
                 </button>
                 <div className="coach-calendar-week-items">
                   {items.length ? items.map((item) => (
+                    <div key={item.id} className="coach-calendar-repeat-item">
+                    {!item.isAthletePrivateEvent && !item.recurrenceSeriesId && !item.recurrence_series_id ? (
+                      <label className="coach-calendar-repeat-select">
+                        <input type="checkbox" aria-label={'Repeat session on ' + item.sessionDate}
+                          checked={repeatSelection.includes(item.id)}
+                          onChange={() => toggleRepeatSelection(item.id)} />
+                        <span>Repeat</span>
+                      </label>
+                    ) : null}
                     <button
-                      key={item.id}
                       type="button"
                       className={`coach-calendar-week-item ${item.isCoachPrivateEvent || item.isAthletePrivateEvent ? 'is-private' : 'is-client'}`}
                       onClick={() => {
@@ -1084,6 +1223,7 @@ export default function CoachSessionCalendar({
                           : getClientDisplayName(resolveClientForSession(item) ?? {})}
                       </strong>
                     </button>
+                    </div>
                   )) : (
                     <span className="coach-calendar-week-open">Open</span>
                   )}
@@ -1119,6 +1259,20 @@ export default function CoachSessionCalendar({
           emptyHint ? (
             <p className="coach-session-calendar-hint">{emptyHint}</p>
           ) : null}
+        </section>
+      ) : null}
+
+      {repeatSelection.length ? (
+        <section className="coach-calendar-repeat-panel" aria-label="Repeat selected appointments and events">
+          <strong>{repeatSelection.length} selected calendar item{repeatSelection.length === 1 ? '' : 's'}</strong>
+          <p>Repeat each selected training appointment or event weekly on its existing weekday and time, starting next week. Existing appointments remain unchanged.</p>
+          <label>Repeat through
+            <input type="date" aria-label="Repeat through date" value={repeatEndDate}
+              onChange={event => setRepeatEndDate(event.target.value)} />
+          </label>
+          <button type="button" className="gold-button machined" disabled={!repeatEndDate || repeatSaving}
+            onClick={saveSelectedRepeats}>{repeatSaving ? 'Creating…' : 'Create repeats'}</button>
+          <button type="button" disabled={repeatSaving} onClick={() => setRepeatSelection([])}>Clear selection</button>
         </section>
       ) : null}
 
