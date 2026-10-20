@@ -440,18 +440,25 @@ export default function CoachSessionCalendar({
         }
       }
     }
-    const occupiedKeys = new Set()
-    for (const event of plannedEvents) {
-      const key = [event.eventDate, String(event.startTime).slice(0, 5), String(event.title)].join('|')
-      if (occupiedKeys.has(key) || scheduleItems.some(item =>
-        String(item.sessionDate ?? item.eventDate) === event.eventDate &&
-        String(item.startTime).slice(0, 5) === String(event.startTime).slice(0, 5) &&
-        String(item.title ?? '') === String(event.title ?? '')
-      )) {
-        appUi.toast('A matching event already exists. Review the selected dates before repeating.', 'error')
-        return
-      }
-      occupiedKeys.add(key)
+    // Fail closed on overlaps within the proposed batch and against loaded items.
+    // Prevent conflicts involving different titles and overlapping durations.
+    const toWindow = item => {
+      const date = String(item.sessionDate ?? item.eventDate ?? '')
+      const time = String(item.startTime ?? '').slice(0, 5)
+      const [hour, minute] = time.split(':').map(Number)
+      const duration = Number(item.durationMinutes)
+      if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(date) ||
+          !/^([01]\\d|2[0-3]):[0-5]\\d$/.test(time) ||
+          !Number.isFinite(duration) || duration <= 0) return null
+      return { date, start: hour * 60 + minute, end: hour * 60 + minute + duration }
+    }
+    const overlaps = (a, b) => a.date === b.date && a.start < b.end && b.start < a.end
+    const proposedWindows = plannedEvents.map(toWindow)
+    const occupiedWindows = scheduleItems.filter(item => item.status !== 'cancelled').map(toWindow).filter(Boolean)
+    if (proposedWindows.some(window => !window || occupiedWindows.some(existing => overlaps(window, existing))) ||
+        proposedWindows.some((window, index) => proposedWindows.slice(index + 1).some(other => overlaps(window, other)))) {
+      appUi.toast('Some repeated events overlap another appointment. Nothing was created; adjust dates or times first.', 'error')
+      return
     }
     setRepeatSaving(true)
     try {
