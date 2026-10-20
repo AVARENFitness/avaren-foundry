@@ -8,7 +8,7 @@ describe('repeat existing appointments', () => {
   it('does not mutate existing source appointment records', () => {
     const action = source.split('const saveSelectedRepeats = async () => {')[1]?.split('const renderAgendaList =')[0]
     expect(action).toBeTruthy()
-    expect(action).toContain('addDaysKey(session.sessionDate, 7)')
+    expect(action).toContain('addDaysKey(session.sessionDate ?? session.eventDate, 7)')
     expect(action).toContain('createRecurringAppointmentSeries')
     expect(action).not.toContain('updateScheduledSession(')
     expect(action).not.toContain('recordCompletedSessionPassUsage(')
