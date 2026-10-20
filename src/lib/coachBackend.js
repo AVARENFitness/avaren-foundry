@@ -1238,7 +1238,20 @@ export const coachBackend = {
         collisionCandidates.filter((_, otherIndex) => otherIndex !== index))))) {
       throw new Error('calendar_overlap')
     }
-    return unwrap(supabase.from('coach_calendar_events').insert(rows).select())
+    const payload = rows.map((row, index) => ({
+      repeatSourceId: events[index].repeatSourceId,
+      title: row.title,
+      eventDate: row.event_date,
+      startTime: row.start_time,
+      durationMinutes: row.duration_minutes,
+      startsAt: row.starts_at,
+      scheduleTimezone: row.schedule_timezone,
+      category: row.category,
+      notes: row.notes,
+      locationName: row.location_name,
+    }))
+    if (payload.some(item => !item.repeatSourceId)) throw new Error('repeat_source_missing')
+    return unwrap(supabase.rpc('create_coach_calendar_event_batch', { p_events: payload }))
   },
 
   async createCoachCalendarEvent({
