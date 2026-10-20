@@ -1199,10 +1199,10 @@ export const coachBackend = {
         scheduleTimezone: DEFAULT_COACH_SCHEDULE_TIMEZONE,
       })
       const duration = Number(event.durationMinutes)
-      if (!instant.startsAt || !Number.isInteger(duration) || duration <= 0 || duration > 1440 ||
+      if (!instant.startsAt || !Number.isInteger(duration) || duration < 5 || duration > 1440 ||
           !/^\d{4}-\d{2}-\d{2}$/.test(String(event.eventDate ?? '')) ||
           !/^([01]\d|2[0-3]):[0-5]\d$/.test(String(event.startTime ?? '')) ||
-          !String(event.title ?? '').trim()) {
+          !String(event.title ?? '').trim() || String(event.title ?? '').trim().length > 120) {
         throw new Error('An event has an invalid title, time or duration.')
       }
       return {
