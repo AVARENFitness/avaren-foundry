@@ -16,5 +16,7 @@ describe('shared coach and athlete calendar polish', () => {
     expect(css).toContain('max-width: 620px')
     expect(css).toContain(':focus-visible')
     expect(css).toContain('prefers-reduced-motion')
+    expect(css).toContain('scroll-snap-type: x proximity')
+    expect(css).toContain('grid-template-columns: repeat(7, minmax(112px, 1fr))')
   })
 })
