@@ -1078,58 +1078,11 @@ export default function CoachSessionCalendar({
         </div>
       </header>
 
-      <section className="coach-calendar-intelligence" aria-label="Calendar overview">
-        <article className="coach-calendar-intelligence-primary">
-          <span className="coach-calendar-intelligence-icon">
-            <CalendarClock size={19} strokeWidth={1.7} />
-          </span>
-          <div>
-            <small>TODAY</small>
-            <strong>
-              {todayClientSessions.length
-                ? `${todayClientSessions.length} session${todayClientSessions.length === 1 ? '' : 's'}`
-                : 'No client sessions'}
-            </strong>
-            <span>
-              {todayItems.length > todayClientSessions.length
-                ? `${todayItems.length - todayClientSessions.length} private calendar item${todayItems.length - todayClientSessions.length === 1 ? '' : 's'}`
-                : 'Your day is clear outside coaching'}
-            </span>
-          </div>
-        </article>
-
-        <article>
-          <small>NEXT</small>
-          <strong>
-            {nextCalendarSession
-              ? `${formatTime12Hour(nextCalendarSession.startTime)} · ${nextCalendarClient || 'Client'}`
-              : 'Nothing upcoming'}
-          </strong>
-          <span>
-            {nextCalendarSession
-              ? formatScheduleDateLong(nextCalendarSession.sessionDate)
-              : 'Add a session when your schedule is ready'}
-          </span>
-        </article>
-
-        <article>
-          <small>THIS WEEK</small>
-          <strong>{weekClientSessions.length} client session{weekClientSessions.length === 1 ? '' : 's'}</strong>
-          <span>{weekOpenDays} open day{weekOpenDays === 1 ? '' : 's'} in this week</span>
-        </article>
-      </section>
-
       <section className="avaren-calendar-selected-overview" aria-label="Selected day overview">
         <div><span className="eyebrow">SELECTED DAY</span><strong>{formatCoachCalendarDayHeading(selectedDayKey)}</strong>
           <small>{selectedCalendarItems.length ? `${selectedTrainingCount} training · ${selectedEventCount} events` : 'Nothing scheduled'}</small></div>
         <button type="button" className="coach-calendar-today-control" onClick={() => { setAnchor(new Date(`${selectedDayKey}T12:00:00`)); setViewMode(COACH_CALENDAR_VIEW.DAY) }}>View day agenda</button>
       </section>
-      <div className="coach-calendar-legend" aria-label="Calendar legend">
-        <span><i className="is-client" /> Client session</span>
-        <span><i className="is-private" /> Private time</span>
-        <span><i className="is-today" /> Today</span>
-      </div>
-
       {viewMode === COACH_CALENDAR_VIEW.MONTH ? (
         <section className="coach-calendar-month-view" data-testid="coach-calendar-month-grid">
           <div className="coach-calendar-month-weekdays" aria-hidden="true">
