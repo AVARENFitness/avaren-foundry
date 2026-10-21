@@ -1,3 +1,4 @@
+import '../styles/screens/calendar-shared-polish.css'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   CalendarClock,
