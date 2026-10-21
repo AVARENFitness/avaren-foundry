@@ -1,3 +1,4 @@
+import '../styles/screens/calendar-shared-polish.css'
 import {
   CalendarClock,
   ChevronDown,
