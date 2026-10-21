@@ -10,6 +10,7 @@ export default function CoachCalendarImportSheet({ open, clients = [], existingI
   const [analyzing, setAnalyzing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [saveFailures, setSaveFailures] = useState([])
   const [expandedId, setExpandedId] = useState(null)
   if (!open) return null
   const update = (id, patch) => setItems(current => current.map(item => item.id === id ? { ...item, ...patch } : item))
@@ -17,7 +18,7 @@ export default function CoachCalendarImportSheet({ open, clients = [], existingI
     const file = event.target.files?.[0]
     event.target.value = ''
     if (!file) return
-    setAnalyzing(true); setError(''); setItems([]); setExpandedId(null)
+    setAnalyzing(true); setError(''); setSaveFailures([]); setItems([]); setExpandedId(null)
     try {
       const extracted = await analyzeCalendarScreenshot(file)
       const seen = new Set()
@@ -41,10 +42,11 @@ export default function CoachCalendarImportSheet({ open, clients = [], existingI
   const ready = items.filter(item => item.selected && item.title && item.date && item.startTime && Number(item.durationMinutes) > 0 && !item.duplicate && !item.dateConflict && !item.geometryConflict &&
     (item.suggestedType !== 'training_candidate' || item.businessClientId))
   const handleSave = async () => {
-    setSaving(true); setError('')
+    setSaving(true); setError(''); setSaveFailures([])
     try {
-      const { failedIds = [], savedCount = 0 } = await onSave(ready)
+      const { failedIds = [], failures = [] } = await onSave(ready)
       if (failedIds.length) {
+        setSaveFailures(failures)
         const failed = new Set(failedIds)
         setItems(current => current.filter(item => !item.selected || failed.has(item.id)))
         setError(failedIds.length + ' event(s) could not be saved. Only those entries remain selected for retry.')
@@ -62,6 +64,7 @@ export default function CoachCalendarImportSheet({ open, clients = [], existingI
       <label className="coach-calendar-import-upload"><span>{analyzing ? 'AVA is reading your screenshot…' : 'Choose Google Calendar screenshot'}</span>
         <input type="file" accept="image/*" disabled={analyzing || saving} onChange={importPhoto} /></label>
       {error ? <p role="alert">{error}</p> : null}
+      {saveFailures.length ? <div className="coach-calendar-import-failures" role="alert" aria-label="Save errors">{saveFailures.map((failure) => <p key={failure.id}><strong>{failure.title || 'Appointment'}:</strong> {failure.reason}</p>)}</div> : null}
       {items.length ? <>
         <p className="coach-calendar-import-hint">{items.length} events found · Check the details, then select the ones to add.</p>
         <div className="coach-calendar-import-items">{items.map(item => {
