@@ -293,3 +293,57 @@
 @media(max-width: 380px) {
   .avaren-calendar-selected-overview { flex-wrap: wrap; }
 }
+
+/* Final calm pass: consistent control geometry and less competing chrome. */
+.coach-session-calendar-screen .coach-calendar-command-bar,
+.athlete-calendar-screen .coach-calendar-command-bar {
+  padding-block: 4px 10px;
+}
+.coach-session-calendar-screen .coach-calendar-today-control,
+.athlete-calendar-screen .coach-calendar-today-control {
+  min-height: 40px;
+  padding-inline: 13px;
+  border-radius: 11px;
+  font-weight: 650;
+}
+.coach-session-calendar-screen .coach-calendar-period-control button:hover,
+.athlete-calendar-screen .coach-calendar-period-control button:hover,
+.coach-session-calendar-screen .coach-calendar-today-control:hover,
+.athlete-calendar-screen .coach-calendar-today-control:hover {
+  background: var(--calendar-soft);
+}
+.coach-session-calendar-screen .coach-calendar-month-weekdays,
+.athlete-calendar-screen .coach-calendar-month-weekdays {
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: .025em;
+  opacity: .76;
+}
+.coach-session-calendar-screen .coach-calendar-month-day.is-outside,
+.athlete-calendar-screen .coach-calendar-month-day.is-outside {
+  opacity: .45;
+}
+.coach-session-calendar-screen .coach-calendar-week-open,
+.athlete-calendar-screen .coach-calendar-week-open {
+  opacity: .6;
+  font-size: 11px;
+}
+.coach-session-calendar-screen .avaren-calendar-selected-overview,
+.athlete-calendar-screen .avaren-calendar-selected-overview {
+  background: transparent;
+  border-inline: 0;
+  border-top: 1px solid var(--calendar-line);
+  border-bottom: 1px solid var(--calendar-line);
+  border-radius: 0;
+  padding-inline: 2px;
+}
+@media(max-width: 620px) {
+  .coach-session-calendar-screen .coach-calendar-month-events span:nth-child(n+3),
+  .athlete-calendar-screen .coach-calendar-month-events span:nth-child(n+3) {
+    display: none;
+  }
+  .coach-session-calendar-screen .coach-calendar-month-day,
+  .athlete-calendar-screen .coach-calendar-month-day {
+    overflow: hidden;
+  }
+}
