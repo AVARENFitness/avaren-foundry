@@ -274,3 +274,22 @@
   .coach-session-calendar-screen .coach-calendar-private-event,
   .athlete-calendar-screen .athlete-calendar-agenda-item { transition: none; }
 }
+
+.avaren-calendar-selected-overview {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 13px 15px;
+  margin-block: 12px;
+  border: 1px solid var(--calendar-line);
+  background: var(--calendar-soft);
+  border-radius: 15px;
+}
+.avaren-calendar-selected-overview > div { display: grid; gap: 3px; min-width: 0; }
+.avaren-calendar-selected-overview strong { font-size: 15px; line-height: 1.3; }
+.avaren-calendar-selected-overview small { opacity: .72; line-height: 1.35; }
+.avaren-calendar-selected-overview .coach-calendar-today-control { min-height: 40px; flex-shrink: 0; }
+@media(max-width: 380px) {
+  .avaren-calendar-selected-overview { flex-wrap: wrap; }
+}
