@@ -5,7 +5,7 @@ const clean = value => String(value ?? '').toLowerCase().replace(/[^a-z0-9]+/g, 
 const day = item => String(item?.sessionDate ?? item?.eventDate ?? '')
 const start = item => String(item?.startTime ?? '').slice(0, 5)
 const minutes = time => {
-  if (!/^([01]\\d|2[0-3]):[0-5]\\d$/.test(time)) return null
+  if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(time)) return null
   const [h, m] = time.split(':').map(Number)
   return h * 60 + m
 }
