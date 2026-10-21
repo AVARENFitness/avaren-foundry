@@ -1,3 +1,4 @@
+import '../styles/screens/calendar-shared-polish.css'
 import {
   CalendarClock,
   ChevronDown,
@@ -932,6 +933,9 @@ export default function CoachSessionCalendar({
     return groups
   }, [scheduleItems])
 
+  const selectedCalendarItems = dayItemsByKey[selectedDayKey] ?? []
+  const selectedTrainingCount = selectedCalendarItems.filter(item => !item.isCoachPrivateEvent && !item.isAthletePrivateEvent).length
+  const selectedEventCount = selectedCalendarItems.length - selectedTrainingCount
   const todayItems = dayItemsByKey[todayKey] ?? []
   const todayClientSessions = todayItems.filter(
     (item) => !item.isCoachPrivateEvent && !item.isAthletePrivateEvent,
@@ -1115,6 +1119,11 @@ export default function CoachSessionCalendar({
         </article>
       </section>
 
+      <section className="avaren-calendar-selected-overview" aria-label="Selected day overview">
+        <div><span className="eyebrow">SELECTED DAY</span><strong>{formatCoachCalendarDayHeading(selectedDayKey)}</strong>
+          <small>{selectedCalendarItems.length ? `${selectedTrainingCount} training · ${selectedEventCount} events` : 'Nothing scheduled'}</small></div>
+        <button type="button" className="coach-calendar-today-control" onClick={() => { setAnchor(new Date(`${selectedDayKey}T12:00:00`)); setViewMode(COACH_CALENDAR_VIEW.DAY) }}>View day agenda</button>
+      </section>
       <div className="coach-calendar-legend" aria-label="Calendar legend">
         <span><i className="is-client" /> Client session</span>
         <span><i className="is-private" /> Private time</span>

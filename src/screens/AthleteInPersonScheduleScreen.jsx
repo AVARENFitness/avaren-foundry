@@ -1,3 +1,4 @@
+import '../styles/screens/calendar-shared-polish.css'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   CalendarClock,
@@ -269,6 +270,8 @@ export default function AthleteInPersonScheduleScreen({
     return groups
   }, [scheduleItems])
 
+  const selectedPrivateCount = selectedDayItems.filter(item => item.isAthletePrivateEvent || item.isCoachPrivateEvent).length
+  const selectedTrainingCount = selectedDayItems.filter(item => !item.isAthletePrivateEvent && !item.isCoachPrivateEvent && !item.isCoachWorkAppointment).length
   const selectedDayItems = dayItemsByKey[selectedDayKey] ?? []
   const weekDayKeys = weekDays.map((day) => dateKey(day))
   const todayItems = dayItemsByKey[todayKey] ?? []
@@ -657,6 +660,11 @@ export default function AthleteInPersonScheduleScreen({
         </article>
       </section>
 
+      <section className="avaren-calendar-selected-overview" aria-label="Selected day overview">
+        <div><span className="eyebrow">SELECTED DAY</span><strong>{formatCoachCalendarDayHeading(selectedDayKey)}</strong>
+          <small>{selectedDayItems.length ? `${selectedTrainingCount} training · ${selectedPrivateCount} private · ${selectedDayItems.length - selectedTrainingCount - selectedPrivateCount} other` : 'Nothing scheduled'}</small></div>
+        <button type="button" className="coach-calendar-today-control" onClick={() => { setAnchor(new Date(`${selectedDayKey}T12:00:00`)); setViewMode(COACH_CALENDAR_VIEW.DAY) }}>View day agenda</button>
+      </section>
       <div className="coach-calendar-legend athlete-calendar-legend" aria-label="Calendar legend">
         <span><i className="is-client" /> Coaching</span>
         <span><i className="is-private" /> Private</span>
