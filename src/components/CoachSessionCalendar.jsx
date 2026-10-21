@@ -730,6 +730,7 @@ export default function CoachSessionCalendar({
 
   const handleSaveScreenshotEntries = async (rows) => {
     const failedIds = []
+    const failures = []
     for (const row of rows) {
       try {
         if (row.suggestedType === 'training_candidate') {
@@ -759,11 +760,18 @@ export default function CoachSessionCalendar({
             existingItems: scheduleItems,
           })
         }
-      } catch { failedIds.push(row.id) }
+      } catch (error) {
+        failedIds.push(row.id)
+        failures.push({
+          id: row.id,
+          title: row.title,
+          reason: String(error?.message || error?.details || error?.code || 'Unknown save error').slice(0, 300),
+        })
+      }
     }
     await loadSessions()
     if (rows.length > failedIds.length) appUi.toast((rows.length - failedIds.length) + ' calendar events added.', 'success')
-    return { failedIds, savedCount: rows.length - failedIds.length }
+    return { failedIds, failures, savedCount: rows.length - failedIds.length }
   }
 
   const handleSavePrivateEvent = async () => {
