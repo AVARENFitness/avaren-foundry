@@ -188,3 +188,89 @@
   .coach-session-calendar-screen .coach-session-calendar-view-toggle button,
   .athlete-calendar-screen .coach-session-calendar-view-toggle button { transition: none; }
 }
+
+/* Agenda: prioritize the schedule itself over decorative metadata. */
+.coach-session-calendar-screen .coach-session-calendar-list,
+.athlete-calendar-screen .athlete-calendar-agenda {
+  display: grid;
+  gap: 9px;
+}
+.coach-session-calendar-screen .coach-session-calendar-day-heading,
+.athlete-calendar-screen .athlete-calendar-day-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding-block: 10px;
+  border-bottom: 1px solid var(--calendar-line);
+}
+.coach-session-calendar-screen .coach-calendar-private-event,
+.coach-session-calendar-screen .coach-calendar-repeat-item,
+.athlete-calendar-screen .athlete-calendar-agenda-item {
+  min-width: 0;
+}
+.coach-session-calendar-screen .coach-calendar-private-event,
+.athlete-calendar-screen .athlete-calendar-agenda-item {
+  transition: border-color .16s ease, background .16s ease, transform .16s ease;
+}
+.coach-session-calendar-screen .coach-calendar-private-event:hover,
+.athlete-calendar-screen button.athlete-calendar-agenda-item:hover {
+  border-color: var(--calendar-accent);
+  background: var(--calendar-soft);
+}
+.athlete-calendar-screen .athlete-calendar-agenda-item .eyebrow {
+  font-size: 10px;
+  letter-spacing: .08em;
+  opacity: .75;
+}
+.athlete-calendar-screen .athlete-calendar-agenda-item strong {
+  overflow-wrap: anywhere;
+}
+.athlete-calendar-screen .athlete-calendar-agenda-item--appointment {
+  border-inline-start: 3px solid var(--calendar-accent);
+}
+.athlete-calendar-screen .athlete-calendar-agenda-item--private {
+  border-inline-start: 3px solid rgba(157, 164, 178, .75);
+}
+.coach-session-calendar-screen .coach-calendar-week-items,
+.athlete-calendar-screen .coach-calendar-week-items {
+  display: grid;
+  align-content: start;
+  gap: 5px;
+}
+@media(max-width: 620px) {
+  /* Seven columns remain navigable without forcing illegible labels. */
+  .coach-session-calendar-screen .coach-calendar-week-board,
+  .athlete-calendar-screen .coach-calendar-week-board {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(112px, 1fr));
+    gap: 5px;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scroll-snap-type: x proximity;
+    padding-bottom: 9px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .coach-session-calendar-screen .coach-calendar-week-column,
+  .athlete-calendar-screen .coach-calendar-week-column {
+    scroll-snap-align: start;
+  }
+  .coach-session-calendar-screen .coach-calendar-week-item strong,
+  .athlete-calendar-screen .coach-calendar-week-item strong {
+    font-size: 12px;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+  }
+  .coach-session-calendar-screen .coach-calendar-week-item span,
+  .athlete-calendar-screen .coach-calendar-week-item span {
+    font-size: 11px;
+  }
+}
+@media(prefers-reduced-motion: reduce) {
+  .coach-session-calendar-screen .coach-calendar-private-event,
+  .athlete-calendar-screen .athlete-calendar-agenda-item { transition: none; }
+}
