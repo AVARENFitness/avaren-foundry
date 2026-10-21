@@ -1,0 +1,190 @@
+/* AVAREN shared calendar visual system — coach and athlete */
+.coach-session-calendar-screen,
+.athlete-calendar-screen {
+  --calendar-accent: #c1aa79;
+  --calendar-line: rgba(174, 164, 142, .20);
+  --calendar-soft: rgba(193, 170, 121, .075);
+}
+.coach-session-calendar-screen .coach-session-calendar-header,
+.athlete-calendar-screen .coach-session-calendar-header {
+  display: grid;
+  gap: 14px;
+}
+.coach-session-calendar-screen .coach-calendar-command-bar,
+.athlete-calendar-screen .coach-calendar-command-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.coach-session-calendar-screen .coach-session-calendar-view-toggle,
+.athlete-calendar-screen .coach-session-calendar-view-toggle {
+  display: inline-grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  padding: 4px;
+  gap: 3px;
+  border-radius: 14px;
+  border: 1px solid var(--calendar-line);
+}
+.coach-session-calendar-screen .coach-session-calendar-view-toggle button,
+.athlete-calendar-screen .coach-session-calendar-view-toggle button {
+  min-width: 63px;
+  min-height: 40px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  font-weight: 650;
+  transition: background .16s ease, color .16s ease;
+}
+.coach-session-calendar-screen .coach-session-calendar-view-toggle button[aria-selected="true"],
+.athlete-calendar-screen .coach-session-calendar-view-toggle button[aria-selected="true"] {
+  background: var(--calendar-soft);
+  color: var(--calendar-accent);
+  box-shadow: inset 0 0 0 1px var(--calendar-line);
+}
+.coach-session-calendar-screen .coach-calendar-period-control,
+.athlete-calendar-screen .coach-calendar-period-control {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: min(100%, 240px);
+}
+.coach-session-calendar-screen .coach-calendar-period-control strong,
+.athlete-calendar-screen .coach-calendar-period-control strong {
+  font-size: clamp(14px, 2.5vw, 18px);
+  letter-spacing: -.02em;
+  text-align: center;
+  line-height: 1.3;
+}
+.coach-session-calendar-screen .coach-calendar-period-control button,
+.athlete-calendar-screen .coach-calendar-period-control button {
+  min-width: 40px;
+  min-height: 40px;
+  border-radius: 11px;
+}
+.coach-session-calendar-screen .coach-calendar-month-day,
+.athlete-calendar-screen .coach-calendar-month-day {
+  min-width: 0;
+  min-height: 75px;
+  padding: 7px 5px;
+  border-radius: 9px;
+  transition: background .16s ease;
+  overflow: hidden;
+}
+.coach-session-calendar-screen .coach-calendar-month-day.is-today,
+.athlete-calendar-screen .coach-calendar-month-day.is-today {
+  box-shadow: inset 0 0 0 1.5px var(--calendar-accent);
+  background: var(--calendar-soft);
+}
+.coach-session-calendar-screen .coach-calendar-month-date,
+.athlete-calendar-screen .coach-calendar-month-date {
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+}
+.coach-session-calendar-screen .coach-calendar-month-events,
+.athlete-calendar-screen .coach-calendar-month-events {
+  min-width: 0;
+}
+.coach-session-calendar-screen .coach-calendar-month-events span,
+.athlete-calendar-screen .coach-calendar-month-events span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.4;
+}
+.coach-session-calendar-screen .coach-calendar-week-column,
+.athlete-calendar-screen .coach-calendar-week-column {
+  min-width: 0;
+  overflow: hidden;
+}
+.coach-session-calendar-screen .coach-calendar-week-heading,
+.athlete-calendar-screen .coach-calendar-week-heading {
+  min-height: 65px;
+  padding: 10px 5px;
+}
+.coach-session-calendar-screen .coach-calendar-week-item,
+.athlete-calendar-screen .coach-calendar-week-item {
+  min-width: 0;
+  padding: 10px 7px;
+  border-radius: 9px;
+  text-align: left;
+  line-height: 1.35;
+}
+.coach-session-calendar-screen .coach-calendar-week-item strong,
+.athlete-calendar-screen .coach-calendar-week-item strong {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 12px;
+  line-height: 1.35;
+}
+.coach-session-calendar-screen .coach-calendar-week-item span,
+.athlete-calendar-screen .coach-calendar-week-item span {
+  font-variant-numeric: tabular-nums;
+  font-size: 11px;
+  font-weight: 700;
+}
+.athlete-calendar-screen .athlete-calendar-agenda-item {
+  width: 100%;
+  text-align: left;
+  min-height: 76px;
+  border-radius: 14px;
+  padding: 14px;
+  border: 1px solid var(--calendar-line);
+}
+.athlete-calendar-screen .athlete-calendar-agenda-item strong {
+  display: block;
+  font-size: 15px;
+  line-height: 1.4;
+  font-variant-numeric: tabular-nums;
+}
+.athlete-calendar-screen .athlete-calendar-agenda-item small {
+  line-height: 1.4;
+}
+.coach-session-calendar-screen button:focus-visible,
+.athlete-calendar-screen button:focus-visible {
+  outline: 2px solid var(--calendar-accent);
+  outline-offset: 2px;
+}
+@media(max-width: 620px) {
+  .coach-session-calendar-screen .coach-calendar-command-bar,
+  .athlete-calendar-screen .coach-calendar-command-bar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 10px;
+  }
+  .coach-session-calendar-screen .coach-session-calendar-view-toggle,
+  .athlete-calendar-screen .coach-session-calendar-view-toggle {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+  .coach-session-calendar-screen .coach-calendar-period-control,
+  .athlete-calendar-screen .coach-calendar-period-control {
+    min-width: 0;
+    width: 100%;
+  }
+  .coach-session-calendar-screen .coach-calendar-month-day,
+  .athlete-calendar-screen .coach-calendar-month-day {
+    min-height: 63px;
+    padding: 6px 3px;
+  }
+  .coach-session-calendar-screen .coach-calendar-month-events span,
+  .athlete-calendar-screen .coach-calendar-month-events span {
+    font-size: 10px;
+  }
+  .coach-session-calendar-screen .coach-calendar-week-item,
+  .athlete-calendar-screen .coach-calendar-week-item {
+    padding: 8px 4px;
+  }
+  .coach-session-calendar-screen .coach-calendar-week-item strong,
+  .athlete-calendar-screen .coach-calendar-week-item strong {
+    font-size: 11px;
+  }
+}
+@media(prefers-reduced-motion: reduce) {
+  .coach-session-calendar-screen .coach-calendar-month-day,
+  .athlete-calendar-screen .coach-calendar-month-day,
+  .coach-session-calendar-screen .coach-session-calendar-view-toggle button,
+  .athlete-calendar-screen .coach-session-calendar-view-toggle button { transition: none; }
+}
