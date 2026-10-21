@@ -25,13 +25,11 @@ describe('calendar visual information hierarchy', () => {
     expect(mobileRule).toContain('box-sizing: border-box !important;')
   })
 
-  it('gives the coach useful calendar context before the grid', () => {
-    expect(coach).toContain('coach-calendar-intelligence')
-    expect(coach).toContain('TODAY')
-    expect(coach).toContain('NEXT')
-    expect(coach).toContain('THIS WEEK')
-    expect(coach).toContain('Client session')
-    expect(coach).toContain('Private time')
+  it('focuses coach calendar on selected day and clear navigation', () => {
+    expect(coach).toContain('avaren-calendar-selected-overview')
+    expect(coach).toContain('View day agenda')
+    expect(coach).not.toContain('className="coach-calendar-intelligence"')
+    expect(coach).not.toContain('className="coach-calendar-legend"')
   })
 
   it('gives the athlete useful calendar context before the grid', () => {
