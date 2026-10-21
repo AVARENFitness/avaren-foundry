@@ -270,9 +270,9 @@ export default function AthleteInPersonScheduleScreen({
     return groups
   }, [scheduleItems])
 
+  const selectedDayItems = dayItemsByKey[selectedDayKey] ?? []
   const selectedPrivateCount = selectedDayItems.filter(item => item.isAthletePrivateEvent || item.isCoachPrivateEvent).length
   const selectedTrainingCount = selectedDayItems.filter(item => !item.isAthletePrivateEvent && !item.isCoachPrivateEvent && !item.isCoachWorkAppointment).length
-  const selectedDayItems = dayItemsByKey[selectedDayKey] ?? []
   const weekDayKeys = weekDays.map((day) => dateKey(day))
   const todayItems = dayItemsByKey[todayKey] ?? []
   const weekItems = weekDayKeys.flatMap((key) => dayItemsByKey[key] ?? [])
