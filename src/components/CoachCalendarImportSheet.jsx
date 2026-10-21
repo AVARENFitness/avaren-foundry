@@ -2,6 +2,7 @@ import { useState } from 'react'
 import AppUiBackdrop from './ui/AppUiBackdrop'
 import { analyzeCalendarScreenshot } from '../lib/calendarScreenshotAnalyze'
 import { prepareCalendarImportReview } from '../lib/calendarScreenshotImport'
+import { classifyCalendarImportEntry } from '../lib/calendarImportDuplicates'
 import { getClientDisplayName } from '../lib/clientDisplayName'
 import { resolveRecordBusinessClientId } from '../lib/coachBusinessClient'
 
@@ -24,22 +25,18 @@ export default function CoachCalendarImportSheet({ open, clients = [], existingI
       const seen = new Set()
       const reviewed = prepareCalendarImportReview(extracted, clients).map(item => {
         const key = [item.date, item.startTime, item.title.toLowerCase()].join('|')
-        const existingMatch = existingItems.some(existing => {
-          if (String(existing.sessionDate ?? existing.eventDate ?? '') !== item.date ||
-              String(existing.startTime ?? '').slice(0,5) !== item.startTime) return false
-          if (item.businessClientId && String(existing.businessClientId ?? '') === String(item.businessClientId)) return true
-          return String(existing.title ?? '').toLowerCase() === item.title.toLowerCase()
-        })
-        const duplicate = existingMatch || seen.has(key)
+        const classification = classifyCalendarImportEntry(item, existingItems, clients)
+        const duplicate = classification.kind === 'duplicate' || seen.has(key)
+        const timeConflict = classification.kind === 'conflict' ? classification.conflictingTitle : ''
         seen.add(key)
-        return { ...item, duplicate, selected: false }
+        return { ...item, duplicate, timeConflict, selected: false }
       })
       setItems(reviewed)
       if (!reviewed.length) setError('No events found. Try a screenshot with visible event titles and times.')
     } catch (failure) { setError(failure.message || 'Could not analyze screenshot.') }
     finally { setAnalyzing(false) }
   }
-  const ready = items.filter(item => item.selected && item.title && item.date && item.startTime && Number(item.durationMinutes) > 0 && !item.duplicate && !item.dateConflict && !item.geometryConflict &&
+  const ready = items.filter(item => item.selected && item.title && item.date && item.startTime && Number(item.durationMinutes) > 0 && !item.duplicate && !item.timeConflict && !item.dateConflict && !item.geometryConflict && !item.timeConflict &&
     (item.suggestedType !== 'training_candidate' || item.businessClientId))
   const handleSave = async () => {
     setSaving(true); setError(''); setSaveFailures([])
@@ -75,15 +72,16 @@ export default function CoachCalendarImportSheet({ open, clients = [], existingI
           const expanded = expandedId === item.id
           return <article key={item.id} className={'coach-calendar-import-item coach-calendar-import-compact ' + (item.duplicate ? 'is-duplicate' : '')}>
             <div className="coach-calendar-import-summary">
-              <input type="checkbox" aria-label={'Include ' + item.title} checked={item.selected} disabled={item.duplicate || saving || !valid}
+              <input type="checkbox" aria-label={'Include ' + item.title} checked={item.selected} disabled={item.duplicate || Boolean(item.timeConflict) || saving || !valid}
                 onChange={e => update(item.id, { selected: e.target.checked })} />
               <div className="coach-calendar-import-summary-copy">
                 <strong>{client ? getClientDisplayName(client) : item.title || 'Unclear event'}</strong>
                 <span>{summaryDate} · {item.startTime || 'Time unclear'} · {item.durationMinutes || '?'} min</span>
-                <small>{item.suggestedType === 'training_candidate' ? (client ? 'Training session' : 'Choose training client') : 'Event'}{item.duplicate ? ' · Already on calendar' : ''}</small>
+                <small>{item.suggestedType === 'training_candidate' ? (client ? 'Training session' : 'Choose training client') : 'Event'}{item.duplicate ? ' · Already on calendar' : item.timeConflict ? ' · Time conflict' : ''}</small>
               </div>
               <button type="button" className="coach-calendar-import-edit-trigger" aria-expanded={expanded} onClick={() => setExpandedId(expanded ? null : item.id)}>{expanded ? 'Done' : 'Edit'}</button>
             </div>
+            {item.timeConflict ? <p className="coach-calendar-import-warning">Time conflict with {item.timeConflict}. Review the calendar before changing or adding this appointment.</p> : null}
             {item.geometryConflict ? <p className="coach-calendar-import-warning">AVA could not verify this appointment against the hour grid. Open Edit, check its day, start and duration, then confirm them.</p> : null}
             {item.dateConflict ? <p className="coach-calendar-import-warning">The extracted date does not match the weekday column. Check the date before adding.</p> : null}
             {item.matchStatus === 'ambiguous' && !item.businessClientId ? <div className="coach-calendar-import-suggestions">
