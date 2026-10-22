@@ -633,7 +633,7 @@ export default function AthleteInPersonScheduleScreen({
                 <button
                   key={key}
                   type="button"
-                  className={`coach-calendar-month-day${inCurrentMonth ? '' : ' is-outside'}${key === todayKey ? ' is-today' : ''}${items.length ? ' has-items' : ''}`}
+                  className={`coach-calendar-month-day${inCurrentMonth ? '' : ' is-outside'}${key === todayKey ? ' is-today' : ''}${key === selectedDayKey ? ' is-selected' : ''}${items.length ? ' has-items' : ''}`}
                   onClick={() => {
                     setSelectedDayKey(key)
                     setAnchor(date)
@@ -670,7 +670,7 @@ export default function AthleteInPersonScheduleScreen({
             const key = dateKey(day)
             const items = dayItemsByKey[key] ?? []
             return (
-              <article key={key} className={`coach-calendar-week-column${key === todayKey ? ' is-today' : ''}`}>
+              <article key={key} className={`coach-calendar-week-column${key === todayKey ? ' is-today' : ''}${key === selectedDayKey ? ' is-selected' : ''}`}>
                 <button
                   type="button"
                   className="coach-calendar-week-heading"
