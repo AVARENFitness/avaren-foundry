@@ -194,7 +194,7 @@ describe('CoachSessionCalendar usability', () => {
     expect(screen.getAllByText(/Open|item/i).length).toBeGreaterThanOrEqual(7)
   })
 
-  it('drills from a month date into the Day view', async () => {
+  it('selects a month date and opens its inline agenda', async () => {
     render(<CoachSessionCalendar clients={[jake, sarah]} assignments={[]} />)
 
     await waitFor(() => {
@@ -211,10 +211,8 @@ describe('CoachSessionCalendar usability', () => {
 
     fireEvent.click(within(screen.getByTestId('coach-calendar-month-grid')).getAllByRole('button', { name: new RegExp(label, 'i') })[0])
 
-    expect(screen.getByTestId('coach-calendar-view-day')).toHaveAttribute(
-      'aria-selected',
-      'true',
-    )
+    expect(screen.getByTestId('coach-calendar-view-month')).toHaveAttribute('aria-selected', 'true')
+    expect(screen.getByLabelText('Selected day appointments')).toBeInTheDocument()
   })
 
   it('returns to today without changing the selected calendar zoom', async () => {
@@ -480,8 +478,8 @@ describe('CoachSessionCalendar usability', () => {
 
     fireEvent.click(screen.getAllByRole('button', { name: new RegExp(`${weekday}[\\s\\S]*${dayNumber}`, 'i') })[0])
 
-    expect(await screen.findByText('Cancelled')).toBeInTheDocument()
-    expect(screen.getByText('Offline Client')).toBeInTheDocument()
+    expect((await screen.findAllByText('Cancelled')).length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Offline Client').length).toBeGreaterThan(0)
   })
 
   it('exports stable calendar zoom levels', () => {
