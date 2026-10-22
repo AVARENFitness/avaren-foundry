@@ -33,21 +33,20 @@ describe('calendar visual information hierarchy', () => {
   })
 
   it('gives the athlete useful calendar context before the grid', () => {
-    expect(athlete).toContain('athlete-calendar-intelligence')
-    expect(athlete).toContain('<small>NEXT</small>')
-    expect(athlete).toContain('Your day is open')
-    expect(athlete).toContain('nextCalendarItem')
-    expect(athlete).toContain('weekItems.length')
+    expect(athlete).toContain('avaren-calendar-inline-agenda')
+    expect(athlete).toContain('formatCoachCalendarDayHeading(selectedDayKey)')
+    expect(athlete).toContain('Nothing scheduled for this day.')
+    expect(athlete).toContain('selectedDayItems')
+    expect(athlete).toContain('coach-calendar-week-board')
     expect(athlete).toContain('Coaching')
     expect(athlete).toContain('Private')
   })
 
-  it('prioritizes the full personal day before coaching-specific context', () => {
-    expect(athlete).toContain('upcomingCalendarItems')
-    expect(athlete).toContain('itemTitle(nextCalendarItem)')
-    expect(athlete).toContain('sourceLabel(nextCalendarItem)')
-    expect(athlete).toContain('scheduled item')
-    expect(athlete).not.toContain('NEXT COACHING')
+  it('puts the calendar and selected-day agenda before optional summaries', () => {
+    expect(athlete).toContain('avaren-calendar-inline-agenda')
+    expect(coach).toContain('avaren-calendar-inline-agenda')
+    expect(athlete).not.toContain('className="athlete-calendar-intelligence"')
+    expect(coach).not.toContain('className="avaren-calendar-selected-overview"')
   })
 
   it('keeps Month Week Day and adds restrained calendar motion', () => {
