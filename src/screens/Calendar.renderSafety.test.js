@@ -14,7 +14,7 @@ describe('calendar render safety and coach visual simplicity', () => {
     const s = src('src/components/CoachSessionCalendar.jsx')
     expect(s).not.toContain('className="coach-calendar-intelligence"')
     expect(s).not.toContain('className="coach-calendar-legend"')
-    expect(s).toContain('className="avaren-calendar-selected-overview"')
+    expect(s).toContain('className="avaren-calendar-inline-agenda"')
     expect(s).toContain('coach-calendar-view-day')
     expect(s).toContain('coach-calendar-view-week')
     expect(s).toContain('coach-calendar-view-month')
