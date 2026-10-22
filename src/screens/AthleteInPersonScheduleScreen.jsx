@@ -615,62 +615,6 @@ export default function AthleteInPersonScheduleScreen({
         </div>
       </header>
 
-      <section className="athlete-calendar-intelligence" aria-label="Your calendar overview">
-        <article className="athlete-calendar-intelligence-primary">
-          <span className="athlete-calendar-intelligence-icon">
-            <CalendarClock size={19} strokeWidth={1.7} />
-          </span>
-          <div>
-            <small>TODAY</small>
-            <strong>
-              {todayItems.length
-                ? `${todayItems.length} calendar item${todayItems.length === 1 ? '' : 's'}`
-                : 'Your day is open'}
-            </strong>
-            <span>
-              {todayItems.length
-                ? 'Tap Day to see the full agenda'
-                : 'No AVAREN commitments scheduled today'}
-            </span>
-          </div>
-        </article>
-
-        <article>
-          <small>NEXT</small>
-          <strong>
-            {nextCalendarItem
-              ? `${formatTime12Hour(nextCalendarItem.startTime)} · ${itemTitle(nextCalendarItem)}`
-              : 'Nothing scheduled'}
-          </strong>
-          <span>
-            {nextCalendarItem
-              ? `${formatCoachCalendarDayHeading(nextCalendarItem.sessionDate)} · ${sourceLabel(nextCalendarItem)}`
-              : 'Your next calendar item will appear here'}
-          </span>
-        </article>
-
-        <article>
-          <small>THIS WEEK</small>
-          <strong>{weekItems.length} scheduled item{weekItems.length === 1 ? '' : 's'}</strong>
-          <span>
-            {openDaysThisWeek} open day{openDaysThisWeek === 1 ? '' : 's'}
-            {coachingThisWeek ? ` · ${coachingThisWeek} coaching` : ''}
-            {athletePrivateThisWeek ? ` · ${athletePrivateThisWeek} private` : ''}
-          </span>
-        </article>
-      </section>
-
-      <section className="avaren-calendar-selected-overview" aria-label="Selected day overview">
-        <div><span className="eyebrow">SELECTED DAY</span><strong>{formatCoachCalendarDayHeading(selectedDayKey)}</strong>
-          <small>{selectedDayItems.length ? `${selectedTrainingCount} training · ${selectedPrivateCount} private · ${selectedDayItems.length - selectedTrainingCount - selectedPrivateCount} other` : 'Nothing scheduled'}</small></div>
-        <button type="button" className="coach-calendar-today-control" onClick={() => { setAnchor(new Date(`${selectedDayKey}T12:00:00`)); setViewMode(COACH_CALENDAR_VIEW.DAY) }}>View day agenda</button>
-      </section>
-      <div className="coach-calendar-legend athlete-calendar-legend" aria-label="Calendar legend">
-        <span><i className="is-client" /> Coaching</span>
-        <span><i className="is-private" /> Private</span>
-        <span><i className="is-today" /> Today</span>
-      </div>
-
       {calendarLoading || (!ready && loading) ? (
         <p className="athlete-in-person-schedule-empty">Loading calendar…</p>
       ) : null}
@@ -693,7 +637,7 @@ export default function AthleteInPersonScheduleScreen({
                   onClick={() => {
                     setSelectedDayKey(key)
                     setAnchor(date)
-                    setViewMode(COACH_CALENDAR_VIEW.DAY)
+                    // Keep the selected date visible in the overview and update the agenda below.
                   }}
                 >
                   <span className="coach-calendar-month-date">{date.getDate()}</span>
@@ -733,7 +677,7 @@ export default function AthleteInPersonScheduleScreen({
                   onClick={() => {
                     setSelectedDayKey(key)
                     setAnchor(day)
-                    setViewMode(COACH_CALENDAR_VIEW.DAY)
+                    // Keep the selected date visible in the overview and update the agenda below.
                   }}
                 >
                   <span>{day.toLocaleDateString([], { weekday: 'short' })}</span>
@@ -750,7 +694,7 @@ export default function AthleteInPersonScheduleScreen({
                         onClick={() => {
                           setSelectedDayKey(key)
                           setAnchor(day)
-                          setViewMode(COACH_CALENDAR_VIEW.DAY)
+                          // Selecting a weekly event reveals the agenda below.
                         }}
                       >
                         <span>{formatTime12Hour(item.startTime)}</span>
@@ -764,6 +708,17 @@ export default function AthleteInPersonScheduleScreen({
               </article>
             )
           })}
+        </section>
+      ) : null}
+
+      {viewMode !== COACH_CALENDAR_VIEW.DAY ? (
+        <section className="avaren-calendar-inline-agenda" aria-label="Selected day appointments">
+          <div className="avaren-calendar-inline-heading">
+            <strong>{formatCoachCalendarDayHeading(selectedDayKey)}</strong>
+            <span>{selectedDayItems.length} item{selectedDayItems.length === 1 ? '' : 's'}</span>
+          </div>
+          {selectedDayItems.length ? <div className="athlete-calendar-agenda">{selectedDayItems.map(renderDayItem)}</div>
+            : <p className="avaren-calendar-inline-empty">Nothing scheduled for this day.</p>}
         </section>
       ) : null}
 
