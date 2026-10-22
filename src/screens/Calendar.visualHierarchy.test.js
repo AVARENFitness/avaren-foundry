@@ -26,7 +26,7 @@ describe('calendar visual information hierarchy', () => {
   })
 
   it('focuses coach calendar on selected day and clear navigation', () => {
-    expect(coach).toContain('avaren-calendar-selected-overview')
+    expect(coach).toContain('avaren-calendar-inline-agenda')
     expect(coach).toContain('View day agenda')
     expect(coach).not.toContain('className="coach-calendar-intelligence"')
     expect(coach).not.toContain('className="coach-calendar-legend"')
