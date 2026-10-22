@@ -1097,7 +1097,7 @@ export default function CoachSessionCalendar({
                 <button
                   key={key}
                   type="button"
-                  className={`coach-calendar-month-day${inCurrentMonth ? '' : ' is-outside'}${isToday ? ' is-today' : ''}${items.length ? ' has-items' : ''}`}
+                  className={`coach-calendar-month-day${inCurrentMonth ? '' : ' is-outside'}${isToday ? ' is-today' : ''}${key === selectedDayKey ? ' is-selected' : ''}${items.length ? ' has-items' : ''}`}
                   onClick={() => {
                     setSelectedDayKey(key)
                     setAnchor(date)
@@ -1143,7 +1143,7 @@ export default function CoachSessionCalendar({
             const items = dayItemsByKey[key] ?? []
             const isToday = key === todayKey
             return (
-              <article key={key} className={`coach-calendar-week-column${isToday ? ' is-today' : ''}`}>
+              <article key={key} className={`coach-calendar-week-column${isToday ? ' is-today' : ''}${key === selectedDayKey ? ' is-selected' : ''}`}>
                 <button
                   type="button"
                   className="coach-calendar-week-heading"
