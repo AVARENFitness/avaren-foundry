@@ -212,7 +212,7 @@ describe('CoachSessionCalendar usability', () => {
     fireEvent.click(within(screen.getByTestId('coach-calendar-month-grid')).getAllByRole('button', { name: new RegExp(label, 'i') })[0])
 
     expect(screen.getByTestId('coach-calendar-view-month')).toHaveAttribute('aria-selected', 'true')
-    expect(screen.getByLabelText('Selected day appointments')).toBeInTheDocument()
+    expect(await screen.findByLabelText('Selected day appointments')).toBeInTheDocument()
   })
 
   it('returns to today without changing the selected calendar zoom', async () => {
