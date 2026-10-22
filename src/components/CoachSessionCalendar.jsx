@@ -1078,11 +1078,6 @@ export default function CoachSessionCalendar({
         </div>
       </header>
 
-      <section className="avaren-calendar-selected-overview" aria-label="Selected day overview">
-        <div><span className="eyebrow">SELECTED DAY</span><strong>{formatCoachCalendarDayHeading(selectedDayKey)}</strong>
-          <small>{selectedCalendarItems.length ? `${selectedTrainingCount} training · ${selectedEventCount} events` : 'Nothing scheduled'}</small></div>
-        <button type="button" className="coach-calendar-today-control" onClick={() => { setAnchor(new Date(`${selectedDayKey}T12:00:00`)); setViewMode(COACH_CALENDAR_VIEW.DAY) }}>View day agenda</button>
-      </section>
       {viewMode === COACH_CALENDAR_VIEW.MONTH ? (
         <section className="coach-calendar-month-view" data-testid="coach-calendar-month-grid">
           <div className="coach-calendar-month-weekdays" aria-hidden="true">
@@ -1102,11 +1097,10 @@ export default function CoachSessionCalendar({
                 <button
                   key={key}
                   type="button"
-                  className={`coach-calendar-month-day${inCurrentMonth ? '' : ' is-outside'}${isToday ? ' is-today' : ''}${items.length ? ' has-items' : ''}`}
+                  className={`coach-calendar-month-day${inCurrentMonth ? '' : ' is-outside'}${isToday ? ' is-today' : ''}${key === selectedDayKey ? ' is-selected' : ''}${items.length ? ' has-items' : ''}`}
                   onClick={() => {
                     setSelectedDayKey(key)
                     setAnchor(date)
-                    setViewMode(COACH_CALENDAR_VIEW.DAY)
                   }}
                   aria-label={`${formatCoachCalendarDayHeading(key)}, ${items.length} calendar item${items.length === 1 ? '' : 's'}`}
                 >
@@ -1149,14 +1143,13 @@ export default function CoachSessionCalendar({
             const items = dayItemsByKey[key] ?? []
             const isToday = key === todayKey
             return (
-              <article key={key} className={`coach-calendar-week-column${isToday ? ' is-today' : ''}`}>
+              <article key={key} className={`coach-calendar-week-column${isToday ? ' is-today' : ''}${key === selectedDayKey ? ' is-selected' : ''}`}>
                 <button
                   type="button"
                   className="coach-calendar-week-heading"
                   onClick={() => {
                     setSelectedDayKey(key)
                     setAnchor(day)
-                    setViewMode(COACH_CALENDAR_VIEW.DAY)
                   }}
                 >
                   <span>{day.toLocaleDateString([], { weekday: 'short' })}</span>
@@ -1201,6 +1194,17 @@ export default function CoachSessionCalendar({
               </article>
             )
           })}
+        </section>
+      ) : null}
+
+      {viewMode !== COACH_CALENDAR_VIEW.DAY && !loading ? (
+        <section className="avaren-calendar-inline-agenda" aria-label="Selected day appointments">
+          <div className="avaren-calendar-inline-heading">
+            <strong>{formatCoachCalendarDayHeading(selectedDayKey)}</strong>
+            <span>{selectedCalendarItems.length} item{selectedCalendarItems.length === 1 ? '' : 's'}</span>
+          </div>
+          {renderAgendaList(appointmentsForCoachDayAgenda(scheduleItems, selectedDayKey), { dayKey: selectedDayKey })}
+          {!selectedCalendarItems.length ? <p className="avaren-calendar-inline-empty">Nothing scheduled for this day.</p> : null}
         </section>
       ) : null}
 

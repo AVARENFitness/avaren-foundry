@@ -347,3 +347,42 @@
     overflow: hidden;
   }
 }
+
+/* Calendar-first: make schedule the primary content, with details directly below. */
+.coach-session-calendar-screen .coach-calendar-month-view,
+.athlete-calendar-screen .coach-calendar-month-view,
+.coach-session-calendar-screen .coach-calendar-week-board,
+.athlete-calendar-screen .coach-calendar-week-board { margin-top: 8px; }
+.avaren-calendar-inline-agenda { margin-top: 14px; padding-bottom: 12px; }
+.avaren-calendar-inline-heading { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 11px 2px; border-bottom: 1px solid var(--calendar-line); margin-bottom: 12px; }
+.avaren-calendar-inline-heading strong { font-size: 16px; font-weight: 730; }
+.avaren-calendar-inline-heading span,
+.avaren-calendar-inline-empty { font-size: 13px; color: #9e9a92; }
+.athlete-calendar-screen .athlete-calendar-header .coach-session-calendar-title-row h1 { margin-bottom: 0; }
+.athlete-calendar-screen .athlete-calendar-merged-note { display: none; }
+.athlete-calendar-screen .athlete-calendar-agenda-item { min-height: 62px; padding: 11px 13px; }
+.athlete-calendar-screen .athlete-calendar-agenda-item .eyebrow { font-size: 9px; }
+.athlete-calendar-screen .athlete-calendar-agenda-item small { font-size: 11px; }
+@media(max-width: 620px) {
+  .coach-session-calendar-screen .coach-calendar-month-day,
+  .athlete-calendar-screen .coach-calendar-month-day { min-height: 51px; }
+  .coach-session-calendar-screen .coach-calendar-month-events span,
+  .athlete-calendar-screen .coach-calendar-month-events span { display: none; }
+  .coach-session-calendar-screen .coach-calendar-month-events,
+  .athlete-calendar-screen .coach-calendar-month-events { display: flex; gap: 3px; justify-content: center; }
+  .coach-session-calendar-screen .coach-calendar-month-events em,
+  .athlete-calendar-screen .coach-calendar-month-events em { font-size: 10px; }
+  .athlete-calendar-screen .coach-calendar-add-trigger { padding: 9px 12px; min-height: 41px; }
+}
+
+/* A selected date is different from today's date. */
+.coach-session-calendar-screen .coach-calendar-month-day.is-selected,
+.athlete-calendar-screen .coach-calendar-month-day.is-selected,
+.coach-session-calendar-screen .coach-calendar-week-column.is-selected,
+.athlete-calendar-screen .coach-calendar-week-column.is-selected {
+  box-shadow: inset 0 0 0 1.5px var(--calendar-accent);
+  background: var(--calendar-soft);
+}
+.coach-session-calendar-screen .coach-calendar-month-day.is-selected .coach-calendar-month-date,
+.athlete-calendar-screen .coach-calendar-month-day.is-selected .coach-calendar-month-date { color: var(--calendar-accent); }
+.avaren-calendar-inline-agenda .avaren-calendar-inline-heading strong { letter-spacing: -.02em; }
