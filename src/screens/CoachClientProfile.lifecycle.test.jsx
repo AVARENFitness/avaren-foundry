@@ -393,6 +393,7 @@ describe('CoachClientProfile offline lifecycle', () => {
       />,
     )
 
+    await user.click(screen.getByRole('button', { name: /^more$/i }))
     await user.click(screen.getByRole('button', { name: /^training$/i }))
 
     await waitFor(() => {
