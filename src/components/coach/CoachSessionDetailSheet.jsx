@@ -296,7 +296,7 @@ export default function CoachSessionDetailSheet({
               >
                 {completingSessionId === session.id
                   ? 'Completing…'
-                  : 'Complete without workout'}
+                  : 'Mark complete · no pass deducted'}
               </button>
               {rescheduleMode ? (
                 <button
