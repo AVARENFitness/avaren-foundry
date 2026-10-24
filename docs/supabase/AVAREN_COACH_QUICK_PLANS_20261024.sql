@@ -31,9 +31,15 @@ for update to authenticated using (
  coach_id = auth.uid() and public.is_avaren_coach()
  and exists (select 1 from public.coach_business_clients b where b.id=business_client_id and b.coach_id=auth.uid())
 );
+-- A stable, narrowly scoped ownership check avoids exposing coach roster rows.
+create or replace function public.is_linked_quick_plan_athlete(p_client uuid,p_coach uuid)
+returns boolean language sql stable security definer set search_path = public
+as $$ select exists (
+ select 1 from public.coach_business_clients b
+ where b.id=p_client and b.coach_id=p_coach and b.linked_user_id=auth.uid()
+) $$;
+revoke all on function public.is_linked_quick_plan_athlete(uuid,uuid) from public;
+grant execute on function public.is_linked_quick_plan_athlete(uuid,uuid) to authenticated;
 create policy athlete_quick_plans_select on public.coach_client_quick_plans
-for select to authenticated using (
- exists (select 1 from public.coach_business_clients b
- where b.id=business_client_id and b.coach_id=coach_id and b.linked_user_id=auth.uid())
-);
+for select to authenticated using (public.is_linked_quick_plan_athlete(business_client_id,coach_id));
 create index if not exists coach_quick_plans_client_idx on public.coach_client_quick_plans (business_client_id);
