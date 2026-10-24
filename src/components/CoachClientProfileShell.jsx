@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 export const CLIENT_PROFILE_SECTIONS = [
   { id: 'overview', label: 'Coaching' },
   { id: 'sessions', label: 'Sessions' },
+  { id: 'plan', label: 'Plan' },
   { id: 'training', label: 'Training' },
   { id: 'notes', label: 'Notes' },
   { id: 'progress', label: 'Progress' },
@@ -14,6 +15,7 @@ export const CLIENT_PROFILE_SECTIONS = [
 const PRIMARY_SECTION_IDS = new Set([
   'overview',
   'sessions',
+  'plan',
   'training',
   'notes',
 ])
