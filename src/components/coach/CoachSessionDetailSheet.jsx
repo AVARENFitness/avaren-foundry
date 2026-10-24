@@ -281,7 +281,7 @@ export default function CoachSessionDetailSheet({
             <>
               <button
                 type="button"
-                className="gold-button machined coach-primary-action"
+                className="coach-secondary-button"
                 disabled={completingSessionId === session.id}
                 onClick={() => onStartFloorMode?.(session)}
               >
