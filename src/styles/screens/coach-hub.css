@@ -1657,3 +1657,36 @@
 .coach-waiver-terms .coach-waiver-document-heading:first-child{
   margin-top:0;
 }
+
+/* Hand-off signing: the full approved waiver must be comfortably readable. */
+.coach-waiver-signing-sheet {
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  max-height: min(92dvh, 920px);
+  min-height: min(85dvh, 700px);
+}
+.coach-waiver-signing-sheet > * { flex-shrink: 0; }
+.coach-waiver-signing-sheet .coach-waiver-terms {
+  flex: 0 0 auto;
+  min-height: 260px;
+  height: min(43dvh, 370px);
+  max-height: none;
+  overflow-y: auto;
+  overflow-x: hidden;
+  line-height: 1.65;
+  -webkit-overflow-scrolling: touch;
+}
+.coach-waiver-signing-sheet .coach-waiver-terms p {
+  font-size: clamp(.875rem, 2.7vw, 1rem);
+  line-height: 1.65;
+}
+.coach-waiver-signing-sheet .coach-waiver-terms:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 3px;
+}
+@media(max-width: 620px) {
+  .coach-waiver-signing-sheet { padding: 18px 15px; gap: 18px; max-height: 92dvh; }
+  .coach-waiver-signing-sheet .coach-waiver-terms { min-height: 280px; height: 38dvh; padding: 16px; }
+}
