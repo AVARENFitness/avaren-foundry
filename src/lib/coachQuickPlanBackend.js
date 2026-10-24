@@ -25,6 +25,7 @@ export const coachQuickPlanBackend = {
     const exercises = (plan.exercises ?? []).slice(0,80).map((row) => ({
       id: String(row.id ?? '').slice(0,100),
       name: String(row.name ?? '').slice(0,160),
+      day: String(row.day ?? '').slice(0,40),
       sets: String(row.sets ?? '').slice(0,24),
       reps: String(row.reps ?? '').slice(0,30),
       load: String(row.load ?? '').slice(0,50),
