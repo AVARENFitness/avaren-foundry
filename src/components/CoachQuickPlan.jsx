@@ -3,6 +3,12 @@ import { coachQuickPlanBackend } from '../lib/coachQuickPlanBackend'
 import '../styles/screens/coach-quick-plan.css'
 
 const blankRow = () => ({ id: globalThis.crypto?.randomUUID?.() ?? String(Date.now()), name: '', sets: '3', reps: '10', load: '', notes: '' })
+const STARTERS = {
+  'Full body': ['Squat pattern', 'Horizontal push', 'Horizontal pull', 'Hip hinge', 'Core / carry'],
+  'Upper body': ['Horizontal push', 'Horizontal pull', 'Vertical push', 'Vertical pull', 'Arm accessory'],
+  'Lower body': ['Squat pattern', 'Hip hinge', 'Single-leg exercise', 'Calf exercise', 'Core'],
+  'Mobility': ['Breathing / warm-up', 'Hip mobility', 'Thoracic mobility', 'Balance', 'Cooldown'],
+}
 export default function CoachQuickPlan({ businessClientId, clientName, readOnly = false }) {
   const [plan, setPlan] = useState(null)
   const [baseline, setBaseline] = useState('')
@@ -25,6 +31,11 @@ export default function CoachQuickPlan({ businessClientId, clientName, readOnly 
     const next = [...plan.exercises]
     ;[next[index], next[target]] = [next[target], next[index]]
     change('exercises', next)
+  }
+  const addStarter = (name) => {
+    const names = STARTERS[name] ?? []
+    if (!names.length) return
+    change('exercises', [...plan.exercises, ...names.map(item => ({...blankRow(), name: item, load: '', notes: ''}))])
   }
   const save = async () => {
     setBusy(true); setMessage('')
@@ -55,13 +66,20 @@ export default function CoachQuickPlan({ businessClientId, clientName, readOnly 
       <div className="avaren-plan-exercises"><div className="avaren-plan-exercise-heading"><strong>Exercises</strong><span>Sets · Reps · Load</span></div>
         {plan.exercises.map((row,index) => <article className="avaren-plan-row" key={row.id ?? index}>
           <div className="avaren-plan-row-top"><strong>{String(index+1).padStart(2,'0')}</strong>
-            {!readOnly && <div className="avaren-plan-row-actions"><button type="button" aria-label={`Move exercise ${index+1} up`} disabled={index === 0} onClick={() => move(index,-1)}>↑</button><button type="button" aria-label={`Move exercise ${index+1} down`} disabled={index === plan.exercises.length-1} onClick={() => move(index,1)}>↓</button><button type="button" aria-label={`Remove exercise ${index+1}`} onClick={() => change('exercises',plan.exercises.filter((_,i)=>i!==index))}>Remove</button></div>}
+            {!readOnly && <div className="avaren-plan-row-actions"><button type="button" aria-label={`Move exercise ${index+1} up`} disabled={index === 0} onClick={() => move(index,-1)}>↑</button><button type="button" aria-label={`Move exercise ${index+1} down`} disabled={index === plan.exercises.length-1} onClick={() => move(index,1)}>↓</button><button type="button" aria-label={`Duplicate exercise ${index+1}`} onClick={() => change('exercises', [...plan.exercises.slice(0,index+1), {...row, id: blankRow().id}, ...plan.exercises.slice(index+1)])}>Copy</button><button type="button" aria-label={`Remove exercise ${index+1}`} onClick={() => change('exercises',plan.exercises.filter((_,i)=>i!==index))}>Remove</button></div>}
           </div>
           <input aria-label={`Exercise ${index+1} name`} placeholder="Exercise name" disabled={readOnly} value={row.name ?? ''} onChange={e => editRow(index,'name',e.target.value)} />
           <div className="avaren-plan-recipe">{[['sets','Sets'],['reps','Reps'],['load','Load']].map(([field,label]) => <label key={field}>{label}<input disabled={readOnly} value={row[field] ?? ''} onChange={e => editRow(index,field,e.target.value)} /></label>)}</div>
           <textarea aria-label={`Exercise ${index+1} notes`} placeholder="Tempo, cues, rest, modifications…" disabled={readOnly} rows={2} value={row.notes ?? ''} onChange={e => editRow(index,'notes',e.target.value)} />
         </article>)}
-        {!readOnly && <button className="avaren-plan-add" type="button" onClick={() => change('exercises',[...plan.exercises,blankRow()])}>+ Add exercise</button>}
+        {!readOnly && <div className="avaren-plan-add-actions">
+          <button className="avaren-plan-add" type="button" onClick={() => change('exercises',[...plan.exercises,blankRow()])}>+ Add exercise</button>
+          <label>Start from a template
+            <select aria-label="Add exercises from template" defaultValue="" onChange={e => { addStarter(e.target.value); e.target.value = '' }}>
+              <option value="">Choose template…</option>{Object.keys(STARTERS).map(name => <option key={name} value={name}>{name}</option>)}
+            </select>
+          </label>
+        </div>}
       </div>
       <label className="avaren-plan-field">Coach notes
         <textarea rows={3} disabled={readOnly} placeholder="Warm-up, cooldown, goals or reminders…" value={plan.coach_notes ?? ''} onChange={e => change('coach_notes',e.target.value)} />
