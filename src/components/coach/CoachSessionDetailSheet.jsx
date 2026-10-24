@@ -290,7 +290,7 @@ export default function CoachSessionDetailSheet({
               </button>
               <button
                 type="button"
-                className="coach-secondary-button"
+                className="gold-button machined coach-primary-action"
                 disabled={completingSessionId === session.id}
                 onClick={() => onComplete?.(session)}
               >
