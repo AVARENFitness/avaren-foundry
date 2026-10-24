@@ -386,3 +386,29 @@
 .coach-session-calendar-screen .coach-calendar-month-day.is-selected .coach-calendar-month-date,
 .athlete-calendar-screen .coach-calendar-month-day.is-selected .coach-calendar-month-date { color: var(--calendar-accent); }
 .avaren-calendar-inline-agenda .avaren-calendar-inline-heading strong { letter-spacing: -.02em; }
+
+/* Month activity remains visible even in the compact phone grid. */
+@media(max-width: 620px) {
+  .coach-session-calendar-screen .coach-calendar-month-day.has-items .coach-calendar-month-date::after,
+  .athlete-calendar-screen .coach-calendar-month-day.has-items .coach-calendar-month-date::after {
+    content: '';
+    display: block;
+    width: 5px;
+    height: 5px;
+    margin: 4px auto 0;
+    border-radius: 50%;
+    background: var(--calendar-accent);
+  }
+  .coach-session-calendar-screen .coach-calendar-month-day.has-items,
+  .athlete-calendar-screen .coach-calendar-month-day.has-items {
+    background: rgba(193,170,121,.045);
+  }
+}
+/* Repeat is a deliberate action, not an element of every calendar card. */
+.coach-session-calendar-screen .coach-calendar-repeat-select[hidden] { display: none !important; }
+.coach-session-calendar-screen .coach-calendar-workflow-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding: 2px 0 8px;
+}
+.coach-session-calendar-screen .coach-calendar-repeat-item { min-width: 0; }
