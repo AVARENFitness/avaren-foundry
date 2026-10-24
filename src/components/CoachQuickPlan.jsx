@@ -12,11 +12,11 @@ export default function CoachQuickPlan({ businessClientId, clientName, readOnly 
   useEffect(() => {
     let active = true
     setPlan(null)
-    coachQuickPlanBackend.get(businessClientId).then(data => {
+    (readOnly ? coachQuickPlanBackend.getForAthlete() : coachQuickPlanBackend.get(businessClientId)).then(data => {
       if (active) { setPlan(data); setBaseline(JSON.stringify(data)); setLoadError('') }
     }).catch(error => { if (active) setLoadError(error.message || 'Could not load plan') })
     return () => { active = false }
-  }, [businessClientId])
+  }, [businessClientId, readOnly])
   const change = (key, value) => { setPlan(p => ({ ...p, [key]: value })); setMessage('') }
   const editRow = (index, key, value) => change('exercises', plan.exercises.map((row,i) => i === index ? { ...row, [key]: value } : row))
   const move = (index, direction) => {
@@ -35,7 +35,7 @@ export default function CoachQuickPlan({ businessClientId, clientName, readOnly 
     finally { setBusy(false) }
   }
   if (loadError) return <p role="alert">{loadError}</p>
-  if (!plan) return <p>Loading plan…</p>
+  if (!plan) return readOnly ? <p>No coach plan has been shared yet.</p> : <p>Loading plan…</p>
   const dirty = JSON.stringify(plan) !== baseline
   return <section className="avaren-quick-plan">
     <div className="avaren-plan-toolbar">
