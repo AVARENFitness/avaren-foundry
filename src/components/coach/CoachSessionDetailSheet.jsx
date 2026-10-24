@@ -1,4 +1,5 @@
 import { Clock3, Dumbbell, UserRound } from 'lucide-react'
+import { useState } from 'react'
 import AppUiCloseButton from '../ui/AppUiCloseButton'
 import AppUiBackdrop from '../ui/AppUiBackdrop'
 import { getClientDisplayName } from '../../lib/clientDisplayName'
@@ -39,6 +40,7 @@ export default function CoachSessionDetailSheet({
   onApplyPassDebit,
   passActionBusy = false,
 }) {
+  const [showMoreActions, setShowMoreActions] = useState(false)
   if (!session) return null
 
   const athleteAssignments = assignments.filter(
@@ -281,7 +283,7 @@ export default function CoachSessionDetailSheet({
             <>
               <button
                 type="button"
-                className="gold-button machined coach-primary-action"
+                className="coach-secondary-button"
                 disabled={completingSessionId === session.id}
                 onClick={() => onStartFloorMode?.(session)}
               >
@@ -290,14 +292,19 @@ export default function CoachSessionDetailSheet({
               </button>
               <button
                 type="button"
-                className="coach-secondary-button"
+                className="gold-button machined coach-primary-action"
                 disabled={completingSessionId === session.id}
                 onClick={() => onComplete?.(session)}
               >
                 {completingSessionId === session.id
                   ? 'Completing…'
-                  : 'Complete without workout'}
+                  : 'Mark complete · no pass deducted'}
               </button>
+              <button type="button" className="coach-secondary-button" aria-expanded={showMoreActions}
+                onClick={() => setShowMoreActions(value => !value)}>
+                {showMoreActions ? 'Fewer options' : 'More options'}
+              </button>
+              {showMoreActions || rescheduleMode ? (<div className="coach-session-detail-more-actions">
               {rescheduleMode ? (
                 <button
                   type="button"
@@ -329,6 +336,7 @@ export default function CoachSessionDetailSheet({
               >
                 Mark missed
               </button>
+              </div>) : null}
             </>
           )}
         </div>

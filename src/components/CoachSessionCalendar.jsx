@@ -115,6 +115,7 @@ export default function CoachSessionCalendar({
   const [showAddMenu, setShowAddMenu] = useState(false)
   const [showScreenshotImport, setShowScreenshotImport] = useState(false)
   const [repeatSelection, setRepeatSelection] = useState([])
+  const [repeatMode, setRepeatMode] = useState(false)
   const [repeatEndDate, setRepeatEndDate] = useState('')
   const [repeatSaving, setRepeatSaving] = useState(false)
   const [scheduling, setScheduling] = useState(false)
@@ -538,7 +539,7 @@ export default function CoachSessionCalendar({
           session.isCoachPrivateEvent || session.isAthletePrivateEvent ? (
             <div key={session.id} className="coach-calendar-repeat-item">
               {session.isCoachPrivateEvent ? (
-                <label className="coach-calendar-repeat-select">
+                <label className="coach-calendar-repeat-select" hidden={!repeatMode}>
                   <input type="checkbox" aria-label={'Repeat event ' + session.title + ' on ' + session.eventDate}
                     checked={repeatSelection.includes(session.id)}
                     onChange={() => toggleRepeatSelection(session.id)} />
@@ -568,7 +569,7 @@ export default function CoachSessionCalendar({
           ) : (
             <div key={session.id} className="coach-calendar-repeat-item">
               {!session.recurrenceSeriesId && !session.recurrence_series_id ? (
-                <label className="coach-calendar-repeat-select">
+                <label className="coach-calendar-repeat-select" hidden={!repeatMode}>
                   <input type="checkbox" aria-label={'Repeat ' + (getClientDisplayName(resolveClientForSession(session) ?? {}) || 'session') + ' on ' + session.sessionDate}
                     checked={repeatSelection.includes(session.id)}
                     onChange={() => toggleRepeatSelection(session.id)} />
@@ -1078,6 +1079,13 @@ export default function CoachSessionCalendar({
         </div>
       </header>
 
+      <div className="coach-calendar-workflow-actions">
+        <button type="button" className="coach-calendar-today-control" aria-pressed={repeatMode}
+          onClick={() => { setRepeatMode(current => !current); setRepeatSelection([]) }}>
+          {repeatMode ? 'Done selecting' : 'Repeat appointments'}
+        </button>
+      </div>
+
       {viewMode === COACH_CALENDAR_VIEW.MONTH ? (
         <section className="coach-calendar-month-view" data-testid="coach-calendar-month-grid">
           <div className="coach-calendar-month-weekdays" aria-hidden="true">
@@ -1160,7 +1168,7 @@ export default function CoachSessionCalendar({
                   {items.length ? items.map((item) => (
                     <div key={item.id} className="coach-calendar-repeat-item">
                     {!item.isAthletePrivateEvent && !item.recurrenceSeriesId && !item.recurrence_series_id ? (
-                      <label className="coach-calendar-repeat-select">
+                      <label className="coach-calendar-repeat-select" hidden={!repeatMode}>
                         <input type="checkbox" aria-label={'Repeat session on ' + item.sessionDate}
                           checked={repeatSelection.includes(item.id)}
                           onChange={() => toggleRepeatSelection(item.id)} />
