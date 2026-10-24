@@ -18,6 +18,8 @@ describe('calendar clarity and pass-neutral completion', () => {
     const src=file('src/components/coach/CoachSessionDetailSheet.jsx')
     expect(src).toContain('Mark complete · no pass deducted')
     expect(src).toContain('onComplete?.(session)')
+    expect(src).toContain('aria-expanded={showMoreActions}')
+    expect(src).toContain('More options')
     const hook=file('src/hooks/useCoachSessionDetail.js')
     expect(hook).toContain('Session completed. Pass balance unchanged.')
   })
