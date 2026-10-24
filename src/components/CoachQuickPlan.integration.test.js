@@ -8,6 +8,7 @@ describe('coach quick-plan release contracts', () => {
     expect(backend).toContain("onConflict: 'coach_id,business_client_id'")
     expect(backend).toContain('business_client_id: businessClientId')
     expect(backend).not.toContain('recordCompletedSessionPassUsage')
+    expect(backend).toContain("rpc('get_my_quick_plan')")
   })
   it('requires coach ownership and limits athlete access to linked clients', () => {
     const sql = source('docs/supabase/AVAREN_COACH_QUICK_PLANS_20261024.sql')
@@ -15,6 +16,7 @@ describe('coach quick-plan release contracts', () => {
     expect(sql).toContain('coach_quick_plans_owner_unique')
     expect(sql).toContain('is_linked_quick_plan_athlete')
     expect(sql).toContain('b.linked_user_id=auth.uid()')
+    expect(source('docs/supabase/AVAREN_QUICK_PLAN_OWN_ATHLETE_READ_20261024.sql')).toContain('b.linked_user_id=auth.uid()')
   })
   it('supports editable pencil-friendly fields, exercise rows and printing', () => {
     const editor = source('src/components/CoachQuickPlan.jsx')
