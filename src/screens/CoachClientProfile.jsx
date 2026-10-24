@@ -15,6 +15,7 @@ import CollapsibleIdentityPanel, {
   IDENTITY_EDITOR_MODE,
 } from '../components/ui/CollapsibleIdentityPanel'
 import { coachBackend } from '../lib/coachBackend'
+import CoachQuickPlan from '../components/CoachQuickPlan'
 import { invalidateCoachPortfolioCache } from '../lib/coachPortfolioService'
 import { buildClientIntelligence } from '../lib/clientIntelligence'
 import {
@@ -834,6 +835,11 @@ export default function CoachClientProfile({
             showUpcoming={false}
           />
         )
+      case 'plan':
+        return <ProfileSection eyebrow="PLAN" title="Client workout plan"
+          description="One living plan. Edit exercises anytime, share with connected clients, and print for paper sessions.">
+          <CoachQuickPlan businessClientId={businessClientId} clientName={getClientDisplayName(client)} />
+        </ProfileSection>
       case 'training':
         if (!athleteIntelligenceEnabled) {
           return (
