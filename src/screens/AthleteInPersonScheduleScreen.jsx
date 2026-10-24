@@ -1,4 +1,5 @@
 import '../styles/screens/calendar-shared-polish.css'
+import CoachQuickPlan from '../components/CoachQuickPlan'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   CalendarClock,
@@ -746,6 +747,10 @@ export default function AthleteInPersonScheduleScreen({
         </section>
       ) : null}
 
+      <details className="avaren-athlete-plan-disclosure">
+        <summary>My coach's workout plan</summary>
+        <CoachQuickPlan readOnly clientName="Your training plan" />
+      </details>
       <AthletePassStatus variant="detailed" />
 
       <CoachCalendarEventSheet
