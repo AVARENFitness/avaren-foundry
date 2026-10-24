@@ -1,0 +1,72 @@
+import { useEffect, useState } from 'react'
+import { coachQuickPlanBackend } from '../lib/coachQuickPlanBackend'
+import '../styles/screens/coach-quick-plan.css'
+
+const blankRow = () => ({ id: globalThis.crypto?.randomUUID?.() ?? String(Date.now()), name: '', sets: '3', reps: '10', load: '', notes: '' })
+export default function CoachQuickPlan({ businessClientId, clientName, readOnly = false }) {
+  const [plan, setPlan] = useState(null)
+  const [baseline, setBaseline] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [message, setMessage] = useState('')
+  const [loadError, setLoadError] = useState('')
+  useEffect(() => {
+    let active = true
+    setPlan(null)
+    coachQuickPlanBackend.get(businessClientId).then(data => {
+      if (active) { setPlan(data); setBaseline(JSON.stringify(data)); setLoadError('') }
+    }).catch(error => { if (active) setLoadError(error.message || 'Could not load plan') })
+    return () => { active = false }
+  }, [businessClientId])
+  const change = (key, value) => { setPlan(p => ({ ...p, [key]: value })); setMessage('') }
+  const editRow = (index, key, value) => change('exercises', plan.exercises.map((row,i) => i === index ? { ...row, [key]: value } : row))
+  const move = (index, direction) => {
+    const target = index + direction
+    if (target < 0 || target >= plan.exercises.length) return
+    const next = [...plan.exercises]
+    ;[next[index], next[target]] = [next[target], next[index]]
+    change('exercises', next)
+  }
+  const save = async () => {
+    setBusy(true); setMessage('')
+    try {
+      const saved = await coachQuickPlanBackend.save({ businessClientId, plan })
+      setPlan(saved); setBaseline(JSON.stringify(saved)); setMessage('Plan saved. Changes are available to connected athletes.')
+    } catch (error) { setMessage(error.message || 'Could not save plan.') }
+    finally { setBusy(false) }
+  }
+  if (loadError) return <p role="alert">{loadError}</p>
+  if (!plan) return <p>Loading plan…</p>
+  const dirty = JSON.stringify(plan) !== baseline
+  return <section className="avaren-quick-plan">
+    <div className="avaren-plan-toolbar">
+      <div><span className="eyebrow">WORKOUT PLAN</span><h2>{clientName}</h2><small>{readOnly ? 'Your current plan' : 'Edit anytime · changes save to this plan'}</small></div>
+      <div className="avaren-plan-toolbar-actions">
+        <button type="button" className="coach-secondary-button" onClick={() => window.print()}>Print plan</button>
+        {!readOnly && <button type="button" className="gold-button machined coach-primary-action" disabled={busy || !dirty} onClick={save}>{busy ? 'Saving…' : 'Save changes'}</button>}
+      </div>
+    </div>
+    <div className="avaren-plan-paper">
+      <label className="avaren-plan-field">Plan name
+        <input aria-label="Plan name" disabled={readOnly} value={plan.title} onChange={e => change('title', e.target.value)} placeholder="Full-body strength" />
+      </label>
+      <label className="avaren-plan-field">Focus
+        <input aria-label="Plan focus" disabled={readOnly} value={plan.focus ?? ''} onChange={e => change('focus', e.target.value)} placeholder="Strength, balance, mobility…" />
+      </label>
+      <div className="avaren-plan-exercises"><div className="avaren-plan-exercise-heading"><strong>Exercises</strong><span>Sets · Reps · Load</span></div>
+        {plan.exercises.map((row,index) => <article className="avaren-plan-row" key={row.id ?? index}>
+          <div className="avaren-plan-row-top"><strong>{String(index+1).padStart(2,'0')}</strong>
+            {!readOnly && <div className="avaren-plan-row-actions"><button type="button" aria-label={`Move exercise ${index+1} up`} disabled={index === 0} onClick={() => move(index,-1)}>↑</button><button type="button" aria-label={`Move exercise ${index+1} down`} disabled={index === plan.exercises.length-1} onClick={() => move(index,1)}>↓</button><button type="button" aria-label={`Remove exercise ${index+1}`} onClick={() => change('exercises',plan.exercises.filter((_,i)=>i!==index))}>Remove</button></div>}
+          </div>
+          <input aria-label={`Exercise ${index+1} name`} placeholder="Exercise name" disabled={readOnly} value={row.name ?? ''} onChange={e => editRow(index,'name',e.target.value)} />
+          <div className="avaren-plan-recipe">{[['sets','Sets'],['reps','Reps'],['load','Load']].map(([field,label]) => <label key={field}>{label}<input disabled={readOnly} value={row[field] ?? ''} onChange={e => editRow(index,field,e.target.value)} /></label>)}</div>
+          <textarea aria-label={`Exercise ${index+1} notes`} placeholder="Tempo, cues, rest, modifications…" disabled={readOnly} rows={2} value={row.notes ?? ''} onChange={e => editRow(index,'notes',e.target.value)} />
+        </article>)}
+        {!readOnly && <button className="avaren-plan-add" type="button" onClick={() => change('exercises',[...plan.exercises,blankRow()])}>+ Add exercise</button>}
+      </div>
+      <label className="avaren-plan-field">Coach notes
+        <textarea rows={3} disabled={readOnly} placeholder="Warm-up, cooldown, goals or reminders…" value={plan.coach_notes ?? ''} onChange={e => change('coach_notes',e.target.value)} />
+      </label>
+    </div>
+    <p className="avaren-plan-feedback" role="status">{message || (dirty ? 'Unsaved changes' : 'Up to date')}</p>
+  </section>
+}
