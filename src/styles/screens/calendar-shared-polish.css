@@ -428,3 +428,6 @@
   .coach-session-calendar-screen .coach-calendar-week-board .coach-calendar-week-item { min-height: 55px; }
   .coach-session-detail-sheet .coach-session-detail-actions { gap: 8px; }
 }
+
+.coach-session-detail-sheet .coach-session-detail-more-actions { display: grid; gap: 8px; }
+.coach-session-detail-sheet .coach-session-detail-more-actions button { width: 100%; }
