@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { coachQuickPlanBackend } from '../lib/coachQuickPlanBackend'
 import '../styles/screens/coach-quick-plan.css'
 
-const blankRow = () => ({ id: globalThis.crypto?.randomUUID?.() ?? String(Date.now()), name: '', sets: '3', reps: '10', load: '', notes: '' })
+const blankRow = () => ({ id: globalThis.crypto?.randomUUID?.() ?? String(Date.now()), name: '', day: 'Day 1', sets: '3', reps: '10', load: '', notes: '' })
 const STARTERS = {
   'Full body': ['Squat pattern', 'Horizontal push', 'Horizontal pull', 'Hip hinge', 'Core / carry'],
   'Upper body': ['Horizontal push', 'Horizontal pull', 'Vertical push', 'Vertical pull', 'Arm accessory'],
@@ -68,6 +68,9 @@ export default function CoachQuickPlan({ businessClientId, clientName, readOnly 
           <div className="avaren-plan-row-top"><strong>{String(index+1).padStart(2,'0')}</strong>
             {!readOnly && <div className="avaren-plan-row-actions"><button type="button" aria-label={`Move exercise ${index+1} up`} disabled={index === 0} onClick={() => move(index,-1)}>↑</button><button type="button" aria-label={`Move exercise ${index+1} down`} disabled={index === plan.exercises.length-1} onClick={() => move(index,1)}>↓</button><button type="button" aria-label={`Duplicate exercise ${index+1}`} onClick={() => change('exercises', [...plan.exercises.slice(0,index+1), {...row, id: blankRow().id}, ...plan.exercises.slice(index+1)])}>Copy</button><button type="button" aria-label={`Remove exercise ${index+1}`} onClick={() => change('exercises',plan.exercises.filter((_,i)=>i!==index))}>Remove</button></div>}
           </div>
+          <label className="avaren-plan-exercise-day">Workout day
+            <input aria-label={`Exercise ${index+1} day`} placeholder="Day 1" disabled={readOnly} value={row.day ?? 'Day 1'} onChange={e => editRow(index,'day',e.target.value)} />
+          </label>
           <input aria-label={`Exercise ${index+1} name`} placeholder="Exercise name" disabled={readOnly} value={row.name ?? ''} onChange={e => editRow(index,'name',e.target.value)} />
           <div className="avaren-plan-recipe">{[['sets','Sets'],['reps','Reps'],['load','Load']].map(([field,label]) => <label key={field}>{label}<input disabled={readOnly} value={row[field] ?? ''} onChange={e => editRow(index,field,e.target.value)} /></label>)}</div>
           <textarea aria-label={`Exercise ${index+1} notes`} placeholder="Tempo, cues, rest, modifications…" disabled={readOnly} rows={2} value={row.notes ?? ''} onChange={e => editRow(index,'notes',e.target.value)} />
