@@ -412,3 +412,19 @@
   padding: 2px 0 8px;
 }
 .coach-session-calendar-screen .coach-calendar-repeat-item { min-width: 0; }
+
+/* Coach calendar: the appointment is the action, not its repeat checkbox. */
+.coach-session-calendar-screen .coach-calendar-week-items .coach-calendar-repeat-item { display: grid; gap: 5px; align-content: start; }
+.coach-session-calendar-screen .coach-calendar-week-items .coach-calendar-repeat-item:has(> .coach-calendar-repeat-select[hidden]) { gap: 0; }
+.coach-session-calendar-screen .coach-calendar-week-item { width: 100%; }
+.coach-session-calendar-screen .coach-calendar-workflow-actions button[aria-pressed="false"] { color: #a9a59b; border-color: var(--calendar-line); }
+.coach-session-calendar-screen .coach-calendar-workflow-actions button[aria-pressed="true"] { color: var(--calendar-accent); border-color: var(--calendar-accent); }
+/* Compact session detail: one clear primary action, secondary tools remain available. */
+.coach-session-detail-sheet .coach-session-detail-actions { display: grid; gap: 9px; }
+.coach-session-detail-sheet .coach-session-detail-actions .coach-primary-action { order: -2; }
+.coach-session-detail-sheet .coach-session-detail-actions .coach-secondary-button { min-height: 42px; }
+.coach-session-detail-sheet .coach-session-detail-actions .coach-secondary-button:focus-visible { outline: 2px solid var(--calendar-accent); outline-offset: 2px; }
+@media(max-width: 620px) {
+  .coach-session-calendar-screen .coach-calendar-week-board .coach-calendar-week-item { min-height: 55px; }
+  .coach-session-detail-sheet .coach-session-detail-actions { gap: 8px; }
+}
