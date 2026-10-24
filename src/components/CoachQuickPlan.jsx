@@ -9,6 +9,18 @@ const STARTERS = {
   'Lower body': ['Squat pattern', 'Hip hinge', 'Single-leg exercise', 'Calf exercise', 'Core'],
   'Mobility': ['Breathing / warm-up', 'Hip mobility', 'Thoracic mobility', 'Balance', 'Cooldown'],
 }
+const normalizePlan = (raw) => {
+  if (!raw || typeof raw !== 'object') return null
+  return {
+    ...raw,
+    title: typeof raw.title === 'string' ? raw.title : 'Training plan',
+    focus: typeof raw.focus === 'string' ? raw.focus : '',
+    coach_notes: typeof raw.coach_notes === 'string' ? raw.coach_notes : '',
+    exercises: Array.isArray(raw.exercises)
+      ? raw.exercises.filter(row => row && typeof row === 'object')
+      : [],
+  }
+}
 export default function CoachQuickPlan({ businessClientId, clientName, readOnly = false }) {
   const [plan, setPlan] = useState(null)
   const [baseline, setBaseline] = useState('')
@@ -19,7 +31,7 @@ export default function CoachQuickPlan({ businessClientId, clientName, readOnly 
     let active = true
     setPlan(null)
     (readOnly ? coachQuickPlanBackend.getForAthlete() : coachQuickPlanBackend.get(businessClientId)).then(data => {
-      if (active) { setPlan(data); setBaseline(JSON.stringify(data)); setLoadError('') }
+      if (active) { setPlan(normalizePlan(data)); setBaseline(JSON.stringify(normalizePlan(data))); setLoadError('') }
     }).catch(error => { if (active) setLoadError(error.message || 'Could not load plan') })
     return () => { active = false }
   }, [businessClientId, readOnly])
@@ -45,7 +57,7 @@ export default function CoachQuickPlan({ businessClientId, clientName, readOnly 
     } catch (error) { setMessage(error.message || 'Could not save plan.') }
     finally { setBusy(false) }
   }
-  if (loadError) return <p role="alert">{loadError}</p>
+  if (loadError) return <p role="alert">Could not load this client's plan: {loadError}</p>
   if (!plan) return readOnly ? <p>No coach plan has been shared yet.</p> : <p>Loading plan…</p>
   const dirty = JSON.stringify(plan) !== baseline
   return <section className="avaren-quick-plan">
