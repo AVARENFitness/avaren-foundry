@@ -10,6 +10,13 @@ export const coachQuickPlanBackend = {
     if (error) throw error
     return data ?? emptyPlan()
   },
+  async getForAthlete() {
+    const { data, error } = await supabase.from('coach_client_quick_plans')
+      .select('id,title,focus,coach_notes,exercises,updated_at')
+      .order('updated_at', { ascending: false }).limit(1).maybeSingle()
+    if (error) throw error
+    return data
+  },
   async save({ businessClientId, plan }) {
     const { data: auth, error: authError } = await supabase.auth.getUser()
     if (authError || !auth.user?.id) throw new Error('Sign in to save the plan.')
