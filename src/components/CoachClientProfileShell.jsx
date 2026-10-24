@@ -2,7 +2,7 @@ import { ArrowLeft, ChevronDown } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 
 export const CLIENT_PROFILE_SECTIONS = [
-  { id: 'overview', label: 'Coaching' },
+  { id: 'overview', label: 'Overview' },
   { id: 'sessions', label: 'Sessions' },
   { id: 'plan', label: 'Plan' },
   { id: 'training', label: 'Training' },
@@ -16,7 +16,6 @@ const PRIMARY_SECTION_IDS = new Set([
   'overview',
   'sessions',
   'plan',
-  'training',
   'notes',
 ])
 
