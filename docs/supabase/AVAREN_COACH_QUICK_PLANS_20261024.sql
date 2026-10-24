@@ -14,6 +14,7 @@ create table if not exists public.coach_client_quick_plans (
  constraint coach_quick_plans_title_length check (char_length(title) between 1 and 120)
 );
 alter table public.coach_client_quick_plans enable row level security;
+grant select, insert, update on public.coach_client_quick_plans to authenticated;
 create policy coach_quick_plans_select on public.coach_client_quick_plans
 for select to authenticated using (
  coach_id = auth.uid() and public.is_avaren_coach()
