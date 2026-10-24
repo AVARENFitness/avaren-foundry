@@ -29,7 +29,7 @@ export default function CoachQuickPlan({ businessClientId, clientName, readOnly 
   const [loadError, setLoadError] = useState('')
   useEffect(() => {
     let active = true
-    setPlan(null)
+    setPlan(null);
     (readOnly ? coachQuickPlanBackend.getForAthlete() : coachQuickPlanBackend.get(businessClientId)).then(data => {
       if (active) { setPlan(normalizePlan(data)); setBaseline(JSON.stringify(normalizePlan(data))); setLoadError('') }
     }).catch(error => { if (active) setLoadError(error.message || 'Could not load plan') })
