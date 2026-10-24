@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
 describe('Coach Floor Mode integration', () => {
-  it('makes Start Session the coached appointment primary path', () => {
+  it('keeps Start Session available alongside pass-neutral completion', () => {
     const source = readFileSync(
       resolve(process.cwd(), 'src/components/coach/CoachSessionDetailSheet.jsx'),
       'utf8',
@@ -11,7 +11,7 @@ describe('Coach Floor Mode integration', () => {
 
     expect(source).toContain('Start Session')
     expect(source).toContain('onStartFloorMode?.(session)')
-    expect(source).toContain('Complete without workout')
+    expect(source).toContain('Mark complete · no pass deducted')
   })
 
   it('lets an active client start training without a scheduled appointment', () => {
