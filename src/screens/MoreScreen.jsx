@@ -283,20 +283,26 @@ export default function MoreScreen({
               <h2>Workout History</h2>
               <p>Review every session, set, reflection, and personal record.</p>
             </div>
-            <button className="gold-button machined" onClick={onOpenHistory}>
+            <button className="coach-secondary-button" onClick={onOpenHistory}>
               <History size={18}/>Open History<ChevronRight size={17}/>
             </button>
           </section>
           <AthleteSessionPackageCard />
           <AthleteScheduledSessions />
           <section className="more-section">
-            <header className="more-section-heading"><span>Training</span><small>Plan, build, and review</small></header>
+            <header className="more-section-heading"><span>Recovery & insights</span><small>Your training detail</small></header>
             <div className="more-destination-list">
-              <MoreItem icon={CalendarDays} title="Weekly Program" description="Organize the training week" onClick={onOpenPlanner}/>
-              <MoreItem icon={Settings2} title="Workout Builder" description="Create and edit workouts" onClick={onOpenBuilder}/>
-              <MoreItem icon={Hammer} title="The Forge" description="Achievements and milestones" onClick={onOpenForge}/>
               <MoreItem icon={Zap} title="Readiness Trends" description="See how recovery changes over time" onClick={onOpenReadinessTrends}/>
             </div>
+            <details className="more-training-advanced">
+              <summary>Planning and workout shortcuts</summary>
+              <p>Plan, Build, and Forge also live in Train. These shortcuts remain here when you need them.</p>
+              <div className="more-destination-list">
+                <MoreItem icon={CalendarDays} title="Weekly Program" description="Organize the training week" onClick={onOpenPlanner}/>
+                <MoreItem icon={Settings2} title="Workout Builder" description="Create and edit workouts" onClick={onOpenBuilder}/>
+                <MoreItem icon={Hammer} title="The Forge" description="Achievements and milestones" onClick={onOpenForge}/>
+              </div>
+            </details>
           </section>
         </div>
       )}

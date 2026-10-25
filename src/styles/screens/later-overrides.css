@@ -8550,3 +8550,5 @@ body > .nutrition-food-sheet-backdrop > .nutrition-food-sheet {
 .coach-calendar-import-sheet .coach-calendar-import-editor select { box-sizing: border-box; width: 100%; min-width: 0; padding: 9px 7px; background: #0d1013; color: #f4f0e9; border: 1px solid #363a3d; border-radius: 9px; font: inherit; font-size: 14px; }
 .coach-calendar-import-editor .coach-calendar-import-fields { display: grid; grid-template-columns: minmax(0,1.3fr) minmax(0,1fr) minmax(0,.7fr); gap: 7px; }
 @media(max-width:430px){ .coach-calendar-import-editor .coach-calendar-import-fields{ grid-template-columns: repeat(2,minmax(0,1fr)); } .coach-calendar-import-editor .coach-calendar-import-fields label:first-child{grid-column:1/-1} }
+
+.more-training-advanced{margin-top:14px;padding:14px;border:1px solid rgba(205,183,137,.2);border-radius:14px}.more-training-advanced summary{cursor:pointer;font-weight:650;color:var(--cream);min-height:30px}.more-training-advanced p{font-size:.82rem;color:var(--muted);line-height:1.5}.more-training-advanced .more-destination-list{margin-top:12px}
