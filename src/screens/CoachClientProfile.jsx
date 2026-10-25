@@ -145,6 +145,12 @@ export default function CoachClientProfile({
   const [passAvaContext, setPassAvaContext] = useState(null)
 
   const [activeSection, setActiveSection] = useState(initialActiveSection)
+  const [quickPlanDirty, setQuickPlanDirty] = useState(false)
+  const confirmPlanExit = () => !quickPlanDirty || window.confirm('You have unsaved plan changes. Leave without saving?')
+  const navigateClientSection = (nextSection) => {
+    if (nextSection !== activeSection && confirmPlanExit()) setActiveSection(nextSection)
+  }
+  const leaveClient = () => { if (confirmPlanExit()) onBack?.() }
   const [athleteState, setAthleteState] = useState(null)
   const [nutritionProfile, setNutritionProfile] = useState(null)
   const [nutritionDays, setNutritionDays] = useState([])
@@ -838,7 +844,7 @@ export default function CoachClientProfile({
       case 'plan':
         return <ProfileSection eyebrow="PLAN" title="Client workout plan"
           description="One living plan. Edit exercises anytime, share with connected clients, and print for paper sessions.">
-          <CoachQuickPlan businessClientId={businessClientId} clientName={getClientDisplayName(client)} />
+          <CoachQuickPlan businessClientId={businessClientId} clientName={getClientDisplayName(client)} onDirtyChange={setQuickPlanDirty} />
         </ProfileSection>
       case 'training':
         if (!athleteIntelligenceEnabled) {
@@ -1241,8 +1247,8 @@ export default function CoachClientProfile({
       profileStatusLine={profileStatusLine}
       connectionDetail={connectionDetail}
       activeSection={activeSection}
-      onSectionChange={setActiveSection}
-      onBack={onBack}
+      onSectionChange={navigateClientSection}
+      onBack={leaveClient}
       coachingStatusPanel={coachingStatusPanel}
     >
       {renderSection(openSession)}
