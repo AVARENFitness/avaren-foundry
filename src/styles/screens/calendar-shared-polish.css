@@ -431,3 +431,5 @@
 
 .coach-session-detail-sheet .coach-session-detail-more-actions { display: grid; gap: 8px; }
 .coach-session-detail-sheet .coach-session-detail-more-actions button { width: 100%; }
+
+.coach-calendar-bulk-tools{margin:8px 0 12px;border-top:1px solid rgba(210,190,149,.12);padding-top:8px}.coach-calendar-bulk-tools summary{cursor:pointer;width:max-content;max-width:100%;padding:8px 10px;border-radius:10px;color:var(--muted);font-size:.8rem}.coach-calendar-bulk-tools[open] summary{color:var(--cream)}.coach-calendar-bulk-tools .coach-calendar-workflow-actions{margin-top:6px}
