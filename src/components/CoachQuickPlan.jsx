@@ -21,7 +21,7 @@ const normalizePlan = (raw) => {
       : [],
   }
 }
-export default function CoachQuickPlan({ businessClientId, clientName, readOnly = false }) {
+export default function CoachQuickPlan({ businessClientId, clientName, readOnly = false, onDirtyChange }) {
   const [plan, setPlan] = useState(null)
   const [baseline, setBaseline] = useState('')
   const [busy, setBusy] = useState(false)
@@ -36,6 +36,7 @@ export default function CoachQuickPlan({ businessClientId, clientName, readOnly 
     return () => { active = false }
   }, [businessClientId, readOnly])
   const dirty = Boolean(plan) && JSON.stringify(plan) !== baseline
+  useEffect(() => { onDirtyChange?.(!readOnly && dirty) }, [onDirtyChange, readOnly, dirty])
   useEffect(() => {
     if (readOnly || !dirty) return undefined
     const beforeUnload = (event) => {
