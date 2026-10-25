@@ -100,6 +100,8 @@ describe('MoreScreen account navigation', () => {
     expect(screen.getByTestId('session-package-card')).toBeInTheDocument()
     expect(screen.getByTestId('scheduled-sessions')).toBeInTheDocument()
     expect(screen.queryByTestId('athlete-coach-panel')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Weekly Program/i })).not.toBeInTheDocument()
+    await user.click(screen.getByText('Planning and workout shortcuts'))
     expect(screen.getByRole('button', { name: /Weekly Program/i })).toBeInTheDocument()
   })
 
