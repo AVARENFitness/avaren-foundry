@@ -812,12 +812,8 @@ export default function CoachClientProfile({
               <details className="coach-client-more-actions">
                 <summary>More actions</summary>
                 <div>
-                  <button
-                    type="button"
-                    className="coach-secondary-button"
-                    onClick={onAssignWorkout}
-                  >
-                    Assign workout
+                  <button type="button" className="coach-secondary-button" onClick={() => setActiveSection('plan')}>
+                    Open client plan
                   </button>
                   <CoachMessageLauncher
                     otherUserId={messagingAthleteId}
@@ -845,6 +841,14 @@ export default function CoachClientProfile({
         return <ProfileSection eyebrow="PLAN" title="Client workout plan"
           description="One living plan. Edit exercises anytime, share with connected clients, and print for paper sessions.">
           <CoachQuickPlan businessClientId={businessClientId} clientName={getClientDisplayName(client)} onDirtyChange={setQuickPlanDirty} />
+          <details className="coach-client-more-actions">
+            <summary>Structured training tools</summary>
+            <div>
+              <button type="button" className="coach-secondary-button" onClick={onAssignWorkout}>Assign a scheduled workout</button>
+              <button type="button" className="coach-secondary-button" onClick={onBuildWorkout}>Build a reusable workout</button>
+              <button type="button" className="coach-secondary-button" onClick={onAssignProgram}>Assign a structured program</button>
+            </div>
+          </details>
         </ProfileSection>
       case 'training':
         if (!athleteIntelligenceEnabled) {
