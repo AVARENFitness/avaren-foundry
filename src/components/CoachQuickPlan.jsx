@@ -35,6 +35,16 @@ export default function CoachQuickPlan({ businessClientId, clientName, readOnly 
     }).catch(error => { if (active) setLoadError(error.message || 'Could not load plan') })
     return () => { active = false }
   }, [businessClientId, readOnly])
+  const dirty = Boolean(plan) && JSON.stringify(plan) !== baseline
+  useEffect(() => {
+    if (readOnly || !dirty) return undefined
+    const beforeUnload = (event) => {
+      event.preventDefault()
+      event.returnValue = ''
+    }
+    window.addEventListener('beforeunload', beforeUnload)
+    return () => window.removeEventListener('beforeunload', beforeUnload)
+  }, [dirty, readOnly])
   const change = (key, value) => { setPlan(p => ({ ...p, [key]: value })); setMessage('') }
   const editRow = (index, key, value) => change('exercises', plan.exercises.map((row,i) => i === index ? { ...row, [key]: value } : row))
   const move = (index, direction) => {
@@ -59,7 +69,6 @@ export default function CoachQuickPlan({ businessClientId, clientName, readOnly 
   }
   if (loadError) return <p role="alert">Could not load this client's plan: {loadError}</p>
   if (!plan) return readOnly ? <p>No coach plan has been shared yet.</p> : <p>Loading plan…</p>
-  const dirty = JSON.stringify(plan) !== baseline
   return <section className="avaren-quick-plan">
     <div className="avaren-plan-toolbar">
       <div><span className="eyebrow">WORKOUT PLAN</span><h2>{clientName}</h2><small>{readOnly ? 'Your current plan' : 'Edit anytime · changes save to this plan'}</small></div>
