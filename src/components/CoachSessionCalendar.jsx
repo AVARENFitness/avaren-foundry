@@ -1079,12 +1079,15 @@ export default function CoachSessionCalendar({
         </div>
       </header>
 
-      <div className="coach-calendar-workflow-actions">
-        <button type="button" className="coach-calendar-today-control" aria-pressed={repeatMode}
-          onClick={() => { setRepeatMode(current => !current); setRepeatSelection([]) }}>
-          {repeatMode ? 'Done selecting' : 'Repeat appointments'}
-        </button>
-      </div>
+      <details className="coach-calendar-bulk-tools" open={repeatMode || undefined}>
+        <summary>{repeatMode ? 'Repeat selection active' : 'More calendar tools'}</summary>
+        <div className="coach-calendar-workflow-actions">
+          <button type="button" className="coach-calendar-today-control" aria-pressed={repeatMode}
+            onClick={() => { setRepeatMode(current => !current); setRepeatSelection([]) }}>
+            {repeatMode ? 'Done selecting' : 'Repeat appointments'}
+          </button>
+        </div>
+      </details>
 
       {viewMode === COACH_CALENDAR_VIEW.MONTH ? (
         <section className="coach-calendar-month-view" data-testid="coach-calendar-month-grid">
