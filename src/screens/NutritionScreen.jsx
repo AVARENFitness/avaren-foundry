@@ -1898,14 +1898,14 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
           </div>
         </section>
 
-        <section
-          className="nutrition-quick-grid nutrition-quick-grid--support"
-          aria-label="Daily nutrition shortcuts"
-        >
-          <button onClick={() => addWater(Number(goals.bottleOz || 33.8))}><Droplets/><strong>1 Bottle</strong><span>{goals.bottleOz} oz</span></button>
-          <button onClick={() => addWater(Number(goals.bottleOz || 33.8) / 2)}><Droplets/><strong>½ Bottle</strong><span>{round(Number(goals.bottleOz || 33.8) / 2)} oz</span></button>
-          <button onClick={() => setTab('Goals')}><Scale/><strong>Log Weight</strong><span>{day.weight || 'Add today’s weight'}</span></button>
-        </section>
+        <details className="nutrition-quick-support-disclosure">
+          <summary>Water & weight shortcuts</summary>
+          <div className="nutrition-quick-grid nutrition-quick-grid--support" aria-label="Daily nutrition shortcuts">
+            <button onClick={() => addWater(Number(goals.bottleOz || 33.8))}><Droplets/><strong>1 Bottle</strong><span>{goals.bottleOz} oz</span></button>
+            <button onClick={() => addWater(Number(goals.bottleOz || 33.8) / 2)}><Droplets/><strong>½ Bottle</strong><span>{round(Number(goals.bottleOz || 33.8) / 2)} oz</span></button>
+            <button onClick={() => setTab('Goals')}><Scale/><strong>Log Weight</strong><span>{day.weight || 'Add today’s weight'}</span></button>
+          </div>
+        </details>
 
         <section className="nutrition-hydration-card"><div><Droplets/><span><strong>Hydration</strong><small>{round(day.waterOz)} of {goals.waterOz} oz</small></span></div><ProgressBar value={day.waterOz} goal={goals.waterOz}/></section>
 
