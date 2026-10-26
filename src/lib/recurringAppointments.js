@@ -1,4 +1,5 @@
 import { addDaysKey, parseDateKey } from './appointmentScheduling'
+import { calendarRepeatWindow } from './calendarRepeatWindow'
 import { findOverlappingAppointment } from './coachingAppointment'
 import { buildScheduleInstant } from './sessionReminders'
 import { DEFAULT_COACH_SCHEDULE_TIMEZONE } from './sessionTimezone'
@@ -243,7 +244,9 @@ export const preserveHistoricalOccurrences = ({
 
 export const validateRecurrenceDraft = (draft = {}, sessionDate = '') => {
   if (!draft.enabled) return null
-  if (!sessionDate) return 'Select a start date.'
+  if (!calendarRepeatWindow({ sessionDate, startTime: '12:00', durationMinutes: 1 })) {
+    return 'Select a valid start date.'
+  }
 
   const weekdays = resolveRecurrenceWeekdays({
     mode: draft.mode,
@@ -255,6 +258,9 @@ export const validateRecurrenceDraft = (draft = {}, sessionDate = '') => {
 
   if (draft.endType === RECURRENCE_END.ON_DATE) {
     if (!draft.endsOn) return 'Choose an end date.'
+    if (!calendarRepeatWindow({ sessionDate: draft.endsOn, startTime: '12:00', durationMinutes: 1 })) {
+      return 'Choose a valid end date.'
+    }
     if (draft.endsOn < sessionDate) return 'End date must be on or after the start date.'
   }
 
