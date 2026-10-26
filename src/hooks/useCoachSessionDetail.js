@@ -3,6 +3,7 @@ import { appUi } from '../lib/appUi'
 import { coachBackend } from '../lib/coachBackend'
 import { addDaysKey } from '../lib/appointmentScheduling'
 import { validateRescheduleInput } from '../lib/calendarRescheduleValidation'
+import { hasFutureSeriesScheduleConflict } from '../lib/recurrenceScheduleConflict'
 import {
   cancelScheduledSession,
   markScheduledSessionMissed,
@@ -754,26 +755,14 @@ export function useCoachSessionDetail({
               prompt.session.recurrenceSeriesId ??
               prompt.session.recurrence_series_id ??
               null
-            const futureSeriesSessions = (sessions ?? []).filter((item) => {
-              const itemSeriesId = item.recurrenceSeriesId ?? item.recurrence_series_id ?? null
-              return (
-                seriesId &&
-                String(itemSeriesId ?? '') === String(seriesId) &&
-                String(item.sessionDate ?? '') >= String(prompt.session.sessionDate ?? '') &&
-                item.status === SCHEDULED_SESSION_STATUS.SCHEDULED
-              )
+            const conflictingAppointment = hasFutureSeriesScheduleConflict({
+              sessions,
+              calendarItems,
+              seriesId,
+              effectiveDate: prompt.session.sessionDate,
+              startTime: proposedStartTime,
+              durationMinutes: proposedDuration,
             })
-
-            const otherAppointments = unifiedScheduleItems.filter((item) => {
-              const itemSeriesId = item.recurrenceSeriesId ?? item.recurrence_series_id ?? null
-              return !seriesId || String(itemSeriesId ?? '') !== String(seriesId)
-            })
-            const conflictingAppointment = futureSeriesSessions.some((item) =>
-              Boolean(findOverlappingAppointment(
-                { ...item, startTime: proposedStartTime, durationMinutes: proposedDuration },
-                otherAppointments,
-              )),
-            )
 
             if (conflictingAppointment) {
               throw new Error(
