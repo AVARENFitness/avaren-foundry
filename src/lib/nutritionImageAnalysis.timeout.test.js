@@ -21,11 +21,11 @@ describe('nutrition image analysis timeout', () => {
     vi.useFakeTimers()
     const pendingRequest = new Promise(() => {})
     const result = withNutritionAnalysisTimeout(pendingRequest, 1000)
-
-    await vi.advanceTimersByTimeAsync(1000)
-
-    await expect(result).rejects.toThrow(
+    const rejection = expect(result).rejects.toThrow(
       'Food scan took too long. Check your connection and try the photo again.',
     )
+
+    await vi.advanceTimersByTimeAsync(1000)
+    await rejection
   })
 })
