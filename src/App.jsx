@@ -60,6 +60,7 @@ import { resetDocumentModalLayer } from './hooks/useAppModalLayer'
 import NutritionScreen from './screens/NutritionScreen'
 import { createNutritionState, nutritionDateKey, nutritionTotals } from './lib/nutrition'
 import { nutritionBackend } from './lib/nutritionBackend'
+import { changedNutritionDays } from './lib/nutritionPersistence'
 import { getFatSecretFood } from './lib/fatSecretFoodSearch'
 import {
   hydrateFatSecretNutritionSnapshot,
@@ -294,20 +295,31 @@ function App() {
 
   const handleNutritionChange = useCallback((nextNutrition) => {
     setState((current) => {
+      const previousNutrition = current.nutrition ?? createNutritionState()
       const resolvedNutrition =
         typeof nextNutrition === 'function'
-          ? nextNutrition(current.nutrition ?? createNutritionState())
+          ? nextNutrition(previousNutrition)
           : nextNutrition
 
-      const today = resolvedNutrition.days?.[nutritionDateKey()]
+      const changedDays = changedNutritionDays(
+        previousNutrition,
+        resolvedNutrition,
+      )
+
       nutritionBackend
         .syncProfile(session?.user?.id, resolvedNutrition)
         .catch((error) => console.error('Nutrition profile sync failed:', error))
-      if (today) {
+
+      changedDays.forEach((day) => {
         nutritionBackend
-          .syncDay(session?.user?.id, today)
-          .catch((error) => console.error('Nutrition day sync failed:', error))
-      }
+          .syncDay(session?.user?.id, day)
+          .catch((error) =>
+            console.error(
+              `Nutrition day sync failed for ${day.date}:`,
+              error,
+            ),
+          )
+      })
 
       return { ...current, nutrition: resolvedNutrition }
     })
