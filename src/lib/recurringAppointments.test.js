@@ -32,6 +32,23 @@ import {
 import { buildStartsAtIso } from './sessionTimezone'
 
 describe('recurringAppointments', () => {
+  it('requires positive whole-number occurrence limits', () => {
+    const draft = (count) => ({
+      enabled: true,
+      mode: RECURRENCE_MODE.WEEKLY,
+      weekdays: [WEEKDAY.MON],
+      endType: RECURRENCE_END.AFTER_COUNT,
+      occurrenceLimit: count,
+    })
+
+    for (const invalid of ['', '0', '-2', '1.5', 'NaN', 'Infinity']) {
+      expect(validateRecurrenceDraft(draft(invalid), '2026-10-26')).toBe(
+        'Enter how many occurrences to schedule.',
+      )
+    }
+    expect(validateRecurrenceDraft(draft('4'), '2026-10-26')).toBeNull()
+  })
+
   it('creates weekly recurrence on the start weekday', () => {
     expect(
       resolveRecurrenceWeekdays({

@@ -260,7 +260,7 @@ export const validateRecurrenceDraft = (draft = {}, sessionDate = '') => {
 
   if (draft.endType === RECURRENCE_END.AFTER_COUNT) {
     const count = Number(draft.occurrenceLimit)
-    if (!Number.isFinite(count) || count < 1) {
+    if (!Number.isSafeInteger(count) || count < 1) {
       return 'Enter how many occurrences to schedule.'
     }
   }
