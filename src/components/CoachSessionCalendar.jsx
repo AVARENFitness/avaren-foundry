@@ -20,6 +20,7 @@ import {
   isPastCoachAppointment,
 } from '../lib/coachCalendarUi'
 import { appUi } from '../lib/appUi'
+import { calendarRepeatWindow } from '../lib/calendarRepeatWindow'
 import { coachBackend } from '../lib/coachBackend'
 import {
   addDaysKey,
@@ -476,16 +477,7 @@ export default function CoachSessionCalendar({
     }
     // Fail closed on overlaps within the proposed batch and against loaded items.
     // Prevent conflicts involving different titles and overlapping durations.
-    const toWindow = item => {
-      const date = String(item.sessionDate ?? item.eventDate ?? '')
-      const time = String(item.startTime ?? '').slice(0, 5)
-      const [hour, minute] = time.split(':').map(Number)
-      const duration = Number(item.durationMinutes)
-      if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(date) ||
-          !/^([01]\\d|2[0-3]):[0-5]\\d$/.test(time) ||
-          !Number.isFinite(duration) || duration <= 0) return null
-      return { date, start: hour * 60 + minute, end: hour * 60 + minute + duration }
-    }
+    const toWindow = calendarRepeatWindow
     const overlaps = (a, b) => a.date === b.date && a.start < b.end && b.start < a.end
     const proposedWindows = plannedEvents.map(toWindow)
     const occupiedWindows = scheduleItems.filter(item => item.status !== 'cancelled').map(toWindow).filter(Boolean)
