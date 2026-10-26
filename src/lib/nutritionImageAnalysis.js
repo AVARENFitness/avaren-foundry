@@ -3,6 +3,31 @@ import { supabase } from './supabase'
 
 const MAX_IMAGE_EDGE = 1600
 const JPEG_QUALITY = 0.82
+export const NUTRITION_ANALYSIS_TIMEOUT_MS = 45_000
+
+export const withNutritionAnalysisTimeout = async (
+  request,
+  timeoutMs = NUTRITION_ANALYSIS_TIMEOUT_MS,
+) => {
+  let timeoutId
+
+  try {
+    return await Promise.race([
+      Promise.resolve(request),
+      new Promise((_, reject) => {
+        timeoutId = setTimeout(() => {
+          reject(
+            new Error(
+              'Food scan took too long. Check your connection and try the photo again.',
+            ),
+          )
+        }, timeoutMs)
+      }),
+    ])
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId)
+  }
+}
 
 const mealMacroTotal = (value = {}) =>
   Number(value.calories || 0) +
@@ -81,15 +106,17 @@ export async function analyzeNutritionImage({ imageDataUrl, context = '', mode =
     throw new Error('Food scanning is unavailable right now.')
   }
 
-  const { data, error } = await supabase.functions.invoke(
-    'nutrition-image-analyze',
-    {
-      body: {
-        imageDataUrl,
-        context: String(context || '').trim().slice(0, 600),
-        mode: mode === 'barcode' ? 'barcode' : 'food',
+  const { data, error } = await withNutritionAnalysisTimeout(
+    supabase.functions.invoke(
+      'nutrition-image-analyze',
+      {
+        body: {
+          imageDataUrl,
+          context: String(context || '').trim().slice(0, 600),
+          mode: mode === 'barcode' ? 'barcode' : 'food',
+        },
       },
-    },
+    ),
   )
 
   if (error) {
