@@ -1179,40 +1179,47 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
   const saveLoggedFoodAmount = () => {
     if (!editingLoggedFood) return
 
-    try {
-      const result = updateLoggedFoodAmount(
-        nutrition,
+    const amount = Number(editingLoggedAmount)
+    if (!Number.isFinite(amount) || amount <= 0) {
+      setNotice('Amount must be greater than 0.')
+      return
+    }
+
+    const nextMeasurement = editingLoggedFood.measurement
+      ? {
+          ...editingLoggedFood.measurement,
+          amount,
+        }
+      : null
+
+    patch((current) =>
+      updateLoggedFoodAmount(
+        current,
         date,
         editingLoggedFood.id,
-        editingLoggedAmount,
-      )
-      onChange(result.nutrition)
-      setNotice(
-        `${editingLoggedFood.name} updated to ${
-          result.entry.measurement
-            ? foodMeasureDisplay(result.entry.measurement)
-            : `${round(Number(editingLoggedAmount))} servings`
-        }.`,
-      )
-      setEditingLoggedFood(null)
-      setEditingLoggedAmount('')
-      scheduleNutritionModalCleanup()
-    } catch (error) {
-      setNotice(error?.message ?? 'Could not update that amount.')
-    }
+        amount,
+      ).nutrition,
+    )
+    setNotice(
+      `${editingLoggedFood.name} updated to ${
+        nextMeasurement
+          ? foodMeasureDisplay(nextMeasurement)
+          : `${round(amount)} servings`
+      }.`,
+    )
+    setEditingLoggedFood(null)
+    setEditingLoggedAmount('')
+    scheduleNutritionModalCleanup()
   }
 
   const duplicateLoggedFood = (food) => {
-    try {
-      const result = duplicateLoggedFoodEntry(nutrition, date, food.id)
-      onChange(result.nutrition)
-      setNotice(`${food.name} duplicated.`)
-      setEditingLoggedFood(null)
-      setEditingLoggedAmount('')
-      scheduleNutritionModalCleanup()
-    } catch (error) {
-      setNotice(error?.message ?? 'Could not duplicate that food.')
-    }
+    patch((current) =>
+      duplicateLoggedFoodEntry(current, date, food.id).nutrition,
+    )
+    setNotice(`${food.name} duplicated.`)
+    setEditingLoggedFood(null)
+    setEditingLoggedAmount('')
+    scheduleNutritionModalCleanup()
   }
 
   const removeLoggedFood = (food) => {
