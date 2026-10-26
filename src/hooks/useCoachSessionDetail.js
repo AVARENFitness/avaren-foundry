@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { appUi } from '../lib/appUi'
 import { coachBackend } from '../lib/coachBackend'
 import { addDaysKey } from '../lib/appointmentScheduling'
+import { validateRescheduleInput } from '../lib/calendarRescheduleValidation'
 import {
   cancelScheduledSession,
   markScheduledSessionMissed,
@@ -908,10 +909,16 @@ export function useCoachSessionDetail({
   const saveReschedule = useCallback(() => {
     if (!activeSession) return
 
+    const validation = validateRescheduleInput(rescheduleDraft)
+    if (!validation.ok) {
+      appUi.toast(validation.message, 'error')
+      return
+    }
+
     const patch = {
-      sessionDate: rescheduleDraft.sessionDate,
-      startTime: String(rescheduleDraft.startTime ?? '').slice(0, 5),
-      durationMinutes: Number(rescheduleDraft.durationMinutes) || 60,
+      sessionDate: validation.sessionDate,
+      startTime: validation.startTime,
+      durationMinutes: validation.durationMinutes,
       assignmentId: rescheduleDraft.assignmentId,
       locationType: rescheduleDraft.locationType,
       locationName: rescheduleDraft.locationName,
