@@ -210,25 +210,53 @@ export default function CoachSessionCalendar({
     setLoading(true)
     const startDate = dateKey(addDays(anchor, -42))
     const endDate = addDaysKey(startDate, 168)
+
     try {
-      const [sessionRows, eventRows, personalRows] = await Promise.all([
-        coachBackend.listScheduledSessions({ startDate, endDate }),
-        coachBackend.listCoachCalendarEvents({ startDate, endDate }),
-        athleteCalendarBackend.list({ startDate, endDate }),
-      ])
-      setSessions(sessionRows.map(normalizeScheduledSession).filter(Boolean))
+      const [sessionResult, eventResult, personalResult] =
+        await Promise.allSettled([
+          coachBackend.listScheduledSessions({ startDate, endDate }),
+          coachBackend.listCoachCalendarEvents({ startDate, endDate }),
+          athleteCalendarBackend.list({ startDate, endDate }),
+        ])
+
+      const nextSessions =
+        sessionResult.status === 'fulfilled'
+          ? sessionResult.value.map(normalizeScheduledSession).filter(Boolean)
+          : []
+      const nextCoachEvents =
+        eventResult.status === 'fulfilled'
+          ? eventResult.value.map(normalizeCoachCalendarEvent).filter(Boolean)
+          : []
+      const nextPersonalEvents =
+        personalResult.status === 'fulfilled'
+          ? personalResult.value.map(normalizeAthleteCalendarEvent).filter(Boolean)
+          : []
+
+      setSessions(nextSessions)
       setCalendarEvents([
-        ...eventRows.map(normalizeCoachCalendarEvent).filter(Boolean),
-        ...personalRows.map(normalizeAthleteCalendarEvent).filter(Boolean),
+        ...nextCoachEvents,
+        ...nextPersonalEvents,
       ])
-    } catch (error) {
-      if (
-        !/coach_scheduled_sessions|coach_calendar_events|migration|does not exist/i.test(
-          error.message ?? '',
+
+      const failures = [sessionResult, eventResult, personalResult]
+        .filter((result) => result.status === 'rejected')
+        .map((result) => result.reason)
+        .filter((error) =>
+          !/coach_scheduled_sessions|coach_calendar_events|migration|does not exist/i.test(
+            error?.message ?? '',
+          ),
         )
-      ) {
-        appUi.toast(error.message ?? 'Could not load calendar.', 'error')
+
+      if (failures.length) {
+        appUi.toast(
+          failures.length === 3
+            ? failures[0]?.message ?? 'Could not load calendar.'
+            : 'Some calendar items could not load. Showing the schedule data that is available.',
+          'error',
+        )
       }
+    } catch (error) {
+      appUi.toast(error?.message ?? 'Could not load calendar.', 'error')
       setSessions([])
       setCalendarEvents([])
     } finally {

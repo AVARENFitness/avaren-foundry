@@ -163,6 +163,24 @@ describe('CoachSessionCalendar usability', () => {
     vi.useRealTimers()
   })
 
+  it('keeps available coach appointments when a secondary calendar source fails', async () => {
+    athleteCalendarBackend.list.mockRejectedValueOnce(
+      new Error('Personal calendar unavailable'),
+    )
+
+    render(<CoachSessionCalendar clients={[jake, sarah]} assignments={[]} />)
+    fireEvent.click(screen.getByTestId('coach-calendar-view-day'))
+
+    await waitFor(() => {
+      expect(screen.getAllByTestId('coach-appointment-card')).toHaveLength(2)
+    })
+
+    expect(appUi.toast).toHaveBeenCalledWith(
+      'Some calendar items could not load. Showing the schedule data that is available.',
+      'error',
+    )
+  })
+
   it('defaults to Month view for a broad schedule picture', async () => {
     render(<CoachSessionCalendar clients={[jake, sarah]} assignments={[]} />)
 
