@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { appUi } from '../lib/appUi'
+import { createActionLock } from '../lib/actionLock'
 import { coachBackend } from '../lib/coachBackend'
 import { addDaysKey } from '../lib/appointmentScheduling'
 import { validateRescheduleInput } from '../lib/calendarRescheduleValidation'
@@ -81,6 +82,8 @@ export function useCoachSessionDetail({
   const [passSelection, setPassSelection] = useState(null)
   const [missedChargeSession, setMissedChargeSession] = useState(null)
   const [passActionBusy, setPassActionBusy] = useState(false)
+  const passActionLock = useRef(null)
+  if (!passActionLock.current) passActionLock.current = createActionLock()
   const [rescheduleMode, setRescheduleMode] = useState(false)
   const [rescheduleDraft, setRescheduleDraft] = useState(defaultRescheduleDraft)
   const [completingSessionId, setCompletingSessionId] = useState(null)
@@ -416,7 +419,7 @@ export function useCoachSessionDetail({
   const handlePassSelection = useCallback(
     async (passIdOrCandidate) => {
       const session = passSelection?.session
-      if (!session?.id) return
+      if (!session?.id || !passActionLock.current.acquire()) return
 
       const selectedPassId = resolvePassCandidateId(passIdOrCandidate)
       const matchingCandidate = (passSelection.candidates ?? []).find(
@@ -433,6 +436,7 @@ export function useCoachSessionDetail({
           }),
         )
         appUi.toast('Select a training pass to continue.', 'error')
+        passActionLock.current.release()
         return
       }
 
@@ -521,6 +525,7 @@ export function useCoachSessionDetail({
           'error',
         )
       } finally {
+        passActionLock.current.release()
         setPassActionBusy(false)
       }
     },
@@ -529,7 +534,8 @@ export function useCoachSessionDetail({
 
   const handleApplyPassDebit = useCallback(
     async (session) => {
-      if (!session?.id || session.status !== SCHEDULED_SESSION_STATUS.COMPLETED) {
+      if (!session?.id || session.status !== SCHEDULED_SESSION_STATUS.COMPLETED ||
+          !passActionLock.current.acquire()) {
         return
       }
 
@@ -555,6 +561,7 @@ export function useCoachSessionDetail({
           'error',
         )
       } finally {
+        passActionLock.current.release()
         setPassActionBusy(false)
       }
     },
