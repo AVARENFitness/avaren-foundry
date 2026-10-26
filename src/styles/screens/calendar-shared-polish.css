@@ -433,3 +433,49 @@
 .coach-session-detail-sheet .coach-session-detail-more-actions button { width: 100%; }
 
 .coach-calendar-bulk-tools{margin:8px 0 12px;border-top:1px solid rgba(210,190,149,.12);padding-top:8px}.coach-calendar-bulk-tools summary{cursor:pointer;width:max-content;max-width:100%;padding:8px 10px;border-radius:10px;color:var(--muted);font-size:.8rem}.coach-calendar-bulk-tools[open] summary{color:var(--cream)}.coach-calendar-bulk-tools .coach-calendar-workflow-actions{margin-top:6px}
+
+
+/* Touch-first finish: comfortable controls without adding visual chrome. */
+.coach-session-calendar-screen .coach-calendar-period-control button,
+.athlete-calendar-screen .coach-calendar-period-control button,
+.coach-session-calendar-screen .coach-session-calendar-view-toggle button,
+.athlete-calendar-screen .coach-session-calendar-view-toggle button,
+.coach-session-calendar-screen .coach-calendar-today-control,
+.athlete-calendar-screen .coach-calendar-today-control {
+  min-height: 44px;
+  touch-action: manipulation;
+}
+.coach-session-calendar-screen .coach-calendar-month-day,
+.athlete-calendar-screen .coach-calendar-month-day,
+.coach-session-calendar-screen .coach-calendar-week-item,
+.athlete-calendar-screen .coach-calendar-week-item {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+.coach-session-calendar-screen .coach-calendar-month-day:focus-visible,
+.athlete-calendar-screen .coach-calendar-month-day:focus-visible,
+.coach-session-calendar-screen .coach-calendar-week-item:focus-visible,
+.athlete-calendar-screen .coach-calendar-week-item:focus-visible,
+.coach-session-detail-sheet button:focus-visible {
+  outline: 2px solid var(--calendar-accent, #c1aa79);
+  outline-offset: 2px;
+}
+.coach-session-detail-sheet .coach-session-detail-actions button {
+  min-height: 44px;
+  touch-action: manipulation;
+}
+@media (hover: hover) and (pointer: fine) {
+  .coach-session-calendar-screen .coach-calendar-month-day:hover,
+  .athlete-calendar-screen .coach-calendar-month-day:hover,
+  .coach-session-calendar-screen .coach-calendar-week-item:hover,
+  .athlete-calendar-screen .coach-calendar-week-item:hover {
+    background: var(--calendar-soft);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .coach-session-calendar-screen .coach-calendar-week-item,
+  .athlete-calendar-screen .coach-calendar-week-item,
+  .coach-session-detail-sheet button {
+    transition: none !important;
+  }
+}
