@@ -32,6 +32,20 @@ import {
 import { buildStartsAtIso } from './sessionTimezone'
 
 describe('recurringAppointments', () => {
+  it('rejects impossible recurring start and end dates', () => {
+    const draft = {
+      enabled: true,
+      mode: RECURRENCE_MODE.WEEKLY,
+      weekdays: [WEEKDAY.MON],
+      endType: RECURRENCE_END.ON_DATE,
+      endsOn: '2026-12-31',
+    }
+    expect(validateRecurrenceDraft(draft, '2026-02-30')).toBe('Select a valid start date.')
+    expect(validateRecurrenceDraft({ ...draft, endsOn: '2026-02-30' }, '2026-10-26'))
+      .toBe('Choose a valid end date.')
+    expect(validateRecurrenceDraft(draft, '2026-10-26')).toBeNull()
+  })
+
   it('requires positive whole-number occurrence limits', () => {
     const draft = (count) => ({
       enabled: true,
