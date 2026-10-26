@@ -2396,7 +2396,7 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
                       aria-label="Barcode digits"
                       placeholder="8, 12 or 13 digits"
                       value={barcodeManualValue}
-                      onChange={(event) => setBarcodeManualValue(event.target.value.replace(/\\D/g, '').slice(0, 13))}
+                      onChange={(event) => setBarcodeManualValue(event.target.value.replace(/\D/g, '').slice(0, 13))}
                     />
                   </label>
                 ) : null}
