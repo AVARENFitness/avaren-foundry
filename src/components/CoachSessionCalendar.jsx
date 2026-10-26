@@ -6,7 +6,7 @@ import {
   ChevronRight,
   Plus,
 } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { appointmentLinkageUserMessage } from '../lib/coachBusinessClientLinkage'
 import {
   COACH_CALENDAR_VIEW,
@@ -111,6 +111,7 @@ export default function CoachSessionCalendar({
   const [sessions, setSessions] = useState([])
   const [calendarEvents, setCalendarEvents] = useState([])
   const [loading, setLoading] = useState(true)
+  const latestLoadId = useRef(0)
   const [showComposer, setShowComposer] = useState(initialOpenComposer)
   const [showEventComposer, setShowEventComposer] = useState(false)
   const [showAddMenu, setShowAddMenu] = useState(false)
@@ -208,6 +209,7 @@ export default function CoachSessionCalendar({
   const now = useMemo(() => new Date(), [sessions, selectedDayKey, todayKey])
 
   const loadSessions = useCallback(async () => {
+    const loadId = ++latestLoadId.current
     setLoading(true)
     const startDate = dateKey(addDays(anchor, -42))
     const endDate = addDaysKey(startDate, 168)
@@ -219,6 +221,8 @@ export default function CoachSessionCalendar({
           coachBackend.listCoachCalendarEvents({ startDate, endDate }),
           athleteCalendarBackend.list({ startDate, endDate }),
         ])
+
+      if (loadId !== latestLoadId.current) return
 
       const nextSessions =
         sessionResult.status === 'fulfilled'
@@ -257,11 +261,12 @@ export default function CoachSessionCalendar({
         )
       }
     } catch (error) {
+      if (loadId !== latestLoadId.current) return
       appUi.toast(error?.message ?? 'Could not load calendar.', 'error')
       setSessions([])
       setCalendarEvents([])
     } finally {
-      setLoading(false)
+      if (loadId === latestLoadId.current) setLoading(false)
     }
   }, [anchor])
 
