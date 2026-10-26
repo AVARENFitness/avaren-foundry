@@ -181,6 +181,29 @@ describe('CoachSessionCalendar usability', () => {
     )
   })
 
+  it('keeps a newer calendar result when an earlier request completes late', async () => {
+    let resolveFirst
+    coachBackend.listScheduledSessions.mockImplementationOnce(
+      () => new Promise((resolve) => { resolveFirst = resolve }),
+    )
+
+    render(<CoachSessionCalendar clients={[jake, sarah]} assignments={[]} />)
+    fireEvent(window, new Event('avaren:coach-calendar-updated'))
+
+    await waitFor(() => {
+      expect(coachBackend.listScheduledSessions).toHaveBeenCalledTimes(2)
+    })
+    fireEvent.click(screen.getByTestId('coach-calendar-view-day'))
+    await waitFor(() => {
+      expect(screen.getAllByTestId('coach-appointment-card')).toHaveLength(2)
+    })
+
+    resolveFirst([])
+    await waitFor(() => {
+      expect(screen.getAllByTestId('coach-appointment-card')).toHaveLength(2)
+    })
+  })
+
   it('defaults to Month view for a broad schedule picture', async () => {
     render(<CoachSessionCalendar clients={[jake, sarah]} assignments={[]} />)
 
