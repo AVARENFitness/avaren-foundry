@@ -3,6 +3,7 @@ import { appUi } from '../lib/appUi'
 import { coachBackend } from '../lib/coachBackend'
 import { addDaysKey } from '../lib/appointmentScheduling'
 import { validateRescheduleInput } from '../lib/calendarRescheduleValidation'
+import { hasFutureSeriesScheduleConflict } from '../lib/recurrenceScheduleConflict'
 import {
   cancelScheduledSession,
   markScheduledSessionMissed,
@@ -754,36 +755,18 @@ export function useCoachSessionDetail({
               prompt.session.recurrenceSeriesId ??
               prompt.session.recurrence_series_id ??
               null
-            const privateCalendarItems = (calendarItems ?? []).filter(
-              (item) => item?.isCoachPrivateEvent || item?.isAthletePrivateEvent,
-            )
-            const futureSeriesSessions = (sessions ?? []).filter((item) => {
-              const itemSeriesId =
-                item.recurrenceSeriesId ?? item.recurrence_series_id ?? null
-              return (
-                seriesId &&
-                String(itemSeriesId ?? '') === String(seriesId) &&
-                String(item.sessionDate ?? '') >= String(prompt.session.sessionDate ?? '')
-              )
+            const conflictingAppointment = hasFutureSeriesScheduleConflict({
+              sessions,
+              calendarItems,
+              seriesId,
+              effectiveDate: prompt.session.sessionDate,
+              startTime: proposedStartTime,
+              durationMinutes: proposedDuration,
             })
 
-            const privateConflict = futureSeriesSessions.some((item) =>
-              Boolean(
-                findOverlappingAppointment(
-                  {
-                    ...item,
-                    startTime: proposedStartTime,
-                    durationMinutes: proposedDuration,
-                    status: 'scheduled',
-                  },
-                  privateCalendarItems,
-                ),
-              ),
-            )
-
-            if (privateConflict) {
+            if (conflictingAppointment) {
               throw new Error(
-                'This recurring change overlaps private time already on your calendar.',
+                'This recurring change overlaps another appointment or private event. Nothing was changed.',
               )
             }
           }
