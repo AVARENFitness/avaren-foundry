@@ -7,7 +7,11 @@ export function useCalendarSwipe(onPrevious, onNext) {
     onTouchStart(event) {
       if (event.touches.length !== 1) { start.current = null; return }
       const target = event.target
-      if (target?.closest?.('button, a, input, textarea, select, [role="dialog"]')) {
+      if (target?.closest?.('button, a, input, textarea, select, summary, [role="dialog"], [role="button"], [role="tab"], [contenteditable="true"], [data-calendar-no-swipe]')) {
+        start.current = null
+        return
+      }
+      if (target?.closest?.('.coach-calendar-week-board, .athlete-calendar-week, .coach-calendar-add-menu, .avaren-calendar-inline-agenda, .athlete-calendar-agenda, .coach-session-calendar-list')) {
         start.current = null
         return
       }
