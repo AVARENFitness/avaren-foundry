@@ -1690,3 +1690,51 @@
   .coach-waiver-signing-sheet { padding: 18px 15px; gap: 18px; max-height: 92dvh; }
   .coach-waiver-signing-sheet .coach-waiver-terms { min-height: 280px; height: 38dvh; padding: 16px; }
 }
+
+
+/* AVAREN coach workflow polish — calm, touch-friendly client controls. */
+.coach-hub-screen .coach-client-row,
+.coach-hub-screen .coach-client-card,
+.coach-hub-screen .coach-pending-list button,
+.coach-hub-screen .coach-client-device-signing-button {
+  min-width: 0;
+}
+.coach-hub-screen .coach-client-copy,
+.coach-hub-screen .coach-client-status {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.coach-hub-screen button,
+.coach-waiver-signing-sheet button,
+.coach-waiver-record-sheet button {
+  touch-action: manipulation;
+}
+.coach-hub-screen button:focus-visible,
+.coach-hub-screen a:focus-visible,
+.coach-hub-screen input:focus-visible,
+.coach-waiver-signing-sheet button:focus-visible,
+.coach-waiver-record-sheet button:focus-visible {
+  outline: 2px solid var(--gold, #c1aa79);
+  outline-offset: 3px;
+}
+.coach-hub-screen .coach-client-device-signing-button,
+.coach-waiver-signing-footer .gold-button {
+  min-height: 44px;
+}
+@media (max-width: 720px) {
+  .coach-hub-screen .coach-client-row,
+  .coach-hub-screen .coach-client-card {
+    max-width: 100%;
+  }
+  .coach-waiver-signing-footer .gold-button {
+    width: 100%;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .coach-hub-screen button,
+  .coach-hub-screen a,
+  .coach-waiver-signing-sheet button {
+    scroll-behavior: auto;
+    transition: none !important;
+  }
+}
