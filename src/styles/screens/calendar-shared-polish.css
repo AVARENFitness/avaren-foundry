@@ -479,3 +479,55 @@
     transition: none !important;
   }
 }
+
+
+/* Dedicated Calendar destination: fill the available coach workspace. */
+.coach-shell--calendar {
+  width: 100%;
+  max-width: none;
+}
+.coach-shell--calendar .coach-shell-main {
+  width: 100%;
+  min-width: 0;
+  max-width: none;
+  padding: 12px clamp(12px, 2.5vw, 32px) calc(92px + env(safe-area-inset-bottom));
+}
+.coach-shell--calendar .coach-session-calendar-screen {
+  width: 100%;
+  max-width: 1440px;
+  min-width: 0;
+  margin-inline: auto;
+  gap: 14px;
+}
+.coach-shell--calendar .coach-calendar-month-view,
+.coach-shell--calendar .coach-calendar-month-grid,
+.coach-shell--calendar .coach-calendar-week-board {
+  width: 100%;
+  min-width: 0;
+}
+.coach-shell--calendar .coach-calendar-month-day {
+  min-width: 0;
+  min-height: clamp(70px, 10vh, 116px);
+}
+.coach-shell--calendar .coach-calendar-month-date {
+  line-height: 1.4;
+}
+.coach-shell--calendar .avaren-calendar-inline-agenda {
+  width: 100%;
+  min-width: 0;
+}
+@media (max-width: 620px) {
+  .coach-shell--calendar .coach-shell-main {
+    padding: 8px 10px calc(86px + env(safe-area-inset-bottom));
+  }
+  .coach-shell--calendar .coach-session-calendar-screen {
+    gap: 10px;
+  }
+  .coach-shell--calendar .coach-calendar-month-day {
+    min-height: 58px;
+    padding: 6px 2px;
+  }
+  .coach-shell--calendar .coach-calendar-month-weekdays {
+    font-size: 10px;
+  }
+}
