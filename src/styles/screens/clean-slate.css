@@ -176,3 +176,11 @@
     width: 100%;
   }
 }
+
+/* Athlete Home and workout interaction consistency. */
+.home-3 button, .ava-daily-briefing button, .focus-mode button { touch-action: manipulation; }
+.home-3 button:focus-visible, .home-3 a:focus-visible, .ava-daily-briefing button:focus-visible, .focus-mode button:focus-visible { outline: 2px solid var(--gold, #c1aa79); outline-offset: 3px; }
+.home-3 .home-start-session, .ava-daily-briefing .ava-daily-briefing-primary, .focus-mode .focus-continue-button { min-height: 44px; }
+.home-3 .home-nutrition-quicklog-copy, .home-3 .home-coach-hub-shortcut-copy { min-width: 0; overflow-wrap: anywhere; }
+.ava-daily-briefing .ava-daily-briefing-summary { max-width: 65ch; line-height: 1.55; }
+@media(prefers-reduced-motion: reduce) { .home-3 button, .ava-daily-briefing button, .focus-mode button { transition: none !important; } }
