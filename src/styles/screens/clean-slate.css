@@ -184,3 +184,55 @@
 .home-3 .home-nutrition-quicklog-copy, .home-3 .home-coach-hub-shortcut-copy { min-width: 0; overflow-wrap: anywhere; }
 .ava-daily-briefing .ava-daily-briefing-summary { max-width: 65ch; line-height: 1.55; }
 @media(prefers-reduced-motion: reduce) { .home-3 button, .ava-daily-briefing button, .focus-mode button { transition: none !important; } }
+
+
+/* Nutrition and Progress: calm touch-first legibility, no layout restructuring. */
+.nutrition-screen .nutrition-tabs button,
+.nutrition-screen .nutrition-date-switcher button,
+.nutrition-screen .nutrition-secondary-button,
+.progress-lift-browser .progress-lift-select,
+.progress-lift-goal-actions button {
+  min-height: 44px;
+  touch-action: manipulation;
+}
+.nutrition-screen .nutrition-today-food-row,
+.nutrition-screen .nutrition-today-food-copy,
+.nutrition-screen .nutrition-today-food-macros,
+.progress-overall-hero,
+.progress-selected-lift {
+  min-width: 0;
+}
+.nutrition-screen .nutrition-today-food-copy,
+.progress-selected-lift-header {
+  overflow-wrap: anywhere;
+}
+.nutrition-screen button:focus-visible,
+.nutrition-screen input:focus-visible,
+.nutrition-screen select:focus-visible,
+.progress-lift-browser button:focus-visible,
+.progress-lift-browser select:focus-visible,
+.progress-lift-goal-card button:focus-visible {
+  outline: 2px solid var(--gold, #c1aa79);
+  outline-offset: 3px;
+}
+.nutrition-screen .nutrition-today-food-macros,
+.progress-overall-stats,
+.progress-movement-week-value {
+  font-variant-numeric: tabular-nums;
+}
+@media (max-width: 620px) {
+  .nutrition-screen .nutrition-macro-grid,
+  .progress-overall-stats {
+    min-width: 0;
+  }
+  .nutrition-screen .nutrition-today-food-row {
+    max-width: 100%;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nutrition-screen button,
+  .progress-lift-browser button,
+  .progress-lift-goal-card button {
+    transition: none !important;
+  }
+}
