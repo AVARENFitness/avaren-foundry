@@ -35,7 +35,7 @@ export default function AppShell({
 }) {
   return (
     <div
-      className={`app-shell ${transitioning ? 'is-transitioning' : ''} ${immersive ? 'is-immersive' : ''}`}
+      className={`app-shell ${transitioning ? 'is-transitioning' : ''} ${immersive ? 'is-immersive' : ''} ${screen === 'schedule' || screen === 'in-person-schedule' ? 'app-shell--calendar' : ''}`}
     >
       <header className="app-header">
         <div className="brand-lockup foundation-lockup">
