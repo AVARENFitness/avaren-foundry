@@ -597,3 +597,21 @@
   outline: 2px solid var(--calendar-accent, #c1aa79);
   outline-offset: 2px;
 }
+
+
+/* Native date/time controls remain legible and tappable on both calendars. */
+.coach-calendar-event-sheet input[type="date"],
+.coach-calendar-event-sheet input[type="time"] {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  min-height: 48px;
+  font-size: 16px;
+  color-scheme: dark;
+  touch-action: manipulation;
+}
+.coach-calendar-event-sheet input[type="date"]:focus-visible,
+.coach-calendar-event-sheet input[type="time"]:focus-visible {
+  outline: 2px solid var(--calendar-accent, #c1aa79);
+  outline-offset: 2px;
+}
