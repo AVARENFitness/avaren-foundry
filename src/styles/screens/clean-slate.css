@@ -236,3 +236,29 @@
     transition: none !important;
   }
 }
+
+
+/* AVAREN mobile viewport hygiene: fit the device without disabling user zoom. */
+html, body, #root { min-width: 0; max-width: 100%; }
+.app-shell, .coach-shell, .screen, .nutrition-screen,
+.coach-hub-screen, .home-3, .focus-mode {
+  min-width: 0;
+  max-width: 100%;
+}
+.screen > *, .home-3 > *, .nutrition-screen > *,
+.coach-hub-screen > *, .focus-mode > * { min-width: 0; }
+img, video, canvas, svg { max-width: 100%; }
+img, video { height: auto; }
+input, textarea, select { max-width: 100%; min-width: 0; }
+@media (max-width: 767px) {
+  /* iOS Safari magnifies form controls smaller than 16px on focus. */
+  input:not([type="checkbox"]):not([type="radio"]),
+  textarea, select { font-size: max(16px, 1em); }
+  .screen, .home-3, .nutrition-screen, .coach-hub-screen,
+  .focus-mode { max-width: 100%; }
+  .nutrition-macro-grid, .progress-overall-stats,
+  .coach-client-profile-shell, .coach-session-calendar-screen {
+    min-width: 0;
+    max-width: 100%;
+  }
+}
