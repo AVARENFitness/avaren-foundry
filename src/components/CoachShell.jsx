@@ -65,7 +65,7 @@ export default function CoachShell({
   }, [screen, profileMode])
 
   return (
-    <div className={`coach-shell${profileMode ? ' coach-shell--profile' : ''}`}>
+    <div className={`coach-shell${profileMode ? ' coach-shell--profile' : ''}${!profileMode && normalizeCoachScreen(screen) === 'calendar' ? ' coach-shell--calendar' : ''}`}>
       {!profileMode && (
         <header className="coach-shell-header">
           <div>
