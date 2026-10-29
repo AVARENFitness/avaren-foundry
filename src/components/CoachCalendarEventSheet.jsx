@@ -5,12 +5,10 @@ import {
   COACH_CALENDAR_EVENT_CATEGORY_LABEL,
 } from '../lib/coachCalendarEvents'
 import {
-  buildScheduleTimeOptions,
   resolveDurationPresetOptions,
 } from '../lib/appointmentScheduling'
 
 const CATEGORY_OPTIONS = Object.values(COACH_CALENDAR_EVENT_CATEGORY)
-const TIME_OPTIONS = buildScheduleTimeOptions({ startHour: 5, endHour: 23 })
 
 export default function CoachCalendarEventSheet({
   open = false,
@@ -81,17 +79,13 @@ export default function CoachCalendarEventSheet({
 
           <label className="coach-field">
             <span>Starts</span>
-            <select
+            <input
               className="coach-field-input"
+              type="time"
+              step="300"
               value={draft.startTime}
               onChange={(event) => set({ startTime: event.target.value })}
-            >
-              {TIME_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
+            />
           </label>
         </div>
 
