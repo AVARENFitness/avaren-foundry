@@ -695,7 +695,11 @@ export default function AthleteInPersonScheduleScreen({
                         onClick={() => {
                           setSelectedDayKey(key)
                           setAnchor(day)
-                          // Selecting a weekly event reveals the agenda below.
+                          if (item.isAthletePrivateEvent || item.isCoachPrivateEvent) {
+                            openPrivateEventEditor(item)
+                          } else if (!item.isCoachWorkAppointment) {
+                            setDetailAppointment(item)
+                          }
                         }}
                       >
                         <span>{formatTime12Hour(item.startTime)}</span>
