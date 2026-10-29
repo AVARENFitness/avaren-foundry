@@ -168,6 +168,7 @@ export default function CoachSessionCalendar({
 
   const openScheduleComposer = () => {
     setShowAddMenu(false)
+    setDraft((current) => ({ ...current, sessionDate: selectedDayKey }))
     setShowComposer(true)
   }
 
@@ -994,14 +995,23 @@ export default function CoachSessionCalendar({
             <button
               type="button"
               className="gold-button machined coach-primary-action coach-calendar-add-trigger"
+              data-testid="coach-calendar-quick-add"
+              onClick={openScheduleComposer}
+              aria-label="Schedule personal training"
+            >
+              <Plus {...ICON} />
+              Add
+            </button>
+            <button
+              type="button"
+              className="coach-calendar-add-options"
               data-testid="coach-calendar-add-trigger"
+              aria-label="More calendar creation options"
               aria-expanded={showAddMenu}
               aria-haspopup="menu"
               onClick={() => setShowAddMenu((current) => !current)}
             >
-              <Plus {...ICON} />
-              Add
-              <ChevronDown size={15} strokeWidth={1.8} aria-hidden="true" />
+              <ChevronDown size={18} strokeWidth={1.8} aria-hidden="true" />
             </button>
 
             {showAddMenu ? (
