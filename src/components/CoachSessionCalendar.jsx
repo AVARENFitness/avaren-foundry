@@ -1,4 +1,5 @@
 import '../styles/screens/calendar-shared-polish.css'
+import { useCalendarSwipe } from '../hooks/useCalendarSwipe'
 import {
   CalendarClock,
   ChevronDown,
@@ -922,6 +923,8 @@ export default function CoachSessionCalendar({
     shiftSelectedDay(delta)
   }
 
+  const calendarSwipe = useCalendarSwipe(() => shiftCalendarPeriod(-1), () => shiftCalendarPeriod(1))
+
   const goToTodayInCurrentView = () => {
     const current = new Date()
     setAnchor(current)
@@ -979,7 +982,7 @@ export default function CoachSessionCalendar({
   ).length
 
   return (
-    <section className="coach-session-calendar-screen">
+    <section className="coach-session-calendar-screen" {...calendarSwipe}>
       <header className="coach-session-calendar-header">
         <div className="coach-session-calendar-title-row">
           <div>
