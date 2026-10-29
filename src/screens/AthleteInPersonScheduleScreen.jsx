@@ -1,4 +1,5 @@
 import '../styles/screens/calendar-shared-polish.css'
+import { useCalendarSwipe } from '../hooks/useCalendarSwipe'
 import CoachQuickPlan from '../components/CoachQuickPlan'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
@@ -331,6 +332,8 @@ export default function AthleteInPersonScheduleScreen({
     shiftDay(delta)
   }
 
+  const calendarSwipe = useCalendarSwipe(() => shiftPeriod(-1), () => shiftPeriod(1))
+
   const monthHeading = formatCoachCalendarMonthHeading(anchor)
   const weekHeading = formatCoachCalendarWeekHeading(dateKey(weekDays[0]))
   const dayHeading = formatCoachCalendarDayHeading(selectedDayKey)
@@ -536,7 +539,7 @@ export default function AthleteInPersonScheduleScreen({
   }
 
   return (
-    <div className="athlete-in-person-schedule-screen athlete-calendar-screen">
+    <div className="athlete-in-person-schedule-screen athlete-calendar-screen" {...calendarSwipe}>
       <header className="coach-session-calendar-header athlete-calendar-header">
         {!embedded ? (
           <button type="button" className="ui-btn-tertiary athlete-schedule-back" onClick={onBack}>
