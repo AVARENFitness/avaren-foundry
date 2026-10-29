@@ -574,3 +574,26 @@
     padding: 6px 2px;
   }
 }
+
+/* One-tap scheduling with a separate, equally reachable advanced-actions menu. */
+.coach-session-calendar-screen .coach-calendar-add-menu-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.coach-session-calendar-screen .coach-calendar-add-options {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  border: 1px solid var(--calendar-line, rgba(193,170,121,.2));
+  border-radius: 12px;
+  background: rgba(193,170,121,.06);
+  color: var(--calendar-accent, #c1aa79);
+  touch-action: manipulation;
+}
+.coach-session-calendar-screen .coach-calendar-add-options:focus-visible {
+  outline: 2px solid var(--calendar-accent, #c1aa79);
+  outline-offset: 2px;
+}
