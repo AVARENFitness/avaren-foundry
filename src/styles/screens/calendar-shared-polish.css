@@ -615,3 +615,174 @@
   outline: 2px solid var(--calendar-accent, #c1aa79);
   outline-offset: 2px;
 }
+
+
+/* AVAREN Calendar V2 — one unboxed, quiet, native-feeling month surface. */
+.coach-session-calendar-screen .coach-calendar-month-view,
+.athlete-calendar-screen .coach-calendar-month-view {
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  overflow: visible;
+}
+.coach-session-calendar-screen .coach-calendar-month-grid,
+.athlete-calendar-screen .coach-calendar-month-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+}
+.coach-session-calendar-screen .coach-calendar-month-weekdays,
+.athlete-calendar-screen .coach-calendar-month-weekdays {
+  border: 0 !important;
+  border-bottom: 1px solid rgba(246,242,233,.10) !important;
+  background: transparent !important;
+  padding: 12px 0 10px;
+  letter-spacing: .02em;
+}
+.coach-session-calendar-screen .coach-calendar-month-day,
+.athlete-calendar-screen .coach-calendar-month-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  min-width: 0 !important;
+  min-height: clamp(64px, 10vh, 100px) !important;
+  padding: 12px 2px 6px !important;
+  border: 0 !important;
+  border-bottom: 1px solid rgba(246,242,233,.065) !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  text-align: center;
+  touch-action: manipulation;
+}
+.coach-session-calendar-screen .coach-calendar-month-date,
+.athlete-calendar-screen .coach-calendar-month-date {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  flex: none;
+  margin: 0 auto;
+  border: 0 !important;
+  border-radius: 50% !important;
+  background: transparent !important;
+  color: #f4f0e9;
+  font-size: clamp(15px, 2.3vw, 19px);
+  font-weight: 600;
+  line-height: 1;
+}
+.coach-session-calendar-screen .coach-calendar-month-day.is-outside .coach-calendar-month-date,
+.athlete-calendar-screen .coach-calendar-month-day.is-outside .coach-calendar-month-date {
+  color: rgba(246,242,233,.32);
+}
+.coach-session-calendar-screen .coach-calendar-month-day.is-selected .coach-calendar-month-date,
+.athlete-calendar-screen .coach-calendar-month-day.is-selected .coach-calendar-month-date {
+  background: #c3a66e !important;
+  color: #0b0d0e !important;
+}
+.coach-session-calendar-screen .coach-calendar-month-day.is-today:not(.is-selected) .coach-calendar-month-date,
+.athlete-calendar-screen .coach-calendar-month-day.is-today:not(.is-selected) .coach-calendar-month-date {
+  box-shadow: inset 0 0 0 1px #c3a66e;
+  color: #e0c38e;
+}
+.coach-session-calendar-screen .coach-calendar-month-events,
+.athlete-calendar-screen .coach-calendar-month-events {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-height: 6px;
+  max-width: 100%;
+  overflow: hidden;
+  background: transparent !important;
+}
+.coach-session-calendar-screen .coach-calendar-month-events > span,
+.athlete-calendar-screen .coach-calendar-month-events > span {
+  display: block;
+  width: 6px !important;
+  height: 6px !important;
+  min-width: 6px;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: 0 !important;
+  border-radius: 50% !important;
+  background: #c2a56b !important;
+  color: transparent !important;
+  font-size: 0 !important;
+  line-height: 0 !important;
+  overflow: hidden;
+}
+.coach-session-calendar-screen .coach-calendar-month-events > span.is-private,
+.athlete-calendar-screen .coach-calendar-month-events > span.is-private { background: #69a8d3 !important; }
+.coach-session-calendar-screen .coach-calendar-month-day > small,
+.athlete-calendar-screen .coach-calendar-month-day > small,
+.coach-session-calendar-screen .coach-calendar-month-events > em,
+.athlete-calendar-screen .coach-calendar-month-events > em { display: none !important; }
+.coach-session-calendar-screen .coach-calendar-month-day:focus-visible,
+.athlete-calendar-screen .coach-calendar-month-day:focus-visible {
+  outline: 2px solid #c3a66e;
+  outline-offset: -2px;
+}
+@media (max-width: 620px) {
+  .coach-session-calendar-screen .coach-calendar-month-day,
+  .athlete-calendar-screen .coach-calendar-month-day { min-height: 64px !important; padding-top: 8px !important; }
+  .coach-session-calendar-screen .coach-calendar-month-date,
+  .athlete-calendar-screen .coach-calendar-month-date { width: 33px; height: 33px; }
+}
+
+
+/* Quiet calendar chrome: let the month and selected day lead. */
+.coach-session-calendar-screen .coach-session-calendar-header,
+.athlete-calendar-screen .coach-session-calendar-header {
+  gap: 12px;
+}
+.coach-session-calendar-screen .coach-session-calendar-title-row,
+.athlete-calendar-screen .coach-session-calendar-title-row {
+  align-items: center;
+  min-width: 0;
+}
+.coach-session-calendar-screen .coach-session-calendar-title-row h1,
+.athlete-calendar-screen .coach-session-calendar-title-row h1 {
+  font-size: clamp(1.75rem, 5vw, 2.35rem);
+  font-weight: 750;
+  letter-spacing: -.035em;
+}
+.coach-session-calendar-screen .coach-calendar-command-bar,
+.athlete-calendar-screen .coach-calendar-command-bar {
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+.coach-session-calendar-screen .coach-calendar-period-control,
+.athlete-calendar-screen .coach-calendar-period-control {
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+.coach-session-calendar-screen .coach-calendar-period-control strong,
+.athlete-calendar-screen .coach-calendar-period-control strong {
+  color: #f4f0e9;
+  letter-spacing: -.025em;
+}
+.coach-session-calendar-screen .coach-calendar-month-day:hover,
+.athlete-calendar-screen .coach-calendar-month-day:hover {
+  background: rgba(195,166,110,.055) !important;
+}
+.coach-session-calendar-screen .avaren-calendar-inline-agenda,
+.athlete-calendar-screen .avaren-calendar-inline-agenda {
+  border-color: rgba(246,242,233,.09) !important;
+  background: rgba(255,255,255,.012) !important;
+  box-shadow: none !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  .coach-session-calendar-screen .coach-calendar-month-day,
+  .athlete-calendar-screen .coach-calendar-month-day { transition: none !important; }
+}
