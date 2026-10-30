@@ -786,3 +786,54 @@
   .coach-session-calendar-screen .coach-calendar-month-day,
   .athlete-calendar-screen .coach-calendar-month-day { transition: none !important; }
 }
+
+
+/* Calendar V2 finish: consistent hierarchy and more natural tap feedback. */
+.coach-session-calendar-screen .coach-calendar-month-day,
+.athlete-calendar-screen .coach-calendar-month-day {
+  -webkit-tap-highlight-color: transparent;
+}
+.coach-session-calendar-screen .coach-calendar-month-day:active,
+.athlete-calendar-screen .coach-calendar-month-day:active {
+  background: rgba(195,166,110,.10) !important;
+}
+.coach-session-calendar-screen .coach-calendar-month-events > span,
+.athlete-calendar-screen .coach-calendar-month-events > span {
+  flex: 0 0 6px;
+}
+.coach-session-calendar-screen .coach-calendar-month-day.is-selected .coach-calendar-month-events > span.is-client,
+.athlete-calendar-screen .coach-calendar-month-day.is-selected .coach-calendar-month-events > span.is-client {
+  background: #e9c988 !important;
+}
+.coach-session-calendar-screen .avaren-calendar-inline-heading,
+.athlete-calendar-screen .avaren-calendar-inline-heading {
+  min-width: 0;
+  gap: 12px;
+}
+.coach-session-calendar-screen .avaren-calendar-inline-heading strong,
+.athlete-calendar-screen .avaren-calendar-inline-heading strong {
+  overflow-wrap: anywhere;
+  letter-spacing: -.02em;
+}
+.coach-session-calendar-screen .coach-calendar-period-control button,
+.athlete-calendar-screen .coach-calendar-period-control button {
+  min-width: 44px;
+  min-height: 44px;
+  touch-action: manipulation;
+}
+.coach-session-calendar-screen .coach-calendar-month-weekdays,
+.athlete-calendar-screen .coach-calendar-month-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+.coach-session-calendar-screen .coach-calendar-month-weekdays > span,
+.athlete-calendar-screen .coach-calendar-month-weekdays > span {
+  min-width: 0;
+  text-align: center;
+}
+@media (max-width: 380px) {
+  .coach-session-calendar-screen .coach-calendar-month-day,
+  .athlete-calendar-screen .coach-calendar-month-day { min-height: 60px !important; }
+  .coach-session-calendar-screen .coach-calendar-month-date,
+  .athlete-calendar-screen .coach-calendar-month-date { width: 32px; height: 32px; }
+}
