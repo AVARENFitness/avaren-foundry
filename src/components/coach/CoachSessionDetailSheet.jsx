@@ -300,7 +300,7 @@ export default function CoachSessionDetailSheet({
                 {completingSessionId === session.id
                   ? 'Completing…'
                   : 'Mark complete · no pass deducted'}
-              </button> : null
+              </button> : null}
               {rescheduleMode ? (
                 <button
                   type="button"
