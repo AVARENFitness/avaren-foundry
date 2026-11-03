@@ -89,10 +89,8 @@ describe('CoachScheduleSessionSheet', () => {
     expect(document.querySelector('.coach-schedule-hidden-date')).toBeNull()
   })
 
-  it('offers 5-minute time options and 30/45/60 duration presets', async () => {
-    const user = userEvent.setup()
+  it('uses a compact native five-minute time picker and duration presets', () => {
     const onDraftChange = vi.fn()
-
     render(
       <CoachScheduleSessionSheet
         open
@@ -104,17 +102,17 @@ describe('CoachScheduleSessionSheet', () => {
       />,
     )
 
-    await user.click(screen.getByRole('button', { name: /4:00 PM/i }))
-    expect(screen.getByRole('option', { name: '4:05 PM' })).toBeInTheDocument()
-    expect(screen.getByRole('option', { name: '4:35 PM' })).toBeInTheDocument()
-    expect(screen.queryByRole('option', { name: '4:07 PM' })).toBeNull()
-
+    const time = screen.getByLabelText('Personal training start time')
+    expect(time).toHaveAttribute('type', 'time')
+    expect(time).toHaveAttribute('step', '300')
+    expect(time).toHaveValue('16:00')
+    expect(screen.queryByRole('listbox')).toBeNull()
     expect(screen.getByRole('button', { name: '30 min' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '45 min' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '60 min' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: '90 min' })).toBeNull()
 
-    await user.click(screen.getByRole('option', { name: '4:35 PM' }))
+    fireEvent.change(time, { target: { value: '16:35' } })
     expect(onDraftChange).toHaveBeenCalledWith(
       expect.objectContaining({ startTime: '16:35' }),
     )

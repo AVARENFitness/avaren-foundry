@@ -1154,21 +1154,12 @@ export default function CoachSessionCalendar({
                   aria-label={`${formatCoachCalendarDayHeading(key)}, ${items.length} calendar item${items.length === 1 ? '' : 's'}`}
                 >
                   <span className="coach-calendar-month-date">{date.getDate()}</span>
-                  <div className="coach-calendar-month-events">
-                    {items.slice(0, 3).map((item) => (
-                      <span
-                        key={item.id}
-                        className={item.isCoachPrivateEvent || item.isAthletePrivateEvent ? 'is-private' : 'is-client'}
-                      >
-                        {item.startTime ? formatTime12Hour(item.startTime).replace(':00', '') : ''}
-                        {' '}
-                        {item.isCoachPrivateEvent
-                          ? item.title
-                          : getClientDisplayName(resolveClientForSession(item) ?? {})}
-                      </span>
-                    ))}
-                    {items.length > 3 ? (
-                      <em>+{items.length - 3} more</em>
+                  <div className="coach-calendar-month-events" aria-hidden="true">
+                    {items.some((item) => !item.isCoachPrivateEvent && !item.isAthletePrivateEvent) ? (
+                      <span className="is-client" />
+                    ) : null}
+                    {items.some((item) => item.isCoachPrivateEvent || item.isAthletePrivateEvent) ? (
+                      <span className="is-private" />
                     ) : null}
                   </div>
                   {items.length > 0 ? (

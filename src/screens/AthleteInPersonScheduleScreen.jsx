@@ -645,21 +645,13 @@ export default function AthleteInPersonScheduleScreen({
                   }}
                 >
                   <span className="coach-calendar-month-date">{date.getDate()}</span>
-                  <div className="coach-calendar-month-events">
-                    {items.slice(0, 3).map((item) => (
-                      <span
-                        key={`${sourceLabel(item)}:${item.id}`}
-                        className={
-                          item.isAthletePrivateEvent || item.isCoachPrivateEvent
-                            ? 'is-private'
-                            : 'is-client'
-                        }
-                      >
-                        {formatTime12Hour(item.startTime).replace(':00', '')}{' '}
-                        {itemTitle(item)}
-                      </span>
-                    ))}
-                    {items.length > 3 ? <em>+{items.length - 3} more</em> : null}
+                  <div className="coach-calendar-month-events" aria-hidden="true">
+                    {items.some((item) => !item.isCoachPrivateEvent && !item.isAthletePrivateEvent) ? (
+                      <span className="is-client" />
+                    ) : null}
+                    {items.some((item) => item.isCoachPrivateEvent || item.isAthletePrivateEvent) ? (
+                      <span className="is-private" />
+                    ) : null}
                   </div>
                 </button>
               )
