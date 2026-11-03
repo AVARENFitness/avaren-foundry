@@ -1,5 +1,5 @@
 import { Clock3, Dumbbell, UserRound } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import AppUiCloseButton from '../ui/AppUiCloseButton'
 import AppUiBackdrop from '../ui/AppUiBackdrop'
 import { getClientDisplayName } from '../../lib/clientDisplayName'
@@ -41,6 +41,7 @@ export default function CoachSessionDetailSheet({
   passActionBusy = false,
 }) {
   const [showMoreActions, setShowMoreActions] = useState(false)
+  useEffect(() => { setShowMoreActions(false) }, [session?.id, open])
   if (!session) return null
 
   const athleteAssignments = assignments.filter(
@@ -281,7 +282,7 @@ export default function CoachSessionDetailSheet({
           </button>
           {session.status === SCHEDULED_SESSION_STATUS.SCHEDULED && (
             <>
-              <button
+              {!rescheduleMode ? <button
                 type="button"
                 className="coach-secondary-button"
                 disabled={completingSessionId === session.id}
@@ -289,8 +290,8 @@ export default function CoachSessionDetailSheet({
               >
                 <Dumbbell {...ICON} />
                 Start Session
-              </button>
-              <button
+              </button> : null}
+              {!rescheduleMode ? <button
                 type="button"
                 className="gold-button machined coach-primary-action"
                 disabled={completingSessionId === session.id}
@@ -299,7 +300,7 @@ export default function CoachSessionDetailSheet({
                 {completingSessionId === session.id
                   ? 'Completing…'
                   : 'Mark complete · no pass deducted'}
-              </button>
+              </button> : null
               {rescheduleMode ? (
                 <button
                   type="button"
