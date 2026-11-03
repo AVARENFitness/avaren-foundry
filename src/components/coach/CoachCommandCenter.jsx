@@ -24,6 +24,7 @@ import {
   getCoachAttentionItems,
 } from '../../lib/coachAttention'
 import { countActiveBusinessClients } from '../../lib/coachBusinessClient'
+import { filterPendingCoachHubAppointments } from '../../lib/coachHubAppointments'
 import { isLeadFollowUpDue } from '../../lib/coachLead'
 import {
   countActiveClientsWithLowPasses,
@@ -83,13 +84,22 @@ export default function CoachCommandCenter({
   const [hubScheduleRefresh, setHubScheduleRefresh] = useState(0)
   const [rosterExpanded, setRosterExpanded] = useState(rosterOnly)
   const [rosterFilter, setRosterFilter] = useState(ROSTER_HUB_FILTER.ACTIVE)
-  const [upcomingByBusinessClientId, setUpcomingByBusinessClientId] = useState({})
+  const [loadedUpcomingSessions, setLoadedUpcomingSessions] = useState([])
+  const [now, setNow] = useState(() => Date.now())
   const [recentMissedByBusinessClientId, setRecentMissedByBusinessClientId] =
     useState({})
   const [lastCompletedByBusinessClientId, setLastCompletedByBusinessClientId] =
     useState({})
-  const [todaySessionCount, setTodaySessionCount] = useState(0)
-  const [todaySessions, setTodaySessions] = useState([])
+  const [loadedTodaySessions, setLoadedTodaySessions] = useState([])
+  const upcomingByBusinessClientId = useMemo(
+    () => buildUpcomingSessionsByBusinessClientId(filterPendingCoachHubAppointments(loadedUpcomingSessions, new Date(now)), new Date(now)),
+    [loadedUpcomingSessions, now],
+  )
+  const todaySessions = useMemo(
+    () => filterPendingCoachHubAppointments(loadedTodaySessions, new Date(now)),
+    [loadedTodaySessions, now],
+  )
+  const todaySessionCount = todaySessions.length
 
   const hero = portfolio?.hero
   const passSummaryByBusinessClientId = useMemo(
@@ -193,9 +203,7 @@ export default function CoachCommandCenter({
       const normalizedCadence = sortScheduledSessions(
         (cadenceRows ?? []).map(normalizeScheduledSession).filter(Boolean),
       )
-      setUpcomingByBusinessClientId(
-        buildUpcomingSessionsByBusinessClientId(normalizedUpcoming, new Date()),
-      )
+      setLoadedUpcomingSessions(normalizedUpcoming)
       setRecentMissedByBusinessClientId(
         buildRecentMissedByBusinessClientId(normalizedRecent),
       )
@@ -205,20 +213,36 @@ export default function CoachCommandCenter({
       const normalizedToday = sortScheduledSessions(
         (todayRows ?? []).map(normalizeScheduledSession).filter(Boolean),
       )
-      setTodaySessions(normalizedToday)
-      setTodaySessionCount(normalizedToday.length)
+      setLoadedTodaySessions(normalizedToday)
+      setNow(Date.now())
     } catch {
-      setUpcomingByBusinessClientId({})
+      setLoadedUpcomingSessions([])
       setRecentMissedByBusinessClientId({})
       setLastCompletedByBusinessClientId({})
-      setTodaySessions([])
-      setTodaySessionCount(0)
+      setLoadedTodaySessions([])
     }
   }, [])
 
   useEffect(() => {
     loadUpcomingSessions()
   }, [loadUpcomingSessions, hubScheduleRefresh])
+
+  useEffect(() => {
+    const timerId = window.setInterval(() => setNow(Date.now()), 30_000)
+    const refreshOnFocus = () => {
+      if (document.visibilityState === 'visible') {
+        setNow(Date.now())
+        loadUpcomingSessions()
+      }
+    }
+    document.addEventListener('visibilitychange', refreshOnFocus)
+    window.addEventListener('focus', refreshOnFocus)
+    return () => {
+      window.clearInterval(timerId)
+      document.removeEventListener('visibilitychange', refreshOnFocus)
+      window.removeEventListener('focus', refreshOnFocus)
+    }
+  }, [loadUpcomingSessions])
 
   const sortedRoster = useMemo(
     () =>
