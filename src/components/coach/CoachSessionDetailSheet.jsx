@@ -1,5 +1,5 @@
 import { Clock3, Dumbbell, UserRound } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import AppUiCloseButton from '../ui/AppUiCloseButton'
 import AppUiBackdrop from '../ui/AppUiBackdrop'
 import { getClientDisplayName } from '../../lib/clientDisplayName'
@@ -41,6 +41,7 @@ export default function CoachSessionDetailSheet({
   passActionBusy = false,
 }) {
   const [showMoreActions, setShowMoreActions] = useState(false)
+  useEffect(() => { setShowMoreActions(false) }, [session?.id, open])
   if (!session) return null
 
   const athleteAssignments = assignments.filter(
@@ -281,7 +282,7 @@ export default function CoachSessionDetailSheet({
           </button>
           {session.status === SCHEDULED_SESSION_STATUS.SCHEDULED && (
             <>
-              <button
+              {!rescheduleMode ? <button
                 type="button"
                 className="coach-secondary-button"
                 disabled={completingSessionId === session.id}
@@ -289,8 +290,8 @@ export default function CoachSessionDetailSheet({
               >
                 <Dumbbell {...ICON} />
                 Start Session
-              </button>
-              <button
+              </button> : null}
+              {!rescheduleMode ? <button
                 type="button"
                 className="gold-button machined coach-primary-action"
                 disabled={completingSessionId === session.id}
@@ -299,16 +300,11 @@ export default function CoachSessionDetailSheet({
                 {completingSessionId === session.id
                   ? 'Completing…'
                   : 'Mark complete · no pass deducted'}
-              </button>
-              <button type="button" className="coach-secondary-button" aria-expanded={showMoreActions}
-                onClick={() => setShowMoreActions(value => !value)}>
-                {showMoreActions ? 'Fewer options' : 'More options'}
-              </button>
-              {showMoreActions || rescheduleMode ? (<div className="coach-session-detail-more-actions">
+              </button> : null}
               {rescheduleMode ? (
                 <button
                   type="button"
-                  className="coach-secondary-button"
+                  className="gold-button machined coach-primary-action"
                   onClick={onSaveReschedule}
                 >
                   Save changes
@@ -319,24 +315,41 @@ export default function CoachSessionDetailSheet({
                   className="coach-secondary-button"
                   onClick={() => onBeginReschedule?.(session)}
                 >
+                  <Clock3 {...ICON} />
                   Reschedule
                 </button>
               )}
-              <button
-                type="button"
-                className="coach-secondary-button"
-                onClick={() => onCancel?.(session)}
-              >
-                Cancel Session
-              </button>
-              <button
-                type="button"
-                className="coach-secondary-button"
-                onClick={() => onMarkMissed?.(session)}
-              >
-                Mark missed
-              </button>
-              </div>) : null}
+              {!rescheduleMode ? (
+                <>
+                  <button
+                    type="button"
+                    className="coach-secondary-button"
+                    aria-expanded={showMoreActions}
+                    aria-controls="coach-session-more-actions"
+                    onClick={() => setShowMoreActions((value) => !value)}
+                  >
+                    {showMoreActions ? 'Fewer options' : 'More options'}
+                  </button>
+                  {showMoreActions ? (
+                    <div className="coach-session-detail-more-actions" id="coach-session-more-actions">
+                      <button
+                        type="button"
+                        className="coach-secondary-button"
+                        onClick={() => onCancel?.(session)}
+                      >
+                        Cancel session
+                      </button>
+                      <button
+                        type="button"
+                        className="coach-secondary-button"
+                        onClick={() => onMarkMissed?.(session)}
+                      >
+                        Mark missed
+                      </button>
+                    </div>
+                  ) : null}
+                </>
+              ) : null}
             </>
           )}
         </div>

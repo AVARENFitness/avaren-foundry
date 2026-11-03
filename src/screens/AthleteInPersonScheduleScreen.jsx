@@ -1,5 +1,6 @@
 import '../styles/screens/calendar-shared-polish.css'
 import { useCalendarSwipe } from '../hooks/useCalendarSwipe'
+import { shiftCalendarSelectionMonth, shiftCalendarSelectionWeek } from '../lib/calendarSelectionNavigation'
 import CoachQuickPlan from '../components/CoachQuickPlan'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
@@ -307,11 +308,9 @@ export default function AthleteInPersonScheduleScreen({
   ).length
 
   const shiftMonth = (delta) => {
-    const next = new Date(anchor)
-    next.setHours(12, 0, 0, 0)
-    next.setDate(1)
-    next.setMonth(next.getMonth() + delta)
-    setAnchor(next)
+    const nextKey = shiftCalendarSelectionMonth(selectedDayKey, delta)
+    setSelectedDayKey(nextKey)
+    setAnchor(new Date(`${nextKey}T12:00:00`))
   }
 
   const shiftDay = (delta) => {
@@ -326,7 +325,9 @@ export default function AthleteInPersonScheduleScreen({
       return
     }
     if (viewMode === COACH_CALENDAR_VIEW.WEEK) {
-      setAnchor(addDays(anchor, delta * 7))
+      const nextKey = shiftCalendarSelectionWeek(selectedDayKey, delta)
+      setSelectedDayKey(nextKey)
+      setAnchor(new Date(`${nextKey}T12:00:00`))
       return
     }
     shiftDay(delta)
@@ -638,11 +639,14 @@ export default function AthleteInPersonScheduleScreen({
                   key={key}
                   type="button"
                   className={`coach-calendar-month-day${inCurrentMonth ? '' : ' is-outside'}${key === todayKey ? ' is-today' : ''}${key === selectedDayKey ? ' is-selected' : ''}${items.length ? ' has-items' : ''}`}
+                  aria-pressed={key === selectedDayKey}
+                  aria-current={key === todayKey ? 'date' : undefined}
                   onClick={() => {
                     setSelectedDayKey(key)
                     setAnchor(date)
-                    // Keep the selected date visible in the overview and update the agenda below.
+
                   }}
+                  aria-label={`${formatCoachCalendarDayHeading(key)}, ${items.length} calendar item${items.length === 1 ? '' : 's'}`}
                 >
                   <span className="coach-calendar-month-date">{date.getDate()}</span>
                   <div className="coach-calendar-month-events" aria-hidden="true">

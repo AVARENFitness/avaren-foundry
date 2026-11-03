@@ -1,5 +1,6 @@
 import '../styles/screens/calendar-shared-polish.css'
 import { useCalendarSwipe } from '../hooks/useCalendarSwipe'
+import { shiftCalendarSelectionMonth, shiftCalendarSelectionWeek } from '../lib/calendarSelectionNavigation'
 import {
   CalendarClock,
   ChevronDown,
@@ -905,11 +906,9 @@ export default function CoachSessionCalendar({
   const monthHeading = formatCoachCalendarMonthHeading(anchor)
 
   const shiftMonth = (delta) => {
-    const next = new Date(anchor)
-    next.setHours(12, 0, 0, 0)
-    next.setDate(1)
-    next.setMonth(next.getMonth() + delta)
-    setAnchor(next)
+    const nextKey = shiftCalendarSelectionMonth(selectedDayKey, delta)
+    setSelectedDayKey(nextKey)
+    setAnchor(new Date(`${nextKey}T12:00:00`))
   }
 
   const shiftCalendarPeriod = (delta) => {
@@ -918,7 +917,9 @@ export default function CoachSessionCalendar({
       return
     }
     if (viewMode === COACH_CALENDAR_VIEW.WEEK) {
-      setAnchor(addDays(anchor, delta * 7))
+      const nextKey = shiftCalendarSelectionWeek(selectedDayKey, delta)
+      setSelectedDayKey(nextKey)
+      setAnchor(new Date(`${nextKey}T12:00:00`))
       return
     }
     shiftSelectedDay(delta)
@@ -1147,6 +1148,8 @@ export default function CoachSessionCalendar({
                   key={key}
                   type="button"
                   className={`coach-calendar-month-day${inCurrentMonth ? '' : ' is-outside'}${isToday ? ' is-today' : ''}${key === selectedDayKey ? ' is-selected' : ''}${items.length ? ' has-items' : ''}`}
+                  aria-pressed={key === selectedDayKey}
+                  aria-current={key === todayKey ? 'date' : undefined}
                   onClick={() => {
                     setSelectedDayKey(key)
                     setAnchor(date)
