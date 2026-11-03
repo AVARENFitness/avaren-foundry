@@ -1147,6 +1147,8 @@ export default function CoachSessionCalendar({
                   key={key}
                   type="button"
                   className={`coach-calendar-month-day${inCurrentMonth ? '' : ' is-outside'}${isToday ? ' is-today' : ''}${key === selectedDayKey ? ' is-selected' : ''}${items.length ? ' has-items' : ''}`}
+                  aria-pressed={key === selectedDayKey}
+                  aria-current={key === todayKey ? 'date' : undefined}
                   onClick={() => {
                     setSelectedDayKey(key)
                     setAnchor(date)
