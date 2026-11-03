@@ -300,15 +300,10 @@ export default function CoachSessionDetailSheet({
                   ? 'Completing…'
                   : 'Mark complete · no pass deducted'}
               </button>
-              <button type="button" className="coach-secondary-button" aria-expanded={showMoreActions}
-                onClick={() => setShowMoreActions(value => !value)}>
-                {showMoreActions ? 'Fewer options' : 'More options'}
-              </button>
-              {showMoreActions || rescheduleMode ? (<div className="coach-session-detail-more-actions">
               {rescheduleMode ? (
                 <button
                   type="button"
-                  className="coach-secondary-button"
+                  className="gold-button machined coach-primary-action"
                   onClick={onSaveReschedule}
                 >
                   Save changes
@@ -319,24 +314,41 @@ export default function CoachSessionDetailSheet({
                   className="coach-secondary-button"
                   onClick={() => onBeginReschedule?.(session)}
                 >
+                  <Clock3 {...ICON} />
                   Reschedule
                 </button>
               )}
-              <button
-                type="button"
-                className="coach-secondary-button"
-                onClick={() => onCancel?.(session)}
-              >
-                Cancel Session
-              </button>
-              <button
-                type="button"
-                className="coach-secondary-button"
-                onClick={() => onMarkMissed?.(session)}
-              >
-                Mark missed
-              </button>
-              </div>) : null}
+              {!rescheduleMode ? (
+                <>
+                  <button
+                    type="button"
+                    className="coach-secondary-button"
+                    aria-expanded={showMoreActions}
+                    aria-controls="coach-session-more-actions"
+                    onClick={() => setShowMoreActions((value) => !value)}
+                  >
+                    {showMoreActions ? 'Fewer options' : 'More options'}
+                  </button>
+                  {showMoreActions ? (
+                    <div className="coach-session-detail-more-actions" id="coach-session-more-actions">
+                      <button
+                        type="button"
+                        className="coach-secondary-button"
+                        onClick={() => onCancel?.(session)}
+                      >
+                        Cancel session
+                      </button>
+                      <button
+                        type="button"
+                        className="coach-secondary-button"
+                        onClick={() => onMarkMissed?.(session)}
+                      >
+                        Mark missed
+                      </button>
+                    </div>
+                  ) : null}
+                </>
+              ) : null}
             </>
           )}
         </div>
