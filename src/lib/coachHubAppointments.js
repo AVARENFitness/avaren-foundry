@@ -1,4 +1,3 @@
-import { appointmentEndMs } from './coachingAppointment'
 import { buildStartsAtIso, resolveCoachScheduleTimezone } from './sessionTimezone'
 import { SCHEDULED_SESSION_STATUS } from './coachScheduledSessions'
 
