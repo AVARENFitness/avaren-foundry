@@ -18,7 +18,6 @@ import {
   dateKey,
   filterAvailableTimeOptions,
   formatScheduleDateLong,
-  formatTime12Hour,
   isScheduleTimeInPast,
 } from '../lib/appointmentScheduling'
 import {
@@ -95,9 +94,6 @@ export default function CoachScheduleSessionSheet({
   const selectedAssignment = draft.assignments?.find(
     (assignment) => String(assignment.id) === String(draft.assignmentId),
   )
-
-  const selectedTimeLabel =
-    formatTime12Hour(draft.startTime) || 'Select time'
 
   useEffect(() => {
     if (!open) return undefined
@@ -311,57 +307,21 @@ export default function CoachScheduleSessionSheet({
           </div>
 
           <div className="coach-schedule-field-group">
-            <span className="coach-schedule-field-label">Time</span>
-            <div className="coach-schedule-picker">
-              <button
-                type="button"
-                className="coach-schedule-control"
-                aria-expanded={openMenu === 'time'}
-                aria-haspopup="listbox"
-                onClick={toggleMenu('time')}
-              >
-                <span>{selectedTimeLabel}</span>
-                <ChevronDown size={16} strokeWidth={1.75} aria-hidden="true" />
-              </button>
-              {openMenu === 'time' ? (
-                <div
-                  className="coach-schedule-menu"
-                  role="listbox"
-                  onClick={(event) => event.stopPropagation()}
-                >
-                  {timeOptions.map((option) => {
-                    const disabled =
-                      draft.sessionDate === todayKey &&
-                      !availableTimeOptions.some(
-                        (entry) => entry.value === option.value,
-                      )
-
-                    return (
-                      <button
-                        key={option.value}
-                        type="button"
-                        role="option"
-                        aria-selected={draft.startTime === option.value}
-                        disabled={disabled}
-                        className={`coach-schedule-menu-option ${
-                          draft.startTime === option.value ? 'active' : ''
-                        }`}
-                        onClick={() => {
-                          if (disabled) return
-                          setTimeError('')
-                          onDraftChange?.({ ...draft, startTime: option.value })
-                          setOpenMenu(null)
-                        }}
-                      >
-                        {option.label}
-                      </button>
-                    )
-                  })}
-                </div>
-              ) : null}
-            </div>
+            <label className="coach-schedule-field-label" htmlFor="coach-session-start-time">Start time</label>
+            <input
+              id="coach-session-start-time"
+              type="time"
+              step="300"
+              className="coach-schedule-control coach-schedule-native-time"
+              aria-label="Personal training start time"
+              value={draft.startTime || ''}
+              onChange={(event) => {
+                setTimeError('')
+                onDraftChange?.({ ...draft, startTime: event.target.value })
+              }}
+            />
             {timeError ? (
-              <small className="coach-schedule-time-error">{timeError}</small>
+              <small className="coach-schedule-time-error" role="alert">{timeError}</small>
             ) : null}
           </div>
 
