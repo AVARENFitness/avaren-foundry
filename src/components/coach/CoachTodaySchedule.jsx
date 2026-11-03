@@ -3,6 +3,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { coachBackend } from '../../lib/coachBackend'
 import { resolveRecordBusinessClientId } from '../../lib/coachBusinessClient'
 import { appointmentsOnDate } from '../../lib/coachingAppointment'
+import { filterPendingCoachHubAppointments } from '../../lib/coachHubAppointments'
+import { dateKey } from '../../lib/appointmentScheduling'
 import { appointmentTypeLabel } from '../../lib/coachingAppointment'
 import { formatRosterPassLabel } from '../../lib/coachClientRosterUi'
 import {
@@ -12,7 +14,6 @@ import {
 import CoachAppointmentCard from './CoachAppointmentCard'
 import EmptyState from '../ui/EmptyState'
 
-const todayKey = () => new Date().toISOString().slice(0, 10)
 
 const resolveContextSignal = ({
   session,
@@ -49,6 +50,7 @@ export default function CoachTodaySchedule({
 }) {
   const [sessions, setSessions] = useState([])
   const [loading, setLoading] = useState(true)
+  const [now, setNow] = useState(() => Date.now())
 
   const clientByAthleteId = useMemo(
     () => Object.fromEntries(clients.map((client) => [client.athlete_id, client])),
@@ -68,7 +70,7 @@ export default function CoachTodaySchedule({
   const loadToday = useCallback(async () => {
     setLoading(true)
     try {
-      const key = todayKey()
+      const key = dateKey(new Date())
       const rows = await coachBackend.listScheduledSessions({
         startDate: key,
         endDate: key,
@@ -90,22 +92,25 @@ export default function CoachTodaySchedule({
   useEffect(() => {
     const refetchOnFocus = () => {
       if (document.visibilityState === 'visible') {
+        setNow(Date.now())
         loadToday()
       }
     }
 
     document.addEventListener('visibilitychange', refetchOnFocus)
-    window.addEventListener('focus', loadToday)
+    window.addEventListener('focus', refetchOnFocus)
+    const timerId = window.setInterval(() => setNow(Date.now()), 30_000)
 
     return () => {
       document.removeEventListener('visibilitychange', refetchOnFocus)
-      window.removeEventListener('focus', loadToday)
+      window.removeEventListener('focus', refetchOnFocus)
+      window.clearInterval(timerId)
     }
   }, [loadToday])
 
   const todayItems = useMemo(
-    () => appointmentsOnDate(sessions, todayKey()),
-    [sessions],
+    () => filterPendingCoachHubAppointments(appointmentsOnDate(sessions, dateKey(new Date(now))), new Date(now)),
+    [sessions, now],
   )
 
   const resolveClientForSession = (session) => {
