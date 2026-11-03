@@ -638,11 +638,14 @@ export default function AthleteInPersonScheduleScreen({
                   key={key}
                   type="button"
                   className={`coach-calendar-month-day${inCurrentMonth ? '' : ' is-outside'}${key === todayKey ? ' is-today' : ''}${key === selectedDayKey ? ' is-selected' : ''}${items.length ? ' has-items' : ''}`}
+                  aria-pressed={key === selectedDayKey}
+                  aria-current={key === todayKey ? 'date' : undefined}
                   onClick={() => {
                     setSelectedDayKey(key)
                     setAnchor(date)
-                    // Keep the selected date visible in the overview and update the agenda below.
+
                   }}
+                  aria-label={`${formatCoachCalendarDayHeading(key)}, ${items.length} calendar item${items.length === 1 ? '' : 's'}`}
                 >
                   <span className="coach-calendar-month-date">{date.getDate()}</span>
                   <div className="coach-calendar-month-events" aria-hidden="true">
