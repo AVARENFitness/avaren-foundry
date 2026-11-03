@@ -70,7 +70,7 @@ export default function CoachTodaySchedule({
   const loadToday = useCallback(async () => {
     setLoading(true)
     try {
-      const key = todayKey()
+      const key = dateKey(new Date())
       const rows = await coachBackend.listScheduledSessions({
         startDate: key,
         endDate: key,
