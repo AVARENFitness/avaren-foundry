@@ -39,7 +39,6 @@ import {
   hasRemainingExercisesAfter,
   isSupersetComplete,
   shouldShowContinueAction,
-  shouldShowFinishWorkoutPrimary,
 } from '../lib/workoutProgression'
 import {
   getRestTimerRemainingSeconds,
@@ -496,10 +495,6 @@ export default function GymScreen({
     activeExercise,
     supersetRoundByGroup,
   )
-  const showFinishPrimary = shouldShowFinishWorkoutPrimary(
-    exercises,
-    activeExercise,
-  )
 
   return (
     <div
@@ -823,23 +818,6 @@ export default function GymScreen({
                 <button
                   onClick={() => {
                     setShowWorkoutMenu(false)
-                    setShowWorkoutPicker(true)
-                  }}
-                >
-                  <div className="workout-option-icon">
-                    <RefreshCw size={18} />
-                  </div>
-                  <div>
-                    <strong>Change Workout</strong>
-                    <small>
-                      Replace this session with another workout.
-                    </small>
-                  </div>
-                </button>
-
-                <button
-                  onClick={() => {
-                    setShowWorkoutMenu(false)
                     onRestartWorkout?.()
                   }}
                 >
@@ -1093,6 +1071,7 @@ export default function GymScreen({
           <>
             <button
               className="gold-button machined focus-continue-button"
+              disabled={isFinishing}
               onClick={continueWorkout}
             >
               {continueActionLabel}
@@ -1111,11 +1090,7 @@ export default function GymScreen({
             disabled={isFinishing}
             onClick={onFinish}
           >
-            {isFinishing
-              ? 'Saving Workout…'
-              : showFinishPrimary
-                ? 'Finish Workout'
-                : 'Finish Workout'}
+            {isFinishing ? 'Saving Workout…' : 'Finish Workout'}
           </button>
         )}
       </div>
