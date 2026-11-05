@@ -1674,12 +1674,29 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
   return (
     <div className="nutrition-screen">
       <header className="nutrition-screen-header">
-        <div><span className="eyebrow">NUTRITION</span><h1>Today’s Nutrition</h1><p>Everything important today, with deeper tools one tap away.</p></div>
-        <button onClick={() => setTab('Goals')}><Settings2 size={18}/>Targets</button>
+        <div>
+          <span className="eyebrow">NUTRITION</span>
+          <h1>{tab === 'Meals' ? 'Log food' : tab === 'Library' ? 'Food library' : tab === 'Insights' ? 'Nutrition insights' : tab === 'Goals' ? 'Nutrition targets' : 'Today’s Nutrition'}</h1>
+        </div>
+        {tab !== 'Goals' ? (
+          <button type="button" onClick={() => setTab('Goals')} aria-label="Edit nutrition targets">
+            <Settings2 size={18} aria-hidden="true"/>Targets
+          </button>
+        ) : null}
       </header>
 
-      <nav className="nutrition-tabs">
-        {visibleTabs.map((item) => <button key={item.value} className={tab === item.value ? 'active' : ''} onClick={() => setTab(item.value)}>{item.label}</button>)}
+      <nav className="nutrition-tabs" aria-label="Nutrition sections">
+        {visibleTabs.map((item) => (
+          <button
+            type="button"
+            key={item.value}
+            className={tab === item.value ? 'active' : ''}
+            aria-current={tab === item.value ? 'page' : undefined}
+            onClick={() => setTab(item.value)}
+          >
+            {item.label}
+          </button>
+        ))}
       </nav>
 
       <input
@@ -1883,7 +1900,11 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
           </section>
         ) : (
           <>
-        <div className="nutrition-date-switcher"><button onClick={() => changeDate(-1)}><ChevronLeft/></button><strong>{new Date(`${date}T12:00:00`).toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' })}</strong><button disabled={date === nutritionDateKey()} onClick={() => changeDate(1)}><ChevronRight/></button></div>
+        <div className="nutrition-date-switcher">
+          <button type="button" aria-label="Previous nutrition day" onClick={() => changeDate(-1)}><ChevronLeft aria-hidden="true"/></button>
+          <strong aria-live="polite">{new Date(`${date}T12:00:00`).toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' })}</strong>
+          <button type="button" aria-label="Next nutrition day" disabled={date === nutritionDateKey()} onClick={() => changeDate(1)}><ChevronRight aria-hidden="true"/></button>
+        </div>
 
         <section className="nutrition-calorie-hero">
           <div><span className="eyebrow">CALORIES REMAINING</span><strong>{Math.round(remaining.calories)}</strong><small>{Math.round(totals.calories)} eaten · {Math.round(Number(goals.calories) + workoutActivityTotal)} budget{workoutActivityTotal > 0 ? ` · +${Math.round(workoutActivityTotal)} activity` : ''}</small></div>
