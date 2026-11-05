@@ -837,3 +837,25 @@
   .coach-session-calendar-screen .coach-calendar-month-date,
   .athlete-calendar-screen .coach-calendar-month-date { width: 32px; height: 32px; }
 }
+
+
+/* Keep optional bulk actions compact and visible only while the mode is active. */
+.coach-session-calendar-screen .coach-calendar-bulk-tools.is-active {
+  margin: 6px 0 10px;
+  padding: 8px 0;
+  border-top: 1px solid rgba(193,170,121,.12);
+  border-bottom: 1px solid rgba(193,170,121,.12);
+}
+.coach-session-calendar-screen .coach-calendar-bulk-tools.is-active .coach-calendar-workflow-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 0;
+}
+.coach-session-calendar-screen .coach-calendar-bulk-tools.is-active .coach-calendar-workflow-actions > span {
+  color: var(--muted);
+  font-size: .85rem;
+  line-height: 1.4;
+}

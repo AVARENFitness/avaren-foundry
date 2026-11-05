@@ -300,6 +300,21 @@ describe('CoachSessionCalendar usability', () => {
     expect(within(sheet).getByRole('heading', { name: /personal training/i })).toBeInTheDocument()
   })
 
+  it('keeps advanced repeat tools out of the main calendar until requested', async () => {
+    const user = userEvent.setup()
+    render(<CoachSessionCalendar clients={[jake]} assignments={[]} />)
+
+    expect(screen.queryByText('More calendar tools')).not.toBeInTheDocument()
+    expect(screen.queryByRole('region', { name: 'Repeat selection' })).not.toBeInTheDocument()
+
+    await user.click(screen.getByTestId('coach-calendar-add-trigger'))
+    await user.click(screen.getByTestId('coach-calendar-repeat-appointments'))
+
+    expect(screen.getByRole('region', { name: 'Repeat selection' })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Done selecting' }))
+    expect(screen.queryByRole('region', { name: 'Repeat selection' })).not.toBeInTheDocument()
+  })
+
   it('opens canonical detail when appointment row is tapped', async () => {
     render(<CoachSessionCalendar clients={[jake, sarah]} assignments={[]} />)
     fireEvent.click(screen.getByTestId('coach-calendar-view-day'))
