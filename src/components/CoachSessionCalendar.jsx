@@ -1007,7 +1007,7 @@ export default function CoachSessionCalendar({
               type="button"
               className="coach-calendar-add-options"
               data-testid="coach-calendar-add-trigger"
-              aria-label="More calendar creation options"
+              aria-label="More calendar actions"
               aria-expanded={showAddMenu}
               aria-haspopup="menu"
               onClick={() => setShowAddMenu((current) => !current)}
@@ -1023,6 +1023,21 @@ export default function CoachSessionCalendar({
               >
                 <button type="button" role="menuitem" data-testid="coach-calendar-import-screenshot" onClick={() => { setShowAddMenu(false); setShowScreenshotImport(true) }}>
                   <span><strong>Import screenshot</strong><small>Google Calendar photo · review with AVA</small></span>
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  data-testid="coach-calendar-repeat-appointments"
+                  onClick={() => {
+                    setShowAddMenu(false)
+                    setRepeatMode(true)
+                    setRepeatSelection([])
+                  }}
+                >
+                  <span>
+                    <strong>Repeat appointments</strong>
+                    <small>Select existing appointments to repeat</small>
+                  </span>
                 </button>
                 <button
                   type="button"
@@ -1107,15 +1122,20 @@ export default function CoachSessionCalendar({
         </div>
       </header>
 
-      <details className="coach-calendar-bulk-tools" open={repeatMode || undefined}>
-        <summary>{repeatMode ? 'Repeat selection active' : 'More calendar tools'}</summary>
-        <div className="coach-calendar-workflow-actions">
-          <button type="button" className="coach-calendar-today-control" aria-pressed={repeatMode}
-            onClick={() => { setRepeatMode(current => !current); setRepeatSelection([]) }}>
-            {repeatMode ? 'Done selecting' : 'Repeat appointments'}
-          </button>
-        </div>
-      </details>
+      {repeatMode ? (
+        <section className="coach-calendar-bulk-tools is-active" aria-label="Repeat selection">
+          <div className="coach-calendar-workflow-actions">
+            <span>Select appointments to repeat</span>
+            <button
+              type="button"
+              className="coach-calendar-today-control"
+              onClick={() => { setRepeatMode(false); setRepeatSelection([]) }}
+            >
+              Done selecting
+            </button>
+          </div>
+        </section>
+      ) : null}
 
       {viewMode === COACH_CALENDAR_VIEW.MONTH ? (
         <section className="coach-calendar-month-view" data-testid="coach-calendar-month-grid">
