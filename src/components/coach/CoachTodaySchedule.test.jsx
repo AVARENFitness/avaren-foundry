@@ -47,6 +47,25 @@ describe('CoachTodaySchedule', () => {
     ])
   })
 
+  it('keeps one client action on each upcoming appointment', async () => {
+    const user = userEvent.setup()
+    const onOpenClient = vi.fn()
+    render(
+      <CoachTodaySchedule
+        clients={[jake]}
+        onOpenClient={onOpenClient}
+        onOpenClientSection={vi.fn()}
+      />,
+    )
+    await waitFor(() => expect(screen.getByText('Jake')).toBeInTheDocument())
+    expect(screen.getAllByRole('button', { name: 'Open client' })).toHaveLength(1)
+    expect(screen.queryByRole('button', { name: 'Notes' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Passes' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Training' })).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Open client' }))
+    expect(onOpenClient).toHaveBeenCalledWith(jake)
+  })
+
   it('opens appointment detail instead of client profile when onOpenSession is provided', async () => {
     const user = userEvent.setup()
     const onOpenSession = vi.fn()
