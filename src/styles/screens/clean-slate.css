@@ -295,3 +295,23 @@ input, textarea, select { max-width: 100%; min-width: 0; }
     gap: 5px;
   }
 }
+
+
+/* Progress: metric changes should feel like one compact native control. */
+.progress-chart-panel .metric-switcher {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+.progress-chart-panel .metric-switcher > button {
+  min-height: 44px;
+  min-width: 0;
+  padding-inline: 13px;
+  border-radius: 11px;
+  touch-action: manipulation;
+}
+.progress-chart-panel .metric-switcher > button:focus-visible {
+  outline: 2px solid var(--gold, #c1aa79);
+  outline-offset: 2px;
+}
