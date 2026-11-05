@@ -61,6 +61,29 @@ describe('NutritionScreen logging UX regressions', () => {
     expect(source).not.toContain('with today’s adjustments.')
   })
 
+  it('ignores stale photo results after a new scan or sheet dismissal', () => {
+    const resetStart = source.indexOf('const resetFoodScan =')
+    const resetEnd = source.indexOf('const openBarcodeMatch =', resetStart)
+    const reset = source.slice(resetStart, resetEnd)
+    const scanStart = source.indexOf('const runFoodScan = async')
+    const scanEnd = source.indexOf('const scanServingBasis =', scanStart)
+    const scan = source.slice(scanStart, scanEnd)
+    const barcodeStart = source.indexOf('const openBarcodeMatch =')
+    const barcodeEnd = source.indexOf('const lookupManualBarcode =', barcodeStart)
+    const barcode = source.slice(barcodeStart, barcodeEnd)
+
+    expect(source).toContain('const scanRequestVersionRef = useRef(0)')
+    expect(reset).toContain('scanRequestVersionRef.current += 1')
+    expect(scan).toContain('const requestVersion = ++scanRequestVersionRef.current')
+    expect(scan).toContain('requestVersion === scanRequestVersionRef.current')
+    expect(scan).toContain('if (!isCurrentScan()) return')
+    expect(scan).toContain('await openBarcodeMatch(detectedBarcode, isCurrentScan)')
+    expect(scan).toContain('await openBarcodeMatch(barcode, isCurrentScan)')
+    expect(scan).toContain("if (!isCurrentScan()) return\n      setScanState('success')")
+    expect(scan).toContain("if (!isCurrentScan()) return\n      setScanState('error')")
+    expect(barcode).toContain('if (!isCurrent()) return')
+  })
+
   it('keeps scan drafts recoverable after analysis errors', () => {
     const start = source.indexOf("const runFoodScan = async")
     const end = source.indexOf("const scanServingBasis =", start)
@@ -223,7 +246,7 @@ describe('NutritionScreen logging UX regressions', () => {
     const end = source.indexOf('const scanServingBasis =', start)
     const scan = source.slice(start, end)
     expect(scan).toContain("const barcode = normalizeBarcodeDigits(result.barcode)")
-    expect(scan).toContain("await openBarcodeMatch(barcode)")
+    expect(scan).toContain("await openBarcodeMatch(barcode, isCurrentScan)")
     expect(scan).toContain("mode: 'food'")
     expect(scan).toContain("setScanMode('food')")
     expect(scan).toContain('No verified barcode match or readable nutrition label')

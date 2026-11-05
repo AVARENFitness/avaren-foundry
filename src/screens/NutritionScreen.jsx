@@ -217,6 +217,7 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
   const [scanMeasureAmount, setScanMeasureAmount] = useState('1')
   const [scanMatches, setScanMatches] = useState([])
   const [scanSavedAsReusable, setScanSavedAsReusable] = useState(false)
+  const scanRequestVersionRef = useRef(0)
   const scannedFoodLogLockRef = useRef(null)
   const scannedRecipeSaveLockRef = useRef(null)
   if (!scannedFoodLogLockRef.current) scannedFoodLogLockRef.current = createActionLock()
@@ -710,6 +711,8 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
   })
 
   const resetFoodScan = () => {
+    // Invalidate outstanding image reads and network scans before clearing the sheet.
+    scanRequestVersionRef.current += 1
     setScanState('idle')
     setScanMode('food')
     setScanError('')
@@ -729,13 +732,14 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
     scheduleNutritionModalCleanup()
   }
 
-  const openBarcodeMatch = async (barcode) => {
+  const openBarcodeMatch = async (barcode, isCurrent = () => true) => {
     const digits = normalizeBarcodeDigits(barcode)
     if (!digits) {
       throw new Error('Enter or scan a valid 8, 12, or 13 digit barcode.')
     }
 
     const matched = await getFatSecretFoodByBarcode(digits)
+    if (!isCurrent()) return
     const food = {
       id: `fatsecret:${matched.foodId}`,
       foodId: matched.foodId,
@@ -774,6 +778,9 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
   }
 
   const runFoodScan = async (file, contextOverride = null, mode = 'food') => {
+    // Only the newest request may update scan state; closing the sheet invalidates it.
+    const requestVersion = ++scanRequestVersionRef.current
+    const isCurrentScan = () => requestVersion === scanRequestVersionRef.current
     // A fresh scan may be logged or saved once; the previous scan remains locked.
     scannedFoodLogLockRef.current.release()
     scannedRecipeSaveLockRef.current.release()
@@ -786,6 +793,7 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
 
       if (mode === 'food' && file) {
         const prepared = await prepareNutritionScanImage(file)
+        if (!isCurrentScan()) return
         if (!prepared) throw new Error('Choose a photo first.')
         setScanPreview(prepared)
         setScanResult(null)
@@ -799,8 +807,9 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
 
       if (mode === 'barcode' && file) {
         const detectedBarcode = await detectNutritionBarcode(file)
+        if (!isCurrentScan()) return
         if (detectedBarcode) {
-          await openBarcodeMatch(detectedBarcode)
+          await openBarcodeMatch(detectedBarcode, isCurrentScan)
           return
         }
       }
@@ -808,6 +817,7 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
       const prepared = file
         ? await prepareNutritionScanImage(file)
         : scanPreview
+      if (!isCurrentScan()) return
       if (!prepared) throw new Error('Choose a photo first.')
       if (file) setScanPreview(prepared)
 
@@ -816,13 +826,14 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
         context: contextOverride ?? scanContext,
         mode,
       })
+      if (!isCurrentScan()) return
 
       if (mode === 'barcode') {
         const barcode = normalizeBarcodeDigits(result.barcode)
         if (barcode) {
           setBarcodeManualValue(barcode)
           try {
-            await openBarcodeMatch(barcode)
+            await openBarcodeMatch(barcode, isCurrentScan)
             return
           } catch {
             // A readable code is not always present in the verified database.
@@ -837,6 +848,7 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
             context: contextOverride ?? scanContext,
             mode: 'food',
           })
+          if (!isCurrentScan()) return
         } catch {
           throw new Error(
             'No verified barcode match or readable nutrition label was found. Try a clear photo of the full Nutrition Facts panel, or enter the barcode digits below.',
@@ -911,6 +923,7 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
           const matchResult = await searchFatSecretFoods(result.searchQuery, {
             maxResults: 5,
           })
+          if (!isCurrentScan()) return
           setScanMatches(
             (matchResult.foods ?? []).map((food) => ({
               id: `fatsecret:${food.foodId}`,
@@ -938,8 +951,10 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
         }
       }
 
+      if (!isCurrentScan()) return
       setScanState('success')
     } catch (error) {
+      if (!isCurrentScan()) return
       setScanState('error')
       setScanError(error?.message ?? 'AVAREN could not analyze that photo.')
       // Keep the scan sheet and retained image/details available for recovery.
