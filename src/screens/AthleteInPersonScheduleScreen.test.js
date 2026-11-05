@@ -31,6 +31,15 @@ describe('Athlete unified schedule presentation', () => {
     expect(source).toContain('Managed by your coach · you can’t delete this appointment')
   })
 
+  it('keeps pass details available without crowding the month view', () => {
+    const start = source.indexOf('<details className="avaren-athlete-plan-disclosure">')
+    const end = source.indexOf('</details>', start)
+    const disclosure = source.slice(start, end)
+    expect(disclosure).toContain('Coaching details')
+    expect(disclosure).toContain('CoachQuickPlan')
+    expect(disclosure).toContain('AthletePassStatus variant="detailed"')
+  })
+
   it('merges coach-owned calendar items only for dual-role accounts', () => {
     expect(source).toContain('includeCoachCalendar')
     expect(source).toContain('listCoachCalendarEvents')
