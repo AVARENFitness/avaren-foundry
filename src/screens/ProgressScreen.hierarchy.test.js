@@ -21,7 +21,8 @@ describe('ProgressScreen visual hierarchy', () => {
     expect(source).toContain("const [selectedExercise, setSelectedExercise] = useState('')")
     expect(source).toContain('Select an exercise')
     expect(source).toContain('progress-selected-lift')
-    expect(source).toContain('STRENGTH TREND')
+    expect(source).toContain('<h2>Strength trend</h2>')
+    expect(source).toContain('aria-pressed={metric === item.id}')
   })
 
   it('supports a persisted goal for each selected lift', () => {
