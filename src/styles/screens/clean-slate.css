@@ -262,3 +262,36 @@ input, textarea, select { max-width: 100%; min-width: 0; }
     max-width: 100%;
   }
 }
+
+
+/* Nutrition Log: camera and library are immediate choices, not a nested menu. */
+.nutrition-screen .nutrition-log-quick-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.nutrition-screen .nutrition-log-quick-actions > button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 0;
+  min-height: 48px;
+  border: 1px solid rgba(193,170,121,.17);
+  border-radius: 13px;
+  background: rgba(193,170,121,.05);
+  color: var(--cream, #f4f0e9);
+  font-size: 14px;
+  font-weight: 650;
+  touch-action: manipulation;
+}
+.nutrition-screen .nutrition-log-quick-actions > button:focus-visible {
+  outline: 2px solid var(--gold, #c1aa79);
+  outline-offset: 2px;
+}
+@media (max-width: 350px) {
+  .nutrition-screen .nutrition-log-quick-actions > button {
+    font-size: 13px;
+    gap: 5px;
+  }
+}

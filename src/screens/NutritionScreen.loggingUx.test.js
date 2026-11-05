@@ -18,14 +18,15 @@ describe('NutritionScreen logging UX regressions', () => {
     expect(todayQuickArea).not.toContain('<strong>Log Food</strong>')
   })
 
-  it('keeps the default Log tab quiet and reveals heavier tools on demand', () => {
+  it('keeps the Log tab focused on direct camera and library actions', () => {
     expect(source).toContain(
       "const activeFoodSearch = foodSearch.trim().length >= 2",
     )
     expect(source).toContain('className="nutrition-log-quick-actions"')
-    expect(source).toContain("logCaptureMode === 'photo'")
+    expect(source).not.toContain("logCaptureMode === 'photo'")
     expect(source).not.toContain("logCaptureMode === 'barcode'")
-    expect(source).toContain('<span>Scan food</span>')
+    expect(source).toContain('onClick={() => cameraInputRef.current?.click()}')
+    expect(source).toContain('onClick={() => uploadInputRef.current?.click()}')
     expect(source).toContain('Create custom food')
     expect(source).toContain('Take photo')
     expect(source).toContain('Choose photo')
