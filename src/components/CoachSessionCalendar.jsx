@@ -1021,17 +1021,6 @@ export default function CoachSessionCalendar({
                 role="menu"
                 data-testid="coach-calendar-add-menu"
               >
-                <button
-                  type="button"
-                  role="menuitem"
-                  data-testid="coach-add-personal-training"
-                  onClick={openScheduleComposer}
-                >
-                  <span>
-                    <strong>Personal training</strong>
-                    <small>Client, date, time, and duration</small>
-                  </span>
-                </button>
                 <button type="button" role="menuitem" data-testid="coach-calendar-import-screenshot" onClick={() => { setShowAddMenu(false); setShowScreenshotImport(true) }}>
                   <span><strong>Import screenshot</strong><small>Google Calendar photo · review with AVA</small></span>
                 </button>
