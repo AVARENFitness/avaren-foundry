@@ -360,14 +360,6 @@ export default function CoachCommandCenter({
                   <button
                     type="button"
                     className="coach-secondary-button"
-                    onClick={onSchedule ?? (() => onNavigateCoachScreen?.('calendar'))}
-                  >
-                    <CalendarRange size={16} />
-                    Schedule
-                  </button>
-                  <button
-                    type="button"
-                    className="coach-secondary-button"
                     onClick={onAddClient}
                   >
                     <UserPlus size={16} />
