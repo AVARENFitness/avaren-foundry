@@ -173,7 +173,6 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
   const [foodDraft, setFoodDraft] = useState(blankFood)
   const [foodSearch, setFoodSearch] = useState('')
   const [showCustomFood, setShowCustomFood] = useState(false)
-  const [logCaptureMode, setLogCaptureMode] = useState(null)
   const [logBrowseMode, setLogBrowseMode] = useState('Recent')
   const [selectedFood, setSelectedFood] = useState(null)
   const [editingLoggedFood, setEditingLoggedFood] = useState(null)
@@ -2157,33 +2156,25 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
         </div>
 
         {!activeFoodSearch && !showCustomFood && <>
-          <div className="nutrition-log-quick-actions">
-            <button
-              type="button"
-              className={logCaptureMode === 'photo' ? 'active' : ''}
-              onClick={() => setLogCaptureMode((mode) => mode === 'photo' ? null : 'photo')}
-            >
-              <Camera size={18}/>
-              <span>Scan food</span>
+          <div className="nutrition-log-quick-actions" aria-label="Photo food logging">
+            <button type="button" onClick={() => cameraInputRef.current?.click()}>
+              <Camera size={18} aria-hidden="true"/>
+              <span>Take photo</span>
+            </button>
+            <button type="button" onClick={() => uploadInputRef.current?.click()}>
+              <ImagePlus size={18} aria-hidden="true"/>
+              <span>Choose photo</span>
             </button>
           </div>
 
-          <button type="button" className="nutrition-create-custom-inline" onClick={() => { setLogCaptureMode(null); setShowCustomFood(true) }}>
-            <Plus size={16}/><span>Create custom food</span>
+          <button
+            type="button"
+            className="nutrition-create-custom-inline"
+            onClick={() => setShowCustomFood(true)}
+          >
+            <Plus size={16} aria-hidden="true"/>
+            <span>Create custom food</span>
           </button>
-
-          {logCaptureMode === 'photo' ? (
-            <div className="nutrition-log-capture-panel">
-              <button type="button" onClick={() => cameraInputRef.current?.click()}>
-                <Camera size={17}/>
-                <span><strong>Take photo</strong><small>Meal, package, or label</small></span>
-              </button>
-              <button type="button" onClick={() => uploadInputRef.current?.click()}>
-                <ImagePlus size={17}/>
-                <span><strong>Choose photo</strong><small>Use one from your library</small></span>
-              </button>
-            </div>
-          ) : null}
 
           {!activeFoodSearch && quickSavedMeals.length ? (
             <section className="nutrition-log-saved-meals">
