@@ -1004,28 +1004,27 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
     if (!scanDraft?.name?.trim() || scanSavedAsReusable) return
     if (!scannedRecipeSaveLockRef.current.acquire()) return
     try {
+      const recipe = buildReusableMealRecipe({
+        name: scanDraft.name,
+        components: scanResult?.components ?? [],
+        totals: {
+          calories: Number(scaledScanDraft?.calories || 0),
+          protein: Number(scaledScanDraft?.protein || 0),
+          carbs: Number(scaledScanDraft?.carbs || 0),
+          fat: Number(scaledScanDraft?.fat || 0),
+          fiber: Number(scaledScanDraft?.fiber || 0),
+        },
+        context: scanContext,
+        sourceImageKind: scanResult?.kind ?? 'meal',
+      })
 
-    const recipe = buildReusableMealRecipe({
-      name: scanDraft.name,
-      components: scanResult?.components ?? [],
-      totals: {
-        calories: Number(scaledScanDraft?.calories || 0),
-        protein: Number(scaledScanDraft?.protein || 0),
-        carbs: Number(scaledScanDraft?.carbs || 0),
-        fat: Number(scaledScanDraft?.fat || 0),
-        fiber: Number(scaledScanDraft?.fiber || 0),
-      },
-      context: scanContext,
-      sourceImageKind: scanResult?.kind ?? 'meal',
-    })
+      patch((current) => ({
+        ...current,
+        recipes: [recipe, ...(current.recipes ?? [])],
+      }))
 
-    patch((current) => ({
-      ...current,
-      recipes: [recipe, ...(current.recipes ?? [])],
-    }))
-
-    setScanSavedAsReusable(true)
-    setNotice(`${recipe.name} saved to Library for one-tap logging.`)
+      setScanSavedAsReusable(true)
+      setNotice(`${recipe.name} saved to Library for one-tap logging.`)
     } catch (error) {
       scannedRecipeSaveLockRef.current.release()
       setNotice(error?.message ?? 'Could not save this meal. Please retry.')
@@ -1036,38 +1035,37 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
     if (!scanDraft?.name?.trim()) return
     if (!scannedFoodLogLockRef.current.acquire()) return
     try {
+      const foodToLog = {
+        ...scanDraft,
+        servings: scanQuantityValue,
+        measurement: scanMeasurement,
+      }
 
-    const foodToLog = {
-      ...scanDraft,
-      servings: scanQuantityValue,
-      measurement: scanMeasurement,
-    }
+      patch((current) =>
+        appendFoodToNutrition(
+          current,
+          date,
+          foodToLog,
+          scanResult?.sourceType === 'label_read'
+            ? 'nutrition_label_scan'
+            : 'ava_photo_estimate',
+        ).nutrition,
+      )
 
-    patch((current) =>
-      appendFoodToNutrition(
-        current,
-        date,
-        foodToLog,
+      const quantityLabel =
+        foodMeasureDisplay(scanMeasurement) ||
+        (scanQuantityValue === 1
+          ? '1 serving'
+          : `${round(scanQuantityValue)} servings`)
+
+      setNotice(
         scanResult?.sourceType === 'label_read'
-          ? 'nutrition_label_scan'
-          : 'ava_photo_estimate',
-      ).nutrition,
-    )
-
-    const quantityLabel =
-      foodMeasureDisplay(scanMeasurement) ||
-      (scanQuantityValue === 1
-        ? '1 serving'
-        : `${round(scanQuantityValue)} servings`)
-
-    setNotice(
-      scanResult?.sourceType === 'label_read'
-        ? `${scanDraft.name} · ${quantityLabel} added to ${logDestinationLabel} from the nutrition label.`
-        : `${scanDraft.name} · ${quantityLabel} estimate added to ${logDestinationLabel}. You can edit or remove it anytime.`,
-    )
-    resetFoodScan()
-    setTab('Today')
-    scheduleNutritionModalCleanup()
+          ? `${scanDraft.name} · ${quantityLabel} added to ${logDestinationLabel} from the nutrition label.`
+          : `${scanDraft.name} · ${quantityLabel} estimate added to ${logDestinationLabel}. You can edit or remove it anytime.`,
+      )
+      resetFoodScan()
+      setTab('Today')
+      scheduleNutritionModalCleanup()
     } catch (error) {
       scannedFoodLogLockRef.current.release()
       setNotice(error?.message ?? 'Could not log this food. Please retry.')
