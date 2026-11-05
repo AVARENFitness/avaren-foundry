@@ -1001,7 +1001,9 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
     : null
 
   const saveScannedMealAsReusable = () => {
-    if (!scanDraft?.name?.trim()) return
+    if (!scanDraft?.name?.trim() || scanSavedAsReusable) return
+    if (!scannedRecipeSaveLockRef.current.acquire()) return
+    try {
 
     const recipe = buildReusableMealRecipe({
       name: scanDraft.name,
@@ -1024,10 +1026,16 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
 
     setScanSavedAsReusable(true)
     setNotice(`${recipe.name} saved to Library for one-tap logging.`)
+    } catch (error) {
+      scannedRecipeSaveLockRef.current.release()
+      setNotice(error?.message ?? 'Could not save this meal. Please retry.')
+    }
   }
 
   const logScannedFood = () => {
     if (!scanDraft?.name?.trim()) return
+    if (!scannedFoodLogLockRef.current.acquire()) return
+    try {
 
     const foodToLog = {
       ...scanDraft,
@@ -1060,6 +1068,10 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
     resetFoodScan()
     setTab('Today')
     scheduleNutritionModalCleanup()
+    } catch (error) {
+      scannedFoodLogLockRef.current.release()
+      setNotice(error?.message ?? 'Could not log this food. Please retry.')
+    }
   }
 
   const chooseScanDatabaseMatch = async (food) => {
