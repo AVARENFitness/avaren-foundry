@@ -859,3 +859,12 @@
   font-size: .85rem;
   line-height: 1.4;
 }
+
+
+/* Athlete Calendar stays about the schedule; coaching detail is available on demand. */
+.athlete-calendar-screen .avaren-athlete-plan-disclosure .athlete-pass-status {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(193,170,121,.12);
+  min-width: 0;
+}
