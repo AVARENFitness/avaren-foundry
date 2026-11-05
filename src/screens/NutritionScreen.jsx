@@ -1738,8 +1738,13 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
         type="file"
         accept="image/*"
         onChange={(event) => {
-          const file = event.target.files?.[0]
-          if (file) runFoodScan(file, null, 'food')
+          const input = event.currentTarget
+          const file = input.files?.[0]
+          if (file) {
+            void runFoodScan(file, null, 'food').finally(() => {
+              input.value = ''
+            })
+          }
         }}
       />
       <input
