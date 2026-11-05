@@ -34,6 +34,7 @@ import {
   normalizeProgramWorkoutName,
   resolveWorkoutDaySummary,
 } from '../lib/programWorkout'
+import { selectDistinctHomeShortcuts } from '../lib/homeActionHierarchy'
 import { isWeeklyCheckInDue } from '../lib/weeklyCheckIn'
 import { buildPlanningOwnership, coachOwnershipLabel } from '../lib/planOwnership'
 import {
@@ -428,13 +429,10 @@ export default function HomeScreen({
     }
   }
 
-  const visibleHomeSecondaryActions = (homeState.secondaryActions ?? [])
-    .filter((action, index, actions) =>
-      action?.id &&
-      action.id !== homeState.primaryAction?.id &&
-      actions.findIndex((candidate) => candidate.id === action.id) === index,
-    )
-    .slice(0, 2)
+  const visibleHomeSecondaryActions = selectDistinctHomeShortcuts(
+    homeState.primaryAction,
+    homeState.secondaryActions,
+  )
 
   const handleSecondaryHomeAction = (action) => {
     if (!action?.id) return
