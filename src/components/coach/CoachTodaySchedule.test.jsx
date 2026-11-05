@@ -3,6 +3,7 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import CoachTodaySchedule from './CoachTodaySchedule'
 import { coachBackend } from '../../lib/coachBackend'
+import { dateKey } from '../../lib/appointmentScheduling'
 
 vi.mock('../../lib/coachBackend', () => ({
   coachBackend: {
@@ -19,8 +20,8 @@ const jake = {
 const session = {
   id: 'session-1',
   athleteId: 'athlete-jake',
-  sessionDate: new Date().toISOString().slice(0, 10),
-  startTime: '17:30',
+  sessionDate: dateKey(new Date()),
+  startTime: new Date().toTimeString().slice(0, 5),
   durationMinutes: 60,
   status: 'scheduled',
   locationType: 'avaren_gym',
@@ -36,6 +37,8 @@ describe('CoachTodaySchedule', () => {
         athlete_id: session.athleteId,
         session_date: session.sessionDate,
         start_time: session.startTime,
+        starts_at: new Date(Date.now() - 60_000).toISOString(),
+        ends_at: new Date(Date.now() + 3_600_000).toISOString(),
         duration_minutes: session.durationMinutes,
         status: session.status,
         location_type: session.locationType,
@@ -61,7 +64,7 @@ describe('CoachTodaySchedule', () => {
       expect(screen.getByText('Jake')).toBeInTheDocument()
     })
 
-    await user.click(screen.getByRole('button', { name: /5:30 PM/i }))
+    await user.click(screen.getByTestId('coach-appointment-card'))
 
     expect(onOpenSession).toHaveBeenCalledTimes(1)
     expect(onOpenSession.mock.calls[0][0]).toEqual(
