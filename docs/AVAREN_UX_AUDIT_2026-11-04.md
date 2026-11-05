@@ -31,3 +31,12 @@ The app should feel native, calm and fast. Each destination has one clear primar
 **Implemented in current PR:** removal of duplicate Schedule action, duplicate Calendar training menu option, and athlete Home shortcut dedupe.
 
 **Not yet certified:** actual-device visual QA, full Nutrition refactor, active-workout component refactor and complete end-to-end user flows. Do not describe the application as flawless or Apple/Google-equivalent until these checks have been performed.
+
+## Additional audited releases (November 4, 2026)
+- PR #135: Coach Today card actions reduced to one Open client; Nutrition headings and date navigation clarified.
+- PR #136: Duplicate Change Workout menu option removed; Continue guarded while saving.
+- PR #137: Nutrition Log camera/library photo actions direct instead of nested.
+- PR #138: Synchronous protection against repeated scan-log and reusable-meal save taps.
+- PR #139: Progress selected-lift hierarchy and metric touch controls simplified.
+
+Remaining priorities still require real-device QA, especially calendar sheets, iOS keyboard/safe area behavior, food photo submission, workout completion, chart overflow, tablet layout and accessible navigation. This checklist is not a certification.
