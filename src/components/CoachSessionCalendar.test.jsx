@@ -284,24 +284,20 @@ describe('CoachSessionCalendar usability', () => {
     expect(screen.getByTestId('coach-calendar-add-trigger')).toBeInTheDocument()
   })
 
-  it('uses one Add menu for personal training and private events', async () => {
+  it('opens training directly and reserves the options menu for distinct actions', async () => {
     const user = userEvent.setup()
     render(<CoachSessionCalendar clients={[jake]} assignments={[]} />)
 
-    const addButton = await screen.findByTestId('coach-calendar-add-trigger')
-    expect(screen.queryByText('Client appointment')).not.toBeInTheDocument()
-
-    await user.click(addButton)
-
-    expect(screen.getByTestId('coach-add-personal-training')).toBeInTheDocument()
+    const quickAdd = await screen.findByTestId('coach-calendar-quick-add')
+    const optionsButton = screen.getByTestId('coach-calendar-add-trigger')
+    await user.click(optionsButton)
+    expect(screen.queryByTestId('coach-add-personal-training')).not.toBeInTheDocument()
     expect(screen.getByTestId('coach-add-private-event-button')).toBeInTheDocument()
+    expect(screen.getByTestId('coach-calendar-import-screenshot')).toBeInTheDocument()
 
-    await user.click(screen.getByTestId('coach-add-personal-training'))
-
+    await user.click(quickAdd)
     const sheet = await screen.findByTestId('coach-schedule-session-sheet')
-    expect(
-      within(sheet).getByRole('heading', { name: /personal training/i }),
-    ).toBeInTheDocument()
+    expect(within(sheet).getByRole('heading', { name: /personal training/i })).toBeInTheDocument()
   })
 
   it('opens canonical detail when appointment row is tapped', async () => {
