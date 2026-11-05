@@ -751,10 +751,10 @@ export default function AthleteInPersonScheduleScreen({
       ) : null}
 
       <details className="avaren-athlete-plan-disclosure">
-        <summary>My coach's workout plan</summary>
+        <summary>Coaching details</summary>
         <CoachQuickPlan readOnly clientName="Your training plan" />
+        <AthletePassStatus variant="detailed" />
       </details>
-      <AthletePassStatus variant="detailed" />
 
       <CoachCalendarEventSheet
         open={showEventComposer}
