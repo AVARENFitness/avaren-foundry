@@ -177,42 +177,17 @@ export default function CoachTodaySchedule({
                     onOpenClient?.(resolveClientForSession(session))
                   }}
                 />
-                <div className="coach-today-quick-actions">
-                  <button
-                    type="button"
-                    className="coach-secondary-button"
-                    onClick={() => onOpenClient?.(client)}
-                  >
-                    Open client
-                  </button>
-                  {client?.athlete_id ? (
+                {client ? (
+                  <div className="coach-today-quick-actions">
                     <button
                       type="button"
                       className="coach-secondary-button"
-                      onClick={() =>
-                        onOpenClientSection?.(client, 'training')
-                      }
+                      onClick={() => onOpenClient?.(client)}
                     >
-                      Training
+                      Open client
                     </button>
-                  ) : null}
-                  <button
-                    type="button"
-                    className="coach-secondary-button"
-                    onClick={() =>
-                      onOpenClientSection?.(client, 'sessions')
-                    }
-                  >
-                    Passes
-                  </button>
-                  <button
-                    type="button"
-                    className="coach-secondary-button"
-                    onClick={() => onOpenClientSection?.(client, 'notes')}
-                  >
-                    Notes
-                  </button>
-                </div>
+                  </div>
+                ) : null}
               </li>
             )
           })}
