@@ -157,6 +157,14 @@ describe('NutritionScreen logging UX regressions', () => {
     expect(source).toContain("(detail?.servings ?? []).length > 1")
   })
 
+  it('guards scanned-food logging and reusable meal saves against repeated taps', () => {
+    expect(source).toContain("import { createActionLock }")
+    expect(source).toContain('scannedFoodLogLockRef.current.acquire()')
+    expect(source).toContain('scannedRecipeSaveLockRef.current.acquire()')
+    expect(source).toContain('scannedFoodLogLockRef.current.release()')
+    expect(source).toContain('scannedRecipeSaveLockRef.current.release()')
+  })
+
   it('releases the scan modal layer after logging so iOS scrolling cannot stay frozen', () => {
     expect(source).toContain('scheduleNutritionModalCleanup')
     expect(source).toContain('resetDocumentModalLayer()')
