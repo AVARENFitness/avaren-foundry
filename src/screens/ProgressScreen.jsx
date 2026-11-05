@@ -222,8 +222,8 @@ export default function ProgressScreen({
         <header>
           <div>
             <span className="eyebrow">LIFT PROGRESS</span>
-            <h2>Choose an exercise</h2>
-            <p>Open one lift for its chart, best sets, history, and goal.</p>
+            <h2>Strength by lift</h2>
+            <p>Choose a lift to explore its trend and personal best.</p>
           </div>
         </header>
 
@@ -315,10 +315,18 @@ export default function ProgressScreen({
             </section>
 
             <section className="progress-chart-panel progress-chart-panel--primary">
-              <header><div><span className="eyebrow">STRENGTH TREND</span><h2>{selectedExercise}</h2></div></header>
-              <div className="metric-switcher">
+              <header><div><h2>Strength trend</h2></div></header>
+              <div className="metric-switcher" role="group" aria-label="Strength trend metric">
                 {METRICS.map((item) => (
-                  <button key={item.id} className={metric === item.id ? 'active' : ''} onClick={() => setMetric(item.id)}>{item.label}</button>
+                  <button
+                    type="button"
+                    key={item.id}
+                    className={metric === item.id ? 'active' : ''}
+                    aria-pressed={metric === item.id}
+                    onClick={() => setMetric(item.id)}
+                  >
+                    {item.label}
+                  </button>
                 ))}
               </div>
               <StrengthChart sessions={sessions} metric={metric} />
