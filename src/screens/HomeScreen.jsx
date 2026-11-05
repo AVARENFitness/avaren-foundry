@@ -34,6 +34,7 @@ import {
   normalizeProgramWorkoutName,
   resolveWorkoutDaySummary,
 } from '../lib/programWorkout'
+import { selectDistinctHomeShortcuts } from '../lib/homeActionHierarchy'
 import { isWeeklyCheckInDue } from '../lib/weeklyCheckIn'
 import { buildPlanningOwnership, coachOwnershipLabel } from '../lib/planOwnership'
 import {
@@ -428,6 +429,11 @@ export default function HomeScreen({
     }
   }
 
+  const visibleHomeSecondaryActions = selectDistinctHomeShortcuts(
+    homeState.primaryAction,
+    homeState.secondaryActions,
+  )
+
   const handleSecondaryHomeAction = (action) => {
     if (!action?.id) return
 
@@ -638,9 +644,9 @@ export default function HomeScreen({
           </>
         )}
 
-        {homeState.secondaryActions.length > 0 ? (
+        {visibleHomeSecondaryActions.length > 0 ? (
           <div className="home-secondary-actions">
-            {homeState.secondaryActions.slice(0, 2).map((action) => (
+            {visibleHomeSecondaryActions.map((action) => (
               <button
                 key={action.id}
                 type="button"
@@ -652,7 +658,8 @@ export default function HomeScreen({
               </button>
             ))}
           </div>
-        ) : (
+        ) : homeState.primaryAction?.id !== HOME_ACTION_IDS.APPOINTMENT &&
+            homeState.primaryAction?.id !== HOME_ACTION_IDS.VIEW_SCHEDULE ? (
           <button
             type="button"
             className="home-today-plan-link"
@@ -664,7 +671,7 @@ export default function HomeScreen({
             View schedule
             <ChevronRight size={16} strokeWidth={1.75} />
           </button>
-        )}
+        ) : null}
       </section>
 
       {showCoachHubShortcut && (
