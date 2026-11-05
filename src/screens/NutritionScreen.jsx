@@ -53,6 +53,7 @@ import { COMMON_FOODS } from '../data/commonFoods'
 import { groupLoggedFoods } from '../lib/nutritionDayGrouping'
 import { appUi } from '../lib/appUi'
 import { createRuntimeId } from '../lib/createRuntimeId'
+import { createActionLock } from '../lib/actionLock'
 import {
   getFatSecretFood,
   getFatSecretFoodByBarcode,
@@ -216,6 +217,10 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
   const [scanMeasureAmount, setScanMeasureAmount] = useState('1')
   const [scanMatches, setScanMatches] = useState([])
   const [scanSavedAsReusable, setScanSavedAsReusable] = useState(false)
+  const scannedFoodLogLockRef = useRef(null)
+  const scannedRecipeSaveLockRef = useRef(null)
+  if (!scannedFoodLogLockRef.current) scannedFoodLogLockRef.current = createActionLock()
+  if (!scannedRecipeSaveLockRef.current) scannedRecipeSaveLockRef.current = createActionLock()
   const [barcodeManualValue, setBarcodeManualValue] = useState('')
   const [showWorkoutActivityForm, setShowWorkoutActivityForm] = useState(false)
   const [workoutActivityDraft, setWorkoutActivityDraft] = useState({
@@ -769,6 +774,9 @@ export default function NutritionScreen({ nutrition, onChange, initialTab = 'Tod
   }
 
   const runFoodScan = async (file, contextOverride = null, mode = 'food') => {
+    // A fresh scan may be logged or saved once; the previous scan remains locked.
+    scannedFoodLogLockRef.current.release()
+    scannedRecipeSaveLockRef.current.release()
     try {
       // The scan sheet lives on the Log tab. Always navigate there first,
       // including when a camera shortcut was launched from Today.
