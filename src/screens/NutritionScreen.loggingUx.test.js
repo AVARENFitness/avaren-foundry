@@ -186,6 +186,18 @@ describe('NutritionScreen logging UX regressions', () => {
     expect(source).toContain('runFoodScan(null, scanContext, scanMode)')
   })
 
+  it('clears the photo-library file input after a scan to allow retrying the same photo', () => {
+    const start = source.indexOf('ref={uploadInputRef}')
+    const end = source.indexOf('ref={barcodeInputRef}', start)
+    const libraryInput = source.slice(start, end)
+
+    expect(start).toBeGreaterThan(-1)
+    expect(end).toBeGreaterThan(start)
+    expect(libraryInput).toContain('const input = event.currentTarget')
+    expect(libraryInput).toContain("runFoodScan(file, null, 'food').finally")
+    expect(libraryInput).toContain("input.value = ''")
+  })
+
   it('keeps camera and barcode capture inputs mounted for Today quick log', () => {
     const nav = source.indexOf('className="nutrition-tabs"')
     const today = source.indexOf("tab === 'Today'")
