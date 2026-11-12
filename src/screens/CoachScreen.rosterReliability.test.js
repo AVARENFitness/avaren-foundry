@@ -35,12 +35,13 @@ describe('Coach Hub complete-roster safety', () => {
     expect(coachSource).toContain('if (isCurrent()) setLoading(false)')
   })
 
-  it('double-checks a refresh that unexpectedly omits an active client', () => {
+  it('keeps known active clients when repeated refreshes omit their rows', () => {
     expect(coachSource).toContain('const lastVerifiedRosterRef = useRef([])')
-    expect(coachSource).toContain('const previousActiveIds = new Set(')
-    expect(coachSource).toContain('const activeClientsMissing =')
-    expect(coachSource).toContain('if (activeClientsMissing) {')
+    expect(coachSource).toContain('missingActiveRosterClientIds(lastVerifiedRosterRef.current, c)')
+    expect(coachSource).toContain('if (missingIds.length) {')
     expect(coachSource).toContain('c = await coachBackend.listCoachRoster({ includeArchived: true })')
+    expect(coachSource).toContain('setRosterLoadError(')
+    expect(coachSource).toContain('return lastVerifiedRosterRef.current')
     expect(coachSource).toContain('lastVerifiedRosterRef.current = c')
   })
 
