@@ -8,6 +8,7 @@ import {
   filterArchivedRoster,
   isOfflineBusinessClient,
   mergeCoachRosterRecords,
+  missingActiveRosterClientIds,
   normalizeBusinessClientRecord,
   resolveBusinessClientId,
   resolveRecordBusinessClientId,
@@ -15,6 +16,36 @@ import {
 } from './coachBusinessClient'
 
 describe('coachBusinessClient', () => {
+  it('keeps an active offline client such as Mary Lou in the roster', () => {
+    const offline = {
+      business_client_id: 'bc-mary-lou',
+      first_name: 'Mary Lou',
+      preferred_name: 'Mary Lou',
+      display_name: 'Mary Lou',
+      status: 'active',
+      linked_user_id: null,
+    }
+    const roster = mergeCoachRosterRecords({ businessClients: [offline] })
+    expect(roster).toHaveLength(1)
+    expect(roster[0].status).toBe('active')
+    expect(roster[0].linked_user_id).toBeNull()
+    expect(filterActiveRoster(roster)).toHaveLength(1)
+    expect(countActiveBusinessClients(roster)).toBe(1)
+  })
+
+  it('detects omitted active clients but accepts legitimate archive changes', () => {
+    const previous = [
+      { business_client_id: 'bc-mary-lou', status: 'active', linked_user_id: null },
+      { business_client_id: 'bc-other', status: 'active' },
+    ]
+    expect(missingActiveRosterClientIds(previous, [previous[1]])).toEqual(['bc-mary-lou'])
+    expect(missingActiveRosterClientIds(previous, [
+      { ...previous[0], status: 'archived' },
+      previous[1],
+    ])).toEqual([])
+    expect(missingActiveRosterClientIds([], [previous[0]])).toEqual([])
+  })
+
   it('returns null for absent client records', () => {
     expect(resolveBusinessClientId(null)).toBeNull()
     expect(resolveBusinessClientId(undefined)).toBeNull()
