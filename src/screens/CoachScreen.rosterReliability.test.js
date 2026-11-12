@@ -4,6 +4,7 @@ import { resolve } from 'node:path'
 
 const coachSource = readFileSync(resolve(process.cwd(), 'src/screens/CoachScreen.jsx'), 'utf8')
 const hubSource = readFileSync(resolve(process.cwd(), 'src/components/coach/CoachCommandCenter.jsx'), 'utf8')
+const backendSource = readFileSync(resolve(process.cwd(), 'src/lib/coachBackend.js'), 'utf8')
 
 describe('Coach Hub complete-roster safety', () => {
   it('loads the canonical roster independently of optional dashboard data', () => {
@@ -13,6 +14,19 @@ describe('Coach Hub complete-roster safety', () => {
     expect(coachSource).toContain('const c = await coachBackend.listCoachRoster({ includeArchived: true })')
     expect(coachSource).toContain('setClients(c)')
     expect(coachSource).toContain('const results = await supportingRequests')
+  })
+
+  it('does not let optional bridge, profile or label failures erase business clients', () => {
+    const start = backendSource.indexOf('async listCoachRoster(')
+    const end = backendSource.indexOf('async createBusinessClient(', start)
+    const roster = backendSource.slice(start, end)
+
+    expect(roster).toContain('const [businessResult, bridgeResult] = await Promise.allSettled([')
+    expect(roster).toContain("if (businessResult.status === 'rejected') throw businessResult.reason")
+    expect(roster).toContain("bridgeResult.status === 'fulfilled' ? bridgeResult.value : []")
+    expect(roster).toContain('const [profilesResult, labelsResult] = await Promise.allSettled([')
+    expect(roster).toContain("profilesResult.status === 'fulfilled' ? profilesResult.value : {}")
+    expect(roster).toContain("labelsResult.status === 'fulfilled' ? labelsResult.value : {}")
   })
 
   it('prevents late focus refreshes from replacing a newer roster', () => {
