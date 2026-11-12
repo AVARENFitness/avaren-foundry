@@ -489,7 +489,7 @@ export default function CoachCommandCenter({
               </p>
             ) : null}
 
-            {loading ? (
+            {loading && clients.length === 0 ? (
               <div className="coach-roster-list">
                 {[1, 2, 3, 4].map((item) => (
                   <article key={item} className="coach-roster-row skeleton" />
