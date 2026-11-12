@@ -86,6 +86,7 @@ export default function CoachScreen({
   const [clientProfileSection, setClientProfileSection] = useState('overview')
   const [rosterLoadError, setRosterLoadError] = useState('')
   const rosterRequestVersionRef = useRef(0)
+  const lastVerifiedRosterRef = useRef([])
 
   useEffect(() => {
     probeIdentityCapabilities().then((caps) => {
@@ -127,9 +128,26 @@ export default function CoachScreen({
     ])
 
     try {
-      const c = await coachBackend.listCoachRoster({ includeArchived: true })
+      let c = await coachBackend.listCoachRoster({ includeArchived: true })
       if (!isCurrent()) return c
 
+      // A successful but incomplete roster response can be more dangerous than
+      // a rejected request. Confirm that previously visible active clients really
+      // disappeared before replacing the known roster with fewer rows.
+      const previousActiveIds = new Set(
+        lastVerifiedRosterRef.current
+          .filter((client) => String(client.status ?? 'active') === 'active')
+          .map(resolveRecordBusinessClientId)
+          .filter(Boolean),
+      )
+      const returnedIds = new Set(c.map(resolveRecordBusinessClientId).filter(Boolean))
+      const activeClientsMissing = [...previousActiveIds].some((id) => !returnedIds.has(id))
+      if (activeClientsMissing) {
+        c = await coachBackend.listCoachRoster({ includeArchived: true })
+        if (!isCurrent()) return c
+      }
+
+      lastVerifiedRosterRef.current = c
       setClients(c)
       setWorkspace((w) => ({ ...w, clients: c }))
       setLoading(false)
