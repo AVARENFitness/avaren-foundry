@@ -4,6 +4,7 @@ import {
   ChevronRight,
   Hammer,
   Search,
+  RefreshCw,
   UserPlus,
   Users,
 } from 'lucide-react'
@@ -44,6 +45,7 @@ import EmptyState from '../ui/EmptyState'
 const SEARCH_ICON = { size: 16, strokeWidth: 1.75 }
 
 const ROSTER_FILTER_OPTIONS = [
+  { id: ROSTER_HUB_FILTER.ALL, label: 'All' },
   { id: ROSTER_HUB_FILTER.ACTIVE, label: 'Active' },
   { id: ROSTER_HUB_FILTER.ATTENTION, label: 'Attention' },
   { id: ROSTER_HUB_FILTER.PAST, label: 'Past' },
@@ -61,6 +63,8 @@ export default function CoachCommandCenter({
   portfolio,
   portfolioLoading = false,
   portfolioError = '',
+  rosterLoadError = '',
+  onRefreshClients,
   passAvaContextByBusinessClientId = {},
   loading = false,
   query = '',
@@ -83,7 +87,9 @@ export default function CoachCommandCenter({
 }) {
   const [hubScheduleRefresh, setHubScheduleRefresh] = useState(0)
   const [rosterExpanded, setRosterExpanded] = useState(rosterOnly)
-  const [rosterFilter, setRosterFilter] = useState(ROSTER_HUB_FILTER.ACTIVE)
+  const [rosterFilter, setRosterFilter] = useState(
+    rosterOnly ? ROSTER_HUB_FILTER.ALL : ROSTER_HUB_FILTER.ACTIVE,
+  )
   const [loadedUpcomingSessions, setLoadedUpcomingSessions] = useState([])
   const [now, setNow] = useState(() => Date.now())
   const [recentMissedByBusinessClientId, setRecentMissedByBusinessClientId] =
@@ -262,16 +268,15 @@ export default function CoachCommandCenter({
       scopedRoster.filter((entry) =>
         String(entry.clientName ?? '')
           .toLowerCase()
-          .includes(query.trim().toLowerCase()),
+          .includes((rosterOnly ? query : '').trim().toLowerCase()),
       ),
-    [scopedRoster, query],
+    [scopedRoster, query, rosterOnly],
   )
 
   const rosterPreview = filteredRoster.slice(0, ROSTER_PREVIEW_LIMIT)
   const visibleRoster = rosterExpanded ? filteredRoster : rosterPreview
-  const hiddenRosterCount = Math.max(0, filteredRoster.length - rosterPreview.length)
 
-  if (!clients.length && !loading) {
+  if (!clients.length && !loading && !rosterLoadError) {
     return (
       <section className={`coach-hub-screen coach-command-center coach-command-center--calm${rosterOnly ? ' coach-clients-roster' : ''}`}>
         <header className="coach-hub-page-header">
@@ -327,6 +332,12 @@ export default function CoachCommandCenter({
             </div>
           </header>
 
+          {rosterLoadError ? (
+            <p className="coach-hub-notice" role="alert">
+              Client roster could not refresh. Existing client records are preserved. {rosterLoadError}
+              <button type="button" onClick={onRefreshClients} disabled={loading}>Retry</button>
+            </p>
+          ) : null}
           {!rosterOnly && portfolioError ? (
             <p className="coach-hub-notice">{portfolioError}</p>
           ) : null}
@@ -414,9 +425,21 @@ export default function CoachCommandCenter({
               <div>
                 {!rosterOnly ? <span className="eyebrow">CLIENTS</span> : null}
                 <h2>
-                  {rosterOnly || rosterExpanded ? 'All clients' : 'Client preview'}
+                  {rosterOnly ? 'Client directory' : 'Your clients'}
                 </h2>
               </div>
+              {rosterOnly ? (
+                <button
+                  type="button"
+                  className="coach-secondary-button coach-command-inline-action"
+                  onClick={onRefreshClients}
+                  disabled={loading}
+                  aria-label="Refresh complete client roster"
+                >
+                  <RefreshCw size={16} aria-hidden="true" />
+                  {loading ? 'Refreshing' : 'Refresh'}
+                </button>
+              ) : null}
               {!rosterOnly && rosterExpanded ? (
                 <button
                   type="button"
@@ -428,31 +451,45 @@ export default function CoachCommandCenter({
               ) : null}
             </header>
 
-            <label className="coach-roster-search-shell coach-roster-search-shell--compact">
-              <Search {...SEARCH_ICON} aria-hidden="true" />
-              <input
-                type="search"
-                value={query}
-                onChange={(event) => onQueryChange?.(event.target.value)}
-                placeholder="Search clients"
-                aria-label="Search clients"
-              />
-            </label>
+            {rosterOnly ? (
+              <>
+                <label className="coach-roster-search-shell coach-roster-search-shell--compact">
+                  <Search {...SEARCH_ICON} aria-hidden="true" />
+                  <input
+                    type="search"
+                    value={query}
+                    onChange={(event) => onQueryChange?.(event.target.value)}
+                    placeholder="Search clients"
+                    aria-label="Search clients"
+                  />
+                </label>
 
-            <div className="coach-command-sort-row coach-command-sort-row--compact coach-roster-filter-row">
-              {ROSTER_FILTER_OPTIONS.map((option) => (
-                <button
-                  key={option.id}
-                  type="button"
-                  className={rosterFilter === option.id ? 'active' : ''}
-                  onClick={() => setRosterFilter(option.id)}
-                >
-                  {option.label}
-                </button>
-              ))}
-            </div>
+                <div className="coach-command-sort-row coach-command-sort-row--compact coach-roster-filter-row">
+                  {ROSTER_FILTER_OPTIONS.map((option) => (
+                    <button
+                      key={option.id}
+                      type="button"
+                      className={rosterFilter === option.id ? 'active' : ''}
+                      onClick={() => setRosterFilter(option.id)}
+                      aria-pressed={rosterFilter === option.id}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+                {!loading ? (
+                  <p className="coach-command-summary" aria-live="polite">
+                    {filteredRoster.length} {rosterFilter === ROSTER_HUB_FILTER.ALL ? 'total' : rosterFilter} clients
+                  </p>
+                ) : null}
+              </>
+            ) : !loading ? (
+              <p className="coach-command-summary">
+                Showing {rosterPreview.length} of {filteredRoster.length} active clients
+              </p>
+            ) : null}
 
-            {loading || portfolioLoading ? (
+            {loading && clients.length === 0 ? (
               <div className="coach-roster-list">
                 {[1, 2, 3, 4].map((item) => (
                   <article key={item} className="coach-roster-row skeleton" />
@@ -495,13 +532,16 @@ export default function CoachCommandCenter({
               />
             )}
 
-            {!rosterOnly && !rosterExpanded && hiddenRosterCount > 0 ? (
+            {!rosterOnly && clients.length > 0 ? (
               <button
                 type="button"
                 className="coach-roster-view-all-button"
-                onClick={() => onNavigateCoachScreen?.('clients')}
+                onClick={() => {
+                  onQueryChange?.('')
+                  onNavigateCoachScreen?.('clients')
+                }}
               >
-                View all clients ({filteredRoster.length})
+                View all clients ({clients.length})
               </button>
             ) : null}
           </section>

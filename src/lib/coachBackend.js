@@ -369,12 +369,19 @@ export const coachBackend = {
     }
   },
   async listCoachRoster({ includeArchived = false } = {}) {
-    const [businessClients, bridgeClients] = await Promise.all([
+    // Business-client rows are the authoritative roster. A failing legacy
+    // bridge or display-name enrichment must not hide otherwise valid clients.
+    const [businessResult, bridgeResult] = await Promise.allSettled([
       this.listBusinessClients({ includeArchived }),
       this.listClients(),
     ])
+    if (businessResult.status === 'rejected') throw businessResult.reason
+    const businessClients = businessResult.value
+    const bridgeClients =
+      bridgeResult.status === 'fulfilled' ? bridgeResult.value : []
 
     if (!businessClients.length) {
+      if (bridgeResult.status === 'rejected') throw bridgeResult.reason
       return this.listClientsWithIdentity()
     }
 
@@ -383,10 +390,12 @@ export const coachBackend = {
       .concat(bridgeClients.map((client) => client.athlete_id))
       .filter(Boolean)
 
-    const [profilesById, labelsById] = await Promise.all([
+    const [profilesResult, labelsResult] = await Promise.allSettled([
       userProfileBackend.listProfilesForAthletes([...new Set(athleteIds)]),
       coachClientLabelsBackend.listOwnCoachLabels(),
     ])
+    const profilesById = profilesResult.status === 'fulfilled' ? profilesResult.value : {}
+    const labelsById = labelsResult.status === 'fulfilled' ? labelsResult.value : {}
 
     return mergeCoachRosterRecords({
       businessClients,

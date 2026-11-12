@@ -84,6 +84,8 @@ export default function CoachScreen({
   const [connectionCreateRequest, setConnectionCreateRequest] = useState(null)
   const [coachFollowUpsByAthleteId, setCoachFollowUpsByAthleteId] = useState({})
   const [clientProfileSection, setClientProfileSection] = useState('overview')
+  const [rosterLoadError, setRosterLoadError] = useState('')
+  const rosterRequestVersionRef = useRef(0)
 
   useEffect(() => {
     probeIdentityCapabilities().then((caps) => {
@@ -105,55 +107,85 @@ export default function CoachScreen({
   }, [portfolio, sortKey])
 
   const load = async () => {
+    // Only the newest refresh can replace the current roster. Focus and
+    // visibility events may start overlapping requests on mobile.
+    const requestVersion = ++rosterRequestVersionRef.current
+    const isCurrent = () => requestVersion === rosterRequestVersionRef.current
     setLoading(true)
+    setRosterLoadError('')
+
+    // Roster is critical data. Optional Coach Hub modules must not prevent it
+    // from loading or cause a previously loaded client list to disappear.
+    const optional = (request) => Promise.resolve().then(request)
+    const supportingRequests = Promise.allSettled([
+      optional(() => coachBackend.listCoachInvitations()),
+      optional(() => coachBackend.listCoachAssignments()),
+      optional(() => coachBackend.listCoachLeads()),
+      optional(() => coachBackend.listCoachClientFollowUps()),
+      optional(() => coachBackend.listCoachConnectionRequests()),
+      optional(() => coachBackend.listWorkoutTemplates()),
+    ])
+
     try {
-      const [c, i, a, leadRows, followUpRows, connectionRows] = await Promise.all([
-        coachBackend.listCoachRoster({ includeArchived: true }),
-        coachBackend.listCoachInvitations(),
-        coachBackend.listCoachAssignments(),
-        coachBackend.listCoachLeads().catch(() => []),
-        coachBackend.listCoachClientFollowUps().catch(() => []),
-        coachBackend.listCoachConnectionRequests().catch(() => []),
-      ])
-      let t = []
-      try {
-        t = await coachBackend.listWorkoutTemplates()
-      } catch (error) {
-        if (!/coach_workout_templates|migration|does not exist/i.test(error.message ?? '')) {
-          throw error
-        }
-      }
+      const c = await coachBackend.listCoachRoster({ includeArchived: true })
+      if (!isCurrent()) return c
 
       setClients(c)
-      setInvitations(i)
-      setAssignments(a)
-      setLeads(leadRows)
-      setConnectionRequests(connectionRows)
-      setCoachFollowUpsByAthleteId(
-        followUpRows.reduce((accumulator, followUp) => {
-          const athleteId = followUp.athleteId
-          if (!athleteId) return accumulator
-          accumulator[athleteId] = [...(accumulator[athleteId] ?? []), followUp]
-          return accumulator
-        }, {}),
-      )
-      setTemplates(t)
-      setWorkspace((w) => ({ ...w, clients: c, invitations: i, assignments: a }))
-      const deliveryRows = await assignmentNotificationBackend.deliveryForAssignments(
-        a.map((item) => item.id),
-      )
-      setDeliveryStatus(
-        Object.fromEntries(
-          deliveryRows.map((row) => [row.assignment_id, row.read_at ? 'Read' : 'Delivered']),
-        ),
-      )
-      setNotice('')
+      setWorkspace((w) => ({ ...w, clients: c }))
+      setLoading(false)
+
+      const results = await supportingRequests
+      if (!isCurrent()) return c
+
+      const [invites, assigned, leadRows, followUpRows, connectionRows, templateRows] = results
+      const succeeded = (result) => result.status === 'fulfilled'
+      if (succeeded(invites)) setInvitations(invites.value)
+      if (succeeded(assigned)) {
+        setAssignments(assigned.value)
+        setWorkspace((w) => ({ ...w, assignments: assigned.value }))
+        assignmentNotificationBackend.deliveryForAssignments(
+          assigned.value.map((item) => item.id),
+        ).then((rows) => {
+          if (!isCurrent()) return
+          setDeliveryStatus(
+            Object.fromEntries(
+              rows.map((row) => [row.assignment_id, row.read_at ? 'Read' : 'Delivered']),
+            ),
+          )
+        }).catch(() => {
+          // Delivery read receipts are optional; preserve the last known state.
+        })
+      }
+      if (succeeded(invites)) {
+        setWorkspace((w) => ({ ...w, invitations: invites.value }))
+      }
+      if (succeeded(leadRows)) setLeads(leadRows.value)
+      if (succeeded(connectionRows)) setConnectionRequests(connectionRows.value)
+      if (succeeded(templateRows)) setTemplates(templateRows.value)
+      if (succeeded(followUpRows)) {
+        setCoachFollowUpsByAthleteId(
+          followUpRows.value.reduce((accumulator, followUp) => {
+            const athleteId = followUp.athleteId
+            if (!athleteId) return accumulator
+            accumulator[athleteId] = [...(accumulator[athleteId] ?? []), followUp]
+            return accumulator
+          }, {}),
+        )
+      }
+      const optionalFailures = results.filter((result) => result.status === 'rejected')
+      if (optionalFailures.length) {
+        setNotice('Clients loaded. Some supporting Coach Hub details could not refresh.')
+      }
       return c
-    } catch (e) {
-      setNotice(e.message)
+    } catch (error) {
+      if (isCurrent()) {
+        // Keep existing client records instead of replacing them with an empty
+        // array on a transient failure; show a retryable error.
+        setRosterLoadError(error?.message ?? 'Could not refresh the client roster.')
+      }
       return clients
     } finally {
-      setLoading(false)
+      if (isCurrent()) setLoading(false)
     }
   }
   useEffect(()=>{load()},[])
@@ -803,6 +835,8 @@ export default function CoachScreen({
           portfolio={sortedPortfolio}
           portfolioLoading={portfolioLoading}
           portfolioError={portfolioError}
+          rosterLoadError={rosterLoadError}
+          onRefreshClients={load}
           passAvaContextByBusinessClientId={passAvaContextByBusinessClientId}
           loading={loading}
           query={query}
@@ -854,6 +888,8 @@ export default function CoachScreen({
       portfolio={sortedPortfolio}
       portfolioLoading={portfolioLoading}
       portfolioError={portfolioError}
+      rosterLoadError={rosterLoadError}
+      onRefreshClients={load}
       passAvaContextByBusinessClientId={passAvaContextByBusinessClientId}
       loading={loading}
       query={query}
