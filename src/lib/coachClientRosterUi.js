@@ -14,6 +14,7 @@ import {
 } from './coachClientInvite.js'
 
 export const ROSTER_HUB_FILTER = {
+  ALL: 'all',
   ACTIVE: 'active',
   ATTENTION: 'attention',
   PAST: 'past',
@@ -210,6 +211,7 @@ export const sortRosterEntriesForOperations = (
 }
 
 export const filterRosterEntriesByHubScope = (entries = [], scope = ROSTER_HUB_FILTER.ACTIVE) => {
+  if (scope === ROSTER_HUB_FILTER.ALL) return entries
   if (scope === ROSTER_HUB_FILTER.PAST) {
     return entries.filter((entry) => isArchivedBusinessClient(entry.client))
   }
