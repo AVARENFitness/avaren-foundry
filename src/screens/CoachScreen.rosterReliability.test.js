@@ -8,6 +8,8 @@ const hubSource = readFileSync(resolve(process.cwd(), 'src/components/coach/Coac
 describe('Coach Hub complete-roster safety', () => {
   it('loads the canonical roster independently of optional dashboard data', () => {
     expect(coachSource).toContain('const supportingRequests = Promise.allSettled([')
+    expect(coachSource).toContain('const optional = (request) => Promise.resolve().then(request)')
+    expect(coachSource).toContain('optional(() => coachBackend.listCoachLeads())')
     expect(coachSource).toContain('const c = await coachBackend.listCoachRoster({ includeArchived: true })')
     expect(coachSource).toContain('setClients(c)')
     expect(coachSource).toContain('const results = await supportingRequests')
