@@ -311,6 +311,21 @@ export const buildScheduledSessionClientPayload = ({
   }
 }
 
+/**
+ * A refresh may legitimately archive a client, but must not silently drop a
+ * previously known active business-client record. The caller retries the
+ * authoritative query before accepting a smaller roster.
+ */
+export const missingActiveRosterClientIds = (previous = [], next = []) => {
+  const nextIds = new Set(
+    next.map(resolveRecordBusinessClientId).filter(Boolean),
+  )
+  return previous
+    .filter(isActiveBusinessClient)
+    .map(resolveRecordBusinessClientId)
+    .filter((id) => id && !nextIds.has(id))
+}
+
 export const filterActiveRoster = (clients = []) =>
   clients.filter((client) => isActiveBusinessClient(client))
 
