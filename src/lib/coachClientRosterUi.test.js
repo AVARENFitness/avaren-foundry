@@ -188,6 +188,7 @@ describe('coachClientRosterUi', () => {
       { client: { id: '3', status: 'archived' }, attentionCount: 0 },
     ]
 
+    expect(filterRosterEntriesByHubScope(entries, ROSTER_HUB_FILTER.ALL)).toHaveLength(3)
     expect(filterRosterEntriesByHubScope(entries, ROSTER_HUB_FILTER.ACTIVE)).toHaveLength(2)
     expect(filterRosterEntriesByHubScope(entries, ROSTER_HUB_FILTER.ATTENTION)).toHaveLength(1)
     expect(filterRosterEntriesByHubScope(entries, ROSTER_HUB_FILTER.PAST)).toHaveLength(1)
