@@ -38,5 +38,8 @@ describe('Coach Hub complete-roster safety', () => {
     expect(hubSource).toContain("onQueryChange?.('')")
     expect(hubSource).toContain("onNavigateCoachScreen?.('clients')")
     expect(hubSource).toContain('View all clients ({clients.length})')
+    expect(hubSource).toContain('Showing {rosterPreview.length} of {filteredRoster.length} active clients')
+    expect(hubSource).toContain('{rosterOnly ? (')
+    expect(hubSource).toContain('aria-pressed={rosterFilter === option.id}')
   })
 })
