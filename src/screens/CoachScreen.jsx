@@ -24,6 +24,7 @@ import {
   resolveRecordBusinessClientId,
   resolveAthleteDataId,
   countActiveBusinessClients,
+  missingActiveRosterClientIds,
 } from '../lib/coachBusinessClient'
 import {
   validateInviteEmail,
@@ -134,17 +135,20 @@ export default function CoachScreen({
       // A successful but incomplete roster response can be more dangerous than
       // a rejected request. Confirm that previously visible active clients really
       // disappeared before replacing the known roster with fewer rows.
-      const previousActiveIds = new Set(
-        lastVerifiedRosterRef.current
-          .filter((client) => String(client.status ?? 'active') === 'active')
-          .map(resolveRecordBusinessClientId)
-          .filter(Boolean),
-      )
-      const returnedIds = new Set(c.map(resolveRecordBusinessClientId).filter(Boolean))
-      const activeClientsMissing = [...previousActiveIds].some((id) => !returnedIds.has(id))
-      if (activeClientsMissing) {
+      let missingIds = missingActiveRosterClientIds(lastVerifiedRosterRef.current, c)
+      if (missingIds.length) {
         c = await coachBackend.listCoachRoster({ includeArchived: true })
         if (!isCurrent()) return c
+        missingIds = missingActiveRosterClientIds(lastVerifiedRosterRef.current, c)
+        if (missingIds.length) {
+          // Two fetches omitted known active clients entirely. Treat that as a
+          // potentially incomplete response, not evidence of a deletion.
+          // A real archive appears as an updated row and is accepted normally.
+          setRosterLoadError(
+            'The roster refresh returned fewer active clients than expected. Previous clients are still shown; retry to verify.',
+          )
+          return lastVerifiedRosterRef.current
+        }
       }
 
       lastVerifiedRosterRef.current = c
