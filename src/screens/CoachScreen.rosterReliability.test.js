@@ -35,6 +35,15 @@ describe('Coach Hub complete-roster safety', () => {
     expect(coachSource).toContain('if (isCurrent()) setLoading(false)')
   })
 
+  it('double-checks a refresh that unexpectedly omits an active client', () => {
+    expect(coachSource).toContain('const lastVerifiedRosterRef = useRef([])')
+    expect(coachSource).toContain('const previousActiveIds = new Set(')
+    expect(coachSource).toContain('const activeClientsMissing =')
+    expect(coachSource).toContain('if (activeClientsMissing) {')
+    expect(coachSource).toContain('c = await coachBackend.listCoachRoster({ includeArchived: true })')
+    expect(coachSource).toContain('lastVerifiedRosterRef.current = c')
+  })
+
   it('keeps previously loaded clients after errors and provides a retry path', () => {
     expect(coachSource).toContain('setRosterLoadError(error?.message')
     expect(coachSource).not.toContain('setClients([])')
@@ -48,7 +57,7 @@ describe('Coach Hub complete-roster safety', () => {
   })
 
   it('defaults the full Clients directory to All and clears search on View all', () => {
-    expect(hubSource).toContain('rosterOnly ? ROSTER_HUB_FILTER.ALL : ROSTER_HUB_FILTER.ACTIVE')
+    expect(hubSource).toContain('const [rosterFilter, setRosterFilter] = useState(\n    ROSTER_HUB_FILTER.ACTIVE,\n  )')
     expect(hubSource).toContain("onQueryChange?.('')")
     expect(hubSource).toContain("onNavigateCoachScreen?.('clients')")
     expect(hubSource).toContain('View all clients ({clients.length})')
