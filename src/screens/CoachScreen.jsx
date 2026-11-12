@@ -116,13 +116,14 @@ export default function CoachScreen({
 
     // Roster is critical data. Optional Coach Hub modules must not prevent it
     // from loading or cause a previously loaded client list to disappear.
+    const optional = (request) => Promise.resolve().then(request)
     const supportingRequests = Promise.allSettled([
-      coachBackend.listCoachInvitations(),
-      coachBackend.listCoachAssignments(),
-      coachBackend.listCoachLeads(),
-      coachBackend.listCoachClientFollowUps(),
-      coachBackend.listCoachConnectionRequests(),
-      coachBackend.listWorkoutTemplates(),
+      optional(() => coachBackend.listCoachInvitations()),
+      optional(() => coachBackend.listCoachAssignments()),
+      optional(() => coachBackend.listCoachLeads()),
+      optional(() => coachBackend.listCoachClientFollowUps()),
+      optional(() => coachBackend.listCoachConnectionRequests()),
+      optional(() => coachBackend.listWorkoutTemplates()),
     ])
 
     try {
@@ -182,7 +183,7 @@ export default function CoachScreen({
         // array on a transient failure; show a retryable error.
         setRosterLoadError(error?.message ?? 'Could not refresh the client roster.')
       }
-      return null
+      return clients
     } finally {
       if (isCurrent()) setLoading(false)
     }
