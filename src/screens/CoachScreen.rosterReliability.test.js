@@ -43,7 +43,7 @@ describe('Coach Hub complete-roster safety', () => {
   })
 
   it('keeps roster visible while optional intelligence is loading', () => {
-    expect(hubSource).toContain('{loading ? (')
+    expect(hubSource).toContain('{loading && clients.length === 0 ? (')
     expect(hubSource).not.toContain('{loading || portfolioLoading ? (')
   })
 
