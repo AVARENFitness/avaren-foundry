@@ -268,14 +268,13 @@ export default function CoachCommandCenter({
       scopedRoster.filter((entry) =>
         String(entry.clientName ?? '')
           .toLowerCase()
-          .includes(query.trim().toLowerCase()),
+          .includes((rosterOnly ? query : '').trim().toLowerCase()),
       ),
-    [scopedRoster, query],
+    [scopedRoster, query, rosterOnly],
   )
 
   const rosterPreview = filteredRoster.slice(0, ROSTER_PREVIEW_LIMIT)
   const visibleRoster = rosterExpanded ? filteredRoster : rosterPreview
-  const hiddenRosterCount = Math.max(0, filteredRoster.length - rosterPreview.length)
 
   if (!clients.length && !loading && !rosterLoadError) {
     return (
@@ -426,7 +425,7 @@ export default function CoachCommandCenter({
               <div>
                 {!rosterOnly ? <span className="eyebrow">CLIENTS</span> : null}
                 <h2>
-                  {rosterOnly ? 'Client directory' : rosterExpanded ? 'All active clients' : 'Client preview'}
+                  {rosterOnly ? 'Client directory' : 'Your clients'}
                 </h2>
               </div>
               {rosterOnly ? (
@@ -452,29 +451,43 @@ export default function CoachCommandCenter({
               ) : null}
             </header>
 
-            <label className="coach-roster-search-shell coach-roster-search-shell--compact">
-              <Search {...SEARCH_ICON} aria-hidden="true" />
-              <input
-                type="search"
-                value={query}
-                onChange={(event) => onQueryChange?.(event.target.value)}
-                placeholder="Search clients"
-                aria-label="Search clients"
-              />
-            </label>
+            {rosterOnly ? (
+              <>
+                <label className="coach-roster-search-shell coach-roster-search-shell--compact">
+                  <Search {...SEARCH_ICON} aria-hidden="true" />
+                  <input
+                    type="search"
+                    value={query}
+                    onChange={(event) => onQueryChange?.(event.target.value)}
+                    placeholder="Search clients"
+                    aria-label="Search clients"
+                  />
+                </label>
 
-            <div className="coach-command-sort-row coach-command-sort-row--compact coach-roster-filter-row">
-              {ROSTER_FILTER_OPTIONS.filter((option) => rosterOnly || option.id !== ROSTER_HUB_FILTER.ALL).map((option) => (
-                <button
-                  key={option.id}
-                  type="button"
-                  className={rosterFilter === option.id ? 'active' : ''}
-                  onClick={() => setRosterFilter(option.id)}
-                >
-                  {option.label}
-                </button>
-              ))}
-            </div>
+                <div className="coach-command-sort-row coach-command-sort-row--compact coach-roster-filter-row">
+                  {ROSTER_FILTER_OPTIONS.map((option) => (
+                    <button
+                      key={option.id}
+                      type="button"
+                      className={rosterFilter === option.id ? 'active' : ''}
+                      onClick={() => setRosterFilter(option.id)}
+                      aria-pressed={rosterFilter === option.id}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+                {!loading ? (
+                  <p className="coach-command-summary" aria-live="polite">
+                    {filteredRoster.length} {rosterFilter === ROSTER_HUB_FILTER.ALL ? 'total' : rosterFilter} clients
+                  </p>
+                ) : null}
+              </>
+            ) : !loading ? (
+              <p className="coach-command-summary">
+                Showing {rosterPreview.length} of {filteredRoster.length} active clients
+              </p>
+            ) : null}
 
             {loading ? (
               <div className="coach-roster-list">
@@ -519,7 +532,7 @@ export default function CoachCommandCenter({
               />
             )}
 
-            {!rosterOnly && !rosterExpanded && hiddenRosterCount > 0 ? (
+            {!rosterOnly && clients.length > 0 ? (
               <button
                 type="button"
                 className="coach-roster-view-all-button"
