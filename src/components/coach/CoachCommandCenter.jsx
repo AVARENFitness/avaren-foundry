@@ -88,7 +88,7 @@ export default function CoachCommandCenter({
   const [hubScheduleRefresh, setHubScheduleRefresh] = useState(0)
   const [rosterExpanded, setRosterExpanded] = useState(rosterOnly)
   const [rosterFilter, setRosterFilter] = useState(
-    rosterOnly ? ROSTER_HUB_FILTER.ALL : ROSTER_HUB_FILTER.ACTIVE,
+    ROSTER_HUB_FILTER.ACTIVE,
   )
   const [loadedUpcomingSessions, setLoadedUpcomingSessions] = useState([])
   const [now, setNow] = useState(() => Date.now())
