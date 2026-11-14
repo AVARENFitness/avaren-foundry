@@ -316,6 +316,9 @@ export default function CoachSessionCalendar({
     setSessions,
     onLoadSessions: loadSessions,
     calendarItems: calendarEvents,
+    onMutated: () => {
+      window.dispatchEvent(new Event('avaren:coach-today-updated'))
+    },
   })
 
   useEffect(() => {
@@ -733,6 +736,7 @@ export default function CoachSessionCalendar({
         'success',
       )
       await loadSessions()
+      window.dispatchEvent(new Event('avaren:coach-today-updated'))
       setSelectedDayKey(scheduledDate)
       setAnchor(new Date(`${scheduledDate}T12:00:00`))
       onScheduleComplete?.()
