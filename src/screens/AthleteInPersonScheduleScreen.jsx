@@ -2,7 +2,7 @@ import '../styles/screens/calendar-shared-polish.css'
 import { useCalendarSwipe } from '../hooks/useCalendarSwipe'
 import { shiftCalendarSelectionMonth, shiftCalendarSelectionWeek } from '../lib/calendarSelectionNavigation'
 import CoachQuickPlan from '../components/CoachQuickPlan'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   CalendarClock,
   CalendarDays,
@@ -114,6 +114,8 @@ export default function AthleteInPersonScheduleScreen({
   const [coachWorkAppointments, setCoachWorkAppointments] = useState([])
   const [coachRoster, setCoachRoster] = useState([])
   const [calendarLoading, setCalendarLoading] = useState(true)
+  const [calendarLoadIssue, setCalendarLoadIssue] = useState('')
+  const latestCalendarRequestRef = useRef(0)
   const [showEventComposer, setShowEventComposer] = useState(false)
   const [eventSaving, setEventSaving] = useState(false)
   const [editingPrivateEvent, setEditingPrivateEvent] = useState(null)
@@ -134,6 +136,7 @@ export default function AthleteInPersonScheduleScreen({
   }, [refreshAppointments])
 
   const loadCalendar = useCallback(async () => {
+    const requestId = ++latestCalendarRequestRef.current
     setCalendarLoading(true)
     const startDate = dateKey(addDays(anchor, -42))
     const endDate = addDaysKey(startDate, 168)
@@ -152,38 +155,58 @@ export default function AthleteInPersonScheduleScreen({
         )
       }
 
-      const [
-        athleteEventRows,
-        historyRows,
-        coachPrivateRows = [],
-        coachSessionRows = [],
-        rosterRows = [],
-      ] = await Promise.all(requests)
+      const results = await Promise.allSettled(requests)
+      if (requestId !== latestCalendarRequestRef.current) return
 
-      setAthleteEvents(
-        (athleteEventRows ?? []).map(normalizeAthleteCalendarEvent).filter(Boolean),
-      )
-      setPastAppointments(
-        (historyRows ?? []).map(normalizeAthleteScheduledSession).filter(Boolean),
-      )
+      const [athleteEventsResult, historyResult, coachPrivateResult,
+        coachSessionsResult, coachRosterResult] = results
+      if (athleteEventsResult?.status === 'fulfilled') {
+        setAthleteEvents(
+          (athleteEventsResult.value ?? []).map(normalizeAthleteCalendarEvent).filter(Boolean),
+        )
+      }
+      if (historyResult?.status === 'fulfilled') {
+        setPastAppointments(
+          (historyResult.value ?? []).map(normalizeAthleteScheduledSession).filter(Boolean),
+        )
+      }
 
       if (includeCoachCalendar) {
-        setCoachPrivateEvents(
-          (coachPrivateRows ?? []).map(normalizeCoachCalendarEvent).filter(Boolean),
-        )
-        setCoachWorkAppointments(
-          (coachSessionRows ?? []).map(normalizeScheduledSession).filter(Boolean),
-        )
-        setCoachRoster(rosterRows ?? [])
+        if (coachPrivateResult?.status === 'fulfilled') {
+          setCoachPrivateEvents(
+            (coachPrivateResult.value ?? []).map(normalizeCoachCalendarEvent).filter(Boolean),
+          )
+        }
+        if (coachSessionsResult?.status === 'fulfilled') {
+          setCoachWorkAppointments(
+            (coachSessionsResult.value ?? []).map(normalizeScheduledSession).filter(Boolean),
+          )
+        }
+        if (coachRosterResult?.status === 'fulfilled') {
+          setCoachRoster(coachRosterResult.value ?? [])
+        }
       } else {
         setCoachPrivateEvents([])
         setCoachWorkAppointments([])
         setCoachRoster([])
       }
+
+      // Preserve each source's last known records on a partial failure.
+      // Never infer that a blank calendar means the coach has availability.
+      const failed = results.some((result) => result.status === 'rejected')
+      setCalendarLoadIssue(failed
+        ? 'Some calendar information could not refresh. Existing entries are retained; availability is not verified.'
+        : '')
     } catch (error) {
-      appUi.toast(error.message ?? 'Could not load your calendar.', 'error')
+      if (requestId !== latestCalendarRequestRef.current) return
+      setCalendarLoadIssue(
+        'Could not refresh calendar. Previous entries are retained; retry to verify your schedule.',
+      )
+      appUi.toast(error?.message ?? 'Could not load your calendar.', 'error')
     } finally {
-      setCalendarLoading(false)
+      if (requestId === latestCalendarRequestRef.current) {
+        setCalendarLoading(false)
+      }
     }
   }, [anchor, includeCoachCalendar])
 
@@ -620,6 +643,15 @@ export default function AthleteInPersonScheduleScreen({
         </div>
       </header>
 
+      {calendarLoadIssue ? (
+        <div className="coach-calendar-data-warning" role="alert">
+          <span>{calendarLoadIssue}</span>
+          <button type="button" onClick={() => void loadCalendar()} disabled={calendarLoading}>
+            {calendarLoading ? 'Refreshing…' : 'Retry calendar'}
+          </button>
+        </div>
+      ) : null}
+
       {calendarLoading || (!ready && loading) ? (
         <p className="athlete-in-person-schedule-empty">Loading calendar…</p>
       ) : null}
@@ -733,7 +765,7 @@ export default function AthleteInPersonScheduleScreen({
               <span className="eyebrow">DAY</span>
               <h2>{dayHeading}</h2>
             </div>
-            <small>{selectedDayItems.length ? `${selectedDayItems.length} item${selectedDayItems.length === 1 ? '' : 's'}` : 'Open'}</small>
+            <small>{selectedDayItems.length ? `${selectedDayItems.length} item${selectedDayItems.length === 1 ? '' : 's'}` : calendarLoadIssue ? 'Unverified' : 'No entries'}</small>
           </div>
 
           {selectedDayItems.length ? (
@@ -744,7 +776,7 @@ export default function AthleteInPersonScheduleScreen({
             <div className="athlete-in-person-schedule-empty">
               <CalendarDays size={28} strokeWidth={1.5} />
               <p>Nothing scheduled.</p>
-              <span>This time is open on your AVAREN calendar.</span>
+              <span>{calendarLoadIssue ? 'Schedule could not be verified. Retry calendar.' : 'No entries saved in AVAREN for this day.'}</span>
             </div>
           )}
         </section>
