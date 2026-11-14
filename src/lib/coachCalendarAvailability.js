@@ -79,3 +79,32 @@ export const buildCoachDayAvailability = (
     windowLabel: `${formatTime12Hour(minutesToTime(rangeStart))} – ${formatTime12Hour(minutesToTime(rangeEnd))}`,
   }
 }
+
+
+/**
+ * Presentation-only bookable gaps. Hide past days and trim today's earlier
+ * minutes; the server remains authoritative for collision validation.
+ */
+export const bookableCoachDayGaps = (
+  gaps = [],
+  { selectedDayKey, todayKey, nowTime = '00:00', stepMinutes = 15 } = {},
+) => {
+  if (!selectedDayKey || !todayKey || selectedDayKey < todayKey) return []
+  if (selectedDayKey > todayKey) return gaps
+  const nowMinutes = toMinutes(nowTime)
+  if (nowMinutes == null) return []
+  const threshold = Math.ceil(nowMinutes / stepMinutes) * stepMinutes
+  return gaps.flatMap((gap) => {
+    const start = toMinutes(gap.startTime)
+    const end = toMinutes(gap.endTime)
+    if (start == null || end == null || end - Math.max(start, threshold) < 30) {
+      return []
+    }
+    const adjustedStart = Math.max(start, threshold)
+    return [{
+      ...gap,
+      startTime: minutesToTime(adjustedStart),
+      durationMinutes: end - adjustedStart,
+    }]
+  })
+}
