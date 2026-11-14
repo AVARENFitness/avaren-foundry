@@ -980,3 +980,54 @@
 @media(prefers-reduced-motion: reduce) {
   .coach-session-calendar-screen .coach-calendar-availability-gap { transition: none; }
 }
+
+/* Coach Today: calm, chronological agenda that retains earlier appointments. */
+.coach-today-agenda {
+  display: grid;
+  gap: 18px;
+}
+.coach-today-agenda-summary {
+  margin: 0;
+  color: var(--app-text-muted, #a9a8a4);
+  font-size: .84rem;
+  letter-spacing: .01em;
+}
+.coach-today-agenda-group {
+  min-width: 0;
+  display: grid;
+  gap: 10px;
+}
+.coach-today-agenda-label {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0;
+  color: var(--calendar-accent, #c1aa79);
+  font-size: .78rem;
+  font-weight: 650;
+  letter-spacing: .035em;
+}
+.coach-today-agenda-label span {
+  display: inline-flex;
+  justify-content: center;
+  min-width: 22px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  border: 1px solid rgba(193, 170, 121, .22);
+  color: var(--app-text-muted, #aaa);
+  font-variant-numeric: tabular-nums;
+}
+.coach-today-agenda-group .coach-today-schedule-list {
+  margin: 0;
+}
+.coach-today-agenda-group .coach-appointment-card--past {
+  opacity: .68;
+}
+.coach-today-agenda-group .coach-appointment-card--past:focus-visible {
+  opacity: 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  .coach-today-agenda-group .coach-appointment-card {
+    transition: none;
+  }
+}
