@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildCoachDayAvailability, minutesToTime } from './coachCalendarAvailability'
+import { buildCoachDayAvailability, coachLocalClockTime, minutesToTime } from './coachCalendarAvailability'
 
 const session = (startTime, durationMinutes, overrides = {}) => ({
   startTime,
@@ -56,4 +56,32 @@ describe('coach calendar availability', () => {
     ])
     expect(minutesToTime(570)).toBe('09:30')
   })
+  it('does not advertise gaps that have already passed today', () => {
+    const result = buildCoachDayAvailability([
+      session('08:00', 60),
+      session('11:00', 60),
+      session('15:00', 60),
+    ], { startHour: 8, endHour: 18, notBeforeTime: '12:03' })
+
+    expect(result.occupiedMinutes).toBe(180)
+    expect(result.gaps).toEqual([
+      { startTime: '12:05', endTime: '15:00', durationMinutes: 175 },
+      { startTime: '16:00', endTime: '18:00', durationMinutes: 120 },
+    ])
+  })
+
+  it('never offers expired slots after the scheduling window ends', () => {
+    const result = buildCoachDayAvailability(
+      [session('18:00', 60)],
+      { startHour: 6, endHour: 21, notBeforeTime: '22:15' },
+    )
+    expect(result.gaps).toEqual([])
+    expect(result.occupiedMinutes).toBe(60)
+  })
+
+  it('reads the coach clock in the session timezone even when the device differs', () => {
+    expect(coachLocalClockTime(new Date('2026-11-13T17:07:00.000Z'), 'America/New_York')).toBe('12:07')
+    expect(coachLocalClockTime(new Date('2026-11-13T17:07:00.000Z'), 'America/Los_Angeles')).toBe('09:07')
+  })
+
 })

@@ -22,7 +22,7 @@ import {
   isPastCoachAppointment,
 } from '../lib/coachCalendarUi'
 import { appUi } from '../lib/appUi'
-import { buildCoachDayAvailability } from '../lib/coachCalendarAvailability'
+import { buildCoachDayAvailability, coachLocalClockTime } from '../lib/coachCalendarAvailability'
 import { calendarRepeatWindow } from '../lib/calendarRepeatWindow'
 import { coachBackend } from '../lib/coachBackend'
 import {
@@ -967,8 +967,15 @@ export default function CoachSessionCalendar({
 
   const selectedCalendarItems = dayItemsByKey[selectedDayKey] ?? []
   const selectedDayAvailability = useMemo(
-    () => buildCoachDayAvailability(selectedCalendarItems),
-    [selectedCalendarItems],
+    () => buildCoachDayAvailability(selectedCalendarItems, {
+      // Do not offer expired time slots when a client asks about today.
+      notBeforeTime: selectedDayKey < todayKey
+        ? '21:00'
+        : selectedDayKey === todayKey
+          ? coachLocalClockTime()
+          : null,
+    }),
+    [selectedCalendarItems, selectedDayKey, todayKey],
   )
   const selectedTrainingCount = selectedCalendarItems.filter(item => !item.isCoachPrivateEvent && !item.isAthletePrivateEvent).length
   const selectedEventCount = selectedCalendarItems.length - selectedTrainingCount
@@ -1334,10 +1341,10 @@ export default function CoachSessionCalendar({
                 ))}
               </div>
             ) : (
-              <p className="coach-calendar-availability-caution">No 30-minute gaps in this calendar window.</p>
+              <p className="coach-calendar-availability-caution">{selectedDayKey < todayKey ? 'Past dates are not offered for booking.' : 'No 30-minute unbooked gaps remain in this calendar window.'}</p>
             )}
             <small className="coach-calendar-availability-note">
-              Unbooked means no overlapping entry in AVAREN, not confirmed working hours or external calendar availability.
+              Only future gaps can be booked. Unbooked means no overlapping AVAREN entry, not confirmed working hours or outside-calendar availability.
             </small>
           </section>
 
