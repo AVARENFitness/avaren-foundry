@@ -22,7 +22,7 @@ import {
   isPastCoachAppointment,
 } from '../lib/coachCalendarUi'
 import { appUi } from '../lib/appUi'
-import { buildCoachDayAvailability } from '../lib/coachCalendarAvailability'
+import { bookableCoachDayGaps, buildCoachDayAvailability } from '../lib/coachCalendarAvailability'
 import { calendarRepeatWindow } from '../lib/calendarRepeatWindow'
 import { coachBackend } from '../lib/coachBackend'
 import {
@@ -970,6 +970,22 @@ export default function CoachSessionCalendar({
     () => buildCoachDayAvailability(selectedCalendarItems),
     [selectedCalendarItems],
   )
+  const bookableDayGaps = useMemo(() => {
+    const clock = new Intl.DateTimeFormat('en-US', {
+      timeZone: DEFAULT_COACH_SCHEDULE_TIMEZONE,
+      hour: '2-digit',
+      minute: '2-digit',
+      hourCycle: 'h23',
+    }).formatToParts(new Date())
+    const hour = clock.find((part) => part.type === 'hour')?.value ?? '00'
+    const minute = clock.find((part) => part.type === 'minute')?.value ?? '00'
+    return bookableCoachDayGaps(selectedDayAvailability.gaps, {
+      selectedDayKey,
+      todayKey: scheduleDateKey(new Date(), DEFAULT_COACH_SCHEDULE_TIMEZONE),
+      nowTime: `${hour}:${minute}`,
+    })
+  }, [selectedDayAvailability.gaps, selectedDayKey, loading])
+
   const selectedTrainingCount = selectedCalendarItems.filter(item => !item.isCoachPrivateEvent && !item.isAthletePrivateEvent).length
   const selectedEventCount = selectedCalendarItems.length - selectedTrainingCount
   const todayItems = dayItemsByKey[todayKey] ?? []
@@ -1307,9 +1323,9 @@ export default function CoachSessionCalendar({
               <p className="coach-calendar-availability-caution">
                 Availability is unverified while calendar data is unavailable.
               </p>
-            ) : selectedDayAvailability.gaps.length ? (
+            ) : bookableDayGaps.length ? (
               <div className="coach-calendar-availability-gaps">
-                {selectedDayAvailability.gaps.map((gap) => (
+                {bookableDayGaps.map((gap) => (
                   <button
                     type="button"
                     key={gap.startTime}
@@ -1334,7 +1350,7 @@ export default function CoachSessionCalendar({
                 ))}
               </div>
             ) : (
-              <p className="coach-calendar-availability-caution">No 30-minute gaps in this calendar window.</p>
+              <p className="coach-calendar-availability-caution">No future unbooked gaps of at least 30 minutes in this calendar window.</p>
             )}
             <small className="coach-calendar-availability-note">
               Unbooked means no overlapping entry in AVAREN, not confirmed working hours or external calendar availability.
