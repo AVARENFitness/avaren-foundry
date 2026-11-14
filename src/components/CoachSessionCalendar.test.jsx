@@ -235,6 +235,7 @@ describe('CoachSessionCalendar usability', () => {
   it('selects a month date and opens its inline agenda', async () => {
     render(<CoachSessionCalendar clients={[jake, sarah]} assignments={[]} />)
 
+    fireEvent.click(screen.getByTestId('coach-calendar-view-month'))
     await waitFor(() => {
       expect(screen.getByTestId('coach-calendar-month-grid')).toBeInTheDocument()
     })
@@ -247,7 +248,6 @@ describe('CoachSessionCalendar usability', () => {
       day: 'numeric',
     })
 
-    fireEvent.click(screen.getByTestId('coach-calendar-view-month'))
     fireEvent.click(within(screen.getByTestId('coach-calendar-month-grid')).getAllByRole('button', { name: new RegExp(label, 'i') })[0])
 
     expect(screen.getByTestId('coach-calendar-view-month')).toHaveAttribute('aria-selected', 'true')
@@ -277,7 +277,7 @@ describe('CoachSessionCalendar usability', () => {
 
     expect(document.querySelector('.coach-calendar-command-bar')).not.toBeNull()
     expect(screen.getByTestId('coach-calendar-view-month')).toBeInTheDocument()
-    expect(screen.getByText(/October|November|December|January|February|March|April|May|June|July|August|September/i)).toBeInTheDocument()
+    expect(screen.getByTestId('coach-calendar-view-day')).toHaveAttribute('aria-selected', 'true')
     expect(screen.getByTestId('coach-calendar-jump-today')).toBeInTheDocument()
     expect(screen.getByTestId('coach-calendar-add-trigger')).toBeInTheDocument()
   })
