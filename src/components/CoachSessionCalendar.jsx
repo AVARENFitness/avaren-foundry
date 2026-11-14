@@ -1233,8 +1233,9 @@ export default function CoachSessionCalendar({
                       type="button"
                       className={`coach-calendar-week-item ${item.isCoachPrivateEvent || item.isAthletePrivateEvent ? 'is-private' : 'is-client'}`}
                       onClick={() => {
-                        if (item.isCoachPrivateEvent) {
+                        if (item.isCoachPrivateEvent || item.isAthletePrivateEvent) {
                           setSelectedDayKey(key)
+                          setAnchor(day)
                           setViewMode(COACH_CALENDAR_VIEW.DAY)
                         } else {
                           sessionDetail.openSession(item)
@@ -1250,7 +1251,7 @@ export default function CoachSessionCalendar({
                     </button>
                     </div>
                   )) : (
-                    <span className="coach-calendar-week-open">Open</span>
+                    <span className="coach-calendar-week-open">No items</span>
                   )}
                 </div>
               </article>
@@ -1315,6 +1316,9 @@ export default function CoachSessionCalendar({
                         ...current,
                         sessionDate: selectedDayKey,
                         startTime: gap.startTime,
+                        durationMinutes: String(
+                          Math.min(Number(current.durationMinutes) || 60, gap.durationMinutes),
+                        ),
                       }))
                       setShowComposer(true)
                     }}
