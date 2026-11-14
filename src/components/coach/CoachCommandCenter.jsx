@@ -86,7 +86,6 @@ export default function CoachCommandCenter({
   onOpenLead,
 }) {
   const [hubScheduleRefresh, setHubScheduleRefresh] = useState(0)
-  const [rosterExpanded, setRosterExpanded] = useState(rosterOnly)
   const [rosterFilter, setRosterFilter] = useState(
     ROSTER_HUB_FILTER.ACTIVE,
   )
@@ -274,7 +273,9 @@ export default function CoachCommandCenter({
   )
 
   const rosterPreview = filteredRoster.slice(0, ROSTER_PREVIEW_LIMIT)
-  const visibleRoster = rosterExpanded ? filteredRoster : rosterPreview
+  // Home always shows a compact preview. The Clients directory always shows
+  // every matching record; it must never inherit Home's preview state.
+  const visibleRoster = rosterOnly ? filteredRoster : rosterPreview
 
   if (!clients.length && !loading && !rosterLoadError) {
     return (
@@ -440,15 +441,6 @@ export default function CoachCommandCenter({
                   {loading ? 'Refreshing' : 'Refresh'}
                 </button>
               ) : null}
-              {!rosterOnly && rosterExpanded ? (
-                <button
-                  type="button"
-                  className="coach-secondary-button coach-command-inline-action"
-                  onClick={() => setRosterExpanded(false)}
-                >
-                  Show preview
-                </button>
-              ) : null}
             </header>
 
             {rosterOnly ? (
@@ -485,7 +477,7 @@ export default function CoachCommandCenter({
               </>
             ) : !loading ? (
               <p className="coach-command-summary">
-                Showing {rosterPreview.length} of {filteredRoster.length} active clients
+                {visibleRoster.length} of {filteredRoster.length} active clients
               </p>
             ) : null}
 
@@ -541,7 +533,7 @@ export default function CoachCommandCenter({
                   onNavigateCoachScreen?.('clients')
                 }}
               >
-                View all clients ({clients.length})
+                Open active clients ({filteredRoster.length})
               </button>
             ) : null}
           </section>
