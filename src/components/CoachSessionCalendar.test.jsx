@@ -555,6 +555,7 @@ describe('CoachSessionCalendar usability', () => {
     )
 
     const sheet = await screen.findByTestId('coach-schedule-session-sheet')
+    fireEvent.click(within(sheet).getByRole('button', { name: /more options/i }))
     fireEvent.click(within(sheet).getByRole('button', { name: /^custom$/i }))
     fireEvent.click(within(sheet).getByRole('button', { name: /^on date$/i }))
 
