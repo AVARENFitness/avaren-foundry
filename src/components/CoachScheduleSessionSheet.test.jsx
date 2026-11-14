@@ -55,6 +55,22 @@ describe('CoachScheduleSessionSheet', () => {
     expect(screen.getByRole('button', { name: /more options · repeats/i })).toBeInTheDocument()
   })
 
+  it('offers active connected and offline clients without archived clients in new bookings', async () => {
+    const user = userEvent.setup()
+    render(
+      <CoachScheduleSessionSheet open
+        clients={[
+          { id: 'bc-offline', business_client_id: 'bc-offline', status: 'active', first_name: 'Mary Lou', linked_user_id: null },
+          { id: 'bc-archive', business_client_id: 'bc-archive', status: 'archived', first_name: 'Past Client', linked_user_id: null },
+        ]}
+        draft={{ ...baseDraft, athleteId: '', businessClientId: '' }}
+        onDraftChange={vi.fn()} onClose={vi.fn()} onSubmit={vi.fn()} />,
+    )
+    await user.click(screen.getByRole('button', { name: /select client/i }))
+    expect(screen.getByRole('option', { name: 'Mary Lou' })).toBeInTheDocument()
+    expect(screen.queryByRole('option', { name: 'Past Client' })).not.toBeInTheDocument()
+  })
+
   it('filters a longer client roster without adding a scheduling step', async () => {
     const user = userEvent.setup()
     const clients = Array.from({ length: 8 }, (_, i) => ({
