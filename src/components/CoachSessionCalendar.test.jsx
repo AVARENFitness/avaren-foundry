@@ -176,7 +176,7 @@ describe('CoachSessionCalendar usability', () => {
     })
 
     expect(appUi.toast).toHaveBeenCalledWith(
-      'Some calendar items could not load. Showing the schedule data that is available.',
+      'Some calendar sources could not refresh. Existing appointments are preserved, but availability is not confirmed. Retry before booking.',
       'error',
     )
   })
@@ -204,18 +204,15 @@ describe('CoachSessionCalendar usability', () => {
     })
   })
 
-  it('defaults to Month view for a broad schedule picture', async () => {
+  it('defaults to Day view so coaches can see immediate availability', async () => {
     render(<CoachSessionCalendar clients={[jake, sarah]} assignments={[]} />)
 
     await waitFor(() => {
-      expect(screen.getByTestId('coach-calendar-month-grid')).toBeInTheDocument()
+      expect(screen.getByRole('region', { name: 'Time gaps in your AVAREN calendar' })).toBeInTheDocument()
     })
-
-    expect(screen.getByTestId('coach-calendar-view-month')).toHaveAttribute(
-      'aria-selected',
-      'true',
-    )
-    expect(screen.getByTestId('coach-calendar-month-grid')).toBeInTheDocument()
+    expect(screen.getByTestId('coach-calendar-view-day')).toHaveAttribute('aria-selected', 'true')
+    expect(screen.getByText('Day at a glance')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /schedule in unbooked gap/i })).toBeInTheDocument()
   })
 
   it('opens week view in one tap and shows a seven-day schedule board', async () => {
@@ -250,6 +247,7 @@ describe('CoachSessionCalendar usability', () => {
       day: 'numeric',
     })
 
+    fireEvent.click(screen.getByTestId('coach-calendar-view-month'))
     fireEvent.click(within(screen.getByTestId('coach-calendar-month-grid')).getAllByRole('button', { name: new RegExp(label, 'i') })[0])
 
     expect(screen.getByTestId('coach-calendar-view-month')).toHaveAttribute('aria-selected', 'true')
