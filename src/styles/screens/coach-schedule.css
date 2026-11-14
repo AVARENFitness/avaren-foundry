@@ -589,3 +589,61 @@
   cursor: pointer;
   opacity: .78;
 }
+
+
+/* Scheduling sheet: calm, compact, native-feeling controls. */
+.coach-schedule-session-sheet {
+  background: linear-gradient(180deg, #191c20, #111419);
+  border: 1px solid rgba(193,170,121,.16);
+  box-shadow: 0 -16px 60px rgba(0,0,0,.42);
+}
+.coach-schedule-session-sheet-header {
+  padding-bottom: 12px;
+}
+.coach-schedule-session-sheet-header h2 {
+  font-size: clamp(19px,4.7vw,23px);
+  letter-spacing: -.035em;
+  font-weight: 680;
+}
+.coach-schedule-session-sheet-body {
+  gap: 13px;
+}
+.coach-schedule-segmented--duration {
+  grid-template-columns: repeat(3,minmax(0,1fr));
+}
+.coach-schedule-segmented {
+  padding: 4px;
+  border: 1px solid rgba(193,170,121,.13);
+  border-radius: 14px;
+  background: rgba(255,255,255,.035);
+}
+.coach-schedule-segment {
+  border-radius: 10px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -.015em;
+}
+.coach-schedule-segment.active {
+  border-color: rgba(193,170,121,.22);
+  background: rgba(193,170,121,.14);
+  box-shadow: none;
+}
+.coach-schedule-control {
+  border-color: rgba(193,170,121,.15);
+  box-shadow: none;
+}
+.coach-schedule-more-toggle {
+  min-height: 44px;
+  border-color: transparent;
+  background: rgba(255,255,255,.035);
+  color: var(--cream);
+  font-size: .9rem;
+  padding: 0 14px;
+}
+.coach-schedule-session-sheet-footer {
+  padding-top: 14px;
+  border-color: rgba(193,170,121,.12);
+}
+.coach-schedule-session-sheet .coach-primary-action,
+.coach-schedule-session-sheet .coach-schedule-cancel-button {
+  border-radius: 12px;
+}
