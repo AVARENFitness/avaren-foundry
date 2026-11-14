@@ -54,6 +54,8 @@ export default function CoachScheduleSessionSheet({
 }) {
   const titleId = useId()
   const panelRef = useRef(null)
+  const onCloseRef = useRef(onClose)
+  onCloseRef.current = onClose
   const dateInputRef = useRef(null)
   const [timeError, setTimeError] = useState('')
   const [openMenu, setOpenMenu] = useState(null)
@@ -102,7 +104,7 @@ export default function CoachScheduleSessionSheet({
       if (event.key === 'Escape') {
         event.preventDefault()
         setOpenMenu(null)
-        onClose?.()
+        onCloseRef.current?.()
       }
     }
 
@@ -114,13 +116,13 @@ export default function CoachScheduleSessionSheet({
     setTimeError('')
     setOpenMenu(null)
     setClientSearch('')
-    setShowMoreOptions(false)
+    setShowMoreOptions(Boolean(draft.recurrence?.enabled))
 
     return () => {
       window.removeEventListener('keydown', onKeyDown)
       panelRef.current?.removeEventListener('scroll', closeMenuOnScroll)
     }
-  }, [open, onClose])
+  }, [open])
 
   useEffect(() => {
     if (!openMenu) return undefined
@@ -355,7 +357,7 @@ export default function CoachScheduleSessionSheet({
             aria-expanded={showMoreOptions}
             onClick={() => setShowMoreOptions((current) => !current)}
           >
-            More options
+            {draft.recurrence?.enabled ? 'More options · Repeats' : 'More options'}
             {showMoreOptions ? (
               <ChevronUp size={16} strokeWidth={1.75} aria-hidden="true" />
             ) : (
@@ -520,10 +522,7 @@ export default function CoachScheduleSessionSheet({
               />
             </div>
           </label>
-            </>
-          ) : null}
-
-          <div className="coach-schedule-field-group">
+          <div className="coach-schedule-field-group coach-schedule-field-group--secondary">
             <span className="coach-schedule-field-label">Repeat</span>
             <div
               className="coach-schedule-segmented"
@@ -707,6 +706,8 @@ export default function CoachScheduleSessionSheet({
                   </div>
                 </label>
               )}
+            </>
+          ) : null}
             </>
           ) : null}
 
