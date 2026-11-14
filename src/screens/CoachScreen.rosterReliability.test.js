@@ -57,12 +57,20 @@ describe('Coach Hub complete-roster safety', () => {
     expect(hubSource).not.toContain('{loading || portfolioLoading ? (')
   })
 
-  it('defaults the full Clients directory to All and clears search on View all', () => {
+  it('never lets an expanded directory leak into the Today preview', () => {
+    expect(hubSource).toContain('const visibleRoster = rosterOnly ? filteredRoster : rosterPreview')
+    expect(hubSource).not.toContain('rosterExpanded')
+    expect(hubSource).not.toContain('Show preview')
+    expect(hubSource).toContain('{visibleRoster.map((entry) => {')
+    expect(hubSource).toContain('{visibleRoster.length} of {filteredRoster.length} active clients')
+  })
+
+  it('opens the active client directory and clears any previous search', () => {
     expect(hubSource).toContain('const [rosterFilter, setRosterFilter] = useState(\n    ROSTER_HUB_FILTER.ACTIVE,\n  )')
     expect(hubSource).toContain("onQueryChange?.('')")
     expect(hubSource).toContain("onNavigateCoachScreen?.('clients')")
-    expect(hubSource).toContain('View all clients ({clients.length})')
-    expect(hubSource).toContain('Showing {rosterPreview.length} of {filteredRoster.length} active clients')
+    expect(hubSource).toContain('Open active clients ({filteredRoster.length})')
+    expect(hubSource).toContain('{visibleRoster.length} of {filteredRoster.length} active clients')
     expect(hubSource).toContain('{rosterOnly ? (')
     expect(hubSource).toContain('aria-pressed={rosterFilter === option.id}')
   })
