@@ -105,6 +105,39 @@ describe('CoachTodaySchedule', () => {
     expect(screen.getByRole('button', { name: 'Retry' })).toBeInTheDocument()
   })
 
+  it('keeps earlier completed appointments visible separately from upcoming training', async () => {
+    const earlier = {
+      id: 'session-earlier',
+      athlete_id: 'athlete-jake',
+      session_date: dateKey(new Date()),
+      start_time: '07:00',
+      starts_at: new Date(Date.now() - 3_600_000).toISOString(),
+      ends_at: new Date(Date.now() - 1_800_000).toISOString(),
+      duration_minutes: 30,
+      status: 'completed',
+    }
+    const upcoming = {
+      id: 'session-later',
+      athlete_id: 'athlete-jake',
+      session_date: dateKey(new Date()),
+      start_time: '18:00',
+      starts_at: new Date(Date.now() + 3_600_000).toISOString(),
+      ends_at: new Date(Date.now() + 7_200_000).toISOString(),
+      duration_minutes: 60,
+      status: 'scheduled',
+    }
+    coachBackend.listScheduledSessions.mockResolvedValue([earlier, upcoming])
+    render(<CoachTodaySchedule clients={[jake]} />)
+
+    await waitFor(() => expect(screen.getByText('1 upcoming · 1 earlier')).toBeInTheDocument())
+    expect(screen.getByRole('region', { name: 'Upcoming' })).toBeInTheDocument()
+    expect(screen.getByRole('region', { name: 'Earlier today' })).toBeInTheDocument()
+    const cards = screen.getAllByTestId('coach-appointment-card')
+    expect(cards).toHaveLength(2)
+    expect(cards[0]).toHaveAttribute('data-next', 'true')
+    expect(cards[1]).toHaveAttribute('data-past', 'true')
+  })
+
   it('refreshes Coach Today when appointments change in Calendar', async () => {
     render(<CoachTodaySchedule clients={[jake]} />)
     await waitFor(() => expect(screen.getByText('Jake')).toBeInTheDocument())
