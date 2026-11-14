@@ -33,3 +33,23 @@ export const isPendingCoachHubAppointment = (session, now = new Date()) => {
 
 export const filterPendingCoachHubAppointments = (sessions = [], now = new Date()) =>
   (sessions ?? []).filter((session) => isPendingCoachHubAppointment(session, now))
+
+
+/**
+ * Full-day Coach Hub agenda. An appointment that ended earlier today is
+ * still part of today's schedule, even if it is no longer actionable.
+ * Cancelled bookings remain accessible in the full Calendar, not Today.
+ */
+export const partitionCoachTodayAppointments = (sessions = [], now = new Date()) => {
+  const upcoming = []
+  const earlier = []
+  for (const session of sessions ?? []) {
+    if (!session || session.status === SCHEDULED_SESSION_STATUS.CANCELLED) continue
+    if (isPendingCoachHubAppointment(session, now)) {
+      upcoming.push(session)
+    } else {
+      earlier.push(session)
+    }
+  }
+  return { upcoming, earlier }
+}
