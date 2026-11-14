@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildCoachDayAvailability, minutesToTime } from './coachCalendarAvailability'
+import { bookableCoachDayGaps, buildCoachDayAvailability, minutesToTime } from './coachCalendarAvailability'
 
 const session = (startTime, durationMinutes, overrides = {}) => ({
   startTime,
@@ -9,6 +9,22 @@ const session = (startTime, durationMinutes, overrides = {}) => ({
 })
 
 describe('coach calendar availability', () => {
+  it('does not present past appointment gaps as bookable', () => {
+    const gaps = [
+      { startTime: '08:00', endTime: '10:00', durationMinutes: 120 },
+      { startTime: '13:00', endTime: '15:00', durationMinutes: 120 },
+    ]
+    expect(bookableCoachDayGaps(gaps, {
+      selectedDayKey: '2026-11-12', todayKey: '2026-11-13', nowTime: '11:05',
+    })).toEqual([])
+    expect(bookableCoachDayGaps(gaps, {
+      selectedDayKey: '2026-11-14', todayKey: '2026-11-13', nowTime: '11:05',
+    })).toEqual(gaps)
+    expect(bookableCoachDayGaps(gaps, {
+      selectedDayKey: '2026-11-13', todayKey: '2026-11-13', nowTime: '13:22',
+    })).toEqual([{ startTime: '13:30', endTime: '15:00', durationMinutes: 90 }])
+  })
+
   it('merges adjacent and overlapping busy appointments without double-counting', () => {
     const result = buildCoachDayAvailability([
       session('09:00', 60),
