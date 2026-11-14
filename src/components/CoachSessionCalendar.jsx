@@ -115,6 +115,17 @@ export default function CoachSessionCalendar({
   const [calendarEvents, setCalendarEvents] = useState([])
   const [loading, setLoading] = useState(true)
   const [calendarLoadIssue, setCalendarLoadIssue] = useState('')
+  const [availabilityClock, setAvailabilityClock] = useState(() => Date.now())
+  useEffect(() => {
+    const tick = () => setAvailabilityClock(Date.now())
+    const clockId = window.setInterval(tick, 60_000)
+    window.addEventListener('focus', tick)
+    return () => {
+      window.clearInterval(clockId)
+      window.removeEventListener('focus', tick)
+    }
+  }, [])
+
   const latestLoadId = useRef(0)
   const [showComposer, setShowComposer] = useState(initialOpenComposer)
   const [showEventComposer, setShowEventComposer] = useState(false)
@@ -976,15 +987,15 @@ export default function CoachSessionCalendar({
       hour: '2-digit',
       minute: '2-digit',
       hourCycle: 'h23',
-    }).formatToParts(new Date())
+    }).formatToParts(new Date(availabilityClock))
     const hour = clock.find((part) => part.type === 'hour')?.value ?? '00'
     const minute = clock.find((part) => part.type === 'minute')?.value ?? '00'
     return bookableCoachDayGaps(selectedDayAvailability.gaps, {
       selectedDayKey,
-      todayKey: scheduleDateKey(new Date(), DEFAULT_COACH_SCHEDULE_TIMEZONE),
+      todayKey: scheduleDateKey(new Date(availabilityClock), DEFAULT_COACH_SCHEDULE_TIMEZONE),
       nowTime: `${hour}:${minute}`,
     })
-  }, [selectedDayAvailability.gaps, selectedDayKey, loading])
+  }, [selectedDayAvailability.gaps, selectedDayKey, availabilityClock])
 
   const selectedTrainingCount = selectedCalendarItems.filter(item => !item.isCoachPrivateEvent && !item.isAthletePrivateEvent).length
   const selectedEventCount = selectedCalendarItems.length - selectedTrainingCount
