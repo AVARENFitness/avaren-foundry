@@ -1,5 +1,5 @@
 import { CalendarDays } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { coachBackend } from '../../lib/coachBackend'
 import { resolveRecordBusinessClientId } from '../../lib/coachBusinessClient'
 import { appointmentsOnDate } from '../../lib/coachingAppointment'
@@ -50,6 +50,8 @@ export default function CoachTodaySchedule({
 }) {
   const [sessions, setSessions] = useState([])
   const [loading, setLoading] = useState(true)
+  const [loadIssue, setLoadIssue] = useState(false)
+  const latestRequestRef = useRef(0)
   const [now, setNow] = useState(() => Date.now())
 
   const clientByAthleteId = useMemo(
@@ -68,6 +70,7 @@ export default function CoachTodaySchedule({
   )
 
   const loadToday = useCallback(async () => {
+    const requestId = ++latestRequestRef.current
     setLoading(true)
     try {
       const key = dateKey(new Date())
@@ -75,13 +78,18 @@ export default function CoachTodaySchedule({
         startDate: key,
         endDate: key,
       })
+      if (requestId !== latestRequestRef.current) return
       setSessions(
-        sortScheduledSessions(rows.map(normalizeScheduledSession).filter(Boolean)),
+        sortScheduledSessions((rows ?? []).map(normalizeScheduledSession).filter(Boolean)),
       )
+      setLoadIssue(false)
     } catch {
-      setSessions([])
+      if (requestId !== latestRequestRef.current) return
+      // A failed refresh must not erase booked sessions and suggest the
+      // coach has an open day.
+      setLoadIssue(true)
     } finally {
-      setLoading(false)
+      if (requestId === latestRequestRef.current) setLoading(false)
     }
   }, [])
 
@@ -99,11 +107,13 @@ export default function CoachTodaySchedule({
 
     document.addEventListener('visibilitychange', refetchOnFocus)
     window.addEventListener('focus', refetchOnFocus)
+    window.addEventListener('avaren:coach-today-updated', loadToday)
     const timerId = window.setInterval(() => setNow(Date.now()), 30_000)
 
     return () => {
       document.removeEventListener('visibilitychange', refetchOnFocus)
       window.removeEventListener('focus', refetchOnFocus)
+      window.removeEventListener('avaren:coach-today-updated', loadToday)
       window.clearInterval(timerId)
     }
   }, [loadToday])
@@ -139,7 +149,16 @@ export default function CoachTodaySchedule({
         </div>
       </header>
 
-      {loading ? null : todayItems.length === 0 ? (
+      {loadIssue ? (
+        <div className="coach-today-sync-warning" role="alert">
+          Schedule could not refresh. Previous appointments are retained.
+          <button type="button" onClick={() => void loadToday()} disabled={loading}>
+            Retry
+          </button>
+        </div>
+      ) : null}
+
+      {loading && sessions.length === 0 ? null : todayItems.length === 0 && !loadIssue ? (
         <EmptyState
           icon={CalendarDays}
           title="Nothing scheduled today"
@@ -147,7 +166,7 @@ export default function CoachTodaySchedule({
           actionLabel="View week"
           onAction={onOpenCalendar}
         />
-      ) : (
+      ) : todayItems.length > 0 ? (
         <ul className="coach-today-schedule-list">
           {todayItems.map((item, index) => {
             const client = resolveClientForSession(item)
@@ -192,7 +211,7 @@ export default function CoachTodaySchedule({
             )
           })}
         </ul>
-      )}
+      ) : null}
     </section>
   )
 }

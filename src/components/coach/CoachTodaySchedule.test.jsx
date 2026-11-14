@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import CoachTodaySchedule from './CoachTodaySchedule'
 import { coachBackend } from '../../lib/coachBackend'
@@ -91,4 +91,28 @@ describe('CoachTodaySchedule', () => {
     )
     expect(onOpenClient).not.toHaveBeenCalled()
   })
+  it('keeps known appointments visible and offers retry if refresh fails', async () => {
+    render(<CoachTodaySchedule clients={[jake]} />)
+    await waitFor(() => expect(screen.getByText('Jake')).toBeInTheDocument())
+
+    coachBackend.listScheduledSessions.mockRejectedValueOnce(new Error('Network offline'))
+    fireEvent(window, new Event('avaren:coach-today-updated'))
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toHaveTextContent('Schedule could not refresh')
+    })
+    expect(screen.getByText('Jake')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Retry' })).toBeInTheDocument()
+  })
+
+  it('refreshes Coach Today when appointments change in Calendar', async () => {
+    render(<CoachTodaySchedule clients={[jake]} />)
+    await waitFor(() => expect(screen.getByText('Jake')).toBeInTheDocument())
+
+    fireEvent(window, new Event('avaren:coach-today-updated'))
+    await waitFor(() => {
+      expect(coachBackend.listScheduledSessions).toHaveBeenCalledTimes(2)
+    })
+  })
+
 })

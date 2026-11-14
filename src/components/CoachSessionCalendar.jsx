@@ -22,6 +22,7 @@ import {
   isPastCoachAppointment,
 } from '../lib/coachCalendarUi'
 import { appUi } from '../lib/appUi'
+import { buildCoachDayAvailability } from '../lib/coachCalendarAvailability'
 import { calendarRepeatWindow } from '../lib/calendarRepeatWindow'
 import { coachBackend } from '../lib/coachBackend'
 import {
@@ -107,12 +108,13 @@ export default function CoachSessionCalendar({
   initialFocusedSessionId = null,
   onFocusedSessionOpened,
 }) {
-  const [viewMode, setViewMode] = useState(COACH_CALENDAR_VIEW.MONTH)
+  const [viewMode, setViewMode] = useState(COACH_CALENDAR_VIEW.DAY)
   const [anchor, setAnchor] = useState(new Date())
   const [selectedDayKey, setSelectedDayKey] = useState(() => dateKey(new Date()))
   const [sessions, setSessions] = useState([])
   const [calendarEvents, setCalendarEvents] = useState([])
   const [loading, setLoading] = useState(true)
+  const [calendarLoadIssue, setCalendarLoadIssue] = useState('')
   const latestLoadId = useRef(0)
   const [showComposer, setShowComposer] = useState(initialOpenComposer)
   const [showEventComposer, setShowEventComposer] = useState(false)
@@ -227,24 +229,21 @@ export default function CoachSessionCalendar({
 
       if (loadId !== latestLoadId.current) return
 
-      const nextSessions =
-        sessionResult.status === 'fulfilled'
-          ? sessionResult.value.map(normalizeScheduledSession).filter(Boolean)
-          : []
-      const nextCoachEvents =
-        eventResult.status === 'fulfilled'
-          ? eventResult.value.map(normalizeCoachCalendarEvent).filter(Boolean)
-          : []
-      const nextPersonalEvents =
-        personalResult.status === 'fulfilled'
-          ? personalResult.value.map(normalizeAthleteCalendarEvent).filter(Boolean)
-          : []
-
-      setSessions(nextSessions)
-      setCalendarEvents([
-        ...nextCoachEvents,
-        ...nextPersonalEvents,
-      ])
+      // Each calendar source owns its own rows. A failed refresh must never
+      // replace a known schedule with an empty calendar or erase private blocks.
+      if (sessionResult.status === 'fulfilled') {
+        setSessions(sessionResult.value.map(normalizeScheduledSession).filter(Boolean))
+      }
+      if (eventResult.status === 'fulfilled' || personalResult.status === 'fulfilled') {
+        setCalendarEvents((current) => [
+          ...(eventResult.status === 'fulfilled'
+            ? eventResult.value.map(normalizeCoachCalendarEvent).filter(Boolean)
+            : current.filter((item) => item.isCoachPrivateEvent)),
+          ...(personalResult.status === 'fulfilled'
+            ? personalResult.value.map(normalizeAthleteCalendarEvent).filter(Boolean)
+            : current.filter((item) => item.isAthletePrivateEvent)),
+        ])
+      }
 
       const failures = [sessionResult, eventResult, personalResult]
         .filter((result) => result.status === 'rejected')
@@ -255,19 +254,17 @@ export default function CoachSessionCalendar({
           ),
         )
 
-      if (failures.length) {
-        appUi.toast(
-          failures.length === 3
-            ? failures[0]?.message ?? 'Could not load calendar.'
-            : 'Some calendar items could not load. Showing the schedule data that is available.',
-          'error',
-        )
-      }
+      const issue = failures.length
+        ? 'Some calendar sources could not refresh. Existing appointments are preserved, but availability is not confirmed. Retry before booking.'
+        : ''
+      setCalendarLoadIssue(issue)
+      if (issue) appUi.toast(issue, 'error')
     } catch (error) {
       if (loadId !== latestLoadId.current) return
+      setCalendarLoadIssue(
+        'Calendar could not refresh. Your previous appointments remain visible; retry before booking.',
+      )
       appUi.toast(error?.message ?? 'Could not load calendar.', 'error')
-      setSessions([])
-      setCalendarEvents([])
     } finally {
       if (loadId === latestLoadId.current) setLoading(false)
     }
@@ -319,6 +316,9 @@ export default function CoachSessionCalendar({
     setSessions,
     onLoadSessions: loadSessions,
     calendarItems: calendarEvents,
+    onMutated: () => {
+      window.dispatchEvent(new Event('avaren:coach-today-updated'))
+    },
   })
 
   useEffect(() => {
@@ -736,6 +736,7 @@ export default function CoachSessionCalendar({
         'success',
       )
       await loadSessions()
+      window.dispatchEvent(new Event('avaren:coach-today-updated'))
       setSelectedDayKey(scheduledDate)
       setAnchor(new Date(`${scheduledDate}T12:00:00`))
       onScheduleComplete?.()
@@ -965,6 +966,10 @@ export default function CoachSessionCalendar({
   }, [scheduleItems])
 
   const selectedCalendarItems = dayItemsByKey[selectedDayKey] ?? []
+  const selectedDayAvailability = useMemo(
+    () => buildCoachDayAvailability(selectedCalendarItems),
+    [selectedCalendarItems],
+  )
   const selectedTrainingCount = selectedCalendarItems.filter(item => !item.isCoachPrivateEvent && !item.isAthletePrivateEvent).length
   const selectedEventCount = selectedCalendarItems.length - selectedTrainingCount
   const todayItems = dayItemsByKey[todayKey] ?? []
@@ -1122,6 +1127,15 @@ export default function CoachSessionCalendar({
         </div>
       </header>
 
+      {calendarLoadIssue ? (
+        <div className="coach-calendar-data-warning" role="alert">
+          <span>{calendarLoadIssue}</span>
+          <button type="button" onClick={() => void loadSessions()} disabled={loading}>
+            {loading ? 'Refreshing…' : 'Retry calendar'}
+          </button>
+        </div>
+      ) : null}
+
       {repeatMode ? (
         <section className="coach-calendar-bulk-tools is-active" aria-label="Repeat selection">
           <div className="coach-calendar-workflow-actions">
@@ -1223,8 +1237,9 @@ export default function CoachSessionCalendar({
                       type="button"
                       className={`coach-calendar-week-item ${item.isCoachPrivateEvent || item.isAthletePrivateEvent ? 'is-private' : 'is-client'}`}
                       onClick={() => {
-                        if (item.isCoachPrivateEvent) {
+                        if (item.isCoachPrivateEvent || item.isAthletePrivateEvent) {
                           setSelectedDayKey(key)
+                          setAnchor(day)
                           setViewMode(COACH_CALENDAR_VIEW.DAY)
                         } else {
                           sessionDetail.openSession(item)
@@ -1240,7 +1255,7 @@ export default function CoachSessionCalendar({
                     </button>
                     </div>
                   )) : (
-                    <span className="coach-calendar-week-open">Open</span>
+                    <span className="coach-calendar-week-open">No items</span>
                   )}
                 </div>
               </article>
@@ -1255,6 +1270,11 @@ export default function CoachSessionCalendar({
             <strong>{formatCoachCalendarDayHeading(selectedDayKey)}</strong>
             <span>{selectedCalendarItems.length} item{selectedCalendarItems.length === 1 ? '' : 's'}</span>
           </div>
+          {!calendarLoadIssue ? (
+            <p className="coach-calendar-availability-inline">
+              {selectedDayAvailability.gaps.length} unbooked time block{selectedDayAvailability.gaps.length === 1 ? '' : 's'} in AVAREN
+            </p>
+          ) : null}
           {renderAgendaList(appointmentsForCoachDayAgenda(scheduleItems, selectedDayKey), { dayKey: selectedDayKey })}
           {!selectedCalendarItems.length ? <p className="avaren-calendar-inline-empty">Nothing scheduled for this day.</p> : null}
         </section>
@@ -1266,7 +1286,60 @@ export default function CoachSessionCalendar({
         <section className="coach-session-calendar-day-block">
           <header className="coach-session-calendar-day-heading">
             <h2>{dayHeading}</h2>
+            <button
+              type="button"
+              className="coach-calendar-today-control"
+              onClick={openScheduleComposer}
+            >
+              <Plus size={16} aria-hidden="true" /> Schedule
+            </button>
           </header>
+
+          <section className="coach-calendar-availability" aria-label="Time gaps in your AVAREN calendar">
+            <div className="coach-calendar-availability-heading">
+              <div>
+                <strong>Day at a glance</strong>
+                <small>{selectedDayAvailability.windowLabel} · {selectedTrainingCount} training · {selectedEventCount} personal / other</small>
+              </div>
+              <span>{selectedDayAvailability.occupiedMinutes} min booked</span>
+            </div>
+            {calendarLoadIssue ? (
+              <p className="coach-calendar-availability-caution">
+                Availability is unverified while calendar data is unavailable.
+              </p>
+            ) : selectedDayAvailability.gaps.length ? (
+              <div className="coach-calendar-availability-gaps">
+                {selectedDayAvailability.gaps.map((gap) => (
+                  <button
+                    type="button"
+                    key={gap.startTime}
+                    className="coach-calendar-availability-gap"
+                    aria-label={`Schedule in unbooked gap starting ${formatTime12Hour(gap.startTime)}`}
+                    onClick={() => {
+                      setDraft((current) => ({
+                        ...current,
+                        sessionDate: selectedDayKey,
+                        startTime: gap.startTime,
+                        durationMinutes: String(
+                          Math.min(Number(current.durationMinutes) || 60, gap.durationMinutes),
+                        ),
+                      }))
+                      setShowComposer(true)
+                    }}
+                  >
+                    <span>{formatTime12Hour(gap.startTime)} – {formatTime12Hour(gap.endTime)}</span>
+                    <small>{Math.floor(gap.durationMinutes / 60)}h {gap.durationMinutes % 60 ? `${gap.durationMinutes % 60}m` : ''} unbooked</small>
+                    <Plus size={16} aria-hidden="true" />
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <p className="coach-calendar-availability-caution">No 30-minute gaps in this calendar window.</p>
+            )}
+            <small className="coach-calendar-availability-note">
+              Unbooked means no overlapping entry in AVAREN, not confirmed working hours or external calendar availability.
+            </small>
+          </section>
 
           {viewMode === COACH_CALENDAR_VIEW.DAY &&
           agendaDayKey === todayKey &&

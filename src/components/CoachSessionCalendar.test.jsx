@@ -176,7 +176,7 @@ describe('CoachSessionCalendar usability', () => {
     })
 
     expect(appUi.toast).toHaveBeenCalledWith(
-      'Some calendar items could not load. Showing the schedule data that is available.',
+      'Some calendar sources could not refresh. Existing appointments are preserved, but availability is not confirmed. Retry before booking.',
       'error',
     )
   })
@@ -204,18 +204,15 @@ describe('CoachSessionCalendar usability', () => {
     })
   })
 
-  it('defaults to Month view for a broad schedule picture', async () => {
+  it('defaults to Day view so coaches can see immediate availability', async () => {
     render(<CoachSessionCalendar clients={[jake, sarah]} assignments={[]} />)
 
     await waitFor(() => {
-      expect(screen.getByTestId('coach-calendar-month-grid')).toBeInTheDocument()
+      expect(screen.getByRole('region', { name: 'Time gaps in your AVAREN calendar' })).toBeInTheDocument()
     })
-
-    expect(screen.getByTestId('coach-calendar-view-month')).toHaveAttribute(
-      'aria-selected',
-      'true',
-    )
-    expect(screen.getByTestId('coach-calendar-month-grid')).toBeInTheDocument()
+    expect(screen.getByTestId('coach-calendar-view-day')).toHaveAttribute('aria-selected', 'true')
+    expect(screen.getByText('Day at a glance')).toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: /schedule in unbooked gap/i }).length).toBeGreaterThan(0)
   })
 
   it('opens week view in one tap and shows a seven-day schedule board', async () => {
@@ -238,6 +235,7 @@ describe('CoachSessionCalendar usability', () => {
   it('selects a month date and opens its inline agenda', async () => {
     render(<CoachSessionCalendar clients={[jake, sarah]} assignments={[]} />)
 
+    fireEvent.click(screen.getByTestId('coach-calendar-view-month'))
     await waitFor(() => {
       expect(screen.getByTestId('coach-calendar-month-grid')).toBeInTheDocument()
     })
@@ -279,7 +277,7 @@ describe('CoachSessionCalendar usability', () => {
 
     expect(document.querySelector('.coach-calendar-command-bar')).not.toBeNull()
     expect(screen.getByTestId('coach-calendar-view-month')).toBeInTheDocument()
-    expect(screen.getByText(/October|November|December|January|February|March|April|May|June|July|August|September/i)).toBeInTheDocument()
+    expect(screen.getByTestId('coach-calendar-view-day')).toHaveAttribute('aria-selected', 'true')
     expect(screen.getByTestId('coach-calendar-jump-today')).toBeInTheDocument()
     expect(screen.getByTestId('coach-calendar-add-trigger')).toBeInTheDocument()
   })
