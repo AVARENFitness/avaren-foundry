@@ -86,7 +86,6 @@ export default function CoachCommandCenter({
   onOpenLead,
 }) {
   const [hubScheduleRefresh, setHubScheduleRefresh] = useState(0)
-  const [rosterExpanded, setRosterExpanded] = useState(rosterOnly)
   const [rosterFilter, setRosterFilter] = useState(
     ROSTER_HUB_FILTER.ACTIVE,
   )
@@ -274,7 +273,9 @@ export default function CoachCommandCenter({
   )
 
   const rosterPreview = filteredRoster.slice(0, ROSTER_PREVIEW_LIMIT)
-  const visibleRoster = rosterExpanded ? filteredRoster : rosterPreview
+  // Home always shows a compact preview. The Clients directory always shows
+  // every matching record; it must never inherit Home's preview state.
+  const visibleRoster = rosterOnly ? filteredRoster : rosterPreview
 
   if (!clients.length && !loading && !rosterLoadError) {
     return (
@@ -428,6 +429,20 @@ export default function CoachCommandCenter({
                   {rosterOnly ? 'Client directory' : 'Your clients'}
                 </h2>
               </div>
+              {!rosterOnly && filteredRoster.length > 0 ? (
+                <button
+                  type="button"
+                  className="coach-secondary-button coach-command-inline-action"
+                  onClick={() => {
+                    onQueryChange?.('')
+                    onNavigateCoachScreen?.('clients')
+                  }}
+                  aria-label={`Open all ${filteredRoster.length} active clients`}
+                >
+                  All active ({filteredRoster.length})
+                  <ChevronRight size={16} aria-hidden="true" />
+                </button>
+              ) : null}
               {rosterOnly ? (
                 <button
                   type="button"
@@ -438,15 +453,6 @@ export default function CoachCommandCenter({
                 >
                   <RefreshCw size={16} aria-hidden="true" />
                   {loading ? 'Refreshing' : 'Refresh'}
-                </button>
-              ) : null}
-              {!rosterOnly && rosterExpanded ? (
-                <button
-                  type="button"
-                  className="coach-secondary-button coach-command-inline-action"
-                  onClick={() => setRosterExpanded(false)}
-                >
-                  Show preview
                 </button>
               ) : null}
             </header>
@@ -485,7 +491,7 @@ export default function CoachCommandCenter({
               </>
             ) : !loading ? (
               <p className="coach-command-summary">
-                Showing {rosterPreview.length} of {filteredRoster.length} active clients
+                {visibleRoster.length} of {filteredRoster.length} active clients
               </p>
             ) : null}
 
@@ -532,18 +538,7 @@ export default function CoachCommandCenter({
               />
             )}
 
-            {!rosterOnly && clients.length > 0 ? (
-              <button
-                type="button"
-                className="coach-roster-view-all-button"
-                onClick={() => {
-                  onQueryChange?.('')
-                  onNavigateCoachScreen?.('clients')
-                }}
-              >
-                View all clients ({clients.length})
-              </button>
-            ) : null}
+
           </section>
 
           {notice ? <p className="coach-hub-notice">{notice}</p> : null}
