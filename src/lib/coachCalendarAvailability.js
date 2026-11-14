@@ -1,4 +1,5 @@
 import { formatTime12Hour } from './appointmentScheduling'
+import { DEFAULT_COACH_SCHEDULE_TIMEZONE } from './sessionTimezone'
 
 const toMinutes = (value) => {
   const match = /^(\d{1,2}):(\d{2})/.exec(String(value ?? ''))
@@ -15,6 +16,21 @@ export const minutesToTime = (minutes) => {
   return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`
 }
 
+export const coachLocalClockTime = (
+  now = new Date(),
+  timeZone = DEFAULT_COACH_SCHEDULE_TIMEZONE,
+) => {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone,
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(now)
+  const hour = Number(parts.find((part) => part.type === 'hour')?.value ?? 0)
+  const minute = Number(parts.find((part) => part.type === 'minute')?.value ?? 0)
+  return minutesToTime(hour * 60 + minute)
+}
+
 const isBlockingCalendarItem = (item) =>
   item &&
   String(item.status ?? 'scheduled').toLowerCase() === 'scheduled'
@@ -25,10 +41,14 @@ const isBlockingCalendarItem = (item) =>
  */
 export const buildCoachDayAvailability = (
   items = [],
-  { startHour = 6, endHour = 21, minimumGapMinutes = 30 } = {},
+  { startHour = 6, endHour = 21, minimumGapMinutes = 30, notBeforeTime = null } = {},
 ) => {
   const rangeStart = startHour * 60
   const rangeEnd = endHour * 60
+  const notBeforeMinutes = toMinutes(notBeforeTime)
+  const gapStart = notBeforeMinutes == null
+    ? rangeStart
+    : Math.min(rangeEnd, Math.max(rangeStart, Math.ceil(notBeforeMinutes / 5) * 5))
   const periods = (items ?? [])
     .filter(isBlockingCalendarItem)
     .map((item) => {
@@ -54,8 +74,9 @@ export const buildCoachDayAvailability = (
   }
 
   const gaps = []
-  let cursor = rangeStart
+  let cursor = gapStart
   for (const item of merged) {
+    if (item.end <= cursor) continue
     if (item.start - cursor >= minimumGapMinutes) {
       gaps.push({
         startTime: minutesToTime(cursor),
