@@ -2,8 +2,8 @@ import { CalendarDays } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { coachBackend } from '../../lib/coachBackend'
 import { resolveRecordBusinessClientId } from '../../lib/coachBusinessClient'
-import { appointmentsOnDate } from '../../lib/coachingAppointment'
-import { filterPendingCoachHubAppointments } from '../../lib/coachHubAppointments'
+import { sortAppointmentsByStart } from '../../lib/coachingAppointment'
+import { partitionCoachTodayAppointments } from '../../lib/coachHubAppointments'
 import { dateKey } from '../../lib/appointmentScheduling'
 import { appointmentTypeLabel } from '../../lib/coachingAppointment'
 import { formatRosterPassLabel } from '../../lib/coachClientRosterUi'
@@ -119,8 +119,14 @@ export default function CoachTodaySchedule({
   }, [loadToday])
 
   const todayItems = useMemo(
-    () => filterPendingCoachHubAppointments(appointmentsOnDate(sessions, dateKey(new Date(now))), new Date(now)),
+    () => sortAppointmentsByStart(
+      sessions.filter((item) => item.sessionDate === dateKey(new Date(now))),
+    ),
     [sessions, now],
+  )
+  const { upcoming, earlier } = useMemo(
+    () => partitionCoachTodayAppointments(todayItems, new Date(now)),
+    [todayItems, now],
   )
 
   const resolveClientForSession = (session) => {
@@ -137,14 +143,14 @@ export default function CoachTodaySchedule({
       <header className="coach-today-schedule-header">
         <div>
           <span className="eyebrow">TODAY</span>
-          <h2>Who you&apos;re training</h2>
+          <h2>Your day</h2>
         </div>
         <div className="coach-today-schedule-actions">
           <button type="button" className="coach-secondary-button" onClick={onSchedule}>
             Schedule
           </button>
           <button type="button" className="coach-secondary-button" onClick={onOpenCalendar}>
-            View week
+            Calendar
           </button>
         </div>
       </header>
@@ -158,59 +164,75 @@ export default function CoachTodaySchedule({
         </div>
       ) : null}
 
-      {loading && sessions.length === 0 ? null : todayItems.length === 0 && !loadIssue ? (
+      {loading && sessions.length === 0 ? null : upcoming.length + earlier.length === 0 && !loadIssue ? (
         <EmptyState
           icon={CalendarDays}
           title="Nothing scheduled today"
-          description="Your calendar is clear for today."
-          actionLabel="View week"
+          description="No training sessions on today's calendar. Check the full calendar for personal events."
+          actionLabel="Open calendar"
           onAction={onOpenCalendar}
         />
-      ) : todayItems.length > 0 ? (
-        <ul className="coach-today-schedule-list">
-          {todayItems.map((item, index) => {
-            const client = resolveClientForSession(item)
-            const businessClientId = resolveRecordBusinessClientId(client)
-            const passSummary =
-              passSummaryByBusinessClientId[businessClientId] ?? null
-            const contextSignal = resolveContextSignal({
-              session: item,
-              passSummary,
-              client,
-            })
+      ) : upcoming.length + earlier.length > 0 ? (
+        <div className="coach-today-agenda">
+          <p className="coach-today-agenda-summary" aria-live="polite">
+            {upcoming.length} upcoming · {earlier.length} earlier
+          </p>
+          {[
+            { key: 'upcoming', title: 'Upcoming', items: upcoming },
+            { key: 'earlier', title: 'Earlier today', items: earlier },
+          ].filter((group) => group.items.length > 0).map((group) => (
+            <section key={group.key} className="coach-today-agenda-group" aria-label={group.title}>
+              <h3 className="coach-today-agenda-label">
+                {group.title} <span>{group.items.length}</span>
+              </h3>
+              <ul className="coach-today-schedule-list">
+                {group.items.map((item, index) => {
+                  const client = resolveClientForSession(item)
+                  const businessClientId = resolveRecordBusinessClientId(client)
+                  const passSummary =
+                    passSummaryByBusinessClientId[businessClientId] ?? null
+                  const contextSignal = resolveContextSignal({
+                    session: item,
+                    passSummary,
+                    client,
+                  })
 
-            return (
-              <li key={item.id} className="coach-today-schedule-item">
-                <CoachAppointmentCard
-                  session={item}
-                  client={client}
-                  className="coach-today-schedule-card"
-                  isNext={index === 0}
-                  appointmentTypeLabel={appointmentTypeLabel(item)}
-                  contextSignal={contextSignal}
-                  onClick={(session) => {
-                    if (onOpenSession) {
-                      onOpenSession(session)
-                      return
-                    }
-                    onOpenClient?.(resolveClientForSession(session))
-                  }}
-                />
-                {client ? (
-                  <div className="coach-today-quick-actions">
-                    <button
-                      type="button"
-                      className="coach-secondary-button"
-                      onClick={() => onOpenClient?.(client)}
-                    >
-                      Open client
-                    </button>
-                  </div>
-                ) : null}
-              </li>
-            )
-          })}
-        </ul>
+                  return (
+                    <li key={item.id} className="coach-today-schedule-item">
+                      <CoachAppointmentCard
+                        session={item}
+                        client={client}
+                        className="coach-today-schedule-card"
+                        isNext={group.key === 'upcoming' && index === 0}
+                        isPast={group.key === 'earlier'}
+                        appointmentTypeLabel={appointmentTypeLabel(item)}
+                        contextSignal={contextSignal}
+                        onClick={(session) => {
+                          if (onOpenSession) {
+                            onOpenSession(session)
+                            return
+                          }
+                          onOpenClient?.(resolveClientForSession(session))
+                        }}
+                      />
+                      {client ? (
+                        <div className="coach-today-quick-actions">
+                          <button
+                            type="button"
+                            className="coach-secondary-button"
+                            onClick={() => onOpenClient?.(client)}
+                          >
+                            Open client
+                          </button>
+                        </div>
+                      ) : null}
+                    </li>
+                  )
+                })}
+              </ul>
+            </section>
+          ))}
+        </div>
       ) : null}
     </section>
   )
