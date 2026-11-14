@@ -209,7 +209,7 @@ export default function CoachTodaySchedule({
             )
           })}
         </ul>
-      )}
+      ) : null}
     </section>
   )
 }
