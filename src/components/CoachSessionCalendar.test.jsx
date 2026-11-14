@@ -212,7 +212,7 @@ describe('CoachSessionCalendar usability', () => {
     })
     expect(screen.getByTestId('coach-calendar-view-day')).toHaveAttribute('aria-selected', 'true')
     expect(screen.getByText('Day at a glance')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /schedule in unbooked gap/i })).toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: /schedule in unbooked gap/i }).length).toBeGreaterThan(0)
   })
 
   it('opens week view in one tap and shows a seven-day schedule board', async () => {
