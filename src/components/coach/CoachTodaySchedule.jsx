@@ -107,11 +107,13 @@ export default function CoachTodaySchedule({
 
     document.addEventListener('visibilitychange', refetchOnFocus)
     window.addEventListener('focus', refetchOnFocus)
+    window.addEventListener('avaren:coach-today-updated', loadToday)
     const timerId = window.setInterval(() => setNow(Date.now()), 30_000)
 
     return () => {
       document.removeEventListener('visibilitychange', refetchOnFocus)
       window.removeEventListener('focus', refetchOnFocus)
+      window.removeEventListener('avaren:coach-today-updated', loadToday)
       window.clearInterval(timerId)
     }
   }, [loadToday])
