@@ -111,7 +111,9 @@ describe('CoachCommandCenter roster density', () => {
     )
 
     expect(screen.getAllByRole('button', { name: /^open client /i })).toHaveLength(6)
-    await user.click(screen.getByRole('button', { name: /view all clients/i }))
+    expect(screen.getByText('6 of 10 active clients')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /show preview/i })).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: /open all 10 active clients/i }))
     expect(onNavigateCoachScreen).toHaveBeenCalledWith('clients')
     expect(coachBackend.listScheduledSessions).toHaveBeenCalled()
   })
