@@ -429,6 +429,20 @@ export default function CoachCommandCenter({
                   {rosterOnly ? 'Client directory' : 'Your clients'}
                 </h2>
               </div>
+              {!rosterOnly && filteredRoster.length > 0 ? (
+                <button
+                  type="button"
+                  className="coach-secondary-button coach-command-inline-action"
+                  onClick={() => {
+                    onQueryChange?.('')
+                    onNavigateCoachScreen?.('clients')
+                  }}
+                  aria-label={`Open all ${filteredRoster.length} active clients`}
+                >
+                  All active ({filteredRoster.length})
+                  <ChevronRight size={16} aria-hidden="true" />
+                </button>
+              ) : null}
               {rosterOnly ? (
                 <button
                   type="button"
@@ -524,18 +538,7 @@ export default function CoachCommandCenter({
               />
             )}
 
-            {!rosterOnly && clients.length > 0 ? (
-              <button
-                type="button"
-                className="coach-roster-view-all-button"
-                onClick={() => {
-                  onQueryChange?.('')
-                  onNavigateCoachScreen?.('clients')
-                }}
-              >
-                Open active clients ({filteredRoster.length})
-              </button>
-            ) : null}
+
           </section>
 
           {notice ? <p className="coach-hub-notice">{notice}</p> : null}
