@@ -33,9 +33,7 @@ import {
   formatCoachCalendarMonthHeading,
   formatCoachCalendarWeekHeading,
 } from '../lib/coachCalendarUi'
-import {
-  findOverlappingAppointment,
-} from '../lib/coachingAppointment'
+import { findOverlappingCalendarItem } from '../lib/calendarCrossSourceOverlap'
 import {
   normalizeAthleteScheduledSession,
   normalizeScheduledSession,
@@ -421,7 +419,7 @@ export default function AthleteInPersonScheduleScreen({
     }
 
     if (
-      findOverlappingAppointment(candidate, scheduleItems, {
+      findOverlappingCalendarItem(candidate, scheduleItems, {
         excludeId: editingPrivateEvent?.id ?? null,
       })
     ) {
