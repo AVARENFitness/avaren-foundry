@@ -113,6 +113,7 @@ export default function CoachSessionCalendar({
   const [sessions, setSessions] = useState([])
   const [calendarEvents, setCalendarEvents] = useState([])
   const [loading, setLoading] = useState(true)
+  const [calendarLoadIssue, setCalendarLoadIssue] = useState('')
   const latestLoadId = useRef(0)
   const [showComposer, setShowComposer] = useState(initialOpenComposer)
   const [showEventComposer, setShowEventComposer] = useState(false)
@@ -227,24 +228,21 @@ export default function CoachSessionCalendar({
 
       if (loadId !== latestLoadId.current) return
 
-      const nextSessions =
-        sessionResult.status === 'fulfilled'
-          ? sessionResult.value.map(normalizeScheduledSession).filter(Boolean)
-          : []
-      const nextCoachEvents =
-        eventResult.status === 'fulfilled'
-          ? eventResult.value.map(normalizeCoachCalendarEvent).filter(Boolean)
-          : []
-      const nextPersonalEvents =
-        personalResult.status === 'fulfilled'
-          ? personalResult.value.map(normalizeAthleteCalendarEvent).filter(Boolean)
-          : []
-
-      setSessions(nextSessions)
-      setCalendarEvents([
-        ...nextCoachEvents,
-        ...nextPersonalEvents,
-      ])
+      // Each calendar source owns its own rows. A failed refresh must never
+      // replace a known schedule with an empty calendar or erase private blocks.
+      if (sessionResult.status === 'fulfilled') {
+        setSessions(sessionResult.value.map(normalizeScheduledSession).filter(Boolean))
+      }
+      if (eventResult.status === 'fulfilled' || personalResult.status === 'fulfilled') {
+        setCalendarEvents((current) => [
+          ...(eventResult.status === 'fulfilled'
+            ? eventResult.value.map(normalizeCoachCalendarEvent).filter(Boolean)
+            : current.filter((item) => item.isCoachPrivateEvent)),
+          ...(personalResult.status === 'fulfilled'
+            ? personalResult.value.map(normalizeAthleteCalendarEvent).filter(Boolean)
+            : current.filter((item) => item.isAthletePrivateEvent)),
+        ])
+      }
 
       const failures = [sessionResult, eventResult, personalResult]
         .filter((result) => result.status === 'rejected')
@@ -255,19 +253,17 @@ export default function CoachSessionCalendar({
           ),
         )
 
-      if (failures.length) {
-        appUi.toast(
-          failures.length === 3
-            ? failures[0]?.message ?? 'Could not load calendar.'
-            : 'Some calendar items could not load. Showing the schedule data that is available.',
-          'error',
-        )
-      }
+      const issue = failures.length
+        ? 'Some calendar sources could not refresh. Existing appointments are preserved, but availability is not confirmed. Retry before booking.'
+        : ''
+      setCalendarLoadIssue(issue)
+      if (issue) appUi.toast(issue, 'error')
     } catch (error) {
       if (loadId !== latestLoadId.current) return
+      setCalendarLoadIssue(
+        'Calendar could not refresh. Your previous appointments remain visible; retry before booking.',
+      )
       appUi.toast(error?.message ?? 'Could not load calendar.', 'error')
-      setSessions([])
-      setCalendarEvents([])
     } finally {
       if (loadId === latestLoadId.current) setLoading(false)
     }
@@ -1121,6 +1117,15 @@ export default function CoachSessionCalendar({
           </button>
         </div>
       </header>
+
+      {calendarLoadIssue ? (
+        <div className="coach-calendar-data-warning" role="alert">
+          <span>{calendarLoadIssue}</span>
+          <button type="button" onClick={() => void loadSessions()} disabled={loading}>
+            {loading ? 'Refreshing…' : 'Retry calendar'}
+          </button>
+        </div>
+      ) : null}
 
       {repeatMode ? (
         <section className="coach-calendar-bulk-tools is-active" aria-label="Repeat selection">
