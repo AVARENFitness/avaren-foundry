@@ -10,6 +10,7 @@ import { getClientDisplayName } from '../lib/clientDisplayName'
 import {
   resolveAthleteDataId,
   resolveRecordBusinessClientId,
+  isActiveBusinessClient,
 } from '../lib/coachBusinessClient'
 import {
   DURATION_PRESETS,
@@ -89,6 +90,7 @@ export default function CoachScheduleSessionSheet({
   })
 
   const filteredClients = clients.filter((client) =>
+    isActiveBusinessClient(client) &&
     `${getClientDisplayName(client) || ''} ${client.athlete_email || ''}`
       .toLocaleLowerCase().includes(clientSearch.trim().toLocaleLowerCase()),
   )
