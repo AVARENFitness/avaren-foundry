@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { filterPendingCoachHubAppointments, isPendingCoachHubAppointment } from './coachHubAppointments'
+import { filterPendingCoachHubAppointments, isPendingCoachHubAppointment, partitionCoachTodayAppointments } from './coachHubAppointments'
 
 const now = new Date('2026-11-03T15:30:00Z')
 const scheduled = {
@@ -32,6 +32,19 @@ describe('Coach Hub upcoming appointment visibility', () => {
     const { startsAt, endsAt, ...wallClock } = scheduled
     expect(isPendingCoachHubAppointment(wallClock, now)).toBe(true)
     expect(isPendingCoachHubAppointment({ ...wallClock, startTime: '09:00' }, now)).toBe(false)
+  })
+
+  it('retains finished and completed sessions in the earlier-today agenda', () => {
+    const sessions = [
+      scheduled,
+      { ...scheduled, id: 'finished', startsAt: '2026-11-03T13:00:00Z', endsAt: '2026-11-03T14:00:00Z' },
+      { ...scheduled, id: 'completed', status: 'completed' },
+      { ...scheduled, id: 'cancelled', status: 'cancelled' },
+    ]
+    const groups = partitionCoachTodayAppointments(sessions, now)
+    expect(groups.upcoming.map((item) => item.id)).toEqual(['open'])
+    expect(groups.earlier.map((item) => item.id)).toEqual(['finished', 'completed'])
+    expect(sessions).toHaveLength(4)
   })
 
   it('filters pending sessions without mutating history', () => {
