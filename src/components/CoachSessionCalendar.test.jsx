@@ -555,10 +555,11 @@ describe('CoachSessionCalendar usability', () => {
     )
 
     const sheet = await screen.findByTestId('coach-schedule-session-sheet')
+    fireEvent.click(within(sheet).getByRole('button', { name: /more options/i }))
     fireEvent.click(within(sheet).getByRole('button', { name: /^custom$/i }))
     fireEvent.click(within(sheet).getByRole('button', { name: /^on date$/i }))
 
-    const endDateInput = within(sheet).getByDisplayValue('')
+    const endDateInput = within(sheet).getByLabelText('End date')
     fireEvent.change(endDateInput, { target: { value: '2026-11-13' } })
 
     await user.click(

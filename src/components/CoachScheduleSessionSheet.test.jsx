@@ -24,6 +24,53 @@ const baseDraft = {
 }
 
 describe('CoachScheduleSessionSheet', () => {
+  it('keeps recurring controls optional for a one-off client appointment', async () => {
+    const user = userEvent.setup()
+    const draft = { ...baseDraft, recurrence: { enabled: false } }
+    const onDraftChange = vi.fn()
+    const onSubmit = vi.fn()
+    const { rerender } = render(
+      <CoachScheduleSessionSheet open clients={baseClients} draft={draft}
+        onDraftChange={onDraftChange} onClose={vi.fn()} onSubmit={onSubmit} />,
+    )
+    expect(screen.queryByRole('group', { name: 'Repeat' })).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: /more options/i }))
+    expect(screen.getByRole('group', { name: 'Repeat' })).toBeInTheDocument()
+
+    rerender(
+      <CoachScheduleSessionSheet open clients={baseClients}
+        draft={{ ...draft, coachNote: 'Bring bands' }}
+        onDraftChange={onDraftChange} onClose={vi.fn()} onSubmit={onSubmit} />,
+    )
+    expect(screen.getByRole('group', { name: 'Repeat' })).toBeInTheDocument()
+  })
+
+  it('shows recurring settings when reopening an existing repeating draft', () => {
+    render(
+      <CoachScheduleSessionSheet open clients={baseClients}
+        draft={{ ...baseDraft, recurrence: { enabled: true, mode: 'weekly', weekdays: [5] } }}
+        onDraftChange={vi.fn()} onClose={vi.fn()} onSubmit={vi.fn()} />,
+    )
+    expect(screen.getByRole('group', { name: 'Repeat' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /more options · repeats/i })).toBeInTheDocument()
+  })
+
+  it('offers active connected and offline clients without archived clients in new bookings', async () => {
+    const user = userEvent.setup()
+    render(
+      <CoachScheduleSessionSheet open
+        clients={[
+          { id: 'bc-offline', business_client_id: 'bc-offline', status: 'active', first_name: 'Mary Lou', linked_user_id: null },
+          { id: 'bc-archive', business_client_id: 'bc-archive', status: 'archived', first_name: 'Past Client', linked_user_id: null },
+        ]}
+        draft={{ ...baseDraft, athleteId: '', businessClientId: '' }}
+        onDraftChange={vi.fn()} onClose={vi.fn()} onSubmit={vi.fn()} />,
+    )
+    await user.click(screen.getByRole('button', { name: /select client/i }))
+    expect(screen.getByRole('option', { name: 'Mary Lou' })).toBeInTheDocument()
+    expect(screen.queryByRole('option', { name: 'Past Client' })).not.toBeInTheDocument()
+  })
+
   it('filters a longer client roster without adding a scheduling step', async () => {
     const user = userEvent.setup()
     const clients = Array.from({ length: 8 }, (_, i) => ({
