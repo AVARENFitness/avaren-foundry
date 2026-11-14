@@ -2,7 +2,7 @@ import { CalendarDays } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { coachBackend } from '../../lib/coachBackend'
 import { resolveRecordBusinessClientId } from '../../lib/coachBusinessClient'
-import { appointmentsOnDate } from '../../lib/coachingAppointment'
+import { sortAppointmentsByStart } from '../../lib/coachingAppointment'
 import { partitionCoachTodayAppointments } from '../../lib/coachHubAppointments'
 import { dateKey } from '../../lib/appointmentScheduling'
 import { appointmentTypeLabel } from '../../lib/coachingAppointment'
@@ -119,7 +119,9 @@ export default function CoachTodaySchedule({
   }, [loadToday])
 
   const todayItems = useMemo(
-    () => appointmentsOnDate(sessions, dateKey(new Date(now))),
+    () => sortAppointmentsByStart(
+      sessions.filter((item) => item.sessionDate === dateKey(new Date(now))),
+    ),
     [sessions, now],
   )
   const { upcoming, earlier } = useMemo(
